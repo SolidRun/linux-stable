@@ -70,6 +70,7 @@ static int csi_enc_setup(cam_data *cam)
 	int err = 0, sensor_protocol = 0;
 	dma_addr_t dummy = cam->dummy_frame.buffer.m.offset;
 	ipu_channel_t chan = (cam->csi == 0) ? CSI_MEM0 : CSI_MEM1;
+	struct v4l2_format cam_fmt;
 
 	CAMERA_TRACE("In csi_enc_setup\n");
 	if (!cam) {
@@ -106,7 +107,14 @@ static int csi_enc_setup(cam_data *cam)
 	else if (cam->v2f.fmt.pix.pixelformat == V4L2_PIX_FMT_YUV422P)
 		pixel_fmt = IPU_PIX_FMT_YUV422P;
 	else if (cam->v2f.fmt.pix.pixelformat == V4L2_PIX_FMT_UYVY)
-		pixel_fmt = IPU_PIX_FMT_UYVY;
+	{
+		cam_fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+		vidioc_int_g_fmt_cap(cam->sensor, &cam_fmt);
+		if (cam_fmt.fmt.pix.pixelformat == IPU_PIX_FMT_GENERIC_16)
+			pixel_fmt = cam_fmt.fmt.pix.pixelformat;
+		else
+			pixel_fmt = IPU_PIX_FMT_UYVY;
+	}
 	else if (cam->v2f.fmt.pix.pixelformat == V4L2_PIX_FMT_YUYV)
 		pixel_fmt = IPU_PIX_FMT_YUYV;
 	else if (cam->v2f.fmt.pix.pixelformat == V4L2_PIX_FMT_NV12)

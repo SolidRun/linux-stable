@@ -1647,6 +1647,14 @@ config MFD_STW481X
 	  in various ST Microelectronics and ST-Ericsson embedded
 	  Nomadik series.
 
+config MFD_TDA1997X
+	tristate "TDA1997X HDMI Receiver Core"
+	select MFD_CORE
+	depends on I2C=y
+	help
+		This is the core driver for the TDA1997X HDMI Reciver.  This MFD
+		driver connects with video and audio drivers for HDMI Input.
+
 menu "Multimedia Capabilities Port drivers"
 	depends on ARCH_SA1100
 
@@ -1668,7 +1676,6 @@ config MCP_UCB1200
 config MCP_UCB1200_TS
 	tristate "Touchscreen interface support"
 	depends on MCP_UCB1200 && INPUT
-
 endmenu
 
 config MFD_VEXPRESS_SYSREG
