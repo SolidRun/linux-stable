@@ -1393,9 +1393,14 @@ void setup_ifparm(cam_data *cam, int init_defrect)
 //		csi_param.clk_mode = IPU_CSI_CLK_MODE_CCIR656_PROGRESSIVE;
 //		break;
 	default:
-		csi_param.clk_mode = (ifparm.u.bt656.clock_curr == 0) ?
-				IPU_CSI_CLK_MODE_CCIR656_INTERLACED :
-				IPU_CSI_CLK_MODE_GATED_CLK;
+		if (ifparm.u.bt656.clock_curr == 0) {
+			csi_param.clk_mode = IPU_CSI_CLK_MODE_CCIR656_INTERLACED;
+			/*protocol bt656 use 27Mhz pixel clock */
+			csi_param.mclk = 27000000;
+		} else if (ifparm.u.bt656.clock_curr == 1) {
+			csi_param.clk_mode = IPU_CSI_CLK_MODE_GATED_CLK;
+		} else
+			csi_param.clk_mode = IPU_CSI_CLK_MODE_GATED_CLK;
 	}
 
 	csi_param.pixclk_pol = ifparm.u.bt656.latch_clk_inv;
@@ -1578,7 +1583,6 @@ static int mxc_v4l2_s_param(cam_data *cam, struct v4l2_streamparm *parm)
 	/* If resolution changed, need to re-program the CSI */
 	/* Get new values. */
 	setup_ifparm(cam, 0);
-
 
 exit:
 	if (cam->overlay_on == true)
