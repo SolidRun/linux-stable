@@ -28,3 +28,6 @@ obj-$(CONFIG_VIDEO_V4L2_MXC_INT_DEVICE) += v4l2-int-device.o
 
 gs2971_video-objs := gs2971.o
 obj-$(CONFIG_MXC_VIDEO_GS2971) += gs2971_video.o
+
+tda1997x-video-objs := tda1997x.o
+obj-$(CONFIG_MXC_TVIN_TDA1997X) += tda1997x-video.o
