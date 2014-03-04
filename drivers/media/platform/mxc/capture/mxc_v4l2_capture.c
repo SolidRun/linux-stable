@@ -3048,7 +3048,9 @@ static int mxc_v4l2_probe(struct platform_device *pdev)
 		return -1;
 	}
 
-	init_camera_struct(cam, pdev);
+	ret = init_camera_struct(cam, pdev);
+	if (ret)
+		return ret;
 	pdev->dev.release = camera_platform_release;
 
 	/* Set up the v4l2 device and register it*/
