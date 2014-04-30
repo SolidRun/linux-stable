@@ -50,9 +50,9 @@
 #define IMX_SSP_SYS_CLK		0
 
 
-#define TC358743_VOLTAGE_ANALOG               2800000
-#define TC358743_VOLTAGE_DIGITAL_CORE         1500000
-#define TC358743_VOLTAGE_DIGITAL_IO           1800000
+#define TC358743_VOLTAGE_ANALOG		2800000
+#define TC358743_VOLTAGE_DIGITAL_CORE	 1500000
+#define TC358743_VOLTAGE_DIGITAL_IO	   1800000
 
 #define MIN_FPS 30
 #define MAX_FPS 60
@@ -129,19 +129,16 @@ static int tc358743_toggle_hpd(int active);
 static void det_work_enable(int i)
 {
 	mutex_lock(&access_lock);
-	if(i)
-	{
+	if (i) {
 		det_work_timeout = DET_WORK_TIMEOUT_DEFERRED;
 		schedule_delayed_work(&(det_work), msecs_to_jiffies(det_work_timeout));
 		det_work_disable = 0;
-	}
-	else
-	{
+	} else {
 		det_work_disable = 1;
 		det_work_timeout = DET_WORK_TIMEOUT_DEFERRED;
 	}
 	mutex_unlock(&access_lock);
-	printk(KERN_DEBUG "%s: %d %d\n", __FUNCTION__, det_work_disable, det_work_timeout);
+	pr_debug("%s: %d %d\n", __func__, det_work_disable, det_work_timeout);
 }
 
 static u8 cHDMIEDID[256];
@@ -1046,70 +1043,70 @@ static struct reg_value tc358743_setting_YUV422_4lane_1080P_60fps_1920_1080_300M
 };
 
 static struct reg_value tc358743_setting_YUV422_4lane_1080P_30fps_1920_1080_300MHz[] = {
-  {0x7080, 0x00000000, 0x00000000, 2, 0},				// IR control resister
-  {0x0004, 0x00000084, 0x00000000, 2, 0},				//  Internal Generated output pattern,Do not send InfoFrame data out to CSI2,Audio output to CSI2-TX i/f,I2C address index increments on every data byte transfer, disable audio and video TX buffers
-  {0x0002, 0x00000f00, 0x00000000, 2, 100},//0},		// Reset devices and set normal operatio (not sleep)
-  {0x0002, 0x00000000, 0x00000000, 2, 1000},//0}, 		// Clear reset bits
-  {0x0006, 0x000001f8, 0x00000000, 2, 0},				// FIFO level = 1f8 = 504
-  {0x0014, 0x00000000, 0x00000000, 2, 0},				// Clear interrupt status bits
-  {0x0016, 0x000005ff, 0x00000000, 2, 0},				// Mask audio mute, CSI-TX, and the other interrups
+  {0x7080, 0x00000000, 0x00000000, 2, 0},		// IR control resister
+  {0x0004, 0x00000084, 0x00000000, 2, 0},		//  Internal Generated output pattern,Do not send InfoFrame data out to CSI2,Audio output to CSI2-TX i/f,I2C address index increments on every data byte transfer, disable audio and video TX buffers
+  {0x0002, 0x00000f00, 0x00000000, 2, 100},//0},	// Reset devices and set normal operatio (not sleep)
+  {0x0002, 0x00000000, 0x00000000, 2, 1000},//0}, 	// Clear reset bits
+  {0x0006, 0x000001f8, 0x00000000, 2, 0},		// FIFO level = 1f8 = 504
+  {0x0014, 0x00000000, 0x00000000, 2, 0},		// Clear interrupt status bits
+  {0x0016, 0x000005ff, 0x00000000, 2, 0},		// Mask audio mute, CSI-TX, and the other interrups
 // Program CSI Tx PLL
-  //{0x0020, 0x000080c7, 0x00000000, 2, 0},				// Input divider setting = 0x8 -> Division ratio = (PRD3..0) + 1 = 9, Feedback divider setting = 0xc7 -> Division ratio = (FBD8...0) + 1 = 200
-  {0x0020, 0x000080c7, 0x00000000, 2, 0},				// Input divider setting = 0x8 -> Division ratio = (PRD3..0) + 1 = 9, Feedback divider setting = 0xc7 -> Division ratio = (FBD8...0) + 1 = 200
-  {0x0022, 0x00000213, 0x00000000, 2, 0},				// HSCK frequency = 500MHz – 1GHz HSCK frequency, Loop bandwidth setting = 50% of maximum loop bandwidth (default), REFCLK toggling –> normal operation, REFCLK stops -> no oscillation, Bypass clock = normal operation, clocks switched off (output LOW), PLL Reset normal operation, PLL Enable = PLL on
+  //{0x0020, 0x000080c7, 0x00000000, 2, 0},		// Input divider setting = 0x8 -> Division ratio = (PRD3..0) + 1 = 9, Feedback divider setting = 0xc7 -> Division ratio = (FBD8...0) + 1 = 200
+  {0x0020, 0x000080c7, 0x00000000, 2, 0},		// Input divider setting = 0x8 -> Division ratio = (PRD3..0) + 1 = 9, Feedback divider setting = 0xc7 -> Division ratio = (FBD8...0) + 1 = 200
+  {0x0022, 0x00000213, 0x00000000, 2, 0},		// HSCK frequency = 500MHz – 1GHz HSCK frequency, Loop bandwidth setting = 50% of maximum loop bandwidth (default), REFCLK toggling –> normal operation, REFCLK stops -> no oscillation, Bypass clock = normal operation, clocks switched off (output LOW), PLL Reset normal operation, PLL Enable = PLL on
 // CSI Tx PHY  (32-bit Registers)
-  {0x0140, 0x00000000, 0x00000000, 4, 0},				// Clock Lane DPHY Control: Bypass Lane Enable from PPI Layer enable.
-  {0x0144, 0x00000000, 0x00000000, 4, 0},				// Data Lane 0 DPHY Control: Bypass Lane Enable from PPI Layer enable.
-  {0x0148, 0x00000000, 0x00000000, 4, 0},               // Data Lane 1 DPHY Control: Bypass Lane Enable from PPI Layer enable.
-  {0x014c, 0x00000000, 0x00000000, 4, 0},               // Data Lane 2 DPHY Control: Bypass Lane Enable from PPI Layer enable.
-  {0x0150, 0x00000000, 0x00000000, 4, 0},               // Data Lane 3 DPHY Control: Bypass Lane Enable from PPI Layer enable.
+  {0x0140, 0x00000000, 0x00000000, 4, 0},		// Clock Lane DPHY Control: Bypass Lane Enable from PPI Layer enable.
+  {0x0144, 0x00000000, 0x00000000, 4, 0},		// Data Lane 0 DPHY Control: Bypass Lane Enable from PPI Layer enable.
+  {0x0148, 0x00000000, 0x00000000, 4, 0},		// Data Lane 1 DPHY Control: Bypass Lane Enable from PPI Layer enable.
+  {0x014c, 0x00000000, 0x00000000, 4, 0},		// Data Lane 2 DPHY Control: Bypass Lane Enable from PPI Layer enable.
+  {0x0150, 0x00000000, 0x00000000, 4, 0},		// Data Lane 3 DPHY Control: Bypass Lane Enable from PPI Layer enable.
 // CSI Tx PPI  (32-bit Registers)
-  {0x0210, 0x00001e00, 0x00000000, 4, 0},               // LINEINITCNT: Line Initialization Wait Counter = 0x1e00 = 7680
-  {0x0214, 0x00000003, 0x00000000, 4, 0},               // LPTXTIMECNT: SYSLPTX Timing Generation Counter = 3
+  {0x0210, 0x00001e00, 0x00000000, 4, 0},		// LINEINITCNT: Line Initialization Wait Counter = 0x1e00 = 7680
+  {0x0214, 0x00000003, 0x00000000, 4, 0},		// LPTXTIMECNT: SYSLPTX Timing Generation Counter = 3
   {0x0218, 0x00001402, 0x00000000, 4, 0},				// TCLK_HEADERCNT: TCLK_ZERO Counter = 0x14 = 20, TCLK_PREPARE Counter = 0x02 = 2
-  {0x021c, 0x00000000, 0x00000000, 4, 0},               // TCLK_TRAILCNT: TCLK_TRAIL Counter = 0
-  {0x0220, 0x00000003, 0x00000000, 4, 0},               // THS_HEADERCNT: THS_ZERO Counter = 0, THS_PREPARE Counter = 3
-  {0x0224, 0x00004a00, 0x00000000, 4, 0},               // TWAKEUP: TWAKEUP Counter = 0x4a00 = 18944
-  {0x0228, 0x00000008, 0x00000000, 4, 0},               // TCLK_POSTCNT: TCLK_POST Counter = 8
-  {0x022c, 0x00000002, 0x00000000, 4, 0},               // THS_TRAILCNT: THS_TRAIL Counter = 2
-  {0x0234, 0x0000001f, 0x00000000, 4, 0},               // HSTXVREGEN: Enable voltage regulators for lanes and clk
-  {0x0238, 0x00000001, 0x00000000, 4, 0},	            // TXOPTIONCNTRL: Set Continuous Clock Mode
-  {0x0204, 0x00000001, 0x00000000, 4, 0},               // PPI STARTCNTRL: start PPI function
-  {0x0518, 0x00000001, 0x00000000, 4, 0},               // CSI_START: start
-  {0x0500, 0xa30080a6, 0x00000000, 4, 0},               // CSI Configuration Register: set register 0x040C with data 0x80a6 (CSI MOde, Disables the HTX_TO timer, High-Speed data transfer is performed to Tx, DSCClk Stays in HS mode when Data Lane goes to LP, 4 Data Lanes,The EOT packet is automatically granted at the end of HS transfer then is transmitted)
+  {0x021c, 0x00000000, 0x00000000, 4, 0},		// TCLK_TRAILCNT: TCLK_TRAIL Counter = 0
+  {0x0220, 0x00000003, 0x00000000, 4, 0},		// THS_HEADERCNT: THS_ZERO Counter = 0, THS_PREPARE Counter = 3
+  {0x0224, 0x00004a00, 0x00000000, 4, 0},		// TWAKEUP: TWAKEUP Counter = 0x4a00 = 18944
+  {0x0228, 0x00000008, 0x00000000, 4, 0},		// TCLK_POSTCNT: TCLK_POST Counter = 8
+  {0x022c, 0x00000002, 0x00000000, 4, 0},		// THS_TRAILCNT: THS_TRAIL Counter = 2
+  {0x0234, 0x0000001f, 0x00000000, 4, 0},		// HSTXVREGEN: Enable voltage regulators for lanes and clk
+  {0x0238, 0x00000001, 0x00000000, 4, 0},		    // TXOPTIONCNTRL: Set Continuous Clock Mode
+  {0x0204, 0x00000001, 0x00000000, 4, 0},		// PPI STARTCNTRL: start PPI function
+  {0x0518, 0x00000001, 0x00000000, 4, 0},		// CSI_START: start
+  {0x0500, 0xa30080a6, 0x00000000, 4, 0},		// CSI Configuration Register: set register 0x040C with data 0x80a6 (CSI MOde, Disables the HTX_TO timer, High-Speed data transfer is performed to Tx, DSCClk Stays in HS mode when Data Lane goes to LP, 4 Data Lanes,The EOT packet is automatically granted at the end of HS transfer then is transmitted)
 // HDMI Interrupt Mask
-  {0x8502, 0x00000001, 0x00000000, 1, 0},               // SYSTEM INTERRUPT: clear DDC power change detection interrupt
-  {0x8512, 0x000000fe, 0x00000000, 1, 0},               // SYS INTERRUPT MASK: DDC power change detection interrupt not masked
-  {0x8514, 0x00000000, 0x00000000, 1, 0},               // PACKET INTERRUPT MASK: unmask all
-  {0x8515, 0x00000000, 0x00000000, 1, 0},               // CBIT INTERRUPT MASK: unmask all
-  {0x8516, 0x00000000, 0x00000000, 1, 0},               // AUDIO INTERRUPT MASK: unmask all
+  {0x8502, 0x00000001, 0x00000000, 1, 0},		// SYSTEM INTERRUPT: clear DDC power change detection interrupt
+  {0x8512, 0x000000fe, 0x00000000, 1, 0},		// SYS INTERRUPT MASK: DDC power change detection interrupt not masked
+  {0x8514, 0x00000000, 0x00000000, 1, 0},		// PACKET INTERRUPT MASK: unmask all
+  {0x8515, 0x00000000, 0x00000000, 1, 0},		// CBIT INTERRUPT MASK: unmask all
+  {0x8516, 0x00000000, 0x00000000, 1, 0},		// AUDIO INTERRUPT MASK: unmask all
 // HDMI Audio RefClk (27 MHz)
-  {0x8531, 0x00000001, 0x00000000, 1, 0},               // PHY CONTROL0: 27MHz, DDC5V detection operation.
-  {0x8540, 0x00000a8c, 0x00000000, 1, 0},               // SYS FREQ0 Register: 27MHz
-  {0x8630, 0x00041eb0, 0x00000000, 1, 0},               // Audio FS Lock Detect Control: for 27MHz
-  {0x8670, 0x00000001, 0x00000000, 1, 0},               // AUDIO PLL Setting: For REFCLK = 27MHz
+  {0x8531, 0x00000001, 0x00000000, 1, 0},		// PHY CONTROL0: 27MHz, DDC5V detection operation.
+  {0x8540, 0x00000a8c, 0x00000000, 1, 0},		// SYS FREQ0 Register: 27MHz
+  {0x8630, 0x00041eb0, 0x00000000, 1, 0},		// Audio FS Lock Detect Control: for 27MHz
+  {0x8670, 0x00000001, 0x00000000, 1, 0},		// AUDIO PLL Setting: For REFCLK = 27MHz
 // HDMI PHY
-  {0x8532, 0x00000080, 0x00000000, 1, 0},               //
-  {0x8536, 0x00000040, 0x00000000, 1, 0},               //
-  {0x853f, 0x0000000a, 0x00000000, 1, 0},               //
+  {0x8532, 0x00000080, 0x00000000, 1, 0},		//
+  {0x8536, 0x00000040, 0x00000000, 1, 0},		//
+  {0x853f, 0x0000000a, 0x00000000, 1, 0},		//
 // HDMI System
-  {0x8543, 0x00000032, 0x00000000, 1, 0},               // DDC CONTROL: DDC_ACK output terminal H active, DDC5V_active detect delay 200ms
-  {0x8544, 0x00000010, 0x00000000, 1, 100},             // HPD Control Register: HOTPLUG output ON/OFF control mode = DDC5V detection interlock
-  {0x8545, 0x00000031, 0x00000000, 1, 0},               // ANA CONTROL: PLL charge pump setting for Audio = normal, DAC/PLL power ON/OFF setting for Audio = ON
-  {0x8546, 0x0000002d, 0x00000000, 1, 0},               // AVMUTE CONTROL: AVM_CTL = 0x2d
+  {0x8543, 0x00000032, 0x00000000, 1, 0},		// DDC CONTROL: DDC_ACK output terminal H active, DDC5V_active detect delay 200ms
+  {0x8544, 0x00000010, 0x00000000, 1, 100},		// HPD Control Register: HOTPLUG output ON/OFF control mode = DDC5V detection interlock
+  {0x8545, 0x00000031, 0x00000000, 1, 0},		// ANA CONTROL: PLL charge pump setting for Audio = normal, DAC/PLL power ON/OFF setting for Audio = ON
+  {0x8546, 0x0000002d, 0x00000000, 1, 0},		// AVMUTE CONTROL: AVM_CTL = 0x2d
 // EDID
-  {0x85c7, 0x00000001, 0x00000000, 1, 0},               // EDID MODE REGISTER: nternal EDID-RAM & DDC2B mode
-  {0x85cb, 0x00000001, 0x00000000, 1, 0},               // EDID Length REGISTER 2: EDID data size stored in RAM (upper address bits) = 0x1 (Size = 0x100 = 256)
+  {0x85c7, 0x00000001, 0x00000000, 1, 0},		// EDID MODE REGISTER: nternal EDID-RAM & DDC2B mode
+  {0x85cb, 0x00000001, 0x00000000, 1, 0},		// EDID Length REGISTER 2: EDID data size stored in RAM (upper address bits) = 0x1 (Size = 0x100 = 256)
 // HDCP Setting
-  {0x85d1, 0x00000001, 0x00000000, 1, 0},               //
-  {0x8560, 0x00000024, 0x00000000, 1, 0},               // HDCP MODE: HDCP automatic reset when DVI⇔HDMI switched = on, HDCP Line Rekey timing switch = 7clk mode (Data island delay ON), Bcaps[5] KSVINFO_READY(0x8840[5]) auto clear mode = Auto clear using AKSV write
-  {0x8563, 0x00000011, 0x00000000, 1, 0},               //
-  {0x8564, 0x0000000f, 0x00000000, 1, 0},               //
+  {0x85d1, 0x00000001, 0x00000000, 1, 0},		//
+  {0x8560, 0x00000024, 0x00000000, 1, 0},		// HDCP MODE: HDCP automatic reset when DVI⇔HDMI switched = on, HDCP Line Rekey timing switch = 7clk mode (Data island delay ON), Bcaps[5] KSVINFO_READY(0x8840[5]) auto clear mode = Auto clear using AKSV write
+  {0x8563, 0x00000011, 0x00000000, 1, 0},		//
+  {0x8564, 0x0000000f, 0x00000000, 1, 0},		//
 // RGB --> YUV Conversion
-  {0x8571, 0x00000002, 0x00000000, 1, 0},               //
-  {0x8573, 0x000000c1, 0x00000000, 1, 0},               // VOUT SET2 REGISTER: 422 fixed output, Video Output 422 conversion mode selection 000: During 444 input, 3tap filter; during 422 input, simple decimation, Enable RGB888 to YUV422 Conversion (Fixed Color output)
+  {0x8571, 0x00000002, 0x00000000, 1, 0},		//
+  {0x8573, 0x000000c1, 0x00000000, 1, 0},		// VOUT SET2 REGISTER: 422 fixed output, Video Output 422 conversion mode selection 000: During 444 input, 3tap filter; during 422 input, simple decimation, Enable RGB888 to YUV422 Conversion (Fixed Color output)
   {0x8574, 0x00000008, 0x00000000, 1, 0},				// VOUT SET3 REGISTER (VOUT_SET3): Follow register bit 0x8573[7] setting
-  {0x8576, 0x00000060, 0x00000000, 1, 0},               // VOUT_COLOR: Output Color = 601 YCbCr Limited, Input Pixel Repetition judgment = automatic, Input Pixel Repetition HOST setting = no repetition
+  {0x8576, 0x00000060, 0x00000000, 1, 0},		// VOUT_COLOR: Output Color = 601 YCbCr Limited, Input Pixel Repetition judgment = automatic, Input Pixel Repetition HOST setting = no repetition
 // HDMI Audio In Setting
   {0x8600, 0x00000000, 0x00000000, 1, 0},
   {0x8602, 0x000000f3, 0x00000000, 1, 0},
@@ -1124,15 +1121,15 @@ static struct reg_value tc358743_setting_YUV422_4lane_1080P_30fps_1920_1080_300M
   {0x8652, 0x00000002, 0x00000000, 1, 0},
   {0x8665, 0x00000010, 0x00000000, 1, 0},
 // InfoFrame Extraction
-  {0x8709, 0x000000ff, 0x00000000, 1, 0},              // PACKET INTERRUPT MODE: all enable
-  {0x870b, 0x0000002c, 0x00000000, 1, 0},              // NO PACKET LIMIT: NO_ACP_LIMIT = 0x2, NO_AVI_LIMIT = 0xC
-  {0x870c, 0x00000053, 0x00000000, 1, 0},              // When VS receive interrupt is detected, VS storage register automatic clear, When ACP receive interrupt is detected, ACP storage register automatic clear, When AVI receive interrupt occurs, judge input video signal with RGB and no Repetition, When AVI receive interrupt is detected, AVI storage register automatic clear.
-  {0x870d, 0x00000001, 0x00000000, 1, 0},              // ERROR PACKET LIMIT: Packet continuing receive error occurrence detection threshold = 1
-  {0x870e, 0x00000030, 0x00000000, 1, 0},              // NO PACKET LIMIT:
-  {0x9007, 0x00000010, 0x00000000, 1, 0},              //
-  {0x854a, 0x00000001, 0x00000000, 1, 0},              // Initialization completed flag
+  {0x8709, 0x000000ff, 0x00000000, 1, 0},		// PACKET INTERRUPT MODE: all enable
+  {0x870b, 0x0000002c, 0x00000000, 1, 0},		// NO PACKET LIMIT: NO_ACP_LIMIT = 0x2, NO_AVI_LIMIT = 0xC
+  {0x870c, 0x00000053, 0x00000000, 1, 0},		// When VS receive interrupt is detected, VS storage register automatic clear, When ACP receive interrupt is detected, ACP storage register automatic clear, When AVI receive interrupt occurs, judge input video signal with RGB and no Repetition, When AVI receive interrupt is detected, AVI storage register automatic clear.
+  {0x870d, 0x00000001, 0x00000000, 1, 0},		// ERROR PACKET LIMIT: Packet continuing receive error occurrence detection threshold = 1
+  {0x870e, 0x00000030, 0x00000000, 1, 0},		// NO PACKET LIMIT:
+  {0x9007, 0x00000010, 0x00000000, 1, 0},		//
+  {0x854a, 0x00000001, 0x00000000, 1, 0},		// Initialization completed flag
 // Output Control
-  {0x0004, 0x00000cf7, 0x00000000, 2, 0},              // Configuration Control Register: Power Island Normal, I2S/TDM clock are free running,  Enable 2 Audio channels, Audio channel number Auto detect by HW, I2S/TDM Data no delay, Select YCbCr422 8-bit (HDMI YCbCr422 12-bit data format), Send InfoFrame data out to CSI2, Audio output to I2S i/f (valid for 2 channel only), I2C address index increments on every data byte transfer, Audio and Video tx buffres enable.
+  {0x0004, 0x00000cf7, 0x00000000, 2, 0},		// Configuration Control Register: Power Island Normal, I2S/TDM clock are free running,  Enable 2 Audio channels, Audio channel number Auto detect by HW, I2S/TDM Data no delay, Select YCbCr422 8-bit (HDMI YCbCr422 12-bit data format), Send InfoFrame data out to CSI2, Audio output to I2S i/f (valid for 2 channel only), I2C address index increments on every data byte transfer, Audio and Video tx buffres enable.
 };
 
 /* list of image formats supported by TCM825X sensor */
@@ -1362,40 +1359,33 @@ static s32 tc358743_write_reg(u16 reg, u32 val, int len)
 	u8 au8Buf[6] = {0};
 	int size = 0;
 
-	while(0 != tc358743_read_reg_size[i].startaddr ||
+	while (0 != tc358743_read_reg_size[i].startaddr ||
 	      0 != tc358743_read_reg_size[i].endaddr ||
-	      0 != tc358743_read_reg_size[i].size)
-	{
-		if(tc358743_read_reg_size[i].startaddr <= reg && tc358743_read_reg_size[i].endaddr >= reg)
-		{
+	      0 != tc358743_read_reg_size[i].size) {
+		if (tc358743_read_reg_size[i].startaddr <= reg
+				&& tc358743_read_reg_size[i].endaddr >= reg) {
 			size = tc358743_read_reg_size[i].size;
 			break;
 		}
 		i++;
 	}
-	if(!size)
-	{
+	if (!size) {
 		pr_err("%s:write reg error:reg=%x is not found\n",__func__, reg);
 		return -1;
 	}
-	if(size == 3)
-	{
+	if (size == 3) {
 		size = 2;
-	}
-	else
-		if(size != len)
-		{
-			pr_err("%s:write reg len error:reg=%x %d instead of %d\n",
+	} else if (size != len) {
+		pr_err("%s:write reg len error:reg=%x %d instead of %d\n",
 					__func__, reg, len, size);
-			return 0;
-		}
+		return 0;
+	}
 
-	while(len > 0)
-	{
+	while (len > 0) {
 		i = 0;
 		au8Buf[i++] = (reg >> 8) & 0xff;
 		au8Buf[i++] = reg & 0xff;
-		while(size-- > 0)
+		while (size-- > 0)
 		{
 			au8Buf[i++] = (u8)data;
 			data >>= 8;
@@ -1420,21 +1410,18 @@ static s32 tc358743_read_reg(u16 reg, u32 *val)
 	int i=0;
 	int size = 0;
 
-	while(0 != tc358743_read_reg_size[i].startaddr ||
+	while (0 != tc358743_read_reg_size[i].startaddr ||
 	      0 != tc358743_read_reg_size[i].endaddr ||
-	      0 != tc358743_read_reg_size[i].size)
-	{
-	if(tc358743_read_reg_size[i].startaddr <= reg && tc358743_read_reg_size[i].endaddr >= reg)
-	{
-		size = tc358743_read_reg_size[i].size;
-		break;
+	      0 != tc358743_read_reg_size[i].size) {
+		if (tc358743_read_reg_size[i].startaddr <= reg &&
+			tc358743_read_reg_size[i].endaddr >= reg) {
+			size = tc358743_read_reg_size[i].size;
+			break;
+		}
+		i++;
 	}
-	i++;
-	}
-	if(!size)
-	{
+	if (!size)
 		return -1;
-	}
 
 	au8RegBuf[0] = reg >> 8;
 	au8RegBuf[1] = reg & 0xff;
@@ -1464,14 +1451,12 @@ static int tc358743_write_edid(u8 *edid, int len)
 	reg = 0x8C00;
 	off = 0;
 	size = ARRAY_SIZE(au8Buf)-2;
-	printk(KERN_DEBUG "Write EDID: %d (%d)\n", len, size);
-	while(len > 0)
-	{
+	pr_debug("Write EDID: %d (%d)\n", len, size);
+	while (len > 0) {
 		i = 0;
 		au8Buf[i++] = (reg >> 8) & 0xff;
 		au8Buf[i++] = reg & 0xff;
-		while(i < ARRAY_SIZE(au8Buf))
-		{
+		while (i < ARRAY_SIZE(au8Buf)) {
 			au8Buf[i++] = edid[off++];
 		}
 
@@ -1483,7 +1468,7 @@ static int tc358743_write_edid(u8 *edid, int len)
 		len -= (u8)size;
 		reg += (u16)size;
 	}
-	printk(KERN_DEBUG "Activate EDID\n");
+	pr_debug("Activate EDID\n");
 	tc358743_write_reg(0x85c7, 0x01, 1);
 	tc358743_write_reg(0x85ca, 0x00, 1);
 	tc358743_write_reg(0x85cb, 0x01, 1);
@@ -1497,31 +1482,29 @@ static int tc358743_reset(struct sensor_data *sensor)
 	int ret = -1;
 
 	det_work_enable(0);
-	while(ret)
-	{
-	if (camera_plat->pwdn)
-	{
-		printk(KERN_DEBUG "%s: RESET\n", __FUNCTION__);
-		camera_plat->pwdn(1);
-		mdelay(100);
-		camera_plat->pwdn(0);
-		mdelay(1000);
-	}
+	while (ret) {
+		if (camera_plat->pwdn) {
+			pr_debug("%s: RESET\n", __func__);
+			camera_plat->pwdn(1);
+			mdelay(100);
+			camera_plat->pwdn(0);
+			mdelay(1000);
+		}
 
-	tgt_fps = sensor->streamcap.timeperframe.denominator /
-		  sensor->streamcap.timeperframe.numerator;
+		tgt_fps = sensor->streamcap.timeperframe.denominator /
+				sensor->streamcap.timeperframe.numerator;
 
-	if (tgt_fps == 60)
-		frame_rate = tc358743_60_fps;
-	else if (tgt_fps == 30)
-		frame_rate = tc358743_30_fps;
+		if (tgt_fps == 60)
+			frame_rate = tc358743_60_fps;
+		else if (tgt_fps == 30)
+			frame_rate = tc358743_30_fps;
 
-	printk(KERN_DEBUG "%s: capture mode: %d extended mode: %d fps: %d\n", __FUNCTION__,sensor->streamcap.capturemode, sensor->streamcap.extendedmode, tgt_fps);
+		pr_debug("%s: capture mode: %d extended mode: %d fps: %d\n", __func__,sensor->streamcap.capturemode, sensor->streamcap.extendedmode, tgt_fps);
 
-	ret = tc358743_init_mode(frame_rate,
-			      sensor->streamcap.capturemode);
-	if(ret)
-		printk(KERN_ERR "%s: Fail to init tc35874! - retry\n", __FUNCTION__);
+		ret = tc358743_init_mode(frame_rate,
+				sensor->streamcap.capturemode);
+		if (ret)
+			pr_err("%s: Fail to init tc35874! - retry\n", __func__);
 	}
 	det_work_enable(1);
 	return ret;
@@ -1534,7 +1517,7 @@ static int tc358743_init_mode(enum tc358743_frame_rate frame_rate,
 {
 
 	struct reg_value *pModeSetting = NULL;
-		s32 i = 0;
+	s32 i = 0;
 	s32 iModeSettingArySize = 0;
 	register u32 RepeateLines = 0;
 	register int RepeateTimes = 0;
@@ -1547,22 +1530,22 @@ static int tc358743_init_mode(enum tc358743_frame_rate frame_rate,
 	int retval = 0;
 	void *mipi_csi2_info;
 	u32 mipi_reg;
-    u32 mipi_reg_test[10];
+	u32 mipi_reg_test[10];
 
-	printk(KERN_DEBUG "%s rate: %d mode: %d\n", __FUNCTION__, frame_rate, mode);
+	pr_debug("%s rate: %d mode: %d\n", __func__, frame_rate, mode);
 	if ((mode > tc358743_mode_MAX || mode < 0)
 		&& (mode != tc358743_mode_INIT)) {
-		printk(KERN_DEBUG "%s Wrong tc358743 mode detected! %d. Set mode 0\n", __FUNCTION__, mode);
+		pr_debug("%s Wrong tc358743 mode detected! %d. Set mode 0\n", __func__, mode);
 		mode = 0;
 	}
 
 	mipi_csi2_info = mipi_csi2_get_info();
-	printk(KERN_DEBUG "%s rate: %d mode: %d, info %p\n", __FUNCTION__, frame_rate, mode, mipi_csi2_info);
+	pr_debug("%s rate: %d mode: %d, info %p\n", __func__, frame_rate, mode, mipi_csi2_info);
 
 	/* initial mipi dphy */
 	tc358743_toggle_hpd(!hpd_active);
 	if (mipi_csi2_info) {
-		printk(KERN_DEBUG "%s: mipi_csi2_info:\n"
+		pr_debug("%s: mipi_csi2_info:\n"
 		"mipi_en:       %d\n"
 		"ipu_id:        %d\n"
 		"csi_id:        %d\n"
@@ -1573,7 +1556,7 @@ static int tc358743_init_mode(enum tc358743_frame_rate frame_rate,
 		"pixel_clk:     %p\n"
 		"mipi_csi2_base:%p\n"
 		"pdev:          %p\n"
-		, __FUNCTION__,
+		, __func__,
 		((struct mipi_csi2_info *)mipi_csi2_info)->mipi_en,
 		((struct mipi_csi2_info *)mipi_csi2_info)->ipu_id,
 		((struct mipi_csi2_info *)mipi_csi2_info)->csi_id,
@@ -1590,39 +1573,36 @@ static int tc358743_init_mode(enum tc358743_frame_rate frame_rate,
 
 		if (mipi_csi2_get_status(mipi_csi2_info)) {
 			int ifmt;
-			if(tc358743_mode_info_data[frame_rate][mode].lanes != 0)
-			{
-				printk(KERN_DEBUG "%s Change lanes: from %d to %d\n", __FUNCTION__, ((struct mipi_csi2_info *)mipi_csi2_info)->lanes, tc358743_mode_info_data[frame_rate][mode].lanes);
+			if (tc358743_mode_info_data[frame_rate][mode].lanes != 0) {
+				pr_debug("%s Change lanes: from %d to %d\n", __func__, ((struct mipi_csi2_info *)mipi_csi2_info)->lanes, tc358743_mode_info_data[frame_rate][mode].lanes);
 				((struct mipi_csi2_info *)mipi_csi2_info)->lanes = tc358743_mode_info_data[frame_rate][mode].lanes;
 				((struct mipi_csi2_info *)mipi_csi2_info)->lanes = tc358743_mode_info_data[frame_rate][mode].lanes;
 			}
-			printk(KERN_DEBUG "Now Using %d lanes\n",mipi_csi2_set_lanes(mipi_csi2_info));
+			pr_debug("Now Using %d lanes\n",mipi_csi2_set_lanes(mipi_csi2_info));
 
 			/*Only reset MIPI CSI2 HW at sensor initialize*/
-			if(!hdmi_mode)	// is this during reset
+			if (!hdmi_mode)	// is this during reset
 				mipi_csi2_reset(mipi_csi2_info);
 
 
-			printk(KERN_DEBUG "%s format: %x\n", __FUNCTION__, tc358743_data.pix.pixelformat);
+			pr_debug("%s format: %x\n", __func__, tc358743_data.pix.pixelformat);
 			for (ifmt = 0; ifmt < ARRAY_SIZE(tc358743_formats); ifmt++)
-			if (tc358743_mode_info_data[frame_rate][mode].flags == tc358743_formats[ifmt].flags)
-			{
-				tc358743_data.pix.pixelformat = tc358743_formats[ifmt].pixelformat;
-				printk(KERN_DEBUG "%s: %s (%x, %x)\n", __FUNCTION__, tc358743_formats[ifmt].description, tc358743_data.pix.pixelformat, tc358743_formats[ifmt].flags);
-				mipi_csi2_set_datatype(mipi_csi2_info, tc358743_formats[ifmt].flags);
-				break;
-			}
-			if(ifmt >= ARRAY_SIZE(tc358743_formats))
-			{
-				printk(KERN_ERR "currently this sensor format (0x%x) can not be supported!\n", tc358743_data.pix.pixelformat);
+				if (tc358743_mode_info_data[frame_rate][mode].flags == tc358743_formats[ifmt].flags) {
+					tc358743_data.pix.pixelformat = tc358743_formats[ifmt].pixelformat;
+					pr_debug("%s: %s (%x, %x)\n", __func__, tc358743_formats[ifmt].description, tc358743_data.pix.pixelformat, tc358743_formats[ifmt].flags);
+					mipi_csi2_set_datatype(mipi_csi2_info, tc358743_formats[ifmt].flags);
+					break;
+				}
+			if (ifmt >= ARRAY_SIZE(tc358743_formats)) {
+				pr_err("currently this sensor format (0x%x) can not be supported!\n", tc358743_data.pix.pixelformat);
 				return -1;
 			}
 		} else {
-			printk(KERN_ERR "Can not enable mipi csi2 driver!\n");
+			pr_err("Can not enable mipi csi2 driver!\n");
 			return -1;
 		}
 	} else {
-		printk(KERN_ERR "Fail to get mipi_csi2_info!\n");
+		pr_err("Fail to get mipi_csi2_info!\n");
 		return -1;
 	}
 
@@ -1636,7 +1616,7 @@ static int tc358743_init_mode(enum tc358743_frame_rate frame_rate,
 			tc358743_mode_info_data[frame_rate][mode].width;
 		tc358743_data.pix.height =
 			tc358743_mode_info_data[frame_rate][mode].height;
-		printk(KERN_DEBUG "%s: Set %d regs from %p for frs %d mode %d with width %d height %d\n", __FUNCTION__,
+		pr_debug("%s: Set %d regs from %p for frs %d mode %d with width %d height %d\n", __func__,
 			iModeSettingArySize,
 			pModeSetting,
 			frame_rate,
@@ -1668,39 +1648,33 @@ static int tc358743_init_mode(enum tc358743_frame_rate frame_rate,
 			if (Delay_ms)
 				msleep(Delay_ms);
 
-			if(0 != ((pModeSetting->u32Delay_ms>>16) & (0xff)))
-			{
-				if(!RepeateTimes)
-				{
+			if (0 != ((pModeSetting->u32Delay_ms>>16) & (0xff))) {
+				if (!RepeateTimes) {
 					RepeateTimes = (pModeSetting->u32Delay_ms>>16) & (0xff);
 					RepeateLines = (pModeSetting->u32Delay_ms>>24) & (0xff);
 				}
-				if(--RepeateTimes > 0)
-				{
+				if (--RepeateTimes > 0) {
 					i -= RepeateLines;
 				}
 			}
 		}
-		if(retval < 0)
-		{
-			printk(KERN_ERR "%s: Fail to write REGS to tc35874!\n", __FUNCTION__);
+		if (retval < 0) {
+			pr_err("%s: Fail to write REGS to tc35874!\n", __func__);
 			goto err;
 		}
 	}
-	if(!hdmi_mode)	// is this during reset
-	if((retval = tc358743_write_edid(cHDMIEDID, ARRAY_SIZE(cHDMIEDID))))
-		printk(KERN_ERR "%s: Fail to write EDID to tc35874!\n", __FUNCTION__);
+	if (!hdmi_mode)	// is this during reset
+		if ((retval = tc358743_write_edid(cHDMIEDID, ARRAY_SIZE(cHDMIEDID))))
+			pr_err("%s: Fail to write EDID to tc35874!\n", __func__);
 
 	tc358743_toggle_hpd(hpd_active);
 	if (mipi_csi2_info) {
-		unsigned int i;
-
-		i = 0;
+		unsigned int i = 0;
 
 		/* wait for mipi sensor ready */
 		mipi_reg = mipi_csi2_dphy_status(mipi_csi2_info);
 		while ((mipi_reg == 0x200) && (i < 10)) {
-            mipi_reg_test[i] = mipi_reg;
+			mipi_reg_test[i] = mipi_reg;
 			mipi_reg = mipi_csi2_dphy_status(mipi_csi2_info);
 			i++;
 			msleep(10);
@@ -1711,20 +1685,20 @@ static int tc358743_init_mode(enum tc358743_frame_rate frame_rate,
 			return -1;
 		}
 
-        {
-            int j;
-            for (j = 0; j < i; j++)
-            {
-                printk(KERN_DEBUG "%d  mipi csi2 dphy status %x\n", j, mipi_reg_test[j]);
-            }
-        }
+		{
+			int j;
+			for (j = 0; j < i; j++)
+			{
+				pr_debug("%d  mipi csi2 dphy status %x\n", j, mipi_reg_test[j]);
+			}
+		}
 
 		i = 0;
 
 		/* wait for mipi stable */
 		mipi_reg = mipi_csi2_get_error1(mipi_csi2_info);
 		while ((mipi_reg != 0x0) && (i < 10)) {
-            mipi_reg_test[i] = mipi_reg;
+			mipi_reg_test[i] = mipi_reg;
 			mipi_reg = mipi_csi2_get_error1(mipi_csi2_info);
 			i++;
 			msleep(10);
@@ -1735,13 +1709,12 @@ static int tc358743_init_mode(enum tc358743_frame_rate frame_rate,
 			return -1;
 		}
 
-        {
-            int j;
-            for (j = 0; j < i; j++)
-            {
-                printk(KERN_DEBUG "%d  mipi csi2 err1 %x\n", j, mipi_reg_test[j]);
-            }
-        }
+		{
+			int j;
+			for (j = 0; j < i; j++) {
+				pr_debug("%d  mipi csi2 err1 %x\n", j, mipi_reg_test[j]);
+			}
+		}
 	}
 err:
 	return (retval>0)?0:retval;
@@ -1751,7 +1724,7 @@ err:
 
 static int ioctl_g_ifparm(struct v4l2_int_device *s, struct v4l2_ifparm *p)
 {
-	printk(KERN_DEBUG "%s\n", __FUNCTION__);
+	pr_debug("%s\n", __func__);
 	if (s == NULL) {
 		pr_err("   ERROR!! no slave device set!\n");
 		return -1;
@@ -1759,7 +1732,7 @@ static int ioctl_g_ifparm(struct v4l2_int_device *s, struct v4l2_ifparm *p)
 
 	memset(p, 0, sizeof(*p));
 	p->u.bt656.clock_curr = TC358743_XCLK_MIN; //tc358743_data.mclk;
-	printk(KERN_DEBUG "%s: clock_curr=mclk=%d\n", __FUNCTION__, tc358743_data.mclk);
+	pr_debug("%s: clock_curr=mclk=%d\n", __func__, tc358743_data.mclk);
 	p->if_type = V4L2_IF_TYPE_BT656;
 	p->u.bt656.mode = V4L2_IF_TYPE_BT656_MODE_NOBT_8BIT;
 	p->u.bt656.clock_min = TC358743_XCLK_MIN;
@@ -1781,7 +1754,7 @@ static int ioctl_s_power(struct v4l2_int_device *s, int on)
 {
 	struct sensor_data *sensor = s->priv;
 
-	printk(KERN_DEBUG "%s: %d\n", __FUNCTION__, on);
+	pr_debug("%s: %d\n", __func__, on);
 	if (on && !sensor->on) {
 		if (io_regulator)
 			if (regulator_enable(io_regulator) != 0)
@@ -1808,7 +1781,7 @@ static int ioctl_s_power(struct v4l2_int_device *s, int on)
 			regulator_disable(io_regulator);
 		if (gpo_regulator)
 			regulator_disable(gpo_regulator);
-		if(!hdmi_mode)
+		if (!hdmi_mode)
 			tc358743_reset(sensor);
 	}
 
@@ -1830,7 +1803,7 @@ static int ioctl_g_parm(struct v4l2_int_device *s, struct v4l2_streamparm *a)
 	struct v4l2_captureparm *cparm = &a->parm.capture;
 	int ret = 0;
 
-	printk(KERN_DEBUG "%s type: %x\n", __FUNCTION__, a->type);
+	pr_debug("%s type: %x\n", __func__, a->type);
 	switch (a->type) {
 	/* This is the only case currently handled. */
 	case V4L2_BUF_TYPE_VIDEO_CAPTURE:
@@ -1860,21 +1833,18 @@ static int ioctl_g_parm(struct v4l2_int_device *s, struct v4l2_streamparm *a)
 	}
 
 	det_work_enable(1);
-	printk(KERN_DEBUG "%s done %d\n", __FUNCTION__, ret);
+	pr_debug("%s done %d\n", __func__, ret);
 	return ret;
 }
 
 static int tc358743_toggle_hpd(int active)
 {
 	int ret = 0;
-	if(active)
-	{
+	if (active) {
 		ret += tc358743_write_reg(0x8544, 0x00, 1);
 		mdelay(500);
 		ret += tc358743_write_reg(0x8544, 0x10, 1);
-	}
-	else
-	{
+	} else {
 		ret += tc358743_write_reg(0x8544, 0x10, 1);
 		mdelay(500);
 		ret += tc358743_write_reg(0x8544, 0x00, 1);
@@ -1899,7 +1869,7 @@ static int ioctl_s_parm(struct v4l2_int_device *s, struct v4l2_streamparm *a)
 	enum tc358743_frame_rate frame_rate = tc358743_60_fps, frame_rate_now = tc358743_60_fps;
 	int ret = 0;
 
-	printk(KERN_DEBUG "%s\n", __FUNCTION__);
+	pr_debug("%s\n", __func__);
 	det_work_enable(0);
 	/* Make sure power on */
 	if (camera_plat->pwdn)
@@ -1940,10 +1910,9 @@ static int ioctl_s_parm(struct v4l2_int_device *s, struct v4l2_streamparm *a)
 			break;
 		}
 
-		if((u32)a->parm.capture.capturemode > tc358743_mode_MAX)
-		{
+		if ((u32)a->parm.capture.capturemode > tc358743_mode_MAX) {
 			a->parm.capture.capturemode = 0;
-			printk(KERN_DEBUG "%s: Forse extended mode: %d \n", __FUNCTION__,(u32)a->parm.capture.capturemode);
+			pr_debug("%s: Forse extended mode: %d \n", __func__,(u32)a->parm.capture.capturemode);
 		}
 
 		tgt_fps = sensor->streamcap.timeperframe.denominator /
@@ -1954,23 +1923,22 @@ static int ioctl_s_parm(struct v4l2_int_device *s, struct v4l2_streamparm *a)
 		else if (tgt_fps == 30)
 			frame_rate_now = tc358743_30_fps;
 
-		if(frame_rate_now != frame_rate ||
+		if (frame_rate_now != frame_rate ||
 		   sensor->streamcap.capturemode != (u32)a->parm.capture.capturemode ||
-		   sensor->streamcap.extendedmode != (u32)a->parm.capture.extendedmode)
-		{
+		   sensor->streamcap.extendedmode != (u32)a->parm.capture.extendedmode) {
 			sensor->streamcap.timeperframe = *timeperframe;
 			sensor->streamcap.capturemode =
 					(u32)a->parm.capture.capturemode;
 			sensor->streamcap.extendedmode =
 					(u32)a->parm.capture.extendedmode;
 
-			printk(KERN_DEBUG "%s: capture mode: %d extended mode: %d \n", __FUNCTION__,sensor->streamcap.capturemode, sensor->streamcap.extendedmode);
+			pr_debug("%s: capture mode: %d extended mode: %d \n", __func__,sensor->streamcap.capturemode, sensor->streamcap.extendedmode);
 
-	        ret = tc358743_init_mode(frame_rate,
-					      sensor->streamcap.capturemode);
+			ret = tc358743_init_mode(frame_rate,
+						sensor->streamcap.capturemode);
+		} else {
+			pr_debug("%s: Keep current settings\n", __func__);
 		}
-		else
-			printk(KERN_DEBUG "%s: Keep current settings\n", __FUNCTION__);
 		break;
 
 	/* These are all the possible cases. */
@@ -1992,7 +1960,7 @@ static int ioctl_s_parm(struct v4l2_int_device *s, struct v4l2_streamparm *a)
 		break;
 	}
 
-	if(ret)
+	if (ret)
 		det_work_enable(1);
 	return ret;
 }
@@ -2010,7 +1978,7 @@ static int ioctl_g_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
 {
 	int ret = 0;
 
-	printk(KERN_DEBUG "%s\n", __FUNCTION__);
+	pr_debug("%s\n", __func__);
 	switch (vc->id) {
 	case V4L2_CID_BRIGHTNESS:
 		vc->value = tc358743_data.brightness;
@@ -2095,12 +2063,11 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
 
 int get_pixelformat(int index)
 {
-int ifmt;
+	int ifmt;
+
 	for (ifmt = 0; ifmt < ARRAY_SIZE(tc358743_formats); ifmt++)
 		if (tc358743_mode_info_data[0][index].flags == tc358743_formats[ifmt].flags)
-		{
 			break;
-		}
 
 	if (ifmt == ARRAY_SIZE(tc358743_formats))
 		ifmt = 0;	/* Default = RBG888 */
@@ -2118,7 +2085,7 @@ int ifmt;
 static int ioctl_enum_framesizes(struct v4l2_int_device *s,
 				 struct v4l2_frmsizeenum *fsize)
 {
-	printk(KERN_DEBUG "%s, INDEX: %d\n", __FUNCTION__,fsize->index);
+	pr_debug("%s, INDEX: %d\n", __func__,fsize->index);
 	if (fsize->index > tc358743_mode_MAX)
 		return -EINVAL;
 
@@ -2127,7 +2094,7 @@ static int ioctl_enum_framesizes(struct v4l2_int_device *s,
 			    tc358743_mode_info_data[0][fsize->index].width;
 	fsize->discrete.height =
 			    tc358743_mode_info_data[0][fsize->index].height;
-	printk(KERN_DEBUG "%s %d:%d format: %x\n", __FUNCTION__, fsize->discrete.width, fsize->discrete.height, fsize->pixel_format);
+	pr_debug("%s %d:%d format: %x\n", __func__, fsize->discrete.width, fsize->discrete.height, fsize->pixel_format);
 	return 0;
 }
 
@@ -2155,7 +2122,7 @@ static int ioctl_g_chip_ident(struct v4l2_int_device *s, int *id)
  */
 static int ioctl_init(struct v4l2_int_device *s)
 {
-	printk(KERN_DEBUG "%s\n", __FUNCTION__);
+	pr_debug("%s\n", __func__);
 	return 0;
 }
 
@@ -2169,13 +2136,13 @@ static int ioctl_init(struct v4l2_int_device *s)
 static int ioctl_enum_fmt_cap(struct v4l2_int_device *s,
 			      struct v4l2_fmtdesc *fmt)
 {
-	printk(KERN_DEBUG "%s\n", __FUNCTION__);
+	pr_debug("%s\n", __func__);
 	if (fmt->index > tc358743_mode_MAX)
 		return -EINVAL;
 
 	fmt->pixelformat = tc358743_formats[get_pixelformat(fmt->index)].pixelformat;
 
-	printk(KERN_DEBUG "%s: format: %x\n", __FUNCTION__, fmt->pixelformat);
+	pr_debug("%s: format: %x\n", __func__, fmt->pixelformat);
 	return 0;
 }
 
@@ -2188,18 +2155,17 @@ static int ioctl_try_fmt_cap(struct v4l2_int_device *s,
 //	enum image_size isize;
 	int ifmt;
 	struct v4l2_pix_format *pix = &f->fmt.pix;
-	printk(KERN_DEBUG "%s\n", __FUNCTION__);
+	pr_debug("%s\n", __func__);
 
 	tgt_fps = sensor->streamcap.timeperframe.denominator /
 		  sensor->streamcap.timeperframe.numerator;
 
-	if (tgt_fps == 60)
+	if (tgt_fps == 60) {
 		frame_rate = tc358743_60_fps;
-	else if (tgt_fps == 30)
+	} else if (tgt_fps == 30) {
 		frame_rate = tc358743_30_fps;
-	else
-	{
-		printk(KERN_DEBUG "%s: %d fps (%d,%d) is not supported\n", __FUNCTION__, tgt_fps, sensor->streamcap.timeperframe.denominator,sensor->streamcap.timeperframe.numerator);
+	} else {
+		pr_debug("%s: %d fps (%d,%d) is not supported\n", __func__, tgt_fps, sensor->streamcap.timeperframe.denominator,sensor->streamcap.timeperframe.numerator);
 		return -EINVAL;
 	}
 
@@ -2208,9 +2174,7 @@ static int ioctl_try_fmt_cap(struct v4l2_int_device *s,
 
 	for (ifmt = 0; ifmt < ARRAY_SIZE(tc358743_formats); ifmt++)
 		if (tc358743_mode_info_data[frame_rate][sensor->streamcap.capturemode].flags == tc358743_formats[ifmt].flags)
-		{
 			break;
-		}
 
 	if (ifmt == ARRAY_SIZE(tc358743_formats))
 		ifmt = 0;	/* Default = RBG888 */
@@ -2228,18 +2192,20 @@ static int ioctl_try_fmt_cap(struct v4l2_int_device *s,
 		break;
 	}
 
-	u32 u32val;
-	int ret = tc358743_read_reg(0x8520,&u32val);
-	printk(KERN_DEBUG "SYS_STATUS: 0x%x, ret val: %d \n",u32val,ret);
-    ret = tc358743_read_reg(0x8521,&u32val);
-    printk(KERN_DEBUG "VI_STATUS0: 0x%x, ret val: %d \n",u32val,ret);
-    ret = tc358743_read_reg(0x8522,&u32val);
-    printk(KERN_DEBUG "VI_STATUS1: 0x%x, ret val: %d \n",u32val,ret);
-    ret = tc358743_read_reg(0x8525,&u32val);
-    printk(KERN_DEBUG "VI_STATUS2: 0x%x, ret val: %d \n",u32val,ret);
-    ret = tc358743_read_reg(0x8528,&u32val);
-    printk(KERN_DEBUG "VI_STATUS3: 0x%x, ret val: %d \n",u32val,ret);
-	printk(KERN_DEBUG "%s %d:%d format: %x\n", __FUNCTION__, pix->width, pix->height, pix->pixelformat);
+	{
+		u32 u32val;
+		int ret = tc358743_read_reg(0x8520,&u32val);
+		pr_debug("SYS_STATUS: 0x%x, ret val: %d \n",u32val,ret);
+		ret = tc358743_read_reg(0x8521,&u32val);
+		pr_debug("VI_STATUS0: 0x%x, ret val: %d \n",u32val,ret);
+		ret = tc358743_read_reg(0x8522,&u32val);
+		pr_debug("VI_STATUS1: 0x%x, ret val: %d \n",u32val,ret);
+		ret = tc358743_read_reg(0x8525,&u32val);
+		pr_debug("VI_STATUS2: 0x%x, ret val: %d \n",u32val,ret);
+		ret = tc358743_read_reg(0x8528,&u32val);
+		pr_debug("VI_STATUS3: 0x%x, ret val: %d \n",u32val,ret);
+		pr_debug("%s %d:%d format: %x\n", __func__, pix->width, pix->height, pix->pixelformat);
+	}
 	return 0;
 }
 
@@ -2254,7 +2220,7 @@ static int ioctl_try_fmt_cap(struct v4l2_int_device *s,
 static int ioctl_g_fmt_cap(struct v4l2_int_device *s, struct v4l2_format *f)
 {
 
-	printk(KERN_DEBUG "%s\n", __FUNCTION__);
+	pr_debug("%s\n", __func__);
 	return ioctl_try_fmt_cap(s, f);
 }
 
@@ -2273,7 +2239,7 @@ static int ioctl_dev_init(struct v4l2_int_device *s)
 	enum tc358743_frame_rate frame_rate;
 	void *mipi_csi2_info;
 
-	printk(KERN_DEBUG "%s\n", __FUNCTION__);
+	pr_debug("%s\n", __func__);
 	tc358743_data.on = true;
 
 	/* mclk */
@@ -2282,9 +2248,9 @@ static int ioctl_dev_init(struct v4l2_int_device *s)
 	tgt_xclk = max(tgt_xclk, (u32)TC358743_XCLK_MIN);
 	tc358743_data.mclk = tgt_xclk;
 
-	printk(KERN_DEBUG "%s: Setting mclk to %d MHz\n", __FUNCTION__, tc358743_data.mclk / 1000000);
+	pr_debug("%s: Setting mclk to %d MHz\n", __func__, tc358743_data.mclk / 1000000);
 	set_mclk_rate(&tc358743_data.mclk, tc358743_data.mclk_source);
-	printk(KERN_DEBUG "%s: After mclk to %d MHz\n", __FUNCTION__, tc358743_data.mclk / 1000000);
+	pr_debug("%s: After mclk to %d MHz\n", __func__, tc358743_data.mclk / 1000000);
 
 	/* Default camera frame rate is set in probe */
 	tgt_fps = sensor->streamcap.timeperframe.denominator /
@@ -2300,14 +2266,14 @@ static int ioctl_dev_init(struct v4l2_int_device *s)
 	mipi_csi2_info = mipi_csi2_get_info();
 
 	/* enable mipi csi2 */
-	if (mipi_csi2_info)
+	if (mipi_csi2_info) {
 		mipi_csi2_enable(mipi_csi2_info);
-	else {
-		printk(KERN_ERR "Fail to get mipi_csi2_info!\n");
+	} else {
+		pr_err("Fail to get mipi_csi2_info!\n");
 		return -EPERM;
 	}
 
-	printk(KERN_DEBUG "%s done\n", __FUNCTION__);
+	pr_debug("%s done\n", __func__);
 	return ret;
 }
 
@@ -2372,49 +2338,6 @@ static struct v4l2_int_device tc358743_int_device = {
 
 
 #ifdef AUDIO_ENABLE
-/* Audio setup */
-
-static int imxpac_tc358743_hw_params(struct snd_pcm_substream *substream,
-			    struct snd_pcm_hw_params *params)
-{
-	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_dai *codec_dai = rtd->codec_dai;
-	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
-	int ret;
-
-	ret = snd_soc_dai_set_fmt(cpu_dai, SND_SOC_DAIFMT_I2S |
-                              SND_SOC_DAIFMT_NB_IF |
-                              SND_SOC_DAIFMT_CBM_CFM);
-	if (ret) {
-		pr_err("%s: failed set cpu dai format\n", __func__);
-		return ret;
-	}
-
-	ret = snd_soc_dai_set_fmt(codec_dai, SND_SOC_DAIFMT_I2S |
-				              SND_SOC_DAIFMT_NB_NF |
-                              SND_SOC_DAIFMT_CBM_CFM);
-	if (ret) {
-		pr_err("%s: failed set codec dai format\n", __func__);
-		return ret;
-	}
-
-	ret = snd_soc_dai_set_sysclk(codec_dai, 0,
-				     CODEC_CLOCK, SND_SOC_CLOCK_OUT);
-	if (ret) {
-		pr_err("%s: failed setting codec sysclk\n", __func__);
-		return ret;
-	}
-	snd_soc_dai_set_tdm_slot(cpu_dai, 0xffffffc, 0xffffffc, 2, 0);
-
-	ret = snd_soc_dai_set_sysclk(cpu_dai, IMX_SSP_SYS_CLK, 0,
-				SND_SOC_CLOCK_IN);
-	if (ret) {
-		pr_err("can't set CPU system clock IMX_SSP_SYS_CLK\n");
-		return ret;
-	}
-#if 1
-// clear SSI_SRCR_RXBIT0 and SSI_SRCR_RSHFD in order to push Right-justified MSB data fro
-	{
 struct imx_ssi {
 	struct platform_device *ac97_dev;
 
@@ -2438,12 +2361,10 @@ struct imx_ssi {
 	struct platform_device *soc_platform_pdev;
 	struct platform_device *soc_platform_pdev_fiq;
 };
-		struct imx_ssi *ssi = snd_soc_dai_get_drvdata(cpu_dai);
-		u32 scr = 0, srcr = 0, stccr = 0, srccr = 0;
-#define SSI_SCR      0x10
-#define SSI_SRCR     0x20
-#define SSI_STCCR    0x24
-#define SSI_SRCCR    0x28
+#define SSI_SCR			0x10
+#define SSI_SRCR		0x20
+#define SSI_STCCR		0x24
+#define SSI_SRCCR		0x28
 #define SSI_SCR_I2S_MODE_NORM	(0 << 5)
 #define SSI_SCR_I2S_MODE_MSTR	(1 << 5)
 #define SSI_SCR_I2S_MODE_SLAVE	(2 << 5)
@@ -2457,32 +2378,76 @@ struct imx_ssi {
 #define SSI_STCCR_WL_MASK	(0xf << 13)
 #define SSI_SRCCR_WL(x)		((((x) - 2) >> 1) << 13)
 #define SSI_SRCCR_WL_MASK	(0xf << 13)
+/* Audio setup */
 
-        printk(KERN_DEBUG "%s: base %p\n", __FUNCTION__, (void *)ssi->base);
+static int imxpac_tc358743_hw_params(struct snd_pcm_substream *substream,
+			    struct snd_pcm_hw_params *params)
+{
+	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	struct snd_soc_dai *codec_dai = rtd->codec_dai;
+	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
+	int ret;
+
+	ret = snd_soc_dai_set_fmt(cpu_dai, SND_SOC_DAIFMT_I2S |
+				SND_SOC_DAIFMT_NB_IF |
+				SND_SOC_DAIFMT_CBM_CFM);
+	if (ret) {
+		pr_err("%s: failed set cpu dai format\n", __func__);
+		return ret;
+	}
+
+	ret = snd_soc_dai_set_fmt(codec_dai, SND_SOC_DAIFMT_I2S |
+				SND_SOC_DAIFMT_NB_NF |
+				SND_SOC_DAIFMT_CBM_CFM);
+	if (ret) {
+		pr_err("%s: failed set codec dai format\n", __func__);
+		return ret;
+	}
+
+	ret = snd_soc_dai_set_sysclk(codec_dai, 0,
+				     CODEC_CLOCK, SND_SOC_CLOCK_OUT);
+	if (ret) {
+		pr_err("%s: failed setting codec sysclk\n", __func__);
+		return ret;
+	}
+	snd_soc_dai_set_tdm_slot(cpu_dai, 0xffffffc, 0xffffffc, 2, 0);
+
+	ret = snd_soc_dai_set_sysclk(cpu_dai, IMX_SSP_SYS_CLK, 0,
+				SND_SOC_CLOCK_IN);
+	if (ret) {
+		pr_err("can't set CPU system clock IMX_SSP_SYS_CLK\n");
+		return ret;
+	}
+#if 1
+// clear SSI_SRCR_RXBIT0 and SSI_SRCR_RSHFD in order to push Right-justified MSB data fro
+	{
+		struct imx_ssi *ssi = snd_soc_dai_get_drvdata(cpu_dai);
+		u32 scr = 0, srcr = 0, stccr = 0, srccr = 0;
+
+		pr_debug("%s: base %p\n", __func__, (void *)ssi->base);
 		scr = readl(ssi->base + SSI_SCR);
-		printk(KERN_DEBUG "%s: SSI_SCR before:   %p\n", __FUNCTION__, (void *)scr);
-        writel(scr, ssi->base + SSI_SCR);
-		printk(KERN_DEBUG "%s: SSI_SCR after:    %p\n", __FUNCTION__, (void *)scr);
+		pr_debug("%s: SSI_SCR before:   %p\n", __func__, (void *)scr);
+		writel(scr, ssi->base + SSI_SCR);
+		pr_debug("%s: SSI_SCR after:    %p\n", __func__, (void *)scr);
 
-        srcr = readl(ssi->base + SSI_SRCR);
-		printk(KERN_DEBUG "%s: SSI_SRCR before:  %p\n", __FUNCTION__, (void *)srcr);
-        writel(srcr, ssi->base + SSI_SRCR);
-		printk(KERN_DEBUG "%s: SSI_SRCR after:   %p\n", __FUNCTION__, (void *)srcr);
+		srcr = readl(ssi->base + SSI_SRCR);
+		pr_debug("%s: SSI_SRCR before:  %p\n", __func__, (void *)srcr);
+		writel(srcr, ssi->base + SSI_SRCR);
+		pr_debug("%s: SSI_SRCR after:   %p\n", __func__, (void *)srcr);
 
-        stccr = readl(ssi->base + SSI_STCCR);
-		printk(KERN_DEBUG "%s: SSI_STCCR before: %p\n", __FUNCTION__, (void *)stccr);
-        stccr &= ~SSI_STCCR_WL_MASK;
-        stccr |= SSI_STCCR_WL(16);
-        writel(stccr, ssi->base + SSI_STCCR);
-		printk(KERN_DEBUG "%s: SSI_STCCR after:  %p\n", __FUNCTION__, (void *)stccr);
+		stccr = readl(ssi->base + SSI_STCCR);
+		pr_debug("%s: SSI_STCCR before: %p\n", __func__, (void *)stccr);
+		stccr &= ~SSI_STCCR_WL_MASK;
+		stccr |= SSI_STCCR_WL(16);
+		writel(stccr, ssi->base + SSI_STCCR);
+		pr_debug("%s: SSI_STCCR after:  %p\n", __func__, (void *)stccr);
 
 		srccr = readl(ssi->base + SSI_SRCCR);
-		printk(KERN_DEBUG "%s: SSI_SRCCR before: %p\n", __FUNCTION__, (void *)srccr);
-        srccr &= ~SSI_SRCCR_WL_MASK;
-        srccr |= SSI_SRCCR_WL(16);
-        writel(srccr, ssi->base + SSI_SRCCR);
-		printk(KERN_DEBUG "%s: SSI_SRCCR after:  %p\n", __FUNCTION__, (void *)srccr);
-
+		pr_debug("%s: SSI_SRCCR before: %p\n", __func__, (void *)srccr);
+		srccr &= ~SSI_SRCCR_WL_MASK;
+		srccr |= SSI_SRCCR_WL(16);
+		writel(srccr, ssi->base + SSI_SRCCR);
+		pr_debug("%s: SSI_SRCCR after:  %p\n", __func__, (void *)srccr);
 	}
 #endif
 	return 0;
@@ -2509,72 +2474,67 @@ static struct snd_soc_dapm_route audio_map_a[] = {
 
 static int imx_3stack_tc358743_init(struct snd_soc_pcm_runtime *rtd)
 {
-        struct snd_soc_codec *codec = rtd->codec;
+	struct snd_soc_codec *codec = rtd->codec;
 	int ret;
 	struct snd_soc_jack *hs_jack;
 
-        struct snd_soc_jack_pin *hs_jack_pins;
-        int hs_jack_pins_size;
-        struct snd_soc_dapm_widget *imx_3stack_dapm_widgets;
-        int imx_3stack_dapm_widgets_size;
-        struct snd_kcontrol_new *tc358743_machine_controls;
-        int tc358743_machine_controls_size;
-        struct snd_soc_dapm_route *audio_map;
-        int audio_map_size;
-        int gpio_num = -1;
-        char *gpio_name;
+	struct snd_soc_jack_pin *hs_jack_pins;
+	int hs_jack_pins_size;
+	struct snd_soc_dapm_widget *imx_3stack_dapm_widgets;
+	int imx_3stack_dapm_widgets_size;
+	struct snd_kcontrol_new *tc358743_machine_controls;
+	int tc358743_machine_controls_size;
+	struct snd_soc_dapm_route *audio_map;
+	int audio_map_size;
+	int gpio_num = -1;
+	char *gpio_name;
 
-	printk(KERN_DEBUG "%s started\n", __func__);
+	pr_debug("%s started\n", __func__);
 
-	{
-		hs_jack_pins = hs_jack_pins_a;
-		hs_jack_pins_size = ARRAY_SIZE(hs_jack_pins_a);
-		imx_3stack_dapm_widgets = imx_3stack_dapm_widgets_a;
-		imx_3stack_dapm_widgets_size = ARRAY_SIZE(imx_3stack_dapm_widgets_a);
-		tc358743_machine_controls = tc358743_machine_controls_a;
-		tc358743_machine_controls_size = ARRAY_SIZE(tc358743_machine_controls_a);
-		audio_map = audio_map_a;
-		audio_map_size = ARRAY_SIZE(audio_map_a);
-		gpio_num = -1; //card_a_gpio_num;
-		gpio_name = NULL;
+	hs_jack_pins = hs_jack_pins_a;
+	hs_jack_pins_size = ARRAY_SIZE(hs_jack_pins_a);
+	imx_3stack_dapm_widgets = imx_3stack_dapm_widgets_a;
+	imx_3stack_dapm_widgets_size = ARRAY_SIZE(imx_3stack_dapm_widgets_a);
+	tc358743_machine_controls = tc358743_machine_controls_a;
+	tc358743_machine_controls_size = ARRAY_SIZE(tc358743_machine_controls_a);
+	audio_map = audio_map_a;
+	audio_map_size = ARRAY_SIZE(audio_map_a);
+	gpio_num = -1; //card_a_gpio_num;
+	gpio_name = NULL;
+
+	ret = snd_soc_add_controls(codec, tc358743_machine_controls,
+			tc358743_machine_controls_size);
+	if (ret) {
+		pr_err("%s: snd_soc_add_controls failed. err = %d\n", __func__, ret);
+		return ret;
 	}
+	/* Add imx_3stack specific widgets */
+	snd_soc_dapm_new_controls(&codec->dapm, imx_3stack_dapm_widgets,
+				  imx_3stack_dapm_widgets_size);
 
-        ret = snd_soc_add_controls(codec, tc358743_machine_controls,
-                        tc358743_machine_controls_size);
-        if (ret)
-	{
-		printk(KERN_ERR "%s: snd_soc_add_controls failed. err = %d\n", __func__, ret);
-                return ret;
-	}
-        /* Add imx_3stack specific widgets */
-        snd_soc_dapm_new_controls(&codec->dapm, imx_3stack_dapm_widgets,
-                                  imx_3stack_dapm_widgets_size);
+	/* Set up imx_3stack specific audio path audio_map */
+	snd_soc_dapm_add_routes(&codec->dapm, audio_map, audio_map_size);
 
-        /* Set up imx_3stack specific audio path audio_map */
-        snd_soc_dapm_add_routes(&codec->dapm, audio_map, audio_map_size);
-
-        snd_soc_dapm_enable_pin(&codec->dapm, hs_jack_pins->pin);
-        snd_soc_dapm_sync(&codec->dapm);
+	snd_soc_dapm_enable_pin(&codec->dapm, hs_jack_pins->pin);
+	snd_soc_dapm_sync(&codec->dapm);
 
 	hs_jack = kzalloc(sizeof(struct snd_soc_jack), GFP_KERNEL);
 
 
 	ret = snd_soc_jack_new(codec, hs_jack_pins->pin,
-                                       SND_JACK_HEADPHONE, hs_jack);
-	if (ret)
-	{
-		printk(KERN_ERR "%s: snd_soc_jack_new failed. err = %d\n", __func__, ret);
+					SND_JACK_HEADPHONE, hs_jack);
+	if (ret) {
+		pr_err("%s: snd_soc_jack_new failed. err = %d\n", __func__, ret);
 		return ret;
 	}
 
 	ret = snd_soc_jack_add_pins(hs_jack,hs_jack_pins_size,
-                                        hs_jack_pins);
+					hs_jack_pins);
 	if (ret) {
-		printk(KERN_ERR "%s:  snd_soc_jack_add_pinsfailed. err = %d\n", __func__, ret);
+		pr_err("%s:  snd_soc_jack_add_pinsfailed. err = %d\n", __func__, ret);
 		return ret;
 	}
-
-        return 0;
+	return 0;
 }
 
 
@@ -2613,10 +2573,10 @@ static int imx_audmux_config(int slave, int master)
 		MXC_AUDMUX_V2_PTCR_TFSDIR |
 		MXC_AUDMUX_V2_PTCR_TFSEL(master | 0x8) |
 		MXC_AUDMUX_V2_PTCR_TCLKDIR |
-        MXC_AUDMUX_V2_PTCR_RFSDIR |
-        MXC_AUDMUX_V2_PTCR_RFSEL(master | 0x8) |
-        MXC_AUDMUX_V2_PTCR_RCLKDIR |
-        MXC_AUDMUX_V2_PTCR_RCSEL(master | 0x8) |
+	MXC_AUDMUX_V2_PTCR_RFSDIR |
+	MXC_AUDMUX_V2_PTCR_RFSEL(master | 0x8) |
+	MXC_AUDMUX_V2_PTCR_RCLKDIR |
+	MXC_AUDMUX_V2_PTCR_RCSEL(master | 0x8) |
 		MXC_AUDMUX_V2_PTCR_TCSEL(master | 0x8);
 	pdcr = MXC_AUDMUX_V2_PDCR_RXDSEL(master);
 	mxc_audmux_v2_configure_port(slave, ptcr, pdcr);
@@ -2624,14 +2584,12 @@ static int imx_audmux_config(int slave, int master)
 	ptcr = MXC_AUDMUX_V2_PTCR_SYN;
 	pdcr = MXC_AUDMUX_V2_PDCR_RXDSEL(master);
 	mxc_audmux_v2_configure_port(master, ptcr, pdcr);
-
 	return 0;
 }
 
 static int __devinit imx_tc358743_probe(struct platform_device *pdev)
 {
 	struct mxc_audio_platform_data *plat = pdev->dev.platform_data;
-
 	int ret = 0;
 
 
@@ -2641,8 +2599,7 @@ static int __devinit imx_tc358743_probe(struct platform_device *pdev)
 	if (plat->init && plat->init())
 		return ret;
 
-	printk("%s %d %s\n",__FUNCTION__,__LINE__,pdev->name);
-
+	printk("%s %d %s\n",__func__,__LINE__,pdev->name);
 	return 0;
 }
 
@@ -2731,7 +2688,7 @@ static int tc358743_set_dai_sysclk(struct snd_soc_dai *codec_dai,
 }
 
 static int tc358743_set_dai_fmt(struct snd_soc_dai *codec_dai,
-			     unsigned int fmt)
+				unsigned int fmt)
 {
 	return 0;
 }
@@ -2813,7 +2770,7 @@ static report_netlink(void)
 	sprintf(envp[0], "HDMI RX: %d (%s) %d %d", (unsigned char)hdmi_mode & 0xf, tc358743_mode_list[(unsigned char)hdmi_mode & 0xf], tc358743_fps_list[fps], tc358743_audio_list[audio]);
 	kobject_uevent_env(&(tc358743_data.i2c_client->dev.kobj), KOBJ_CHANGE, envp);
 	det_work_timeout = DET_WORK_TIMEOUT_DEFAULT;
-	printk(KERN_DEBUG "%s: HDMI RX (%d) mode: %s fps: %d (%d, %d) audio: %d\n", __FUNCTION__, (unsigned char)hdmi_mode, tc358743_mode_list[(unsigned char)hdmi_mode & 0xf], fps, bounce, det_work_timeout, tc358743_audio_list[audio]);
+	pr_debug("%s: HDMI RX (%d) mode: %s fps: %d (%d, %d) audio: %d\n", __func__, (unsigned char)hdmi_mode, tc358743_mode_list[(unsigned char)hdmi_mode & 0xf], fps, bounce, det_work_timeout, tc358743_audio_list[audio]);
 }
 
 static void det_worker(struct work_struct *work)
@@ -2823,83 +2780,67 @@ static void det_worker(struct work_struct *work)
 	int ret;
 
 	mutex_lock(&access_lock);
-	if(!det_work_disable)
-	{
+	if (!det_work_disable) {
 		reg = 0x8621;
 		ret = tc358743_read_reg(reg, &u32val);
-		if(ret > 0)
-		{
-			if(audio != ((unsigned char)u32val) & 0x0f)
-			{
+		if (ret > 0) {
+			if (audio != ((unsigned char)u32val) & 0x0f) {
 				audio = ((unsigned char)u32val) & 0x0f;
 				report_netlink();
 			}
 		}
 		reg = 0x852f;
 		ret = tc358743_read_reg(reg, &u32val);
-		if(ret > 0)
-		{
-			while(1)
-			{
-				if(u32val & TC3587430_HDMI_DETECT)
-				{
+		if (ret > 0) {
+			while (1) {
+				if (u32val & TC3587430_HDMI_DETECT) {
 					lock = u32val & TC3587430_HDMI_DETECT;
 					reg = 0x8521;
 					ret = tc358743_read_reg(reg, &u32val);
-					if(ret < 0)
-					{
-						printk(KERN_ERR "%s: Error reading mode\n", __FUNCTION__);
+					if (ret < 0) {
+						pr_err("%s: Error reading mode\n", __func__);
 					}
-				}
-				else
-				{
-					if(lock)		// check if it is realy un-plug
-					{
+				} else {
+					if (lock) {		// check if it is realy un-plug
 						lock = 0;
 						u32val = 0x0;
 						hdmi_mode = 0xF0;	// fake mode to detect un-plug if mode was not detected before.
 					}
 				}
-				if((unsigned char)hdmi_mode != (unsigned char)u32val)
-				{
-					if(u32val)
+				if ((unsigned char)hdmi_mode != (unsigned char)u32val) {
+					if (u32val)
 						det_work_timeout = DET_WORK_TIMEOUT_DEFERRED;
 					else
 						det_work_timeout = DET_WORK_TIMEOUT_DEFAULT;
 					bounce = MAX_BOUNCE;
-					printk(KERN_DEBUG "%s: HDMI RX (%d != %d) mode: %s fps: %d (%d, %d)\n", __FUNCTION__, (unsigned char)hdmi_mode, (unsigned char)u32val, tc358743_mode_list[(unsigned char)hdmi_mode & 0xf], fps, bounce, det_work_timeout);
+					pr_debug("%s: HDMI RX (%d != %d) mode: %s fps: %d (%d, %d)\n", __func__, (unsigned char)hdmi_mode, (unsigned char)u32val, tc358743_mode_list[(unsigned char)hdmi_mode & 0xf], fps, bounce, det_work_timeout);
 					hdmi_mode = u32val;
+				} else if (bounce) {
+					bounce--;
+					det_work_timeout = DET_WORK_TIMEOUT_DEFAULT;
 				}
-				else
-					if(bounce)
-					{
-						bounce--;
-						det_work_timeout = DET_WORK_TIMEOUT_DEFAULT;
-					}
 
-				if(1 == bounce)
-				{
-					if(hdmi_mode >= 0xe)
-					{
+				if (1 == bounce) {
+					if (hdmi_mode >= 0xe) {
 						reg = 0x852f;
 						ret = tc358743_read_reg(reg, &u32val);
-						if(ret > 0)
+						if (ret > 0)
 							fps = ((((unsigned char)u32val) & 0x0f) > 0xa)? tc358743_60_fps: tc358743_30_fps;
 					}
 					reg = 0x8621;
 					ret = tc358743_read_reg(reg, &u32val);
-					if(ret > 0)
+					if (ret > 0)
 						audio = ((unsigned char)u32val) & 0x0f;
-						report_netlink();
+					report_netlink();
 				}
 				break;
 			}
+		} else {
+			pr_err("%s: Error reading lock\n", __func__);
 		}
-		else
-			printk(KERN_ERR "%s: Error reading lock\n", __FUNCTION__);
-	}
-	else
+	} else {
 		det_work_timeout = DET_WORK_TIMEOUT_DEFERRED;
+	}
 	mutex_unlock(&access_lock);
 	schedule_delayed_work(&(det_work), msecs_to_jiffies(det_work_timeout));
 }
@@ -2907,7 +2848,7 @@ static void det_worker(struct work_struct *work)
 static irqreturn_t tc358743_detect_handler(int irq, void *data)
 {
 
-	printk(KERN_DEBUG "%s: IRQ %d\n", __FUNCTION__, tc358743_data.i2c_client->irq);
+	pr_debug("%s: IRQ %d\n", __func__, tc358743_data.i2c_client->irq);
 	schedule_delayed_work(&(det_work), msecs_to_jiffies(det_work_timeout));
 	return IRQ_HANDLED;
 }
@@ -2916,7 +2857,7 @@ static irqreturn_t tc358743_detect_handler(int irq, void *data)
 /*!
  * tc358743 I2C probe function
  *
- * @param adapter            struct i2c_adapter *
+ * @param adapter	    struct i2c_adapter *
  * @return  Error code indicating success or failure
  */
 #include <mach/hardware.h>
@@ -2933,17 +2874,14 @@ static ssize_t tc358743_show_regdump(struct device *dev,
 	u32 u32val;
 
 	mutex_lock(&access_lock);
-	for(i=0; i<DUMP_LENGTH; )
-	{
+	for (i=0; i<DUMP_LENGTH; ) {
 		retval = tc358743_read_reg(regoffs+i, &u32val);
-		if(retval < 0)
-		{
+		if (retval < 0) {
 			u32val =0xff;
 			retval = 1;
 		}
-		while(retval-- > 0)
-		{
-			if(0 == (i & 0xf))
+		while (retval-- > 0) {
+			if (0 == (i & 0xf))
 				len += sprintf(buf+len, "\n%04X:", regoffs+i);
 			len += sprintf(buf+len, " %02X", u32val&0xff);
 			u32val >>= 8;
@@ -2958,13 +2896,13 @@ static ssize_t tc358743_show_regdump(struct device *dev,
 static DEVICE_ATTR(regdump, S_IRUGO, tc358743_show_regdump, NULL);
 
 static ssize_t tc358743_store_regoffs(struct device *device,
-			     struct device_attribute *attr,
-			     const char *buf, size_t count)
+				struct device_attribute *attr,
+				const char *buf, size_t count)
 {
 	u32 val;
 	int retval;
 	retval = sscanf(buf, "%x", &val);
-	if(1 == retval)
+	if (1 == retval)
 		regoffs = (u16)val;
 	return count;
 }
@@ -2981,13 +2919,13 @@ static ssize_t tc358743_show_regoffs(struct device *dev,
 static DEVICE_ATTR(regoffs, S_IRUGO|S_IWUSR, tc358743_show_regoffs, tc358743_store_regoffs);
 
 static ssize_t tc358743_store_hpd(struct device *device,
-			     struct device_attribute *attr,
-			     const char *buf, size_t count)
+				struct device_attribute *attr,
+				const char *buf, size_t count)
 {
 	u32 val;
 	int retval;
 	retval = sscanf(buf, "%d", &val);
-	if(1 == retval)
+	if (1 == retval)
 		hpd_active = (u16)val;
 	return count;
 }
@@ -3046,8 +2984,7 @@ static int tc358743_probe(struct i2c_client *client,
 	u8 chip_id_high;
 	u32 u32val;
 
-	printk(KERN_DEBUG "%s: started, error=%d\n",
-			__func__, retval);
+	pr_debug("%s: started, error=%d\n", __func__, retval);
 
 	/* Set initial values for the sensor struct. */
 	memset(&tc358743_data, 0, sizeof(tc358743_data));
@@ -3067,7 +3004,7 @@ static int tc358743_probe(struct i2c_client *client,
 
 	tc358743_data.pix.width = tc358743_mode_info_data[0][tc358743_data.streamcap.capturemode].width;
 	tc358743_data.pix.height = tc358743_mode_info_data[0][tc358743_data.streamcap.capturemode].height;
-	printk(KERN_DEBUG "%s: format: %x, capture mode: %d extended mode: %d fps: %d width: %d height: %d\n",__func__,
+	pr_debug("%s: format: %x, capture mode: %d extended mode: %d fps: %d width: %d height: %d\n",__func__,
 	tc358743_data.pix.pixelformat,
 	tc358743_data.streamcap.capturemode, tc358743_data.streamcap.extendedmode,
 	tc358743_data.streamcap.timeperframe.denominator *
@@ -3096,7 +3033,7 @@ static int tc358743_probe(struct i2c_client *client,
 
 	if (plat_data->core_regulator) {
 		core_regulator = regulator_get(&client->dev,
-					       plat_data->core_regulator);
+						plat_data->core_regulator);
 		if (!IS_ERR(core_regulator)) {
 			regulator_set_voltage(core_regulator,
 					      TC358743_VOLTAGE_DIGITAL_CORE,
@@ -3151,9 +3088,8 @@ static int tc358743_probe(struct i2c_client *client,
 
 	tc358743_int_device.priv = &tc358743_data;
 	retval = v4l2_int_device_register(&tc358743_int_device);
-	if (retval)
-	{
-		printk(KERN_ERR "%s:  v4l2_int_device_register failed, error=%d\n",
+	if (retval) {
+		pr_err("%s:  v4l2_int_device_register failed, error=%d\n",
 			__func__, retval);
 		goto err4;
 	}
@@ -3165,9 +3101,8 @@ static int tc358743_probe(struct i2c_client *client,
 	retval = device_create_file(&client->dev, &dev_attr_regoffs);
 	retval = device_create_file(&client->dev, &dev_attr_regdump);
 
-	if (retval)
-	{
-		printk(KERN_ERR "%s:  create bin file failed, error=%d\n",
+	if (retval) {
+		pr_err("%s:  create bin file failed, error=%d\n",
 			__func__, retval);
 		goto err4;
 	}
@@ -3176,25 +3111,22 @@ static int tc358743_probe(struct i2c_client *client,
 /* Audio setup */
 	retval = snd_soc_register_codec(&client->dev,
 			&soc_codec_dev_tc358743, &tc358743_dai, 1);
-	if (retval)
-	{
-		printk(KERN_ERR "%s:  register failed, error=%d\n",
+	if (retval) {
+		pr_err("%s:  register failed, error=%d\n",
 			__func__, retval);
 		goto err4;
 	}
 
 	retval = platform_driver_register(&imx_tc358743_audio1_driver);
-	if (retval)
-	{
-		printk(KERN_ERR "%s: Platform driver register failed, error=%d\n",
+	if (retval) {
+		pr_err("%s: Platform driver register failed, error=%d\n",
 			__func__, retval);
 		goto err4;
 	}
 
 	imxpac_tc358743_snd_device = platform_device_alloc("soc-audio", 5);
-	if (!imxpac_tc358743_snd_device)
-	{
-		printk(KERN_ERR "%s: Platform device allocation failed, error=%d\n",
+	if (!imxpac_tc358743_snd_device) {
+		pr_err("%s: Platform device allocation failed, error=%d\n",
 			__func__, retval);
 		goto err4;
 	}
@@ -3203,7 +3135,7 @@ static int tc358743_probe(struct i2c_client *client,
 	retval = platform_device_add(imxpac_tc358743_snd_device);
 
 	if (retval) {
-		printk(KERN_ERR "%s: Platform device add failed, error=%d\n",
+		pr_err("%s: Platform device add failed, error=%d\n",
 			__func__, retval);
 		platform_device_put(imxpac_tc358743_snd_device);
 		goto err4;
@@ -3226,7 +3158,7 @@ static int tc358743_probe(struct i2c_client *client,
 #endif
 	retval = tc358743_reset(&tc358743_data);
 
-	printk(KERN_DEBUG "%s: finished, error=%d\n",
+	pr_debug("%s: finished, error=%d\n",
 			__func__, retval);
 	return retval;
 
@@ -3246,7 +3178,7 @@ err2:
 		regulator_put(io_regulator);
 	}
 err1:
-	printk(KERN_ERR "%s: failed, error=%d\n",
+	pr_err("%s: failed, error=%d\n",
 			__func__, retval);
 	return retval;
 }
@@ -3254,7 +3186,7 @@ err1:
 /*!
  * tc358743 I2C detach function
  *
- * @param client            struct i2c_client *
+ * @param client	    struct i2c_client *
  * @return  Error code indicating success or failure
  */
 static int tc358743_remove(struct i2c_client *client)
