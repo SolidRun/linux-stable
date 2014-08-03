@@ -486,16 +486,15 @@ static void hdmi_dma_data_copy(struct snd_pcm_substream *substream,
 		return;
 
 	appl_bytes =  (runtime->status->hw_ptr % (priv->buffer_bytes/(runtime->frame_bits/8))) * (runtime->frame_bits/8);
-	if (type == 'p')
-		appl_bytes += 2 * priv->period_bytes;
-	offset = appl_bytes % priv->buffer_bytes;
 
 	switch (type) {
 	case 'p':
+		offset = (appl_bytes + 2 * priv->period_bytes) % priv->buffer_bytes;
 		count = priv->period_bytes;
 		space_to_end = priv->period_bytes;
 		break;
 	case 'b':
+		offset = appl_bytes % priv->buffer_bytes;
 		count = priv->buffer_bytes;
 		space_to_end = priv->buffer_bytes - offset;
 
