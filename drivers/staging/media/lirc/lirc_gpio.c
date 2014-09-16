@@ -494,8 +494,7 @@ static long lirc_ioctl(struct file *filep, unsigned int cmd, unsigned long arg) 
 	return 0;
 }
 
-static int lirc_gpio_get_devtree_pdata(struct device *dev, struct lirc_gpio_platform_data *pdata)
-{
+static int lirc_gpio_get_devtree_pdata(struct device *dev, struct lirc_gpio_platform_data *pdata) {
 	struct device_node *np = dev->of_node;
 	enum of_gpio_flags flags;
 	struct property *prop;
