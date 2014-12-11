@@ -1,7 +1,7 @@
 /*
  * Driver for the IMX keypad port.
  * Copyright (C) 2009 Alberto Panizzo <maramaopercheseimorto@gmail.com>
- * Copyright (C) 2014 Freescale Semiconductor, Inc.
+ * Copyright (C) 2015 Freescale Semiconductor, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
