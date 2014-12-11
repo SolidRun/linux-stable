@@ -2,7 +2,7 @@
 //
 // Driver for the IMX keypad port.
 // Copyright (C) 2009 Alberto Panizzo <maramaopercheseimorto@gmail.com>
-// Copyright (C) 2014 Freescale Semiconductor, Inc.
+// Copyright (C) 2015 Freescale Semiconductor, Inc.
 
 #include <linux/clk.h>
 #include <linux/delay.h>
