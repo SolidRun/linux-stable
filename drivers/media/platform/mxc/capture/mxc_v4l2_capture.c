@@ -2800,7 +2800,7 @@ static int init_camera_struct(cam_data *cam, struct platform_device *pdev)
 	const struct of_device_id *of_id =
 			of_match_device(mxc_v4l2_dt_ids, &pdev->dev);
 	struct device_node *np = pdev->dev.of_node;
-	int ipu_id, csi_id, mclk_source, mipi_camera;
+	int ipu_id, csi_id, mclk_source, mipi_camera, def_input;
 	int ret = 0;
 	struct v4l2_device *v4l2_dev;
 	static int camera_id;
@@ -2828,6 +2828,10 @@ static int init_camera_struct(cam_data *cam, struct platform_device *pdev)
 	ret = of_property_read_u32(np, "mipi_camera", &mipi_camera);
 	if (ret)
 		mipi_camera = 0;
+
+	ret = of_property_read_u32(np, "default_input", &def_input);
+	if (ret || (def_input != 0 && def_input != 1))
+		def_input = 0;
 
 	/* Default everything to 0 */
 	memset(cam, 0, sizeof(cam_data));
@@ -2921,6 +2925,7 @@ static int init_camera_struct(cam_data *cam, struct platform_device *pdev)
 	cam->mipi_camera = mipi_camera;
 	cam->mclk_source = mclk_source;
 	cam->mclk_on[cam->mclk_source] = false;
+	cam->current_input = def_input;
 
 	cam->enc_callback = camera_callback;
 	init_waitqueue_head(&cam->power_queue);
