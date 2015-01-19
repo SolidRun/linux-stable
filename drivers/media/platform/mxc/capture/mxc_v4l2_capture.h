@@ -241,8 +241,12 @@ typedef struct _cam_data {
 	struct scatterlist sg[2];
 } cam_data;
 
+struct additional_data {
+	u32 map_sizeimage;
+};
+
 struct sensor_data {
-	const struct ov5642_platform_data *platform_data;
+	const struct additional_data *adata;
 	struct v4l2_int_device *v4l2_int_device;
 	struct i2c_client *i2c_client;
 	struct v4l2_pix_format pix;
