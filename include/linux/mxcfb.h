@@ -23,6 +23,17 @@
 
 #include <uapi/linux/mxcfb.h>
 
+#define FB_SYNC_OE_LOW_ACT	0x80000000
+#define FB_SYNC_CLK_LAT_FALL	0x40000000
+#define FB_SYNC_DATA_INVERT	0x20000000
+#define FB_SYNC_CLK_IDLE_EN	0x10000000
+#define FB_SYNC_SHARP_MODE	0x08000000
+#define FB_SYNC_SWAP_RGB	0x04000000
+
+#define FB_MXC_SYNC_MASK	(FB_SYNC_OE_LOW_ACT | FB_SYNC_CLK_LAT_FALL | \
+				 FB_SYNC_DATA_INVERT | FB_SYNC_CLK_IDLE_EN | \
+				 FB_SYNC_SHARP_MODE | FB_SYNC_SWAP_RGB)
+
 extern struct fb_videomode mxcfb_modedb[];
 extern int mxcfb_modedb_sz;
 

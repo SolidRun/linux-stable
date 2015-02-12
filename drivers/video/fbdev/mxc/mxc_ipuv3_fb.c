@@ -1126,6 +1126,28 @@ static void mxcfb_check_yuv(struct fb_info *fbi)
 	}
 }
 
+static struct fb_videomode *mxc_match_mode(const struct fb_var_screeninfo *var,
+					  struct list_head *head)
+{
+	struct list_head *pos;
+	struct fb_modelist *modelist;
+	struct fb_videomode *m, mode;
+
+	fb_var_to_videomode(&mode, var);
+	list_for_each(pos, head) {
+		modelist = list_entry(pos, struct fb_modelist, list);
+		m = &modelist->mode;
+
+		mode.sync &= ~FB_MXC_SYNC_MASK;
+		mode.sync |= m->sync & FB_MXC_SYNC_MASK;
+
+		if (fb_mode_is_equal(m, &mode))
+			return m;
+	}
+
+	return NULL;
+}
+
 /*
  * Set framebuffer parameters and change the operating mode.
  *
@@ -1337,6 +1359,7 @@ static int mxcfb_set_par(struct fb_info *fbi)
 
 	if (!mxc_fbi->overlay && !on_the_fly) {
 		uint32_t out_pixel_fmt;
+		struct fb_videomode *sync_mode;
 
 		memset(&sig_cfg, 0, sizeof(sig_cfg));
 		if (fbi->var.vmode & FB_VMODE_INTERLACED)
@@ -1350,6 +1373,21 @@ static int mxcfb_set_par(struct fb_info *fbi)
 			sig_cfg.Hsync_pol = true;
 		if (fbi->var.sync & FB_SYNC_VERT_HIGH_ACT)
 			sig_cfg.Vsync_pol = true;
+
+		/*
+		 * Try to find  matching all parameters, except
+		 * FB_MXC_SYNC_MASK bits in the .sync field.
+		 */
+		sync_mode = mxc_match_mode(&fbi->var, &fbi->modelist);
+		/*
+		 * If entry exists in the mode list and FB_MXC_SYNC_MASK
+		 * bits are empty in the fbi->var.sync (most probably cleared
+		 * by the user space application) then copy it from the found
+		 * mode list entry.
+		 */
+		if (sync_mode && !(fbi->var.sync & FB_MXC_SYNC_MASK))
+			fbi->var.sync = sync_mode->sync;
+
 		if (!(fbi->var.sync & FB_SYNC_CLK_LAT_FALL))
 			sig_cfg.clk_pol = true;
 		if (fbi->var.sync & FB_SYNC_DATA_INVERT)
