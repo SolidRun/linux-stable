@@ -118,6 +118,28 @@ static int pcf8523_rtc_check_oscillator(struct i2c_client *client)
 	return 0;
 }
 
+#ifdef CONFIG_OF
+static int pcf8523_set_12p5_pf(struct i2c_client *client)
+{
+	u8 value;
+	int err;
+
+	err = pcf8523_read(client, REG_CONTROL1, &value);
+	if (err < 0)
+		goto out;
+
+	if (value & REG_CONTROL1_CAP_SEL)
+		return 0;
+
+	value |= REG_CONTROL1_CAP_SEL;
+
+	err = pcf8523_write(client, REG_CONTROL1, value);
+
+out:
+	return err;
+}
+#endif
+
 static int pcf8523_switch_capacitance(struct i2c_client *client)
 {
 	u8 value;
@@ -343,6 +365,9 @@ static const struct rtc_class_ops pcf8523_rtc_ops = {
 static int pcf8523_probe(struct i2c_client *client,
 			 const struct i2c_device_id *id)
 {
+#ifdef CONFIG_OF
+	struct device_node *np = client->dev.of_node;
+#endif
 	struct pcf8523 *pcf;
 	u8 value;
 	int err;
@@ -361,6 +386,13 @@ static int pcf8523_probe(struct i2c_client *client,
 
 	if (value & REG_CONTROL3_BLF)
 		dev_warn(&client->dev, "RTC reports battery is low\n");
+
+#ifdef CONFIG_OF
+	if (of_property_read_bool(np, "nxp,12p5_pf")) {
+		dev_info(&client->dev, "starting calibration at 12.5 pf\n");
+		pcf8523_set_12p5_pf(client);
+	}
+#endif
 
 	err = pcf8523_enable_oscillator(client);
 	if (err < 0) {

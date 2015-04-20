@@ -1,0 +1,14 @@
+NXP Semiconductors PCF8523 Real Time Clock
+
+Required properties:
+- compatible: should be: "nxp,pcf8523"
+- reg: i2c address
+- nxp,12p5_pf: force autodetection to start at 12.5 pf instead of 7pf
+
+Example:
+
+rtc: pcf8523@68 {
+	compatible = "nxp,pcf8523";
+	reg = <0x68>;
+	nxp,12p5_pf;
+};
