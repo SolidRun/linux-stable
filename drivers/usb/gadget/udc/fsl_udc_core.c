@@ -1701,7 +1701,7 @@ static void dtd_complete_irq(struct fsl_udc *udc)
 		curr_ep = get_ep_by_pipe(udc, i);
 
 		/* If the ep is configured */
-		if (!curr_ep->ep.name) {
+		if (strncmp(curr_ep->name, "ep", 2)) {
 			WARNING("Invalid EP?");
 			continue;
 		}
