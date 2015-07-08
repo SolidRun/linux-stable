@@ -6,6 +6,8 @@ menu "MXC Camera/V4L2 PRP Features support"
 config VIDEO_MXC_IPU_CAMERA
 	bool
 	select VIDEO_V4L2_MXC_INT_DEVICE
+	select MXC_IPU_CSI_ENC
+	select MXC_IPU_PRP_ENC
 	depends on VIDEO_MXC_CAPTURE && MXC_IPU
 	default y
 
@@ -52,6 +54,7 @@ config TC358743_AUDIO
 
 config MXC_CAMERA_OV5647_MIPI
 	tristate "OmniVision ov5647 camera support using mipi"
+	depends on MXC_MIPI_CSI2
 	depends on !VIDEO_MXC_EMMA_CAMERA && I2C
 	---help---
 	  If you plan to use the ov5647 Camera with mipi interface in your MXC system, say Y here.
