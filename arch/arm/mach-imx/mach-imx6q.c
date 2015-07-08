@@ -347,6 +347,7 @@ static void __init imx6q_init_machine(void)
 static void __init imx6q_opp_check_speed_grading(struct device *cpu_dev)
 {
 	struct device_node *np;
+	struct dev_pm_opp *opp;
 	void __iomem *base;
 	u32 val;
 
@@ -381,23 +382,38 @@ static void __init imx6q_opp_check_speed_grading(struct device *cpu_dev)
 				val = OCOTP_CFG3_SPEED_996MHZ;
 		}
 	}
-	if ((val != OCOTP_CFG3_SPEED_1P2GHZ) && cpu_is_imx6q())
-		if (dev_pm_opp_disable(cpu_dev, 1200000000))
-			pr_warn("failed to disable 1.2 GHz OPP\n");
-	if (val < OCOTP_CFG3_SPEED_996MHZ)
-		if (dev_pm_opp_disable(cpu_dev, 996000000))
-			pr_warn("failed to disable 996 MHz OPP\n");
+	if ((val != OCOTP_CFG3_SPEED_1P2GHZ) && cpu_is_imx6q()) {
+		opp = dev_pm_opp_find_freq_exact(cpu_dev, 1200000000, true);
+		if (!IS_ERR(opp)) {
+			if (dev_pm_opp_disable(cpu_dev, 1200000000))
+				pr_warn("failed to disable 1.2 GHz OPP\n");
+		}
+	}
+	if (val < OCOTP_CFG3_SPEED_996MHZ) {
+		opp = dev_pm_opp_find_freq_exact(cpu_dev, 996000000, true);
+		if (!IS_ERR(opp)) {
+			if (dev_pm_opp_disable(cpu_dev, 996000000))
+				pr_warn("failed to disable 996 MHz OPP\n");
+		}
+	}
 	if (cpu_is_imx6q()) {
-		if (val != OCOTP_CFG3_SPEED_852MHZ)
-			if (dev_pm_opp_disable(cpu_dev, 852000000))
-				pr_warn("failed to disable 852 MHz OPP\n");
+		if (val != OCOTP_CFG3_SPEED_852MHZ) {
+			opp = dev_pm_opp_find_freq_exact(cpu_dev, 852000000, true);
+			if (!IS_ERR(opp)) {
+				if (dev_pm_opp_disable(cpu_dev, 852000000))
+					pr_warn("failed to disable 852 MHz OPP\n");
+			}
+		}
 	}
 	iounmap(base);
 
 	if (IS_ENABLED(CONFIG_MX6_VPU_352M)) {
-		if (dev_pm_opp_disable(cpu_dev, 396000000))
-			pr_warn("failed to disable 396MHz OPP\n");
-		pr_info("remove 396MHz OPP for VPU running at 352MHz!\n");
+		opp = dev_pm_opp_find_freq_exact(cpu_dev, 396000000, true);
+		if (!IS_ERR(opp)) {
+			if (dev_pm_opp_disable(cpu_dev, 396000000))
+				pr_warn("failed to disable 396MHz OPP\n");
+			pr_info("remove 396MHz OPP for VPU running at 352MHz!\n");
+		}
 	}
 
 put_node:
