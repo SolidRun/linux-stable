@@ -334,7 +334,6 @@ static int mipi_csi2_probe(struct platform_device *pdev)
 	struct resource *res;
 	u32 mipi_csi2_dphy_ver;
 	int ret;
-	u8 clk;
 
 	gmipi_csi2 = kmalloc(sizeof(struct mipi_csi2_info), GFP_KERNEL);
 	if (!gmipi_csi2) {
@@ -385,10 +384,10 @@ static int mipi_csi2_probe(struct platform_device *pdev)
 		goto err;
 	}
 
-	dphy_clk = 0x14;
-	ret = of_property_read_u8(np, "mipi_dphy_clk", &clk);
-	if (!ret)
-		dphy_clk = clk;
+	of_property_read_u8(np, "mipi_dphy_clk", &dphy_clk);
+	if (!dphy_clk) {
+		dphy_clk = 0x14;
+	}
 
 	/* mipi dphy clk enable for register access */
 	clk_prepare_enable(gmipi_csi2->dphy_clk);
