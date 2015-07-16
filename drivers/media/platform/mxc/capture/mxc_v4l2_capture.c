@@ -1600,17 +1600,26 @@ exit:
 static int mxc_v4l2_s_std(cam_data *cam, v4l2_std_id e)
 {
 	pr_debug("%s: %Lx\n", __func__, e);
-	if (e == V4L2_STD_PAL) {
+	switch (e) {
+	case V4L2_STD_PAL:
 		pr_debug("   Setting standard to PAL %Lx\n", V4L2_STD_PAL);
 		cam->standard.id = V4L2_STD_PAL;
 		video_index = TV_PAL;
-	} else if (e == V4L2_STD_NTSC) {
+		break;
+	case V4L2_STD_NTSC:
 		pr_debug("   Setting standard to NTSC %Lx\n",
 				V4L2_STD_NTSC);
 		/* Get rid of the white dot line in NTSC signal input */
 		cam->standard.id = V4L2_STD_NTSC;
 		video_index = TV_NTSC;
-	} else {
+		break;
+	case V4L2_STD_UNKNOWN:
+	case V4L2_STD_ALL:
+		/* auto-detect don't report an error */
+		cam->standard.id = V4L2_STD_ALL;
+		video_index = TV_NOT_LOCKED;
+		break;
+	default:
 		cam->standard.id = V4L2_STD_ALL;
 		video_index = TV_NOT_LOCKED;
 		pr_err("ERROR: unrecognized std! %Lx (PAL=%Lx, NTSC=%Lx\n",
