@@ -33,6 +33,8 @@
 #define DCIC_IOC_CONFIG_DCIC	_IO('D', 12)
 #define DCIC_IOC_CONFIG_ROI		_IO('D', 13)
 #define DCIC_IOC_GET_RESULT		_IO('D', 14)
+#define DCIC_IOC_START_VSYNC		_IO('D', 15)
+#define DCIC_IOC_STOP_VSYNC		_IO('D', 16)
 
 struct roi_params {
 	unsigned int roi_n;

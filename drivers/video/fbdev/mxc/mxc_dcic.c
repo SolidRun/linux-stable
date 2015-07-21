@@ -52,6 +52,11 @@
 #define FB_SYNC_OE_LOW_ACT		0x80000000
 #define FB_SYNC_CLK_LAT_FALL	0x40000000
 
+static wait_queue_head_t mxc_dcic_wait;
+static int mxc_dcic_vsync;
+static int mxc_dcic_irq;
+static unsigned long mxc_dcic_counter;
+
 static const struct dcic_mux imx6q_dcic0_mux[] = {
 	{
 		.dcic = DCIC_IPU1_DI0,
@@ -290,11 +295,21 @@ static irqreturn_t dcic_irq_handler(int irq, void *data)
 
 	dcic->result = dcics & 0xffff;
 
-	dcic_int_disable(dcic);
+	if (!mxc_dcic_vsync)
+		dcic_int_disable(dcic);
+	else {
+		mxc_dcic_irq = 1;
+		mxc_dcic_counter++;
+	}
 
 	/* clean dcic interrupt state */
 	writel(DCICS_FI_STAT_PENDING, &dcic->regs->dcics);
 	writel(dcics, &dcic->regs->dcics);
+
+	if (mxc_dcic_vsync) {
+		wake_up(&mxc_dcic_wait);
+		return IRQ_HANDLED;
+	}
 
 	for (i = 0; i < 16; i++) {
 		pr_debug("ROI=%d,crcRS=0x%x, crcCS=0x%x\n", i,
@@ -303,7 +318,7 @@ static irqreturn_t dcic_irq_handler(int irq, void *data)
 	}
 	complete(&dcic->roi_crc_comp);
 
-	return 0;
+	return IRQ_HANDLED;
 }
 
 static int dcic_configure(struct dcic_data *dcic, unsigned int sync)
@@ -420,6 +435,29 @@ static long dcic_ioctl(struct file *file,
 		}
 		dcic_disable(dcic);
 		break;
+	case DCIC_IOC_START_VSYNC:
+		mxc_dcic_vsync = 1;
+		mxc_dcic_irq = 0;
+		mxc_dcic_counter = 0;
+
+		// configure minimum roi block
+		roi_param.roi_n = 0;
+		roi_param.end_x = 1;
+		roi_param.start_x = 0;
+		roi_param.end_y = 1;
+		roi_param.start_y = 0;
+		roi_configure(dcic, &roi_param);
+
+		dcic_enable(dcic);
+		dcic_int_enable(dcic);
+		break;
+	case DCIC_IOC_STOP_VSYNC:
+		mxc_dcic_vsync = 0;
+		mxc_dcic_irq = 0;
+		init_completion(&dcic->roi_crc_comp);
+		wait_for_completion_interruptible_timeout(&dcic->roi_crc_comp, 1 * HZ);
+		dcic_disable(dcic);
+		break;
 	default:
 		pr_err("%s, Unsupport cmd %d\n", __func__, cmd);
 		break;
@@ -427,12 +465,34 @@ static long dcic_ioctl(struct file *file,
      return ret;
 }
 
+static ssize_t dcic_read(struct file *file, char __user *buf, size_t count,
+			    loff_t *ppos)
+{
+	int ret = 0;
+
+	do {
+		if (mxc_dcic_irq) {
+			count = min(sizeof(unsigned long), count);
+			ret = copy_to_user(buf, &mxc_dcic_counter, count) ? -EFAULT : count;
+			mxc_dcic_irq = 0;
+			break;
+		}
+		if (file->f_flags & O_NONBLOCK) {
+			ret = -EAGAIN;
+		}
+		else if (wait_event_interruptible(mxc_dcic_wait, mxc_dcic_irq))
+			ret = -ERESTARTSYS;
+	} while(!ret);
+
+	return ret;
+}
 
 static const struct file_operations mxc_dcic_fops = {
 	.owner = THIS_MODULE,
 	.open = dcic_open,
 	.release = dcic_release,
 	.unlocked_ioctl = dcic_ioctl,
+	.read = dcic_read,
 };
 
 static int dcic_probe(struct platform_device *pdev)
@@ -545,6 +605,10 @@ static int dcic_probe(struct platform_device *pdev)
 				irq, ret);
 		goto err_out_cdev;
 	}
+
+	init_waitqueue_head(&mxc_dcic_wait);
+	mxc_dcic_vsync = 0;
+	mxc_dcic_irq = 0;
 
 	return 0;
 
