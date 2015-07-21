@@ -231,13 +231,13 @@ static bool roi_configure(struct dcic_data *dcic, struct roi_params *roi_param)
 	u32 val;
 
 	if (roi_param->roi_n < 0 || roi_param->roi_n >= 16) {
-		printk(KERN_ERR "Error, Wrong ROI number %d\n", roi_param->roi_n);
+		pr_err("Error, Wrong ROI number %d\n", roi_param->roi_n);
 		return false;
 	}
 
 	if (roi_param->end_x <= roi_param->start_x ||
 			roi_param->end_y <= roi_param->start_y) {
-		printk(KERN_ERR "Error, Wrong ROI\n");
+		pr_err("Error, Wrong ROI\n");
 		return false;
 	}
 
@@ -297,7 +297,7 @@ static irqreturn_t dcic_irq_handler(int irq, void *data)
 	writel(dcics, &dcic->regs->dcics);
 
 	for (i = 0; i < 16; i++) {
-		printk(KERN_INFO "ROI=%d,crcRS=0x%x, crcCS=0x%x\n", i,
+		pr_debug("ROI=%d,crcRS=0x%x, crcCS=0x%x\n", i,
 				readl(&dcic->regs->ROI[i].dcicrrs),
 				readl(&dcic->regs->ROI[i].dcicrcs));
 	}
@@ -364,7 +364,7 @@ static int dcic_init(struct device_node *np, struct dcic_data *dcic)
 
 	val = of_get_dcic_val(np, dcic);
 	if (val < 0) {
-		printk(KERN_ERR "Error incorrect\n");
+		pr_err("Error incorrect\n");
 		return -1;
 	}
 
@@ -421,7 +421,7 @@ static long dcic_ioctl(struct file *file,
 		dcic_disable(dcic);
 		break;
 	default:
-		printk(KERN_ERR "%s, Unsupport cmd %d\n", __func__, cmd);
+		pr_err("%s, Unsupport cmd %d\n", __func__, cmd);
 		break;
      }
      return ret;
@@ -503,7 +503,7 @@ static int dcic_probe(struct platform_device *pdev)
 	mutex_init(&dcic->lock);
 	ret = dcic_init(np, dcic);
 	if (ret < 0) {
-		printk(KERN_ERR "Failed init dcic\n");
+		pr_err("Failed init dcic\n");
 		goto ealloc;
 	}
 
@@ -511,7 +511,7 @@ static int dcic_probe(struct platform_device *pdev)
 	name = dcic->buses[dcic->bus_n].name;
 	dcic->major = register_chrdev(0, name, &mxc_dcic_fops);
 	if (dcic->major < 0) {
-		printk(KERN_ERR "DCIC: unable to get a major for dcic\n");
+		pr_err("DCIC: unable to get a major for dcic\n");
 		ret = -EBUSY;
 		goto ealloc;
 	}
