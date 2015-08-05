@@ -94,9 +94,8 @@ struct mxc_edid_cfg {
 	u16 hdmi_3d_struct_all;
 	u32 vsd_max_tmdsclk_rate;
 
-	u8 max_channels;
-	u8 sample_sizes;
-	u8 sample_rates;
+	u8 sample_sizes[4];
+	u8 sample_rates[4];
 	u8 speaker_alloc;
 };
 

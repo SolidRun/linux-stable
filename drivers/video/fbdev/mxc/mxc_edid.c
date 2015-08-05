@@ -286,11 +286,19 @@ int mxc_edid_parse_ext_blk(unsigned char *edid,
 
 	detail_timing_desc_offset = edid[index++];
 
+	memset(cfg->sample_rates, 0, sizeof(cfg->sample_rates));
+	memset(cfg->sample_sizes, 0, sizeof(cfg->sample_sizes));
+
 	if (revision >= 2) {
 		cfg->cea_underscan = (edid[index] >> 7) & 0x1;
 		cfg->cea_basicaudio = (edid[index] >> 6) & 0x1;
 		cfg->cea_ycbcr444 = (edid[index] >> 5) & 0x1;
 		cfg->cea_ycbcr422 = (edid[index] >> 4) & 0x1;
+
+		if (cfg->cea_basicaudio) {
+		      cfg->sample_rates[0] = 0x07;
+		      cfg->sample_sizes[0] = 0x01;
+		}
 
 		DPRINTK("CEA underscan %d\n", cfg->cea_underscan);
 		DPRINTK("CEA basicaudio %d\n", cfg->cea_basicaudio);
@@ -500,13 +508,10 @@ int mxc_edid_parse_ext_blk(unsigned char *edid,
 				}
 			case 0x1: /*Audio data block*/
 				{
-					u8 audio_format, max_ch, byte1, byte2, byte3;
+					u8 audio_format, byte1, byte2, byte3;
+					int ch_idx;
 
 					i = 0;
-					cfg->max_channels = 0;
-					cfg->sample_rates = 0;
-					cfg->sample_sizes = 0;
-
 					while (i < blklen) {
 						byte1 = edid[index + 1];
 						byte2 = edid[index + 2];
@@ -515,20 +520,18 @@ int mxc_edid_parse_ext_blk(unsigned char *edid,
 						i += 3;
 
 						audio_format = byte1 >> 3;
-						max_ch = (byte1 & 0x07) + 1;
 
 						DPRINTK("Audio Format Descriptor : %2d\n", audio_format);
-						DPRINTK("Max Number of Channels  : %2d\n", max_ch);
+						DPRINTK("Max Number of Channels  : %2d\n", (byte1 & 0x07) + 1);
 						DPRINTK("Sample Rates            : %02x\n", byte2);
 
 						/* ALSA can't specify specific compressed
 						 * formats, so only care about PCM for now. */
 						if (audio_format == AUDIO_CODING_TYPE_LPCM) {
-							if (max_ch > cfg->max_channels)
-								cfg->max_channels = max_ch;
-
-							cfg->sample_rates |= byte2;
-							cfg->sample_sizes |= byte3 & 0x7;
+							for (ch_idx = (byte1 & 0x07) / 2; ch_idx >= 0; ch_idx--) {
+								cfg->sample_rates[ch_idx] |= byte2;
+								cfg->sample_sizes[ch_idx] |= byte3 & 0x7;
+							}
 							DPRINTK("Sample Sizes            : %02x\n",
 								byte3 & 0x7);
 						}
