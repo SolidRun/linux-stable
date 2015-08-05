@@ -1068,6 +1068,13 @@ static void __init imx6q_clocks_init(struct device_node *ccm_node)
 	imx_clk_set_rate(clk[IMX6QDL_CLK_PLL2_PFD2_396M], 352000000);
 	clk_set_parent(clk[IMX6QDL_CLK_VPU_AXI_SEL], clk[IMX6QDL_CLK_PLL2_PFD2_396M]);
 	pr_info("VPU 352M is enabled!\n");
+#else
+	imx_clk_set_parent(clk[IMX6QDL_CLK_VPU_AXI_SEL], clk[IMX6QDL_CLK_PLL2_PFD0_352M]);
+
+        if (clk_on_imx6dl())
+                imx_clk_set_rate(clk[IMX6QDL_CLK_PLL2_PFD0_352M], 306000000);
+        else
+                imx_clk_set_rate(clk[IMX6QDL_CLK_PLL2_PFD0_352M], 327000000);
 #endif
 
 	/*
