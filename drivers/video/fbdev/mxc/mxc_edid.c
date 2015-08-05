@@ -547,6 +547,22 @@ int mxc_edid_parse_ext_blk(unsigned char *edid,
 					break;
 				}
 			case 0x7: /*User extended block*/
+				if (blklen >= 2 && edid[index + 1] == 0) {	/*Video Capability Data Block*/
+					u8 data = edid[index + 2];
+
+					cfg->cea_scan_mode_ce = (data >> 0) & 3;
+					cfg->cea_scan_mode_it = (data >> 2) & 3;
+					cfg->cea_scan_mode_pt = (data >> 4) & 3;
+					cfg->cea_rgb_range_selectable = (data >> 6) & 1;
+
+					DPRINTK("VCDB over/underscan behavior (CE)  %d\n", cfg->cea_scan_mode_ce);
+					DPRINTK("VCDB over/underscan behavior (IT)  %d\n", cfg->cea_scan_mode_it);
+					DPRINTK("VCDB over/underscan behavior (PT)  %d\n", cfg->cea_scan_mode_pt);
+					DPRINTK("VCDB RGB quant. range selectable   %d\n", cfg->cea_rgb_range_selectable);
+
+					index += blklen;
+					break;
+				}
 			default:
 				/* skip */
 				DPRINTK("Not handle block, tagcode = 0x%x\n", tagcode);
