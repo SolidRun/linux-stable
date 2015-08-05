@@ -64,6 +64,10 @@ struct mxc_edid_cfg {
 	bool cea_ycbcr444;
 	bool cea_ycbcr422;
 	bool hdmi_cap;
+	bool cea_rgb_range_selectable;
+	u8 cea_scan_mode_ce;
+	u8 cea_scan_mode_it;
+	u8 cea_scan_mode_pt;
 
 	/*VSD*/
 	bool vsd_support_ai;
