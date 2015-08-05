@@ -278,10 +278,11 @@ static int cea_audio_rates[HDMI_MAX_RATES] = {
 static void fsl_hdmi_get_playback_rates(void)
 {
 	int i, count = 0;
-	u8 rates;
+	u8 rates = edid_cfg.sample_rates[0] | edid_cfg.sample_rates[1] |
+			edid_cfg.sample_rates[2] | edid_cfg.sample_rates[3];
 
 	/* Always assume basic audio support */
-	rates = edid_cfg.sample_rates | 0x7;
+	rates |= 0x07;
 
 	for (i = 0 ; i < HDMI_MAX_RATES ; i++)
 		if ((rates & (1 << i)) != 0)
@@ -297,11 +298,13 @@ static void fsl_hdmi_get_playback_rates(void)
 static void fsl_hdmi_get_playback_sample_size(void)
 {
 	int i = 0;
+	u8 sizes = edid_cfg.sample_sizes[0] | edid_cfg.sample_sizes[1] |
+			edid_cfg.sample_sizes[2] | edid_cfg.sample_sizes[3];
 
 	/* Always assume basic audio support */
 	playback_sample_size[i++] = 16;
 
-	if (edid_cfg.sample_sizes & 0x4)
+	if (sizes & 0x4)
 		playback_sample_size[i++] = 32;
 
 	playback_constraint_bits.list = playback_sample_size;
@@ -319,8 +322,9 @@ static void fsl_hdmi_get_playback_channels(void)
 	playback_channels[i++] = channels;
 	channels += 2;
 
-	while ((i < HDMI_MAX_CHANNEL_CONSTRAINTS) &&
-			(channels <= edid_cfg.max_channels)) {
+	while (i < HDMI_MAX_CHANNEL_CONSTRAINTS &&
+	       i < ARRAY_SIZE(edid_cfg.sample_rates) &&
+	       edid_cfg.sample_rates[i] && edid_cfg.sample_sizes[i]) {
 		playback_channels[i++] = channels;
 		channels += 2;
 	}
