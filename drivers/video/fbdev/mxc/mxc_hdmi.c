@@ -213,6 +213,10 @@ static char *rgb_quant_range = "auto";
 module_param(rgb_quant_range, charp, S_IRUGO);
 MODULE_PARM_DESC(rgb_quant_range, "RGB Quant Range (auto, default, limited, full)");
 
+static bool ignore_edid = 0;
+module_param(ignore_edid, bool, S_IRUGO);
+MODULE_PARM_DESC(ignore_edid, "Ignore EDID (default=0)");
+
 static struct platform_device_id imx_hdmi_devtype[] = {
 	{
 		.name = "hdmi-imx6DL",
@@ -2104,16 +2108,20 @@ static void mxc_hdmi_cable_connected(struct mxc_hdmi *hdmi)
 	edid_status = mxc_hdmi_read_edid(hdmi);
 
 	/* Read EDID again if first EDID read failed */
-	if (edid_status == HDMI_EDID_NO_MODES ||
-			edid_status == HDMI_EDID_FAIL) {
-		int retry_status;
-		dev_info(&hdmi->pdev->dev, "Read EDID again\n");
-		msleep(200);
-		retry_status = mxc_hdmi_read_edid(hdmi);
-		/* If we get NO_MODES on the 1st and SAME on the 2nd attempt we
-		 * want NO_MODES as final result. */
-		if (retry_status != HDMI_EDID_SAME)
-			edid_status = retry_status;
+	if (ignore_edid) {
+		edid_status = HDMI_EDID_FAIL;
+	} else {
+		if (edid_status == HDMI_EDID_NO_MODES ||
+				edid_status == HDMI_EDID_FAIL) {
+			int retry_status;
+			dev_info(&hdmi->pdev->dev, "Read EDID again\n");
+			msleep(200);
+			retry_status = mxc_hdmi_read_edid(hdmi);
+			/* If we get NO_MODES on the 1st and SAME on the 2nd attempt we
+			 * want NO_MODES as final result. */
+			if (retry_status != HDMI_EDID_SAME)
+				edid_status = retry_status;
+		}
 	}
 
 	/* HDMI Initialization Steps D, E, F */
