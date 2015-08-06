@@ -2775,8 +2775,11 @@ static int mxc_hdmi_disp_init(struct mxc_dispdrv_handle *disp,
 		/*Add all no interlaced CEA mode to default modelist */
 		for (i = 0; i < ARRAY_SIZE(mxc_cea_mode); i++) {
 			mode = &mxc_cea_mode[i];
-			if (!(mode->vmode & FB_VMODE_INTERLACED) && (mode->xres != 0))
+			if (!(mode->vmode & FB_VMODE_INTERLACED) && (mode->xres != 0)) {
+				struct fb_videomode m = *mode;
+				 m.flag |= FB_MODE_IS_STANDARD;
 				fb_add_videomode(mode, &hdmi->fbi->modelist);
+			}
 		}
 
 		console_unlock();
