@@ -336,6 +336,83 @@ static void fsl_hdmi_get_playback_channels(void)
 		pr_debug("%s: constraint = %d channels\n", __func__, playback_channels[i]);
 }
 
+static int fsl_hw_rule_channels_by_rate(struct snd_pcm_hw_params *params,
+                                        struct snd_pcm_hw_rule *rule)
+{
+	struct snd_interval	*r = hw_param_interval(params, SNDRV_PCM_HW_PARAM_RATE);
+	struct snd_interval	*c = hw_param_interval(params, SNDRV_PCM_HW_PARAM_CHANNELS);
+	int    			i;
+	u8     			m;
+	struct snd_interval	n;
+
+	if (snd_interval_single(r)) {
+		m = 0;
+		for (i = 0; i < HDMI_MAX_RATES; i++) {
+			if (snd_interval_min(r) == cea_audio_rates[i]) {
+				m = 1 << i;
+				break;
+			}
+		}
+
+		if (m) {
+			snd_interval_any(&n);
+			n.min = n.max = 2;
+
+			for (i = 1; i < ARRAY_SIZE(edid_cfg.sample_rates); i++) {
+				if (!(edid_cfg.sample_rates[i] & m))
+					break;
+				n.max += 2;
+			}
+
+			pr_debug("%s: rate = %d, channels = %d..%d\n",
+				 __func__, r->min, n.min, n.max);
+
+			return snd_interval_refine(c, &n);
+		}
+	}
+
+	return 0;
+}
+
+static int fsl_hw_rule_rate_by_channels(struct snd_pcm_hw_params *params,
+                                        struct snd_pcm_hw_rule *rule)
+{
+	struct snd_interval	*r = hw_param_interval(params, SNDRV_PCM_HW_PARAM_RATE);
+	struct snd_interval	*c = hw_param_interval(params, SNDRV_PCM_HW_PARAM_CHANNELS);
+	int    			i, rate;
+	u8     			m;
+	struct snd_interval	n;
+
+	if (snd_interval_single(c)) {
+		i = (snd_interval_min(c) - 1) / 2;
+		m = edid_cfg.sample_rates[i];
+
+		if (m) {
+			snd_interval_any(&n);
+			n.min = 192000;
+			n.max = 32000;
+
+			for (i = 0; i < HDMI_MAX_RATES; i++, m >>= 1) {
+				if (!(m & 1))
+					  continue;
+
+				rate = cea_audio_rates[i];
+				if ( rate < n.min)
+					n.min = rate;
+				if ( rate > n.max)
+					n.max = rate;
+			}
+
+			pr_debug("%s: channels = %d, rates = %d..%d\n",
+				 __func__, c->min, n.min, n.max);
+
+			return snd_interval_refine(r, &n);
+		}
+	}
+
+	return 0;
+}
+
 static int fsl_hdmi_update_constraints(struct snd_pcm_substream *substream)
 {
 	struct snd_pcm_runtime *runtime = substream->runtime;
@@ -362,6 +439,18 @@ static int fsl_hdmi_update_constraints(struct snd_pcm_substream *substream)
 		return ret;
 
 	ret = snd_pcm_hw_constraint_integer(runtime, SNDRV_PCM_HW_PARAM_PERIODS);
+	if (ret < 0)
+		return ret;
+
+	ret = snd_pcm_hw_rule_add(runtime, 0, SNDRV_PCM_HW_PARAM_CHANNELS,
+			fsl_hw_rule_channels_by_rate, NULL,
+			SNDRV_PCM_HW_PARAM_RATE, -1);
+	if (ret < 0)
+		return ret;
+
+	ret = snd_pcm_hw_rule_add(runtime, 0, SNDRV_PCM_HW_PARAM_RATE,
+			fsl_hw_rule_rate_by_channels, NULL,
+			SNDRV_PCM_HW_PARAM_CHANNELS, -1);
 	if (ret < 0)
 		return ret;
 
