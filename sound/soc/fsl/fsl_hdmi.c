@@ -346,23 +346,23 @@ static int fsl_hdmi_update_constraints(struct snd_pcm_substream *substream)
 	fsl_hdmi_get_playback_rates();
 	ret = snd_pcm_hw_constraint_list(runtime, 0, SNDRV_PCM_HW_PARAM_RATE,
 			&playback_constraint_rates);
-	if (ret)
+	if (ret < 0)
 		return ret;
 
 	fsl_hdmi_get_playback_sample_size();
 	ret = snd_pcm_hw_constraint_list(runtime, 0, SNDRV_PCM_HW_PARAM_SAMPLE_BITS,
 			&playback_constraint_bits);
-	if (ret)
+	if (ret < 0)
 		return ret;
 
 	fsl_hdmi_get_playback_channels();
 	ret = snd_pcm_hw_constraint_list(runtime, 0, SNDRV_PCM_HW_PARAM_CHANNELS,
 			&playback_constraint_channels);
-	if (ret)
+	if (ret < 0)
 		return ret;
 
 	ret = snd_pcm_hw_constraint_integer(runtime, SNDRV_PCM_HW_PARAM_PERIODS);
-	if (ret)
+	if (ret < 0)
 		return ret;
 
 	return 0;
