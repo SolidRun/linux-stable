@@ -378,95 +378,6 @@ static int spdif_set_rx_clksrc(struct fsl_spdif_priv *spdif_priv,
 	return 0;
 }
 
-static int spdif_set_sample_rate(struct snd_pcm_substream *substream,
-				int sample_rate)
-{
-	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct fsl_spdif_priv *spdif_priv = snd_soc_dai_get_drvdata(rtd->cpu_dai);
-	struct spdif_mixer_control *ctrl = &spdif_priv->fsl_spdif_control;
-	struct regmap *regmap = spdif_priv->regmap;
-	struct platform_device *pdev = spdif_priv->pdev;
-	unsigned long csfs, csofs = 0;
-	u32 stc, mask, rate;
-	u8 clk, txclk_df, sysclk_df;
-
-	switch (sample_rate) {
-	case 32000:
-		rate = SPDIF_TXRATE_32000;
-		csfs = IEC958_AES3_CON_FS_32000;
-		csofs = IEC958_AES4_CON_ORIGFS_32000;
-		break;
-	case 44100:
-		rate = SPDIF_TXRATE_44100;
-		csfs = IEC958_AES3_CON_FS_44100;
-		csofs = IEC958_AES4_CON_ORIGFS_44100;
-		break;
-	case 48000:
-		rate = SPDIF_TXRATE_48000;
-		csfs = IEC958_AES3_CON_FS_48000;
-		csofs = IEC958_AES4_CON_ORIGFS_48000;
-		break;
-	case 88200:
-		rate = SPDIF_TXRATE_88200;
-		csfs = IEC958_AES3_CON_FS_88200;
-		csofs = IEC958_AES4_CON_ORIGFS_88200;
-		break;
-	case 96000:
-		rate = SPDIF_TXRATE_96000;
-		csfs = IEC958_AES3_CON_FS_96000;
-		csofs = IEC958_AES4_CON_ORIGFS_96000;
-		break;
-	case 176400:
-		rate = SPDIF_TXRATE_176400;
-		csfs = IEC958_AES3_CON_FS_176400;
-		csofs = IEC958_AES4_CON_ORIGFS_176400;
-		break;
-	case 192000:
-		rate = SPDIF_TXRATE_192000;
-		csfs = IEC958_AES3_CON_FS_192000;
-		csofs = IEC958_AES4_CON_ORIGFS_192000;
-		break;
-	default:
-		dev_err(&pdev->dev, "unsupported sample rate %d\n", sample_rate);
-		return -EINVAL;
-	}
-
-	clk = spdif_priv->txclk_src[rate];
-	if (clk >= STC_TXCLK_SRC_MAX) {
-		dev_err(&pdev->dev, "tx clock source is out of range\n");
-		return -EINVAL;
-	}
-
-	txclk_df = spdif_priv->txclk_df[rate];
-	if (txclk_df == 0) {
-		dev_err(&pdev->dev, "the txclk_df can't be zero\n");
-		return -EINVAL;
-	}
-
-	sysclk_df = spdif_priv->sysclk_df[rate];
-
-	dev_dbg(&pdev->dev, "expected clock rate = %d\n",
-			(64 * sample_rate * txclk_df * sysclk_df));
-	dev_dbg(&pdev->dev, "actual clock rate = %ld\n",
-			clk_get_rate(spdif_priv->txclk[rate]));
-
-	/* set fs field in consumer channel status */
-	spdif_set_cstatus(ctrl, 3, IEC958_AES3_CON_FS, csfs);
-	spdif_set_cstatus(ctrl, 4, IEC958_AES4_CON_ORIGFS, csofs);
-
-	/* select clock source and divisor */
-	stc = STC_TXCLK_ALL_EN | STC_TXCLK_SRC_SET(clk) |
-	      STC_TXCLK_DF(txclk_df) | STC_SYSCLK_DF(sysclk_df);
-	mask = STC_TXCLK_ALL_EN_MASK | STC_TXCLK_SRC_MASK |
-	       STC_TXCLK_DF_MASK | STC_SYSCLK_DF_MASK;
-	regmap_update_bits(regmap, REG_SPDIF_STC, mask, stc);
-
-	dev_dbg(&pdev->dev, "set sample rate to %dHz for %dHz playback\n",
-			spdif_priv->txrate[rate], sample_rate);
-
-	return 0;
-}
-
 static int fsl_spdif_startup(struct snd_pcm_substream *substream,
 			     struct snd_soc_dai *cpu_dai)
 {
@@ -579,6 +490,119 @@ static void fsl_spdif_shutdown(struct snd_pcm_substream *substream,
 	}
 
 	pm_runtime_put_sync(cpu_dai->dev);
+}
+
+static int spdif_set_sample_rate(struct snd_pcm_substream *substream,
+				int sample_rate)
+{
+	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	struct fsl_spdif_priv *spdif_priv = snd_soc_dai_get_drvdata(rtd->cpu_dai);
+	struct spdif_mixer_control *ctrl = &spdif_priv->fsl_spdif_control;
+	struct regmap *regmap = spdif_priv->regmap;
+	struct platform_device *pdev = spdif_priv->pdev;
+	unsigned long csfs, csofs = 0;
+	u32 stc, mask, rate;
+	u8 clk, txclk_df, sysclk_df;
+	int ret;
+
+	switch (sample_rate) {
+	case 32000:
+		rate = SPDIF_TXRATE_32000;
+		csfs = IEC958_AES3_CON_FS_32000;
+		csofs = IEC958_AES4_CON_ORIGFS_32000;
+		break;
+	case 44100:
+		rate = SPDIF_TXRATE_44100;
+		csfs = IEC958_AES3_CON_FS_44100;
+		csofs = IEC958_AES4_CON_ORIGFS_44100;
+		break;
+	case 48000:
+		rate = SPDIF_TXRATE_48000;
+		csfs = IEC958_AES3_CON_FS_48000;
+		csofs = IEC958_AES4_CON_ORIGFS_48000;
+		break;
+	case 88200:
+		rate = SPDIF_TXRATE_88200;
+		csfs = IEC958_AES3_CON_FS_88200;
+		csofs = IEC958_AES4_CON_ORIGFS_88200;
+		break;
+	case 96000:
+		rate = SPDIF_TXRATE_96000;
+		csfs = IEC958_AES3_CON_FS_96000;
+		csofs = IEC958_AES4_CON_ORIGFS_96000;
+		break;
+	case 176400:
+		rate = SPDIF_TXRATE_176400;
+		csfs = IEC958_AES3_CON_FS_176400;
+		csofs = IEC958_AES4_CON_ORIGFS_176400;
+		break;
+	case 192000:
+		rate = SPDIF_TXRATE_192000;
+		csfs = IEC958_AES3_CON_FS_192000;
+		csofs = IEC958_AES4_CON_ORIGFS_192000;
+		break;
+	default:
+		dev_err(&pdev->dev, "unsupported sample rate %d\n", sample_rate);
+		return -EINVAL;
+	}
+
+	clk = spdif_priv->txclk_src[rate];
+	if (clk >= STC_TXCLK_SRC_MAX) {
+		dev_err(&pdev->dev, "tx clock source is out of range\n");
+		return -EINVAL;
+	}
+
+	txclk_df = spdif_priv->txclk_df[rate];
+	if (txclk_df == 0) {
+		dev_err(&pdev->dev, "the txclk_df can't be zero\n");
+		return -EINVAL;
+	}
+
+	sysclk_df = spdif_priv->sysclk_df[rate];
+
+	/* Don't mess up the clocks from other modules */
+	if (clk != STC_TXCLK_SPDIF_ROOT)
+		goto clk_set_bypass;
+
+	fsl_spdif_shutdown(substream, rtd->cpu_dai);
+	/*
+	 * The S/PDIF block needs a clock of 64 * fs * txclk_df.
+	 * So request 64 * fs * (txclk_df + 1) to get rounded.
+	 */
+	ret = clk_set_rate(spdif_priv->txclk[rate], 64 * sample_rate * (txclk_df + 1));
+	if (ret) {
+		dev_err(&pdev->dev, "failed to set tx clock rate\n");
+		fsl_spdif_startup(substream, rtd->cpu_dai);
+		return ret;
+	}
+
+	ret = fsl_spdif_startup(substream, rtd->cpu_dai);
+	if (ret) {
+		dev_err(&pdev->dev, "failed to restart clocks tx clock rate\n");
+		return ret;
+	}
+
+clk_set_bypass:
+	dev_dbg(&pdev->dev, "expected clock rate = %d\n",
+			(64 * sample_rate * txclk_df * sysclk_df));
+	dev_dbg(&pdev->dev, "actual clock rate = %ld\n",
+			clk_get_rate(spdif_priv->txclk[rate]));
+
+	/* set fs field in consumer channel status */
+	spdif_set_cstatus(ctrl, 3, IEC958_AES3_CON_FS, csfs);
+	spdif_set_cstatus(ctrl, 4, IEC958_AES4_CON_ORIGFS, csofs);
+
+	/* select clock source and divisor */
+	stc = STC_TXCLK_ALL_EN | STC_TXCLK_SRC_SET(clk) |
+	      STC_TXCLK_DF(txclk_df) | STC_SYSCLK_DF(sysclk_df);
+	mask = STC_TXCLK_ALL_EN_MASK | STC_TXCLK_SRC_MASK |
+	       STC_TXCLK_DF_MASK | STC_SYSCLK_DF_MASK;
+	regmap_update_bits(regmap, REG_SPDIF_STC, mask, stc);
+
+	dev_dbg(&pdev->dev, "set sample rate to %dHz for %dHz playback\n",
+			spdif_priv->txrate[rate], sample_rate);
+
+	return 0;
 }
 
 static int fsl_spdif_hw_params(struct snd_pcm_substream *substream,
@@ -1174,7 +1198,7 @@ static u32 fsl_spdif_txclk_caldiv(struct fsl_spdif_priv *spdif_priv,
 {
 	const u32 rate[] = { 32000, 44100, 48000, 88200, 96000, 176400, 192000 };
 	bool is_sysclk = clk_is_match(clk, spdif_priv->sysclk);
-	u64 rate_actual, sub;
+	u64 rate_ideal, rate_actual, sub;
 	u32 sysclk_dfmin, sysclk_dfmax;
 	u32 txclk_df, sysclk_df, arate;
 
@@ -1184,7 +1208,11 @@ static u32 fsl_spdif_txclk_caldiv(struct fsl_spdif_priv *spdif_priv,
 
 	for (sysclk_df = sysclk_dfmin; sysclk_df <= sysclk_dfmax; sysclk_df++) {
 		for (txclk_df = 1; txclk_df <= 128; txclk_df++) {
-			rate_actual = clk_get_rate(clk);
+			rate_ideal = rate[index] * (txclk_df + 1) * 64;
+			if (round)
+				rate_actual = clk_round_rate(clk, rate_ideal);
+			else
+				rate_actual = clk_get_rate(clk);
 
 			arate = rate_actual / 64;
 			arate /= txclk_df * sysclk_df;
