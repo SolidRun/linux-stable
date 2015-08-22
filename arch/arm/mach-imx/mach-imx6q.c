@@ -123,7 +123,15 @@ static int ar8031_phy_fixup(struct phy_device *dev)
 	phy_write(dev, 0xe, 0x805d);
 	phy_write(dev, 0xd, 0x4003);
 	val = phy_read(dev, 0xe);
-	val &= ~(0x1 << 8);
+	val |= (0x1 << 8);
+	phy_write(dev, 0xe, val);
+
+	/* Increase 1000BT tx time for SmartEEE. */
+	phy_write(dev, 0xd, 0x3);
+	phy_write(dev, 0xe, 0x805b);
+	phy_write(dev, 0xd, 0x4003);
+	val = phy_read(dev, 0xe);
+	val = 0x1317;
 	phy_write(dev, 0xe, val);
 
 	/* To enable AR8031 output a 125MHz clk from CLK_25M */
