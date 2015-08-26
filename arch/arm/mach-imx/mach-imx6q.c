@@ -41,6 +41,16 @@
 #include "cpuidle.h"
 #include "hardware.h"
 
+static int ar803x_smarteee = 0;
+
+static int __init ar803x_smarteee_setup(char *__unused)
+{
+	ar803x_smarteee = 1;
+	return 1;
+}
+
+__setup("ar803x_smarteee", ar803x_smarteee_setup);
+
 /* For imx6q sabrelite board: set KSZ9021RN RGMII pad skew */
 static int ksz9021rn_phy_fixup(struct phy_device *phydev)
 {
@@ -123,15 +133,7 @@ static int ar8031_phy_fixup(struct phy_device *dev)
 	phy_write(dev, 0xe, 0x805d);
 	phy_write(dev, 0xd, 0x4003);
 	val = phy_read(dev, 0xe);
-	val |= (0x1 << 8);
-	phy_write(dev, 0xe, val);
-
-	/* Increase 1000BT tx time for SmartEEE. */
-	phy_write(dev, 0xd, 0x3);
-	phy_write(dev, 0xe, 0x805b);
-	phy_write(dev, 0xd, 0x4003);
-	val = phy_read(dev, 0xe);
-	val = 0x1317;
+	val &= ~(0x1 << 8);
 	phy_write(dev, 0xe, val);
 
 	/* To enable AR8031 output a 125MHz clk from CLK_25M */
@@ -159,20 +161,11 @@ static int ar8035_phy_fixup(struct phy_device *dev)
 {
 	u16 val;
 
-	/* Ar803x phy SmartEEE feature cause link status generates glitch,
-	 * which cause ethernet link down/up issue, so disable SmartEEE
-	 */
-	phy_write(dev, 0xd, 0x3);
-	phy_write(dev, 0xe, 0x805d);
-	phy_write(dev, 0xd, 0x4003);
-
-	val = phy_read(dev, 0xe);
-	phy_write(dev, 0xe, val & ~(1 << 8));
-
 	/*
-	 * Enable 125MHz clock from CLK_25M on the AR8031.  This
-	 * is fed in to the IMX6 on the ENET_REF_CLK (V22) pad.
-	 * Also, introduce a tx clock delay.
+	 * Disable SmartEEE and Enable 125MHz clock from
+	 * CLK_25M on the AR8031.  This is fed in to the
+	 * IMX6 on the ENET_REF_CLK (V22) pad. Also,
+	 * introduce a tx clock delay.
 	 *
 	 * This is the same as is the AR8031 fixup.
 	 */
@@ -182,6 +175,31 @@ static int ar8035_phy_fixup(struct phy_device *dev)
 	val = phy_read(dev, 0x0);
 	if (val & BMCR_PDOWN)
 		phy_write(dev, 0x0, val & ~BMCR_PDOWN);
+
+	if (!ar803x_smarteee)
+		return 0;
+
+	/* Ar803x phy SmartEEE feature cause link status generates glitch,
+	 * which cause ethernet link down/up issue, so disable SmartEEE
+	 */
+	phy_write(dev, 0xd, 0x3);
+	phy_write(dev, 0xe, 0x805d);
+	phy_write(dev, 0xd, 0x4003);
+	val = phy_read(dev, 0xe);
+	val |= (0x1 << 8);
+	phy_write(dev, 0xe, val);
+
+	/* Increase 1000BT tw time for SmartEEE. It seems that we need
+	 * a bit more time than standard to git up and running.  Bumping
+	 * up the Tw time allows us to enable SmartEEE without generating
+	 * ethernet disconnects occasionally
+	 */
+	phy_write(dev, 0xd, 0x3);
+	phy_write(dev, 0xe, 0x805b);
+	phy_write(dev, 0xd, 0x4003);
+	val = phy_read(dev, 0xe);
+	val = 0x1517;
+	phy_write(dev, 0xe, val);
 
 	return 0;
 }
