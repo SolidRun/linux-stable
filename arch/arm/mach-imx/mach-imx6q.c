@@ -198,7 +198,7 @@ static int ar8035_phy_fixup(struct phy_device *dev)
 	phy_write(dev, 0xe, 0x805b);
 	phy_write(dev, 0xd, 0x4003);
 	val = phy_read(dev, 0xe);
-	val = 0x1517;
+	val = 0x1717;
 	phy_write(dev, 0xe, val);
 
 	return 0;
