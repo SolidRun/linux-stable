@@ -67,4 +67,10 @@ int phylink_ethtool_get_settings(struct phylink *, struct ethtool_cmd *);
 int phylink_ethtool_set_settings(struct phylink *, struct ethtool_cmd *);
 int phylink_mii_ioctl(struct phylink *, struct ifreq *, int);
 
+void phylink_set_link_port(struct phylink *pl, u32 support, u8 port);
+int phylink_set_link_an_mode(struct phylink *pl, unsigned int mode);
+void phylink_disable(struct phylink *pl);
+void phylink_enable(struct phylink *pl);
+struct phylink *phylink_lookup_by_netdev(struct net_device *ndev);
+
 #endif
