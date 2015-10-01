@@ -13,6 +13,10 @@ enum {
 	MLO_PAUSE_NONE,
 	MLO_PAUSE_ASYM = BIT(0),
 	MLO_PAUSE_SYM = BIT(1),
+	MLO_PAUSE_RX = BIT(2),
+	MLO_PAUSE_TX = BIT(3),
+	MLO_PAUSE_TXRX_MASK = MLO_PAUSE_TX | MLO_PAUSE_RX,
+	MLO_PAUSE_AN = BIT(4),
 
 	MLO_AN_PHY = 0,
 	MLO_AN_FIXED,
@@ -66,6 +70,10 @@ void phylink_stop(struct phylink *);
 int phylink_ethtool_get_settings(struct phylink *, struct ethtool_cmd *);
 int phylink_ethtool_set_settings(struct phylink *, struct ethtool_cmd *);
 int phylink_ethtool_nway_reset(struct phylink *);
+void phylink_ethtool_get_pauseparam(struct phylink *,
+				    struct ethtool_pauseparam *);
+int phylink_ethtool_set_pauseparam(struct phylink *,
+				   struct ethtool_pauseparam *);
 int phylink_mii_ioctl(struct phylink *, struct ifreq *, int);
 
 void phylink_set_link_port(struct phylink *pl, u32 support, u8 port);
