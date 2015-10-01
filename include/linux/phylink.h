@@ -51,7 +51,8 @@ struct phylink_mac_ops {
 	void (*mac_an_restart)(struct net_device *, unsigned int mode);
 
 	void (*mac_link_down)(struct net_device *, unsigned int mode);
-	void (*mac_link_up)(struct net_device *, unsigned int mode);
+	void (*mac_link_up)(struct net_device *, unsigned int mode,
+			    struct phy_device *);
 };
 
 struct phylink *phylink_create(struct net_device *, struct device_node *,
@@ -74,6 +75,10 @@ void phylink_ethtool_get_pauseparam(struct phylink *,
 				    struct ethtool_pauseparam *);
 int phylink_ethtool_set_pauseparam(struct phylink *,
 				   struct ethtool_pauseparam *);
+int phylink_init_eee(struct phylink *, bool);
+int phylink_get_eee_err(struct phylink *);
+int phylink_ethtool_get_eee(struct phylink *, struct ethtool_eee *);
+int phylink_ethtool_set_eee(struct phylink *, struct ethtool_eee *);
 int phylink_mii_ioctl(struct phylink *, struct ifreq *, int);
 
 void phylink_set_link_port(struct phylink *pl, u32 support, u8 port);
