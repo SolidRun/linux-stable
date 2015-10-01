@@ -65,6 +65,7 @@ void phylink_stop(struct phylink *);
 
 int phylink_ethtool_get_settings(struct phylink *, struct ethtool_cmd *);
 int phylink_ethtool_set_settings(struct phylink *, struct ethtool_cmd *);
+int phylink_ethtool_nway_reset(struct phylink *);
 int phylink_mii_ioctl(struct phylink *, struct ifreq *, int);
 
 void phylink_set_link_port(struct phylink *pl, u32 support, u8 port);
