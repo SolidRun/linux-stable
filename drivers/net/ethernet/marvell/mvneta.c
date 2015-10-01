@@ -3413,6 +3413,13 @@ int mvneta_ethtool_set_settings(struct net_device *dev, struct ethtool_cmd *cmd)
 	return phylink_ethtool_set_settings(pp->phylink, cmd);
 }
 
+static int mvneta_ethtool_nway_reset(struct net_device *dev)
+{
+	struct mvneta_port *pp = netdev_priv(dev);
+
+	return phylink_ethtool_nway_reset(pp->phylink);
+}
+
 /* Set interrupt coalescing for ethtools */
 static int mvneta_ethtool_set_coalesce(struct net_device *dev,
 				       struct ethtool_coalesce *c)
@@ -3687,6 +3694,7 @@ const struct ethtool_ops mvneta_eth_tool_ops = {
 	.get_link       = ethtool_op_get_link,
 	.get_settings   = mvneta_ethtool_get_settings,
 	.set_settings   = mvneta_ethtool_set_settings,
+	.nway_reset	= mvneta_ethtool_nway_reset,
 	.set_coalesce   = mvneta_ethtool_set_coalesce,
 	.get_coalesce   = mvneta_ethtool_get_coalesce,
 	.get_drvinfo    = mvneta_ethtool_get_drvinfo,
