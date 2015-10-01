@@ -3022,6 +3022,8 @@ static void mvneta_mac_config(struct net_device *ndev, unsigned int mode,
 
 	if (state->advertising & ADVERTISED_Pause)
 		new_an |= MVNETA_GMAC_ADVERT_SYM_FLOW_CTRL;
+	if (state->pause & MLO_PAUSE_TXRX_MASK)
+		new_an |= MVNETA_GMAC_CONFIG_FLOW_CTRL;
 
 	switch (mode) {
 	case MLO_AN_SGMII:
@@ -3046,7 +3048,7 @@ static void mvneta_mac_config(struct net_device *ndev, unsigned int mode,
 			 /* The MAC only supports FD mode */
 			 MVNETA_GMAC_CONFIG_FULL_DUPLEX;
 
-		if (state->an_enabled)
+		if (state->pause & MLO_PAUSE_AN && state->an_enabled)
 			new_an |= MVNETA_GMAC_AN_FLOW_CTRL_EN;
 		break;
 
@@ -3509,6 +3511,22 @@ static int mvneta_ethtool_set_ringparam(struct net_device *dev,
 	return 0;
 }
 
+static void mvneta_ethtool_get_pauseparam(struct net_device *dev,
+					  struct ethtool_pauseparam *pause)
+{
+	struct mvneta_port *pp = netdev_priv(dev);
+
+	phylink_ethtool_get_pauseparam(pp->phylink, pause);
+}
+
+static int mvneta_ethtool_set_pauseparam(struct net_device *dev,
+					 struct ethtool_pauseparam *pause)
+{
+	struct mvneta_port *pp = netdev_priv(dev);
+
+	return phylink_ethtool_set_pauseparam(pp->phylink, pause);
+}
+
 static void mvneta_ethtool_get_strings(struct net_device *netdev, u32 sset,
 				       u8 *data)
 {
@@ -3700,6 +3718,8 @@ const struct ethtool_ops mvneta_eth_tool_ops = {
 	.get_drvinfo    = mvneta_ethtool_get_drvinfo,
 	.get_ringparam  = mvneta_ethtool_get_ringparam,
 	.set_ringparam	= mvneta_ethtool_set_ringparam,
+	.get_pauseparam	= mvneta_ethtool_get_pauseparam,
+	.set_pauseparam	= mvneta_ethtool_set_pauseparam,
 	.get_strings	= mvneta_ethtool_get_strings,
 	.get_ethtool_stats = mvneta_ethtool_get_stats,
 	.get_sset_count	= mvneta_ethtool_get_sset_count,
