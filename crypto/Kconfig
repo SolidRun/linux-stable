@@ -110,6 +110,13 @@ config CRYPTO_RSA
 	help
 	  Generic implementation of the RSA public key algorithm.
 
+config CRYPTO_CRYPTODEV
+	tristate "Cryptodev (/dev/crypto) interface"
+	depends on CRYPTO
+	help
+	  Device /dev/crypto gives userspace programs access to 
+	  kernel crypto algorithms.
+
 config CRYPTO_MANAGER
 	tristate "Cryptographic algorithm manager"
 	select CRYPTO_MANAGER2
