@@ -38,7 +38,7 @@
 
 #include <asm/irq.h>
 
-static const char *phy_speed_to_str(int speed)
+const char *phy_speed_to_str(int speed)
 {
 	switch (speed) {
 	case SPEED_10:
@@ -57,6 +57,7 @@ static const char *phy_speed_to_str(int speed)
 		return "Unsupported (update phy.c)";
 	}
 }
+EXPORT_SYMBOL_GPL(phy_speed_to_str);
 
 #define PHY_STATE_STR(_state)			\
 	case PHY_##_state:			\
