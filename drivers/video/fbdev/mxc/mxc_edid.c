@@ -535,6 +535,14 @@ int mxc_edid_parse_ext_blk(unsigned char *edid,
 							DPRINTK("Sample Sizes            : %02x\n",
 								byte3 & 0x7);
 						}
+
+						/* HD-audio: pretend to support 192kHz/16bit in 8ch mode to
+						 * allow HD passthrough on sinks that report only 6ch LPCM */
+						if (audio_format == AUDIO_CODING_TYPE_MLP ||
+						    audio_format == AUDIO_CODING_TYPE_DTS_HD) {
+							cfg->sample_rates[3] |= 0x40;
+							cfg->sample_sizes[3] |= 0x01;
+						}
 					}
 					break;
 				}
