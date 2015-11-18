@@ -519,17 +519,17 @@ int mxc_edid_parse_ext_blk(unsigned char *edid,
 						index += 3;
 						i += 3;
 
-						audio_format = byte1 >> 3;
+						audio_format = (byte1 & 0x7f) >> 3;
 
 						DPRINTK("Audio Format Descriptor : %2d\n", audio_format);
 						DPRINTK("Max Number of Channels  : %2d\n", (byte1 & 0x07) + 1);
-						DPRINTK("Sample Rates            : %02x\n", byte2);
+						DPRINTK("Sample Rates            : %02x\n", byte2 & 0x7f);
 
 						/* ALSA can't specify specific compressed
 						 * formats, so only care about PCM for now. */
 						if (audio_format == AUDIO_CODING_TYPE_LPCM) {
 							for (ch_idx = (byte1 & 0x07) / 2; ch_idx >= 0; ch_idx--) {
-								cfg->sample_rates[ch_idx] |= byte2;
+								cfg->sample_rates[ch_idx] |= byte2 & 0x7f;
 								cfg->sample_sizes[ch_idx] |= byte3 & 0x7;
 							}
 							DPRINTK("Sample Sizes            : %02x\n",
@@ -550,7 +550,7 @@ int mxc_edid_parse_ext_blk(unsigned char *edid,
 				{
 					i = 0;
 					while (i < blklen) {
-						cfg->speaker_alloc = edid[index + 1];
+						cfg->speaker_alloc = edid[index + 1] & 0x7f;
 						index += 3;
 						i += 3;
 						DPRINTK("Speaker Alloc           : %02x\n", cfg->speaker_alloc);
