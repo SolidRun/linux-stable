@@ -57,6 +57,7 @@ config MVPP2
 	tristate "Marvell Armada 375 network interface support"
 	depends on MACH_ARMADA_375
 	select MVMDIO
+	select PHYLINK
 	---help---
 	  This driver supports the network interface units in the
 	  Marvell ARMADA 375 SoC.
