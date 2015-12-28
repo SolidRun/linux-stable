@@ -900,11 +900,9 @@ static void sfp_sm_event(struct sfp *sfp, unsigned int event)
 	mutex_unlock(&sfp->sm_mutex);
 }
 
-#if 0
-static int sfp_phy_module_info(struct phy_device *phy,
-			       struct ethtool_modinfo *modinfo)
+static int sfp_module_info(void *priv, struct ethtool_modinfo *modinfo)
 {
-	struct sfp *sfp = phy->priv;
+	struct sfp *sfp = priv;
 
 	/* locking... and check module is present */
 
@@ -918,10 +916,9 @@ static int sfp_phy_module_info(struct phy_device *phy,
 	return 0;
 }
 
-static int sfp_phy_module_eeprom(struct phy_device *phy,
-	struct ethtool_eeprom *ee, u8 *data)
+static int sfp_module_eeprom(void *priv, struct ethtool_eeprom *ee, u8 *data)
 {
-	struct sfp *sfp = phy->priv;
+	struct sfp *sfp = priv;
 	unsigned int first, last, len;
 	int ret;
 
@@ -952,7 +949,11 @@ static int sfp_phy_module_eeprom(struct phy_device *phy,
 	}
 	return 0;
 }
-#endif
+
+static const struct phylink_module_ops sfp_module_ops = {
+	.get_module_info = sfp_module_info,
+	.get_module_eeprom = sfp_module_eeprom,
+};
 
 static void sfp_timeout(struct work_struct *work)
 {
@@ -1028,6 +1029,7 @@ static int sfp_netdev_notify(struct notifier_block *nb, unsigned long act, void 
 	case NETDEV_UNREGISTER:
 		if (sfp->mod_phy && sfp->phylink)
 			phylink_disconnect_phy(sfp->phylink);
+		phylink_unregister_module(sfp->phylink, sfp);
 		sfp->phylink = NULL;
 		dev_put(sfp->ndev);
 		sfp->ndev = NULL;
@@ -1144,6 +1146,7 @@ static int sfp_probe(struct platform_device *pdev)
 		}
 
 		phylink_disable(sfp->phylink);
+		phylink_register_module(sfp->phylink, sfp, &sfp_module_ops);
 	}
 
 	sfp->state = sfp_get_state(sfp);
