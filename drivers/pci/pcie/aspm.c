@@ -356,8 +356,10 @@ static void pcie_aspm_cap_init(struct pcie_link_state *link, int blacklist)
 
 	/* Get upstream/downstream components' register state */
 	pcie_get_aspm_reg(parent, &upreg);
+dev_info(&parent->dev, "up support %x enabled %x\n", upreg.support, upreg.enabled);
 	child = list_entry(linkbus->devices.next, struct pci_dev, bus_list);
 	pcie_get_aspm_reg(child, &dwreg);
+dev_info(&parent->dev, "dn support %x enabled %x\n", dwreg.support, dwreg.enabled);
 
 	/*
 	 * Setup L0s state
