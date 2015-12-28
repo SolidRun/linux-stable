@@ -314,7 +314,8 @@ static void phylink_resolve(struct work_struct *w)
 			if (pl->link_an_mode == MLO_AN_PHY)
 				pl->ops->mac_config(ndev, MLO_AN_PHY, &link_state);
 
-			pl->ops->mac_link_up(ndev, pl->link_an_mode);
+			pl->ops->mac_link_up(ndev, pl->link_an_mode,
+					     pl->phydev);
 
 			netif_carrier_on(ndev);
 
@@ -798,6 +799,61 @@ int phylink_ethtool_set_pauseparam(struct phylink *pl,
 	return ret;
 }
 EXPORT_SYMBOL_GPL(phylink_ethtool_set_pauseparam);
+
+int phylink_init_eee(struct phylink *pl, bool clk_stop_enable)
+{
+	int ret = -EPROTONOSUPPORT;
+
+	mutex_lock(&pl->config_mutex);
+	if (pl->phydev)
+		ret = phy_init_eee(pl->phydev, clk_stop_enable);
+	mutex_unlock(&pl->config_mutex);
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(phylink_init_eee);
+
+int phylink_get_eee_err(struct phylink *pl)
+{
+	int ret = 0;
+
+	mutex_lock(&pl->config_mutex);
+	if (pl->phydev)
+		ret = phy_get_eee_err(pl->phydev);
+	mutex_unlock(&pl->config_mutex);
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(phylink_get_eee_err);
+
+int phylink_ethtool_get_eee(struct phylink *pl, struct ethtool_eee *eee)
+{
+	int ret = -EOPNOTSUPP;
+
+	mutex_lock(&pl->config_mutex);
+	if (pl->phydev)
+		ret = phy_ethtool_get_eee(pl->phydev, eee);
+	mutex_unlock(&pl->config_mutex);
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(phylink_ethtool_get_eee);
+
+int phylink_ethtool_set_eee(struct phylink *pl, struct ethtool_eee *eee)
+{
+	int ret = -EOPNOTSUPP;
+
+	mutex_lock(&pl->config_mutex);
+	if (pl->phydev) {
+		ret = phy_ethtool_set_eee(pl->phydev, eee);
+		if (ret == 0 && eee->eee_enabled)
+			phy_start_aneg(pl->phydev);
+	}
+	mutex_unlock(&pl->config_mutex);
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(phylink_ethtool_set_eee);
 
 /* This emulates MII registers for a fixed-mode phy operating as per the
  * passed in state. "aneg" defines if we report negotiation is possible.
