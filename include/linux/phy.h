@@ -433,6 +433,7 @@ struct phy_device {
 
 	u8 mdix;
 
+	void (*phy_link_change)(struct phy_device *, bool up, bool do_carrier);
 	void (*adjust_link)(struct net_device *dev);
 };
 #define to_phy_device(d) container_of(d, struct phy_device, dev)
