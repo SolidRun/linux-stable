@@ -425,14 +425,16 @@ static const char *sfp_encoding(unsigned int encoding)
 /* Helpers */
 static void sfp_module_tx_disable(struct sfp *sfp)
 {
-dev_info(sfp->dev, "tx disable %u -> %u\n", sfp->state & SFP_F_TX_DISABLE ? 1 : 0, 1);
+	dev_dbg(sfp->dev, "tx disable %u -> %u\n",
+		sfp->state & SFP_F_TX_DISABLE ? 1 : 0, 1);
 	sfp->state |= SFP_F_TX_DISABLE;
 	sfp_set_state(sfp, sfp->state);
 }
 
 static void sfp_module_tx_enable(struct sfp *sfp)
 {
-dev_info(sfp->dev, "tx disable %u -> %u\n", sfp->state & SFP_F_TX_DISABLE ? 1 : 0, 0);
+	dev_dbg(sfp->dev, "tx disable %u -> %u\n",
+		sfp->state & SFP_F_TX_DISABLE ? 1 : 0, 0);
 	sfp->state &= ~SFP_F_TX_DISABLE;
 	sfp_set_state(sfp, sfp->state);
 }
@@ -972,8 +974,8 @@ static void sfp_check_state(struct sfp *sfp)
 
 	for (i = 0; i < GPIO_MAX; i++)
 		if (changed & BIT(i))
-			dev_info(sfp->dev, "%s %u -> %u\n", gpio_of_names[i],
-				 !!(sfp->state & BIT(i)), !!(state & BIT(i)));
+			dev_dbg(sfp->dev, "%s %u -> %u\n", gpio_of_names[i],
+				!!(sfp->state & BIT(i)), !!(state & BIT(i)));
 
 	state |= sfp->state & (SFP_F_TX_DISABLE | SFP_F_RATE_SELECT);
 	sfp->state = state;
