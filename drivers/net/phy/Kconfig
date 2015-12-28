@@ -187,6 +187,16 @@ config MDIO_GPIO
 	  To compile this driver as a module, choose M here: the module
 	  will be called mdio-gpio.
 
+config MDIO_I2C
+	tristate
+	depends on I2C
+	help
+	  Support I2C based PHYs.  This provides a MDIO bus bridged
+	  to I2C to allow PHYs connected in I2C mode to be accessed
+	  using the existing infrastructure.
+
+	  This is library mode.
+
 config MDIO_OCTEON
 	tristate "Support for MDIO buses on Octeon and ThunderX SOCs"
 	depends on 64BIT
