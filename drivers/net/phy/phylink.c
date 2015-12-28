@@ -60,6 +60,9 @@ struct phylink {
 	struct work_struct resolve;
 
 	bool mac_link_up;
+
+	const struct phylink_module_ops *module_ops;
+	void *module_data;
 };
 
 static const char *phylink_an_mode_str(unsigned int mode)
@@ -800,6 +803,36 @@ int phylink_ethtool_set_pauseparam(struct phylink *pl,
 }
 EXPORT_SYMBOL_GPL(phylink_ethtool_set_pauseparam);
 
+int phylink_ethtool_get_module_info(struct phylink *pl,
+				    struct ethtool_modinfo *modinfo)
+{
+	int ret = -EOPNOTSUPP;
+
+	mutex_lock(&pl->config_mutex);
+	if (pl->module_ops)
+		ret = pl->module_ops->get_module_info(pl->module_data,
+						      modinfo);
+	mutex_unlock(&pl->config_mutex);
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(phylink_ethtool_get_module_info);
+
+int phylink_ethtool_get_module_eeprom(struct phylink *pl,
+				      struct ethtool_eeprom *ee, u8 *buf)
+{
+	int ret = -EOPNOTSUPP;
+
+	mutex_lock(&pl->config_mutex);
+	if (pl->module_ops)
+		ret = pl->module_ops->get_module_eeprom(pl->module_data, ee,
+							buf);
+	mutex_unlock(&pl->config_mutex);
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(phylink_ethtool_get_module_eeprom);
+
 int phylink_init_eee(struct phylink *pl, bool clk_stop_enable)
 {
 	int ret = -EPROTONOSUPPORT;
@@ -995,6 +1028,39 @@ int phylink_mii_ioctl(struct phylink *pl, struct ifreq *ifr, int cmd)
 EXPORT_SYMBOL_GPL(phylink_mii_ioctl);
 
 
+
+int phylink_register_module(struct phylink *pl, void *data,
+			    const struct phylink_module_ops *ops)
+{
+	int ret = -EBUSY;
+
+	mutex_lock(&pl->config_mutex);
+	if (!pl->module_ops) {
+		pl->module_ops = ops;
+		pl->module_data = data;
+		ret = 0;
+	}
+	mutex_unlock(&pl->config_mutex);
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(phylink_register_module);
+
+int phylink_unregister_module(struct phylink *pl, void *data)
+{
+	int ret = -EINVAL;
+
+	mutex_lock(&pl->config_mutex);
+	if (pl->module_data == data) {
+		pl->module_ops = NULL;
+		pl->module_data = NULL;
+		ret = 0;
+	}
+	mutex_unlock(&pl->config_mutex);
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(phylink_unregister_module);
 
 void phylink_disable(struct phylink *pl)
 {

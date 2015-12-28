@@ -55,6 +55,11 @@ struct phylink_mac_ops {
 			    struct phy_device *);
 };
 
+struct phylink_module_ops {
+	int (*get_module_info)(void *, struct ethtool_modinfo *);
+	int (*get_module_eeprom)(void *, struct ethtool_eeprom *, u8 *);
+};
+
 struct phylink *phylink_create(struct net_device *, struct device_node *,
 	phy_interface_t iface, const struct phylink_mac_ops *ops);
 void phylink_destroy(struct phylink *);
@@ -75,11 +80,18 @@ void phylink_ethtool_get_pauseparam(struct phylink *,
 				    struct ethtool_pauseparam *);
 int phylink_ethtool_set_pauseparam(struct phylink *,
 				   struct ethtool_pauseparam *);
+int phylink_ethtool_get_module_info(struct phylink *, struct ethtool_modinfo *);
+int phylink_ethtool_get_module_eeprom(struct phylink *,
+				      struct ethtool_eeprom *, u8 *);
 int phylink_init_eee(struct phylink *, bool);
 int phylink_get_eee_err(struct phylink *);
 int phylink_ethtool_get_eee(struct phylink *, struct ethtool_eee *);
 int phylink_ethtool_set_eee(struct phylink *, struct ethtool_eee *);
 int phylink_mii_ioctl(struct phylink *, struct ifreq *, int);
+
+int phylink_register_module(struct phylink *, void *,
+			    const struct phylink_module_ops *);
+int phylink_unregister_module(struct phylink *, void *);
 
 void phylink_set_link_port(struct phylink *pl, u32 support, u8 port);
 int phylink_set_link_an_mode(struct phylink *pl, unsigned int mode);
