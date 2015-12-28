@@ -514,8 +514,8 @@ static void mvebu_gpio_dbg_show(struct seq_file *s, struct gpio_chip *chip)
 		bool is_out;
 
 		label = gpiochip_is_requested(chip, i);
-		if (!label)
-			continue;
+//		if (!label)
+//			continue;
 
 		msk = 1 << i;
 		is_out = !(io_conf & msk);
