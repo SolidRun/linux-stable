@@ -3250,6 +3250,22 @@ static int mvneta_ethtool_get_sset_count(struct net_device *dev, int sset)
 	return -EOPNOTSUPP;
 }
 
+static int mvneta_ethtool_get_module_info(struct net_device *dev,
+					  struct ethtool_modinfo *modinfo)
+{
+	struct mvneta_port *pp = netdev_priv(dev);
+
+	return phylink_ethtool_get_module_info(pp->phylink, modinfo);
+}
+
+static int mvneta_ethtool_get_module_eeprom(struct net_device *dev,
+					    struct ethtool_eeprom *ee, u8 *buf)
+{
+	struct mvneta_port *pp = netdev_priv(dev);
+
+	return phylink_ethtool_get_module_eeprom(pp->phylink, ee, buf);
+}
+
 static int mvneta_ethtool_get_eee(struct net_device *dev,
 				  struct ethtool_eee *eee)
 {
@@ -3318,6 +3334,8 @@ const struct ethtool_ops mvneta_eth_tool_ops = {
 	.get_strings	= mvneta_ethtool_get_strings,
 	.get_ethtool_stats = mvneta_ethtool_get_stats,
 	.get_sset_count	= mvneta_ethtool_get_sset_count,
+	.get_module_info = mvneta_ethtool_get_module_info,
+	.get_module_eeprom = mvneta_ethtool_get_module_eeprom,
 	.get_eee	= mvneta_ethtool_get_eee,
 	.set_eee	= mvneta_ethtool_set_eee,
 };
