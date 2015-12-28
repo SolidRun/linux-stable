@@ -659,6 +659,20 @@ int phylink_ethtool_set_settings(struct phylink *pl, struct ethtool_cmd *cmd)
 }
 EXPORT_SYMBOL_GPL(phylink_ethtool_set_settings);
 
+int phylink_ethtool_nway_reset(struct phylink *pl)
+{
+	int ret = 0;
+
+	mutex_lock(&pl->config_mutex);
+	if (pl->phydev)
+		ret = genphy_restart_aneg(pl->phydev);
+	pl->ops->mac_an_restart(pl->netdev, pl->link_an_mode);
+	mutex_unlock(&pl->config_mutex);
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(phylink_ethtool_nway_reset);
+
 /* This emulates MII registers for a fixed-mode phy operating as per the
  * passed in state. "aneg" defines if we report negotiation is possible.
  *
