@@ -11,6 +11,7 @@
 #include <linux/ethtool.h>
 #include <linux/export.h>
 #include <linux/gpio/consumer.h>
+#include <linux/list.h>
 #include <linux/netdevice.h>
 #include <linux/of.h>
 #include <linux/of_mdio.h>
@@ -29,11 +30,16 @@
 	(ADVERTISED_TP | ADVERTISED_MII | ADVERTISED_FIBRE | \
 	 ADVERTISED_BNC | ADVERTISED_AUI | ADVERTISED_Backplane)
 
+static LIST_HEAD(phylinks);
+static DEFINE_MUTEX(phylink_mutex);
+
 enum {
 	PHYLINK_DISABLE_STOPPED,
+	PHYLINK_DISABLE_LINK,
 };
 
 struct phylink {
+	struct list_head node;
 	struct net_device *netdev;
 	const struct phylink_mac_ops *ops;
 	struct mutex config_mutex;
@@ -313,12 +319,20 @@ struct phylink *phylink_create(struct net_device *ndev, struct device_node *np,
 		return ERR_PTR(ret);
 	}
 
+	mutex_lock(&phylink_mutex);
+	list_add_tail(&pl->node, &phylinks);
+	mutex_unlock(&phylink_mutex);
+
 	return pl;
 }
 EXPORT_SYMBOL_GPL(phylink_create);
 
 void phylink_destroy(struct phylink *pl)
 {
+	mutex_lock(&phylink_mutex);
+	list_del(&pl->node);
+	mutex_unlock(&phylink_mutex);
+
 	cancel_work_sync(&pl->resolve);
 	kfree(pl);
 }
@@ -783,3 +797,78 @@ int phylink_mii_ioctl(struct phylink *pl, struct ifreq *ifr, int cmd)
 	return ret;
 }
 EXPORT_SYMBOL_GPL(phylink_mii_ioctl);
+
+
+
+void phylink_disable(struct phylink *pl)
+{
+	set_bit(PHYLINK_DISABLE_LINK, &pl->phylink_disable_state);
+	flush_work(&pl->resolve);
+
+	netif_carrier_off(pl->netdev);
+}
+EXPORT_SYMBOL_GPL(phylink_disable);
+
+void phylink_enable(struct phylink *pl)
+{
+	clear_bit(PHYLINK_DISABLE_LINK, &pl->phylink_disable_state);
+	phylink_run_resolve(pl);
+}
+EXPORT_SYMBOL_GPL(phylink_enable);
+
+void phylink_set_link_port(struct phylink *pl, u32 support, u8 port)
+{
+	WARN_ON(support & ~SUPPORTED_INTERFACES);
+
+	mutex_lock(&pl->config_mutex);
+	pl->link_port_support = support;
+	pl->link_port = port;
+	mutex_unlock(&pl->config_mutex);
+}
+EXPORT_SYMBOL_GPL(phylink_set_link_port);
+
+int phylink_set_link_an_mode(struct phylink *pl, unsigned int mode)
+{
+	struct phylink_link_state state;
+	int ret = 0;
+
+	mutex_lock(&pl->config_mutex);
+	if (pl->link_an_mode != mode) {
+		netdev_info(pl->netdev, "switching to link AN mode %s\n",
+			    phylink_an_mode_str(mode));
+
+		state = pl->link_config;
+		ret = pl->ops->mac_get_support(pl->netdev, mode, &state);
+		if (ret == 0) {
+			pl->link_an_mode = mode;
+			pl->link_config = state;
+
+			if (!test_bit(PHYLINK_DISABLE_STOPPED,
+				      &pl->phylink_disable_state))
+				pl->ops->mac_config(pl->netdev,
+						    pl->link_an_mode,
+						    &pl->link_config);
+		}
+	}
+	mutex_unlock(&pl->config_mutex);
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(phylink_set_link_an_mode);
+
+struct phylink *phylink_lookup_by_netdev(struct net_device *ndev)
+{
+	struct phylink *pl, *found = NULL;
+
+	mutex_lock(&phylink_mutex);
+	list_for_each_entry(pl, &phylinks, node)
+		if (pl->netdev == ndev) {
+			found = pl;
+			break;
+		}
+
+	mutex_unlock(&phylink_mutex);
+
+	return found;
+}
+EXPORT_SYMBOL_GPL(phylink_lookup_by_netdev);
