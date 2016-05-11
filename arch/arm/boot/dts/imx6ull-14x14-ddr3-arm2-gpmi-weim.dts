@@ -6,13 +6,20 @@
  * published by the Free Software Foundation.
  */
 
-#define REWORKED_ENABLE_ALL_QSPI
-#include "imx6ull-ddr3-arm2.dts"
+#include "imx6ull-14x14-ddr3-arm2.dts"
 
 &gpmi {
+	status ="okay";
+};
+
+&qspi {
 	status ="disabled";
 };
 
 &usdhc2{
 	status ="disabled";
+};
+
+&iomuxc {
+	pinctrl-0 = <&pinctrl_hog &pinctrl_hog_sd &pinctrl_hog_sd2>;
 };

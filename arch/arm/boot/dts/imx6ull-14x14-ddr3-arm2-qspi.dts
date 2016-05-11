@@ -6,16 +6,13 @@
  * published by the Free Software Foundation.
  */
 
-#include "imx6ull-ddr3-arm2.dts"
+#define REWORKED_ENABLE_ALL_QSPI
+#include "imx6ull-14x14-ddr3-arm2.dts"
 
-&flexcan2 {
-	status = "disabled";
+&gpmi {
+	status ="disabled";
 };
 
-&i2c4 {
-	status = "disabled";
-};
-
-&uart2 {
-	status = "okay";
+&usdhc2{
+	status ="disabled";
 };
