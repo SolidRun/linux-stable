@@ -99,6 +99,7 @@ struct regulator_supply_alias {
 };
 
 static int _regulator_is_enabled(struct regulator_dev *rdev);
+static int _regulator_enable(struct regulator_dev *rdev);
 static int _regulator_disable(struct regulator_dev *rdev);
 static int _regulator_get_voltage(struct regulator_dev *rdev);
 static int _regulator_get_current_limit(struct regulator_dev *rdev);
@@ -401,7 +402,42 @@ static ssize_t regulator_state_show(struct device *dev,
 
 	return ret;
 }
-static DEVICE_ATTR(state, 0444, regulator_state_show, NULL);
+
+static ssize_t regulator_state_store(struct device *dev, struct device_attribute *attr,
+				   const char *buf, size_t count)
+{
+	struct regulator_dev *rdev = dev_get_drvdata(dev);
+        bool enabled;
+        int error;
+
+        /*
+         * sysfs_streq() doesn't need the \n's, but we add them so the strings
+         * will be shared with show_state(), above.
+         */
+        if (sysfs_streq(buf, "enabled\n") || sysfs_streq(buf, "1"))
+                enabled = true;
+        else if (sysfs_streq(buf, "disabled\n") || sysfs_streq(buf, "0"))
+                enabled = false;
+        else {
+                dev_err(dev, "Configuring invalid mode\n");
+                return count;
+        }
+
+	mutex_lock(&rdev->mutex);
+        if (enabled != _regulator_is_enabled(rdev)) {
+                if (enabled)
+			error = _regulator_enable(rdev);
+                else
+			error = _regulator_disable(rdev);
+
+                if (error)
+                        dev_err(dev, "Failed to configure state: %d\n", error);
+        }
+        mutex_unlock(&rdev->mutex);
+
+        return count;
+}
+static DEVICE_ATTR(state, 0644, regulator_state_show, regulator_state_store);
 
 static ssize_t regulator_status_show(struct device *dev,
 				   struct device_attribute *attr, char *buf)
