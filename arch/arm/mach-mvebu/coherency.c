@@ -231,6 +231,7 @@ static void __init armada_375_380_coherency_init(struct device_node *np)
 
 	coherency_cpu_base = of_iomap(np, 0);
 	arch_ioremap_caller = armada_wa_ioremap_caller;
+	pci_ioremap_set_mem_type(MT_UNCACHED);
 
 	pci_ioremap_set_mem_type(MT_UNCACHED);
 
