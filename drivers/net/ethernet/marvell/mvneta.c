@@ -3389,10 +3389,13 @@ static int mvneta_open(struct net_device *dev)
 	return 0;
 
 err_free_irq:
-	if (pp->neta_armada3700)
+	if (pp->neta_armada3700) {
 		free_irq(pp->dev->irq, pp);
-	else
+	} else {
+		unregister_cpu_notifier(&pp->cpu_notifier);
+		on_each_cpu(mvneta_percpu_disable, pp, true);
 		free_percpu_irq(pp->dev->irq, pp->ports);
+	}
 err_cleanup_txqs:
 	mvneta_cleanup_txqs(pp);
 err_cleanup_rxqs:
