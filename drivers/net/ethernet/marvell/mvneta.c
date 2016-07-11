@@ -2928,9 +2928,9 @@ static int mvneta_mac_support(struct net_device *ndev, unsigned int mode,
 	switch (mode) {
 	case MLO_AN_8023Z:
 		state->supported = SUPPORTED_1000baseT_Full |
-				   SUPPORTED_Autoneg | SUPPORTED_Pause;
+				   SUPPORTED_Autoneg;
 		state->advertising = ADVERTISED_1000baseT_Full |
-				     ADVERTISED_Autoneg | ADVERTISED_Pause;
+				     ADVERTISED_Autoneg;
 		state->an_enabled = 1;
 		break;
 
@@ -2941,18 +2941,21 @@ static int mvneta_mac_support(struct net_device *ndev, unsigned int mode,
 		state->supported = PHY_10BT_FEATURES |
 				   PHY_100BT_FEATURES |
 				   SUPPORTED_1000baseT_Full |
-				   SUPPORTED_Pause |
 				   SUPPORTED_Autoneg;
 		state->advertising = ADVERTISED_10baseT_Half |
 				     ADVERTISED_10baseT_Full |
 				     ADVERTISED_100baseT_Half |
 				     ADVERTISED_100baseT_Full |
 				     ADVERTISED_1000baseT_Full |
-				     ADVERTISED_Pause |
 				     ADVERTISED_Autoneg;
 		state->an_enabled = 1;
 		break;
 	}
+
+	/* All modes support flow control */
+	state->supported |= SUPPORTED_Pause;
+	state->advertising |= ADVERTISED_Pause;
+
 	return 0;
 }
 
