@@ -137,6 +137,9 @@ static int xhci_plat_probe(struct platform_device *pdev)
 			if (ret)
 				goto disable_clk;
 			xhci->clk[i] = clk;
+		} else if (PTR_ERR(clk) == -EPROBE_DEFER) {
+			ret = -EPROBE_DEFER;
+			goto disable_clk;
 		}
 	}
 
