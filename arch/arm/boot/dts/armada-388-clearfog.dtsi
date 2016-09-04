@@ -46,12 +46,10 @@
  *     OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/dts-v1/;
 #include "armada-388.dtsi"
 #include "armada-38x-solidrun-microsom.dtsi"
 
 / {
-	model = "SolidRun Clearfog A1";
 	compatible = "solidrun,clearfog-a1", "marvell,armada388",
 		"marvell,armada385", "marvell,armada380";
 
@@ -79,11 +77,6 @@
 			ethernet@30000 {
 				phy-mode = "sgmii";
 				status = "okay";
-
-				fixed-link {
-					speed = <1000>;
-					full-duplex;
-				};
 			};
 
 			ethernet@34000 {
@@ -103,12 +96,12 @@
 				 * PCA9655 GPIO expander, up to 1MHz clock.
 				 *  0-CON3 CLKREQ#
 				 *  1-CON3 PERST#
-				 *  2-CON2 PERST#
+				 *  2
 				 *  3-CON3 W_DISABLE
-				 *  4-CON2 CLKREQ#
+				 *  4
 				 *  5-USB3 overcurrent
 				 *  6-USB3 power
-				 *  7-CON2 W_DISABLE
+				 *  7
 				 *  8-JP4 P1
 				 *  9-JP4 P4
 				 * 10-JP4 P5
@@ -142,18 +135,6 @@
 						gpios = <3 GPIO_ACTIVE_LOW>;
 						output-low;
 						line-name = "pcie1.0-w-disable";
-					};
-					pcie2_0_clkreq {
-						gpio-hog;
-						gpios = <4 GPIO_ACTIVE_LOW>;
-						input;
-						line-name = "pcie2.0-clkreq";
-					};
-					pcie2_0_w_disable {
-						gpio-hog;
-						gpios = <7 GPIO_ACTIVE_LOW>;
-						output-low;
-						line-name = "pcie2.0-w-disable";
 					};
 					usb3_ilimit {
 						gpio-hog;
@@ -202,14 +183,6 @@
 			};
 
 			pinctrl@18000 {
-				clearfog_dsa0_clk_pins: clearfog-dsa0-clk-pins {
-					marvell,pins = "mpp46";
-					marvell,function = "ref";
-				};
-				clearfog_dsa0_pins: clearfog-dsa0-pins {
-					marvell,pins = "mpp23", "mpp41";
-					marvell,function = "gpio";
-				};
 				clearfog_i2c1_pins: i2c1-pins {
 					/* SFP, PCIe, mSATA, mikrobus */
 					marvell,pins = "mpp26", "mpp27";
@@ -224,10 +197,6 @@
 						       "mpp37", "mpp38",
 						       "mpp39", "mpp40";
 					marvell,function = "sd0";
-				};
-				clearfog_spi1_cs_pins: spi1-cs-pins {
-					marvell,pins = "mpp55";
-					marvell,function = "spi1";
 				};
 				mikro_pins: mikro-pins {
 					/* int: mpp22 rst: mpp29 */
@@ -286,7 +255,6 @@
 				 * CS2: mikrobus
 				 */
 				pinctrl-0 = <&spi1_pins
-					     &clearfog_spi1_cs_pins
 					     &mikro_spi_pins>;
 				pinctrl-names = "default";
 				status = "okay";
@@ -297,7 +265,7 @@
 					compatible = "w25q32", "jedec,spi-nor";
 					reg = <0>; /* Chip select 0 */
 					spi-max-frequency = <3000000>;
-					status = "disabled";
+					status = "enabled";
 				};
 			};
 
@@ -306,13 +274,9 @@
 				status = "okay";
 			};
 
-			usb3@f0000 {
-				/* CON2, nearest CPU, USB2 only. */
-				status = "okay";
-			};
-
 			usb3@f8000 {
-				/* CON7 */
+				/* CON2, ClearFog Base */
+				/* CON7, ClearFog Pro */
 				status = "okay";
 			};
 		};
@@ -328,11 +292,6 @@
 				reset-gpios = <&expander0 1 GPIO_ACTIVE_LOW>;
 				status = "okay";
 			};
-			pcie@3,0 {
-				/* Port 2, Lane 0. CON2, nearest CPU. */
-				reset-gpios = <&expander0 2 GPIO_ACTIVE_LOW>;
-				status = "okay";
-			};
 		};
 	};
 
@@ -344,62 +303,6 @@
 		sfp,ethernet = <&eth2>;
 		tx-disable-gpio = <&expander0 14 GPIO_ACTIVE_HIGH>;
 		tx-fault-gpio = <&expander0 13 GPIO_ACTIVE_HIGH>;
-	};
-
-	dsa@0 {
-		compatible = "marvell,dsa";
-		dsa,ethernet = <&eth1>;
-		dsa,mii-bus = <&mdio>;
-		pinctrl-0 = <&clearfog_dsa0_clk_pins &clearfog_dsa0_pins>;
-		pinctrl-names = "default";
-		#address-cells = <2>;
-		#size-cells = <0>;
-
-		switch@0 {
-			#address-cells = <1>;
-			#size-cells = <0>;
-			reg = <4 0>;
-
-			port@0 {
-				reg = <0>;
-				label = "lan5";
-			};
-
-			port@1 {
-				reg = <1>;
-				label = "lan4";
-			};
-
-			port@2 {
-				reg = <2>;
-				label = "lan3";
-			};
-
-			port@3 {
-				reg = <3>;
-				label = "lan2";
-			};
-
-			port@4 {
-				reg = <4>;
-				label = "lan1";
-			};
-
-			port@5 {
-				reg = <5>;
-				label = "cpu";
-			};
-
-			port@6 {
-				/* 88E1512 external phy */
-				reg = <6>;
-				label = "lan6";
-				fixed-link {
-					speed = <1000>;
-					full-duplex;
-				};
-			};
-		};
 	};
 
 	gpio-keys {
@@ -417,13 +320,13 @@
 	};
 };
 /*
-+#define A38x_CUSTOMER_BOARD_1_MPP16_23         0x10460011
-MPP18: gpio		?
-MPP19: gpio		?
-MPP20: ua1:txd		?
++#define A38x_CUSTOMER_BOARD_1_MPP16_23         0x00400011
+MPP18: gpio		? (pca9655 int?)
+MPP19: gpio		? (clkreq?)
+MPP20: ua1:txd		? (sd0 detect)
 MPP21: sd0:cmd		x sd0
 MPP22: gpio		x mikro int
-MPP23: spi0:sck		?
+MPP23: gpio		x switch irq
 +#define A38x_CUSTOMER_BOARD_1_MPP24_31         0x22043333
 MPP24: ua1:rxd		x mikro rx
 MPP25: ua1:txd		x mikro tx
@@ -451,14 +354,14 @@ MPP44: sata3:prsnt
 MPP45: ref:clk_out0	?
 MPP46: ref:clk_out1	?
 MPP47: 4		??
-+#define A38x_CUSTOMER_BOARD_1_MPP48_55         0x45333333
++#define A38x_CUSTOMER_BOARD_1_MPP48_55         0x40333333
 MPP48: tdm:pclk
 MPP49: tdm:fsync
 MPP50: tdm:drx
 MPP51: tdm:dtx
 MPP52: tdm:int
 MPP53: tdm:rst
-MPP54: sd0:d3		??
+MPP54: sd0:d3		? (pwm)
 MPP55: spi1:cs1		x slic
 +#define A38x_CUSTOMER_BOARD_1_MPP56_63         0x00004444
 MPP56: spi1:mosi	x mikro mosi

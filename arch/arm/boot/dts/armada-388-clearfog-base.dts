@@ -1,12 +1,7 @@
 /*
- * Device Tree file for SolidRun Armada 38x Microsom
+ * Device Tree file for SolidRun Clearfog revision A1 rev 2.0 (88F6828)
  *
  *  Copyright (C) 2015 Russell King
- *
- * This board is in development; the contents of this file work with
- * the A1 rev 2.0 of the board, which does not represent final
- * production board.  Things will change, don't expect this file to
- * remain compatible info the future.
  *
  * This file is dual-licensed: you can use it either under the terms
  * of the GPL or the X11 license, at your option. Note that this dual
@@ -45,71 +40,33 @@
  *     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  *     OTHER DEALINGS IN THE SOFTWARE.
  */
-#include <dt-bindings/input/input.h>
-#include <dt-bindings/gpio/gpio.h>
+
+/dts-v1/;
+#include "armada-388-clearfog.dtsi"
 
 / {
-	memory {
-		device_type = "memory";
-		reg = <0x00000000 0x10000000>; /* 256 MB */
-	};
+	model = "SolidRun Clearfog Base A1";
 
-	soc {
-		ranges = <MBUS_ID(0xf0, 0x01) 0 0xf1000000 0x100000
-			  MBUS_ID(0x01, 0x1d) 0 0xfff00000 0x100000
-			  MBUS_ID(0x09, 0x19) 0 0xf1100000 0x10000
-			  MBUS_ID(0x09, 0x15) 0 0xf1110000 0x10000>;
+        soc {
+                internal-regs {
+                        ethernet@30000 {
+				phy-mode = "sgmii";
+                                phy = <&phy1>;
+                                status = "okay";
+                        };
 
-		internal-regs {
-			ethernet@70000 {
-				pinctrl-0 = <&ge0_rgmii_pins>;
-				pinctrl-names = "default";
-				phy = <&phy0>;
-				phy-mode = "rgmii-id";
-				status = "okay";
-			};
-
-			mdio@72004 {
-				/*
-				 * Add the phy clock here, so the phy can be
-				 * accessed to read its IDs prior to binding
-				 * with the driver.
-				 */
-				pinctrl-0 = <&mdio_pins &microsom_phy_clk_pins>;
-				pinctrl-names = "default";
-
-				phy0: ethernet-phy@0 {
-					/*
-					 * Annoyingly, the marvell phy driver
-					 * configures the LED register, rather
-					 * than preserving reset-loaded setting.
-					 * We undo that rubbish here.
-					 */
-					marvell,reg-init = <3 16 0 0x101e>;
-					reg = <0>;
-				};
-			};
-
-			pinctrl@18000 {
-				microsom_phy_clk_pins: microsom-phy-clk-pins {
-					marvell,pins = "mpp45";
-					marvell,function = "ref";
-				};
-			};
-
-			rtc@a3800 {
-				/*
-				 * If the rtc doesn't work, run "date reset"
-				 * twice in u-boot.
-				 */
-				status = "okay";
-			};
-
-			serial@12000 {
-				pinctrl-0 = <&uart0_pins>;
-				pinctrl-names = "default";
-				status = "okay";
-			};
+                        mdio@72004 {
+                                phy1: ethernet-phy@1 {
+                                        /*
+                                         * Annoyingly, the marvell phy driver
+                                         * configures the LED register, rather
+                                         * than preserving reset-loaded setting.
+                                         * We undo that rubbish here.
+                                         */
+                                        marvell,reg-init = <3 16 0 0x101e>;
+                                        reg = <1>;
+                                };
+                        };
 		};
 	};
 };

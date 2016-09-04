@@ -749,7 +749,8 @@ dtb-$(CONFIG_MACH_ARMADA_38X) += \
 	armada-385-db-ap.dtb \
 	armada-385-linksys-caiman.dtb \
 	armada-385-linksys-cobra.dtb \
-	armada-388-clearfog.dtb \
+	armada-388-clearfog-base.dtb \
+	armada-388-clearfog-pro.dtb \
 	armada-388-db.dtb \
 	armada-388-gp.dtb \
 	armada-388-rd.dtb
