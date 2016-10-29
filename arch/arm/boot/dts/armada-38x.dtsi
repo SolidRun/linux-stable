@@ -200,7 +200,7 @@
 			};
 
 			i2c0: i2c@11000 {
-				compatible = "marvell,mv64xxx-i2c";
+				compatible = "marvell,mv64xxx-i2c", "marvell,mv64xxx-a0-i2c";
 				reg = <0x11000 0x20>;
 				#address-cells = <1>;
 				#size-cells = <0>;
@@ -211,7 +211,7 @@
 			};
 
 			i2c1: i2c@11100 {
-				compatible = "marvell,mv64xxx-i2c";
+				compatible = "marvell,mv64xxx-i2c", "marvell,mv64xxx-a0-i2c";
 				reg = <0x11100 0x20>;
 				#address-cells = <1>;
 				#size-cells = <0>;
@@ -607,6 +607,7 @@
 				interrupts = <GIC_SPI 25 IRQ_TYPE_LEVEL_HIGH>;
 				clocks = <&gateclk 17>;
 				mrvl,clk-delay-cycles = <0x1F>;
+				no-1-8-v;
 				status = "disabled";
 			};
 
