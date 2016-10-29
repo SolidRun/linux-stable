@@ -940,70 +940,62 @@ static int phylink_mii_read(struct phylink *pl, unsigned int phy_id,
 	struct phylink_link_state state;
 	int val = 0xffff;
 
-	if (pl->phydev && pl->phydev->mdio.addr != phy_id)
+	/* PHYs only exist for MLO_AN_PHY and MLO_AN_SGMII */
+	if (pl->phydev)
 		return mdiobus_read(pl->phydev->mdio.bus, phy_id, reg);
-
-	if (!pl->phydev && phy_id != 0)
-		return val;
 
 	switch (pl->link_an_mode) {
 	case MLO_AN_FIXED:
-		phylink_get_fixed_state(pl, &state);
-		val = phylink_mii_emul_read(pl->netdev, reg, &state, true);
+		if (phy_id == 0) {
+			phylink_get_fixed_state(pl, &state);
+			val = phylink_mii_emul_read(pl->netdev, reg, &state,
+						    true);
+		}
 		break;
 
 	case MLO_AN_PHY:
-		val = mdiobus_read(pl->phydev->mdio.bus, phy_id, reg);
-		break;
+		return -EOPNOTSUPP;
 
 	case MLO_AN_SGMII:
-		if (pl->phydev) {
-			val = mdiobus_read(pl->phydev->mdio.bus,
-					   pl->phydev->mdio.addr, reg);
-			break;
-		}
-		/* No phy, fall through to reading the MAC end */
+		/* No phy, fall through to 8023z method */
 	case MLO_AN_8023Z:
-		val = phylink_get_mac_state(pl, &state);
-		if (val < 0)
-			return val;
+		if (phy_id == 0) {
+			val = phylink_get_mac_state(pl, &state);
+			if (val < 0)
+				return val;
 
-		val = phylink_mii_emul_read(pl->netdev, reg, &state, true);
+			val = phylink_mii_emul_read(pl->netdev, reg, &state,
+						    true);
+		}
 		break;
 	}
 
 	return val & 0xffff;
 }
 
-static void phylink_mii_write(struct phylink *pl, unsigned int phy_id,
-			      unsigned int reg, unsigned int val)
+static int phylink_mii_write(struct phylink *pl, unsigned int phy_id,
+			     unsigned int reg, unsigned int val)
 {
-	if (pl->phydev && pl->phydev->mdio.addr != phy_id) {
+	/* PHYs only exist for MLO_AN_PHY and MLO_AN_SGMII */
+	if (pl->phydev) {
 		mdiobus_write(pl->phydev->mdio.bus, phy_id, reg, val);
-		return;
+		return 0;
 	}
-
-	if (!pl->phydev && phy_id != 0)
-		return;
 
 	switch (pl->link_an_mode) {
 	case MLO_AN_FIXED:
 		break;
 
 	case MLO_AN_PHY:
-		mdiobus_write(pl->phydev->mdio.bus, pl->phydev->mdio.addr,
-			      reg, val);
-		break;
+		return -EOPNOTSUPP;
 
 	case MLO_AN_SGMII:
-		if (pl->phydev) {
-			mdiobus_write(pl->phydev->mdio.bus, phy_id, reg, val);
-			break;
-		}
-		/* No phy, fall through to reading the MAC end */
+		/* No phy, fall through to 8023z method */
 	case MLO_AN_8023Z:
 		break;
 	}
+
+	return 0;
 }
 
 int phylink_mii_ioctl(struct phylink *pl, struct ifreq *ifr, int cmd)
@@ -1029,9 +1021,8 @@ int phylink_mii_ioctl(struct phylink *pl, struct ifreq *ifr, int cmd)
 		break;
 
 	case SIOCSMIIREG:
-		phylink_mii_write(pl, mii_data->phy_id, mii_data->reg_num,
-				  mii_data->val_in);
-		ret = 0;
+		ret = phylink_mii_write(pl, mii_data->phy_id, mii_data->reg_num,
+					mii_data->val_in);
 		break;
 
 	default:
