@@ -148,6 +148,7 @@ struct mv64xxx_i2c_data {
 	bool			irq_clear_inverted;
 	/* Clk div is 2 to the power n, not 2 to the power n + 1 */
 	bool			clk_n_base_0;
+	bool			disable_repeated_start;
 };
 
 static struct mv64xxx_i2c_regs mv64xxx_i2c_regs_mv64xxx = {
@@ -648,8 +649,11 @@ mv64xxx_i2c_offload_xfer(struct mv64xxx_i2c_data *drv_data)
 			MV64XXX_I2C_BRIDGE_CONTROL_RD |
 			MV64XXX_I2C_BRIDGE_CONTROL_WR |
 			(lentx << MV64XXX_I2C_BRIDGE_CONTROL_TX_SIZE_SHIFT) |
-			(lenrx << MV64XXX_I2C_BRIDGE_CONTROL_RX_SIZE_SHIFT) |
-			MV64XXX_I2C_BRIDGE_CONTROL_REPEATED_START;
+			(lenrx << MV64XXX_I2C_BRIDGE_CONTROL_RX_SIZE_SHIFT);
+
+		if (!drv_data->disable_repeated_start)
+			ctrl_reg |= MV64XXX_I2C_BRIDGE_CONTROL_REPEATED_START;
+
 		mv64xxx_i2c_prepare_tx(drv_data);
 	}
 
@@ -870,6 +874,10 @@ mv64xxx_of_config(struct mv64xxx_i2c_data *drv_data,
 
 	if (of_device_is_compatible(np, "allwinner,sun6i-a31-i2c"))
 		drv_data->irq_clear_inverted = true;
+
+	if (of_device_is_compatible(np, "marvell,mv64xxx-a0-i2c") && (bus_freq <= 100000)) {
+		drv_data->disable_repeated_start = true;
+	}
 
 out:
 	return rc;
