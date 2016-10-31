@@ -471,11 +471,18 @@ static long hdmi_cec_ioctl(struct file *filp, u_int cmd,
  */
 static int hdmi_cec_release(struct inode *inode, struct file *filp)
 {
+	struct hdmi_cec_event *event, *tmp_event;
 	mutex_lock(&hdmi_cec_data.lock);
 	if (open_count) {
 		open_count = 0;
 		hdmi_cec_data.cec_state = false;
 		hdmi_cec_data.Logical_address = 15;
+
+		/* Flush eventual events which have not been read by user space */
+		list_for_each_entry_safe(event, tmp_event, &head, list) {
+			list_del(&event->list);
+			vfree(event);
+		}
 	}
 	mutex_unlock(&hdmi_cec_data.lock);
 
