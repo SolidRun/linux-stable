@@ -3,6 +3,7 @@
  * drivers/staging/android/ion/ion.c
  *
  * Copyright (C) 2011 Google, Inc.
+ * Copyright (C) 2014-2016 Freescale Semiconductor, Inc.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -361,6 +362,26 @@ struct ion_handle *ion_handle_get_by_id_nolock(struct ion_client *client,
 		return ion_handle_get_check_overflow(handle);
 
 	return ERR_PTR(-EINVAL);
+}
+
+/* for used in mxc_ion.c */
+int ion_handle_put_wrap(struct ion_handle *handle)
+{
+	return ion_handle_put(handle);
+}
+
+struct ion_handle *ion_handle_get_by_id_wrap(struct ion_client *client,
+						int id)
+{
+	return ion_handle_get_by_id_nolock(client, id);
+}
+
+struct device *ion_device_get_by_client(struct ion_client *client)
+{
+	if (client)
+		return client->dev->dev.this_device;
+	else
+		return NULL;
 }
 
 static bool ion_handle_validate(struct ion_client *client,
@@ -1015,6 +1036,21 @@ static int ion_dma_buf_end_cpu_access(struct dma_buf *dmabuf,
 	return 0;
 }
 
+static void *ion_dma_buf_vmap(struct dma_buf *dmabuf)
+{
+	struct ion_buffer *buffer = dmabuf->priv;
+
+	if (ion_dma_buf_begin_cpu_access(dmabuf, DMA_NONE) != 0)
+		return NULL;
+
+	return buffer->vaddr;
+}
+
+static void ion_dma_buf_vunmap(struct dma_buf *dmabuf, void *vaddr)
+{
+	ion_dma_buf_end_cpu_access(dmabuf, DMA_NONE);
+}
+
 static struct dma_buf_ops dma_buf_ops = {
 	.map_dma_buf = ion_map_dma_buf,
 	.unmap_dma_buf = ion_unmap_dma_buf,
@@ -1026,6 +1062,8 @@ static struct dma_buf_ops dma_buf_ops = {
 	.kunmap_atomic = ion_dma_buf_kunmap,
 	.kmap = ion_dma_buf_kmap,
 	.kunmap = ion_dma_buf_kunmap,
+	.vmap = ion_dma_buf_vmap,
+	.vunmap = ion_dma_buf_vunmap,
 };
 
 static struct dma_buf *__ion_share_dma_buf(struct ion_client *client,
