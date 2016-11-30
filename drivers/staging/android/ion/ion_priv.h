@@ -2,6 +2,7 @@
  * drivers/staging/android/ion/ion_priv.h
  *
  * Copyright (C) 2011 Google, Inc.
+ * Copyright (C) 2016 Freescale Semiconductor, Inc.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -469,5 +470,10 @@ int ion_query_heaps(struct ion_client *client, struct ion_heap_query *query);
 
 int ion_share_dma_buf_fd_nolock(struct ion_client *client,
 				struct ion_handle *handle);
+
+int ion_handle_put_wrap(struct ion_handle *handle);
+struct ion_handle *ion_handle_get_by_id_wrap(struct ion_client *client,
+					       int id);
+struct device *ion_device_get_by_client(struct ion_client *client);
 
 #endif /* _ION_PRIV_H */
