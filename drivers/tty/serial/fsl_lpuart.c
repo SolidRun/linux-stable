@@ -232,6 +232,8 @@
 /* IMX lpuart has four extra unused regs located at the beginning */
 #define IMX_REG_OFF	0x10
 
+static DECLARE_BITMAP(linemap, UART_NR);
+
 struct lpuart_port {
 	struct uart_port	port;
 	struct clk		*clk;
@@ -2147,13 +2149,17 @@ static int lpuart_probe(struct platform_device *pdev)
 
 	ret = of_alias_get_id(np, "serial");
 	if (ret < 0) {
-		dev_err(&pdev->dev, "failed to get alias id, errno %d\n", ret);
-		return ret;
+		ret = find_first_zero_bit(linemap, UART_NR);
+		if (ret >= UART_NR) {
+			dev_err(&pdev->dev, "port line is full, add device failed\n");
+			return ret;
+		}
 	}
 	if (ret >= ARRAY_SIZE(lpuart_ports)) {
 		dev_err(&pdev->dev, "serial%d out of range\n", ret);
 		return -EINVAL;
 	}
+	set_bit(ret, linemap);
 	sport->port.line = ret;
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	sport->port.membase = devm_ioremap_resource(&pdev->dev, res);
@@ -2249,6 +2255,7 @@ static int lpuart_remove(struct platform_device *pdev)
 	struct lpuart_port *sport = platform_get_drvdata(pdev);
 
 	uart_remove_one_port(&lpuart_reg, &sport->port);
+	clear_bit(sport->port.line, linemap);
 
 	clk_disable_unprepare(sport->clk);
 
