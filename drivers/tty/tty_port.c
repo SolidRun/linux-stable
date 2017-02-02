@@ -128,7 +128,15 @@ struct device *tty_port_register_device_attr(struct tty_port *port,
 		struct device *device, void *drvdata,
 		const struct attribute_group **attr_grp)
 {
+	struct device *dev;
+
 	tty_port_link_device(port, driver, index);
+
+	dev = serdev_tty_port_register(port, device, driver, index);
+	if (PTR_ERR(dev) != -ENODEV)
+		/* Skip creating cdev if we registered a serdev device */
+		return dev;
+
 	return tty_register_device_attr(driver, index, device, drvdata,
 			attr_grp);
 }
@@ -180,6 +188,9 @@ static void tty_port_destructor(struct kref *kref)
 	/* check if last port ref was dropped before tty release */
 	if (WARN_ON(port->itty))
 		return;
+
+	serdev_tty_port_unregister(port);
+
 	if (port->xmit_buf)
 		free_page((unsigned long)port->xmit_buf);
 	tty_port_destroy(port);
