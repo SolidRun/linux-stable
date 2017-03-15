@@ -2360,9 +2360,6 @@ static int uart_poll_init(struct tty_driver *driver, int line, char *options)
 	int flow = 'n';
 	int ret = 0;
 
-	if (!state)
-		return -1;
-
 	tport = &state->port;
 	mutex_lock(&tport->mutex);
 
@@ -2397,13 +2394,12 @@ static int uart_poll_get_char(struct tty_driver *driver, int line)
 	struct uart_port *port;
 	int ret = -1;
 
-	if (state) {
-		port = uart_port_ref(state);
-		if (port) {
-			ret = port->ops->poll_get_char(port);
-			uart_port_deref(port);
-		}
+	port = uart_port_ref(state);
+	if (port) {
+		ret = port->ops->poll_get_char(port);
+		uart_port_deref(port);
 	}
+
 	return ret;
 }
 
