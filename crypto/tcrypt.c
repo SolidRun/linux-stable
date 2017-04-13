@@ -77,7 +77,7 @@ static char *check[] = {
 	"khazad", "wp512", "wp384", "wp256", "tnepres", "xeta",  "fcrypt",
 	"camellia", "seed", "salsa20", "rmd128", "rmd160", "rmd256", "rmd320",
 	"lzo", "cts", "zlib", "sha3-224", "sha3-256", "sha3-384", "sha3-512",
-	NULL
+	"rsa", NULL
 };
 
 static u32 block_sizes[] = { 16, 64, 256, 1024, 8192, 0 };
@@ -1972,6 +1972,10 @@ static int do_test(const char *alg, u32 type, u32 mask, int m, u32 num_mb)
 
 	case 114:
 		ret += tcrypt_test("hmac(sha3-512)");
+		break;
+
+	case 115:
+		ret += tcrypt_test("rsa");
 		break;
 
 	case 150:
