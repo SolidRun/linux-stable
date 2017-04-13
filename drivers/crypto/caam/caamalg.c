@@ -933,10 +933,13 @@ static void ablkcipher_decrypt_done(struct device *jrdev, u32 *desc, u32 err,
 {
 	struct ablkcipher_request *req = context;
 	struct ablkcipher_edesc *edesc;
-#ifdef DEBUG
 	struct crypto_ablkcipher *ablkcipher = crypto_ablkcipher_reqtfm(req);
+	struct caam_ctx *ctx = crypto_ablkcipher_ctx(ablkcipher);
+	int bsize = crypto_ablkcipher_blocksize(ablkcipher);
 	int ivsize = crypto_ablkcipher_ivsize(ablkcipher);
+	size_t ivcopy = min_t(size_t, bsize, ivsize);
 
+#ifdef DEBUG
 	dev_err(jrdev, "%s %d: err 0x%x\n", __func__, __LINE__, err);
 #endif
 
@@ -955,6 +958,12 @@ static void ablkcipher_decrypt_done(struct device *jrdev, u32 *desc, u32 err,
 
 	ablkcipher_unmap(jrdev, edesc, req);
 	kfree(edesc);
+
+	/* Pass IV along for cbc */
+	if ((ctx->cdata.algtype & OP_ALG_AAI_MASK) == OP_ALG_AAI_CBC) {
+		scatterwalk_map_and_copy(req->info, req->dst,
+					 req->nbytes - bsize, ivcopy, 0);
+	}
 
 	ablkcipher_request_complete(req, err);
 }
