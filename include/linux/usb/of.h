@@ -13,6 +13,7 @@
 #include <linux/usb/phy.h>
 
 struct usb_device;
+enum usb_dr_mode of_usb_get_dr_mode(struct device_node *np);
 
 #if IS_ENABLED(CONFIG_OF)
 enum usb_dr_mode of_usb_get_dr_mode_by_phy(struct device_node *np, int arg0);

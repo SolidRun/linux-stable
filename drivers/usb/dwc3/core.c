@@ -1205,6 +1205,7 @@ static void dwc3_core_exit_mode(struct dwc3 *dwc)
 static void dwc3_get_properties(struct dwc3 *dwc)
 {
 	struct device		*dev = dwc->dev;
+	struct device_node      *node = dev->of_node;
 	u8			lpm_nyet_threshold;
 	u8			tx_de_emphasis;
 	u8			hird_threshold;
