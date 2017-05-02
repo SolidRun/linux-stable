@@ -29,3 +29,7 @@ config FSL_MC_DPIO
 	  objects individually, but groups them under a service layer
 	  API.
 endmenu
+
+if ARM || ARM64
+source "drivers/soc/fsl/Kconfig.arm"
+endif
