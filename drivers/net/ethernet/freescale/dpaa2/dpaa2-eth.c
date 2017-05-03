@@ -2238,6 +2238,7 @@ static int setup_dpni(struct fsl_mc_device *ls_dev)
 	struct device *dev = &ls_dev->dev;
 	struct dpaa2_eth_priv *priv;
 	struct net_device *net_dev;
+	struct dpni_link_cfg cfg = {0};
 	int err;
 
 	net_dev = dev_get_drvdata(dev);
@@ -2292,6 +2293,14 @@ static int setup_dpni(struct fsl_mc_device *ls_dev)
 	if (!priv->cls_rules)
 		goto close;
 
+	/* Enable flow control */
+	cfg.options = DPNI_LINK_OPT_AUTONEG | DPNI_LINK_OPT_PAUSE;
+	err = dpni_set_link_cfg(priv->mc_io, 0, priv->mc_token, &cfg);
+	if (err) {
+		dev_err(dev, "dpni_set_link_cfg() failed\n");
+		goto close;
+	}
+
 	return 0;
 
 close:
@@ -2318,7 +2327,6 @@ static int setup_rx_flow(struct dpaa2_eth_priv *priv,
 	struct device *dev = priv->net_dev->dev.parent;
 	struct dpni_queue queue;
 	struct dpni_queue_id qid;
-	struct dpni_taildrop td;
 	int err;
 
 	err = dpni_get_queue(priv->mc_io, 0, priv->mc_token,
@@ -2343,13 +2351,30 @@ static int setup_rx_flow(struct dpaa2_eth_priv *priv,
 		return err;
 	}
 
-	td.enable = 1;
+	return 0;
+}
+
+/* Enable/disable Rx FQ taildrop
+ *
+ * Rx FQ taildrop is mutually exclusive with flow control and it only gets
+ * disabled when FC is active.
+ */
+int set_rx_taildrop(struct dpaa2_eth_priv *priv, bool enable)
+{
+	struct dpni_taildrop td = {0};
+	int i, err;
+
+	td.enable = enable;
 	td.threshold = DPAA2_ETH_TAILDROP_THRESH;
-	err = dpni_set_taildrop(priv->mc_io, 0, priv->mc_token, DPNI_CP_QUEUE,
-				DPNI_QUEUE_RX, 0, fq->flowid, &td);
-	if (err) {
-		dev_err(dev, "dpni_set_threshold() failed\n");
-		return err;
+
+	for (i = 0; i < priv->num_fqs; i++) {
+		if (priv->fq[i].type != DPAA2_RX_FQ)
+			continue;
+		err = dpni_set_taildrop(priv->mc_io, 0, priv->mc_token,
+					DPNI_CP_QUEUE, DPNI_QUEUE_RX, 0,
+					priv->fq[i].flowid, &td);
+		if (err)
+			return err;
 	}
 
 	return 0;
