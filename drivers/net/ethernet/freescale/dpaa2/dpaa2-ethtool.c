@@ -107,8 +107,9 @@ static int
 dpaa2_eth_set_link_ksettings(struct net_device *net_dev,
 			     const struct ethtool_link_ksettings *link_settings)
 {
-	struct dpni_link_cfg cfg = {0};
 	struct dpaa2_eth_priv *priv = netdev_priv(net_dev);
+	struct dpni_link_state state = {0};
+	struct dpni_link_cfg cfg = {0};
 	int err = 0;
 
 	/* If using an older MC version, the DPNI must be down
@@ -123,6 +124,14 @@ dpaa2_eth_set_link_ksettings(struct net_device *net_dev,
 		}
 	}
 
+	/* Need to interrogate link state to get flow control params */
+	err = dpni_get_link_state(priv->mc_io, 0, priv->mc_token, &state);
+	if (err) {
+		netdev_err(net_dev, "Error getting link state\n");
+		goto out;
+	}
+
+	cfg.options = state.options;
 	cfg.rate = link_settings->base.speed;
 	if (link_settings->base.autoneg == AUTONEG_ENABLE)
 		cfg.options |= DPNI_LINK_OPT_AUTONEG;
@@ -140,6 +149,7 @@ dpaa2_eth_set_link_ksettings(struct net_device *net_dev,
 		 */
 		netdev_dbg(net_dev, "ERROR %d setting link cfg\n", err);
 
+out:
 	return err;
 }
 
