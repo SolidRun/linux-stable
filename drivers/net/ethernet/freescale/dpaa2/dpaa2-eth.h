@@ -35,6 +35,9 @@
 /* Convert L3 MTU to L2 MFL */
 #define DPAA2_ETH_L2_MAX_FRM(mtu)	((mtu) + VLAN_ETH_HLEN)
 
+/* Maximum burst size value for Tx shaping */
+#define DPAA2_ETH_MAX_BURST_SIZE	0xF7FF
+
 /* Set the taildrop threshold (in bytes) to allow the enqueue of several jumbo
  * frames in the Rx queues (length of the current frame is not
  * taken into account when making the taildrop decision)
@@ -375,6 +378,7 @@ struct dpaa2_eth_priv {
 #ifdef CONFIG_DEBUG_FS
 	struct dpaa2_debugfs dbg;
 #endif
+	struct dpni_tx_shaping_cfg shaping_cfg;
 };
 
 #define DPAA2_RXH_SUPPORTED	(RXH_L2DA | RXH_VLAN | RXH_L3_PROTO \
