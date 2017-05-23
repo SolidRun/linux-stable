@@ -55,7 +55,7 @@
 #define MESSAGE_TYPE_CONNECTED		4
 #define MESSAGE_TYPE_SEND_SUCCESS	5
 
-#define CEC_TX_INPROGRESS		-1
+#define CEC_TX_INPROGRESS		0xffff0000
 #define CEC_TX_AVAIL			0
 
 #define	CEC_TX_RETRIES			3
@@ -80,7 +80,7 @@
 struct hdmi_cec_priv {
 	int receive_error;
 	int send_error;
-	int tx_answer;
+	u32 tx_answer;
 	u32 cec_stat0;
 	u8 logical_address;
 	u8 is_started;
