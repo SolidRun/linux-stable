@@ -1035,7 +1035,7 @@ static int sdma_save_restore_context(struct sdma_engine *sdma, bool save)
 	else
 		bd0->mode.command = C0_SETDM;
 
-	bd0->mode.status = BD_DONE | BD_INTR | BD_WRAP | BD_EXTD;
+	bd0->mode.status = BD_DONE | BD_WRAP | BD_EXTD;
 	bd0->mode.count = MAX_DMA_CHANNELS * sizeof(*context) / 4;
 	bd0->buffer_addr = sdma->context_phys;
 	bd0->ext_buffer_addr = 2048;
