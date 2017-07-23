@@ -628,7 +628,7 @@ static unsigned int hdmi_cec_poll(struct file *file, poll_table *wait)
 	poll_wait(file, &rx_queue, wait);
 	poll_wait(file, &tx_queue, wait);
 
-	if (priv->link_status == 1 &&
+	if (priv->link_status == 0 ||
 	    priv->tx_answer == CEC_TX_AVAIL)
 		mask |= POLLOUT | POLLWRNORM;
 
