@@ -8,6 +8,15 @@ config FSL_DPAA2_ETH
 	  MC bus.
 
 if FSL_DPAA2_ETH
+config FSL_DPAA2_ETH_DCB
+	bool "Data Center Bridging (DCB) Support"
+	default n
+	depends on DCB
+	help
+	  Say Y here if you want to use Data Center Bridging (DCB) features
+	  (PFC) in the driver.
+	  If unsure, say N.
+
 config FSL_DPAA2_ETH_USE_ERR_QUEUE
 	bool "Enable Rx error queue"
 	default n

@@ -6,6 +6,7 @@
 #ifndef __DPAA2_ETH_H
 #define __DPAA2_ETH_H
 
+#include <linux/dcbnl.h>
 #include <linux/netdevice.h>
 #include <linux/if_vlan.h>
 #include <linux/fsl/mc.h>
@@ -387,6 +388,9 @@ struct dpaa2_eth_priv {
 	struct dpaa2_debugfs dbg;
 #endif
 	struct dpni_tx_shaping_cfg shaping_cfg;
+
+	u8 dcbx_mode;
+	struct ieee_pfc pfc;
 };
 
 #define DPAA2_RXH_SUPPORTED	(RXH_L2DA | RXH_VLAN | RXH_L3_PROTO \
