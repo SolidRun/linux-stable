@@ -391,6 +391,7 @@ struct dpaa2_eth_priv {
 
 	u8 dcbx_mode;
 	struct ieee_pfc pfc;
+	bool vlan_clsf_set;
 };
 
 #define DPAA2_RXH_SUPPORTED	(RXH_L2DA | RXH_VLAN | RXH_L3_PROTO \
