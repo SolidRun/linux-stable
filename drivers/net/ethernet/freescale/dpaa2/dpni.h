@@ -24,6 +24,14 @@ struct fsl_mc_io;
  * Maximum number of buffer pools per DPNI
  */
 #define DPNI_MAX_DPBP				8
+/**
+ * Maximum number of senders
+ */
+#define DPNI_MAX_SENDERS			16
+/**
+ * Maximum distribution size
+ */
+#define DPNI_MAX_DIST_SIZE			16
 
 /**
  * All traffic classes considered; see dpni_set_queue()
