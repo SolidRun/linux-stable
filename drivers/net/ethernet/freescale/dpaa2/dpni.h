@@ -98,15 +98,17 @@ int dpni_close(struct fsl_mc_io	*mc_io,
  * @pools: Array of buffer pools parameters; The number of valid entries
  *	must match 'num_dpbp' value
  * @pools.dpbp_id: DPBP object ID
+ * @priority_mask: priorities served by DPBP
  * @pools.buffer_size: Buffer size
  * @pools.backup_pool: Backup pool
  */
 struct dpni_pools_cfg {
 	u8		num_dpbp;
 	struct {
-		int	dpbp_id;
+		u16	dpbp_id;
+		u8	priority_mask;
 		u16	buffer_size;
-		int	backup_pool;
+		u8	backup_pool;
 	} pools[DPNI_MAX_DPBP];
 };
 
