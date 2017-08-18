@@ -437,8 +437,18 @@ CPUIDLE_METHOD_OF_DECLARE(psci, "psci", &psci_cpuidle_ops);
 
 static int psci_system_suspend(unsigned long unused)
 {
-	return invoke_psci_fn(PSCI_FN_NATIVE(1_0, SYSTEM_SUSPEND),
-			      __pa_symbol(cpu_resume), 0, 0);
+	u32 state;
+	u32 ver = psci_get_version();
+
+	if (PSCI_VERSION_MAJOR(ver) >= 1) {
+		return invoke_psci_fn(PSCI_FN_NATIVE(1_0, SYSTEM_SUSPEND),
+				virt_to_phys(cpu_resume), 0, 0);
+	} else {
+		state = (2 << PSCI_0_2_POWER_STATE_AFFL_SHIFT) |
+			(1 << PSCI_0_2_POWER_STATE_TYPE_SHIFT);
+
+		return psci_cpu_suspend(state, virt_to_phys(cpu_resume));
+	}
 }
 
 static int psci_system_suspend_enter(suspend_state_t state)
@@ -562,6 +572,8 @@ static void __init psci_0_2_set_functions(void)
 	arm_pm_restart = psci_sys_reset;
 
 	pm_power_off = psci_sys_poweroff;
+
+	suspend_set_ops(&psci_suspend_ops);
 }
 
 /*
