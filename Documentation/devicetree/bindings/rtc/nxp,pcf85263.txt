@@ -1,0 +1,42 @@
+NXP PCF85263 I2C Real Time Clock
+
+Required properties:
+- compatible: must be: "nxp,rtc-pcf85263"
+- reg: must be the I2C address
+
+Optional properties:
+- interrupt-names: Which interrupt signal is used must be "INTA" or "INTB"
+    Defaults to "INTA"
+
+- quartz-load-capacitance: The internal capacitor to select for the quartz:
+	PCF85263_QUARTZCAP_7pF		[0]
+	PCF85263_QUARTZCAP_6pF		[1]
+	PCF85263_QUARTZCAP_12p5pF	[2] DEFAULT
+
+- quartz-drive-strength: Drive strength for the quartz:
+	PCF85263_QUARTZDRIVE_NORMAL	[0] DEFAULT
+	PCF85263_QUARTZDRIVE_LOW	[1]
+	PCF85263_QUARTZDRIVE_HIGH	[2]
+
+- quartz-low-jitter: Boolean property, if present enables low jitter mode
+which
+    reduces jitter at the cost of increased power consumption.
+
+- wakeup-source: mark the chip as a wakeup source, independently of
+    the availability of an IRQ line connected to the SoC.
+    This is useful if the IRQ line is connected to a PMIC or other circuit
+    that can power up the device rather than to a normal SOC interrupt.
+
+Example:
+
+rtc@51 {
+	compatible = "nxp,pcf85263";
+	reg = <0x51>;
+
+	interrupt-parent = <&gpio4>;
+	interrupts = <5 IRQ_TYPE_LEVEL_LOW>;
+	interrupt-names = "INTB";
+
+	quartz-load-capacitance = <PCF85263_QUARTZCAP_12p5pF>;
+	quartz-drive-strength = <PCF85263_QUARTZDRIVE_LOW>;
+};
