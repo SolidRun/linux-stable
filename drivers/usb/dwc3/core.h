@@ -999,6 +999,8 @@ struct dwc3_scratchpad_array {
  * 	3	- Reserved
  * @disable_devinit_u1u2_quirk: disable device-initiated U1/U2 request.
  * @quirk_reverse_in_out: prevent tx fifo reverse the data direction
+ * @quirk_stop_transfer_in_block: prevent block transmission from being
+ *				interrupted
  * @dis_metastability_quirk: set to disable metastability quirk.
  * @imod_interval: set the interrupt moderation interval in 250ns
  *                 increments or 0 to disable.
@@ -1169,6 +1171,7 @@ struct dwc3 {
 	unsigned		tx_de_emphasis:2;
 	unsigned		disable_devinit_u1u2_quirk:1;
 	unsigned        quirk_reverse_in_out:1;
+	unsigned        quirk_stop_transfer_in_block:1;
 
 	unsigned		dis_metastability_quirk:1;
 
