@@ -1851,6 +1851,7 @@ struct xhci_hcd {
 #define XHCI_DIS_U1U2_WHEN_U3	BIT_ULL(33)
 #define XHCI_REVERSE_IN_OUT     BIT_ULL(36)
 #define XHCI_STOP_TRANSFER_IN_BLOCK	BIT_ULL(37)
+#define XHCI_STOP_EP_IN_U1	BIT_ULL(38)
 
 	unsigned int		num_active_eps;
 	unsigned int		limit_active_eps;

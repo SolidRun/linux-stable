@@ -1291,6 +1291,8 @@ static void dwc3_get_properties(struct dwc3 *dwc)
 				"snps,quirk_reverse_in_out");
 	dwc->quirk_stop_transfer_in_block = device_property_read_bool(dev,
 				"snps,quirk_stop_transfer_in_block");
+	dwc->quirk_stop_ep_in_u1 = device_property_read_bool(dev,
+				"snps,quirk_stop_ep_in_u1");
 	dwc->tx_de_emphasis_quirk = device_property_read_bool(dev,
 				"snps,tx_de_emphasis_quirk");
 	dwc->disable_devinit_u1u2_quirk = device_property_read_bool(dev,
