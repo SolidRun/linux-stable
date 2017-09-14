@@ -289,6 +289,12 @@ static int xhci_plat_probe(struct platform_device *pdev)
 		if (device_property_read_bool(tmpdev, "usb2-lpm-disable"))
 			xhci->quirks |= XHCI_HW_LPM_DISABLE;
 
+		if (device_property_read_bool(&pdev->dev, "quirk-reverse-in-out"))
+			xhci->quirks |= XHCI_REVERSE_IN_OUT;
+
+		if (device_property_read_bool(&pdev->dev, "quirk-broken-port-ped"))
+			xhci->quirks |= XHCI_BROKEN_PORT_PED;
+
 		if (device_property_read_bool(tmpdev, "usb3-lpm-capable"))
 			xhci->quirks |= XHCI_LPM_SUPPORT;
 
