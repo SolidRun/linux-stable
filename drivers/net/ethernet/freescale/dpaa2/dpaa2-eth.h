@@ -99,6 +99,7 @@
 enum dpaa2_eth_swa_type {
 	DPAA2_ETH_SWA_SINGLE,
 	DPAA2_ETH_SWA_SG,
+	DPAA2_ETH_SWA_XDP,
 };
 
 /* Must keep this struct smaller than DPAA2_ETH_SWA_SIZE */
@@ -114,6 +115,10 @@ struct dpaa2_eth_swa {
 			int num_sg;
 			int sgt_size;
 		} sg;
+		struct {
+			int dma_size;
+			struct xdp_frame *xdpf;
+		} xdp;
 	};
 };
 
@@ -324,6 +329,8 @@ struct dpaa2_eth_ch_xdp {
 	struct bpf_prog *prog;
 	u64 drop_bufs[DPAA2_ETH_BUFS_PER_CMD];
 	int drop_cnt;
+	struct xdp_rxq_info rxq;
+	bool flush;
 };
 
 struct dpaa2_eth_channel {
@@ -466,6 +473,12 @@ unsigned int dpaa2_eth_needed_headroom(struct dpaa2_eth_priv *priv,
 				       struct sk_buff *skb)
 {
 	unsigned int headroom = DPAA2_ETH_SWA_SIZE;
+
+	/* If we don't have an skb (e.g. XDP buffer), we only need space for
+	 * the software annotation area
+	 */
+	if (!skb)
+		return headroom;
 
 	/* For non-linear skbs we have no headroom requirement, as we build a
 	 * SG frame with a newly allocated SGT buffer
