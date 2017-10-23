@@ -219,7 +219,7 @@ out_free_cpus:
 	return err;
 }
 
-static void dummy_callback(unsigned long ignored) {}
+static void dummy_callback(struct timer_list *unused) {}
 
 static int suspend_cpu(int index, bool broadcast)
 {
@@ -286,7 +286,7 @@ static int suspend_test_thread(void *arg)
 	pr_info("CPU %d entering suspend cycles, states 1 through %d\n",
 		cpu, drv->state_count - 1);
 
-	setup_timer_on_stack(&wakeup_timer, dummy_callback, 0);
+	timer_setup_on_stack(&wakeup_timer, dummy_callback, 0);
 	for (i = 0; i < NUM_SUSPEND_CYCLE; ++i) {
 		int index;
 		/*
