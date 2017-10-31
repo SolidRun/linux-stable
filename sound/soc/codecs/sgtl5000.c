@@ -650,7 +650,7 @@ static const DECLARE_TLV_DB_SCALE(lineout_volume, -1550, 50, 0);
 static const DECLARE_TLV_DB_SCALE(avc_max_gain, 0, 600, 0);
 
 /* tlv for dap avc threshold, */
-static const DECLARE_TLV_DB_MINMAX(avc_threshold, 0, 9600);
+static const DECLARE_TLV_DB_MINMAX(avc_threshold, -9600, 0);
 
 static const struct snd_kcontrol_new sgtl5000_snd_controls[] = {
 	/* SOC_DOUBLE_S8_TLV with invert */
@@ -700,6 +700,10 @@ static const struct snd_kcontrol_new sgtl5000_snd_controls[] = {
 	SOC_SINGLE_EXT_TLV("AVC Threshold Volume", SGTL5000_DAP_AVC_THRESHOLD,
 			0, 96, 0, avc_get_threshold, avc_put_threshold,
 			avc_threshold),
+	SOC_SINGLE("AVC Attack Rate", SGTL5000_DAP_AVC_ATTACK, 0,
+			0xfff, 0),
+	SOC_SINGLE("AVC Decay Rate", SGTL5000_DAP_AVC_DECAY, 0,
+			0xfff, 0),
 
 	SOC_SINGLE("Bass Enable", SGTL5000_DAP_BASS_ENHANCE, 0, 1, 0),
 	SOC_SINGLE_TLV("Bass Filter Feq", SGTL5000_DAP_BASS_ENHANCE,
