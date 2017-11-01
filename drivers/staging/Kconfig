@@ -128,4 +128,6 @@ source "drivers/staging/erofs/Kconfig"
 
 source "drivers/staging/fsl_qbman/Kconfig"
 
+source "drivers/staging/fsl_ppfe/Kconfig"
+
 endif # STAGING
