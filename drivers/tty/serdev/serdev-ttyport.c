@@ -130,6 +130,8 @@ static int ttyport_open(struct serdev_controller *ctrl)
 	if (ret)
 		goto err_close;
 
+	tty_unlock(serport->tty);
+
 	/* Bring the UART into a known 8 bits no parity hw fc state */
 	ktermios = tty->termios;
 	ktermios.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP |
@@ -143,7 +145,6 @@ static int ttyport_open(struct serdev_controller *ctrl)
 
 	set_bit(SERPORT_ACTIVE, &serport->flags);
 
-	tty_unlock(serport->tty);
 	return 0;
 
 err_close:
