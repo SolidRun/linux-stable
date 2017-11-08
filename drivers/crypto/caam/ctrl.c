@@ -27,6 +27,8 @@ EXPORT_SYMBOL(caam_imx);
 #include "qi.h"
 #endif
 
+static struct platform_device *caam_dma_dev;
+
 /*
  * i.MX targets tend to have clock control subsystems that can
  * enable/disable clocking to our device.
@@ -332,6 +334,9 @@ static int caam_remove(struct platform_device *pdev)
 	debugfs_remove_recursive(ctrlpriv->dfs_root);
 #endif
 
+	if (caam_dma_dev)
+		platform_device_unregister(caam_dma_dev);
+
 	/* Unmap controller region */
 	iounmap(ctrl);
 
@@ -480,6 +485,10 @@ static int caam_probe(struct platform_device *pdev)
 	static const struct soc_device_attribute imx_soc[] = {
 		{.family = "Freescale i.MX"},
 		{},
+	};
+	static struct platform_device_info caam_dma_pdev_info = {
+		.name = "caam-dma",
+		.id = PLATFORM_DEVID_NONE
 	};
 	struct device *dev;
 	struct device_node *nprop, *np;
@@ -730,6 +739,16 @@ static int caam_probe(struct platform_device *pdev)
 		dev_err(dev, "no queues configured, terminating\n");
 		ret = -ENOMEM;
 		goto caam_remove;
+	}
+
+	caam_dma_pdev_info.parent = dev;
+	caam_dma_pdev_info.dma_mask = dma_get_mask(dev);
+	caam_dma_dev = platform_device_register_full(&caam_dma_pdev_info);
+	if (IS_ERR(caam_dma_dev)) {
+		dev_err(dev, "Unable to create and register caam-dma dev\n");
+		caam_dma_dev = 0;
+	} else {
+		set_dma_ops(&caam_dma_dev->dev, get_dma_ops(dev));
 	}
 
 	cha_vid_ls = rd_reg32(&ctrl->perfmon.cha_id_ls);
