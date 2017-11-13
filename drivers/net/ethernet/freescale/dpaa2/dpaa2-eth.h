@@ -417,6 +417,8 @@ struct dpaa2_eth_priv {
 	struct ieee_pfc pfc;
 	bool vlan_clsf_set;
 	bool tx_pause_frames;
+
+	bool ceetm_en;
 };
 
 #define DPAA2_RXH_SUPPORTED	(RXH_L2DA | RXH_VLAN | RXH_L3_PROTO \
@@ -525,6 +527,11 @@ dpaa2_eth_get_td_type(struct dpaa2_eth_priv *priv)
 		return DPAA2_ETH_TD_NONE;
 	else
 		return DPAA2_ETH_TD_QUEUE;
+}
+
+static inline int dpaa2_eth_ch_count(struct dpaa2_eth_priv *priv)
+{
+	return 1;
 }
 
 int dpaa2_eth_set_hash(struct net_device *net_dev, u64 flags);
