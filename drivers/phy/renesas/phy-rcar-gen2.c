@@ -329,8 +329,14 @@ static void gpio_id_work(struct work_struct *work)
 
 	id = !!gpio_get_value(channel->gpio_id);
 	/* Switch the PHY over */
-	if (!id)
-		rcar_gen2_phy_switch(channel, USBHS_UGCTRL2_USB0SEL_PCI | USBHS_UGCTRL2_USB2SEL_USB30);
+	if (!id) {
+		if (of_machine_is_compatible("renesas,r8a7745"))
+			rcar_gen2_phy_switch(channel,
+				USBHS_UGCTRL2_USB0SEL_PCI | USBHS_UGCTRL2_USB2SEL_PCI);
+		else if (of_machine_is_compatible("renesas,r8a7743"))
+			rcar_gen2_phy_switch(channel,
+				USBHS_UGCTRL2_USB0SEL_PCI | USBHS_UGCTRL2_USB2SEL_USB30);
+	}
 
 	/* If VBUS is powered and we are not the initial Host, turn off VBUS */
 	if (gpio_is_valid(channel->gpio_vbus_pwr))
@@ -339,8 +345,8 @@ static void gpio_id_work(struct work_struct *work)
 
 static void gpio_vbus_work(struct work_struct *work)
 {
-	struct rcar_gen2_channel *channel = container_of(work,
-							struct rcar_gen2_channel, work_vbus.work);
+	struct rcar_gen2_channel *channel =
+			container_of(work, struct rcar_gen2_channel, work_vbus.work);
 	struct usb_phy *usbphy = &channel->usbphy;
 	int status, vbus, id;
 
@@ -350,10 +356,21 @@ static void gpio_vbus_work(struct work_struct *work)
 	if (gpio_is_valid(channel->gpio_vbus_pwr))
 		gpio_request_one(channel->gpio_vbus_pwr, GPIOF_DIR_OUT, NULL);
 	/* Switch the PHY over */
-	if (id)
-		rcar_gen2_phy_switch(channel, USBHS_UGCTRL2_USB0SEL_HS_USB | USBHS_UGCTRL2_USB2SEL_USB30);
-	else
-		rcar_gen2_phy_switch(channel, USBHS_UGCTRL2_USB0SEL_PCI | USBHS_UGCTRL2_USB2SEL_USB30);
+	if (id) {
+		if (of_machine_is_compatible("renesas,r8a7745"))
+			rcar_gen2_phy_switch(channel,
+				USBHS_UGCTRL2_USB0SEL_HS_USB | USBHS_UGCTRL2_USB2SEL_PCI);
+		else if (of_machine_is_compatible("renesas,r8a7743"))
+			rcar_gen2_phy_switch(channel,
+				USBHS_UGCTRL2_USB0SEL_HS_USB | USBHS_UGCTRL2_USB2SEL_USB30);
+	} else {
+		if (of_machine_is_compatible("renesas,r8a7745"))
+			rcar_gen2_phy_switch(channel,
+				USBHS_UGCTRL2_USB0SEL_PCI | USBHS_UGCTRL2_USB2SEL_PCI);
+		else if (of_machine_is_compatible("renesas,r8a7743"))
+			rcar_gen2_phy_switch(channel,
+				USBHS_UGCTRL2_USB0SEL_PCI | USBHS_UGCTRL2_USB2SEL_USB30);
+	}
 
 	if (!channel->otg->gadget)
 		return;
