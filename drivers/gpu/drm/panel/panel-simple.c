@@ -1724,10 +1724,10 @@ static const struct drm_display_mode edt_etm043080dh6gp_mode = {
 	 * fb_align
 	 */
 
-	.vdisplay = 288,
-	.vsync_start = 288 + 2,
-	.vsync_end = 288 + 2 + 4,
-	.vtotal = 288 + 2 + 4 + 10,
+	.vdisplay = 272,
+	.vsync_start = 272 + 2,
+	.vsync_end = 272 + 2 + 4,
+	.vtotal = 272 + 2 + 4 + 10,
 };
 
 static const struct panel_desc edt_etm043080dh6gp = {
