@@ -338,6 +338,7 @@ dtb-$(CONFIG_SOC_IMX6Q) += \
 	imx6dl-ash2.dtb \
 	imx6dl-bt.dtb \
 	imx6dl-cubox-i.dtb \
+	imx6dl-cubox-i-emmc-som-v15.dtb \
 	imx6dl-cubox-i-som-v15.dtb \
 	imx6dl-dfi-fs700-m60.dtb \
 	imx6dl-gw51xx.dtb \
@@ -348,6 +349,7 @@ dtb-$(CONFIG_SOC_IMX6Q) += \
 	imx6dl-gw552x.dtb \
 	imx6dl-gw553x.dtb \
 	imx6dl-hummingboard.dtb \
+	imx6dl-hummingboard-emmc-som-v15.dtb \
 	imx6dl-hummingboard-som-v15.dtb \
 	imx6dl-hl.dtb \
 	imx6dl-hp.dtb \
@@ -422,6 +424,7 @@ dtb-$(CONFIG_SOC_IMX6Q) += \
 	imx6q-cob.dtb \
 	imx6q-cob2.dtb \
 	imx6q-cubox-i.dtb \
+	imx6q-cubox-i-emmc-som-v15.dtb \
 	imx6q-cubox-i-som-v15.dtb \
 	imx6q-dfi-fs700-m60.dtb \
 	imx6q-dmo-edmqmx6.dtb \
@@ -440,6 +443,7 @@ dtb-$(CONFIG_SOC_IMX6Q) += \
 	imx6q-h4.dtb \
 	imx6q-hp.dtb \
 	imx6q-hummingboard.dtb \
+	imx6q-hummingboard-emmc-som-v15.dtb \
 	imx6q-hummingboard-som-v15.dtb \
 	imx6q-icore-rqs.dtb \
 	imx6q-insp.dtb \
