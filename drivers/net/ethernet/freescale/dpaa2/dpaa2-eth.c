@@ -2421,6 +2421,7 @@ static int set_queue_taildrop(struct dpaa2_eth_priv *priv,
 	for (i = 0; i < priv->num_fqs; i++) {
 		if (priv->fq[i].type != DPAA2_RX_FQ)
 			continue;
+
 		err = dpni_set_taildrop(priv->mc_io, 0, priv->mc_token,
 					DPNI_CP_QUEUE, DPNI_QUEUE_RX,
 					priv->fq[i].tc, priv->fq[i].flowid,
@@ -2429,6 +2430,10 @@ static int set_queue_taildrop(struct dpaa2_eth_priv *priv,
 			dev_err(dev, "dpni_set_taildrop() failed (%d)\n", err);
 			return err;
 		}
+
+		dev_dbg(dev, "%s taildrop for Rx queue id %d tc %d\n",
+			(td->enable ? "Enabled" : "Disabled"),
+			priv->fq[i].flowid, priv->fq[i].tc);
 	}
 
 	return 0;
@@ -2459,6 +2464,10 @@ static int set_group_taildrop(struct dpaa2_eth_priv *priv,
 			dev_err(dev, "dpni_set_taildrop() failed (%d)\n", err);
 			return err;
 		}
+
+		dev_dbg(dev, "%s taildrop for Rx group tc %d\n",
+			(tc_td->enable ? "Enabled" : "Disabled"),
+			i);
 	}
 
 	return 0;
@@ -3309,10 +3318,8 @@ static int dpaa2_eth_dcbnl_ieee_getpfc(struct net_device *net_dev,
 {
 	struct dpaa2_eth_priv *priv = netdev_priv(net_dev);
 
-	pfc->pfc_cap = dpaa2_eth_tc_count(priv);
-	pfc->pfc_en = priv->pfc.pfc_en;
-	pfc->mbc = priv->pfc.mbc;
-	pfc->delay = priv->pfc.delay;
+	priv->pfc.pfc_cap = dpaa2_eth_tc_count(priv);
+	memcpy(pfc, &priv->pfc, sizeof(priv->pfc));
 
 	return 0;
 }
@@ -3439,12 +3446,16 @@ static int dpaa2_eth_dcbnl_ieee_setpfc(struct net_device *net_dev,
 	struct dpni_congestion_notification_cfg notification_cfg = {0};
 	struct dpni_link_state state = {0};
 	struct dpni_link_cfg cfg = {0};
+	struct ieee_pfc old_pfc;
 	int err = 0, i;
 
 	if (dpaa2_eth_tc_count(priv) == 1) {
 		netdev_dbg(net_dev, "DPNI has 1 TC, PFC configuration N/A\n");
 		return 0;
 	}
+
+	/* Zero out pfc_enabled prios greater than tc_count */
+	pfc->pfc_en &= (1 << dpaa2_eth_tc_count(priv)) - 1;
 
 	if (priv->pfc.pfc_en == pfc->pfc_en)
 		/* Same enabled mask, nothing to be done */
@@ -3473,11 +3484,12 @@ static int dpaa2_eth_dcbnl_ieee_setpfc(struct net_device *net_dev,
 		return err;
 	}
 
+	memcpy(&old_pfc, &priv->pfc, sizeof(priv->pfc));
 	memcpy(&priv->pfc, pfc, sizeof(priv->pfc));
 
 	err = set_rx_taildrop(priv);
 	if (err)
-		return err;
+		goto out_restore_config;
 
 	/* configure congestion notifications */
 	notification_cfg.notification_mode = DPNI_CONG_OPT_FLOW_CONTROL;
@@ -3501,11 +3513,19 @@ static int dpaa2_eth_dcbnl_ieee_setpfc(struct net_device *net_dev,
 		if (err) {
 			netdev_err(net_dev, "Error %d setting congestion notif",
 				   err);
-			return err;
+			goto out_restore_config;
 		}
+
+		netdev_dbg(net_dev, "%s congestion notifications for tc %d\n",
+			   (notification_cfg.threshold_entry ?
+			    "Enabled" : "Disabled"), i);
 	}
 
 	return 0;
+
+out_restore_config:
+	memcpy(&priv->pfc, &old_pfc, sizeof(priv->pfc));
+	return err;
 }
 
 static u8 dpaa2_eth_dcbnl_getdcbx(struct net_device *net_dev)
@@ -3532,7 +3552,11 @@ static u8 dpaa2_eth_dcbnl_getcap(struct net_device *net_dev, int capid, u8 *cap)
 		*cap = true;
 		break;
 	case DCB_CAP_ATTR_PFC_TCS:
-		*cap = 1 << dpaa2_eth_tc_count(priv);
+		/* bitmap where each bit represents a number of traffic
+		 * classes the device can be configured to use for Priority
+		 * Flow Control
+		 */
+		*cap = 1 << (dpaa2_eth_tc_count(priv) - 1);
 		break;
 	case DCB_CAP_ATTR_DCBX:
 		*cap = priv->dcbx_mode;
