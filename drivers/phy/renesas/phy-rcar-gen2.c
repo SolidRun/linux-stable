@@ -109,7 +109,6 @@ static void rcar_gen2_phy_switch(struct rcar_gen2_channel *channel,
 	ugctrl2 |= select_value;
 	writel(ugctrl2, drv->base + USBHS_UGCTRL2);
 	spin_unlock_irqrestore(&drv->lock, flags);
-	return 0;
 }
 
 static int rcar_gen2_phy_init(struct phy *p)
@@ -147,6 +146,7 @@ static int rcar_gen2_phy_init(struct phy *p)
 	clk_prepare_enable(drv->clk);
 	rcar_gen2_phy_switch(channel, phy->select_value);
 #endif
+	return 0;
 }
 
 static int rcar_gen2_phy_exit(struct phy *p)
@@ -324,8 +324,7 @@ static void gpio_id_work(struct work_struct *work)
 {
 	struct rcar_gen2_channel *channel = container_of(work,
 					struct rcar_gen2_channel, work_id.work);
-	struct usb_phy *usbphy = &channel->usbphy;
-	int status, vbus, id;
+	int id;
 
 	id = !!gpio_get_value(channel->gpio_id);
 	/* Switch the PHY over */
@@ -420,7 +419,6 @@ static int probe_otg(struct platform_device *pdev,
 {
 	struct device *dev = &pdev->dev;
 	struct rcar_gen2_channel *ch = drv->channels;
-	int irq;
 	int ret;
 	/* GPIOs for Host/Fn switching */
 	ch->gpio_id = of_get_named_gpio_flags(dev->of_node,
