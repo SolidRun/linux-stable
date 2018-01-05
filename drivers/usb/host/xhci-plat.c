@@ -276,6 +276,13 @@ static int xhci_plat_probe(struct platform_device *pdev)
 	/* imod_interval is the interrupt moderation value in nanoseconds. */
 	xhci->imod_interval = 40000;
 
+	if (device_property_read_bool(sysdev, "usb3-lpm-capable")) {
+		xhci->quirks |= XHCI_LPM_SUPPORT;
+		if (device_property_read_bool(sysdev,
+					"snps,dis-u1u2-when-u3-quirk"))
+			xhci->quirks |= XHCI_DIS_U1U2_WHEN_U3;
+	}
+
 	/* Iterate over all parent nodes for finding quirks */
 	for (tmpdev = &pdev->dev; tmpdev; tmpdev = tmpdev->parent) {
 
