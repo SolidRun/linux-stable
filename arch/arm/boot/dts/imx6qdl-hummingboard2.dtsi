@@ -183,7 +183,7 @@
 	pinctrl-0 = <&pinctrl_hummingboard2_i2c1>;
 	status = "okay";
 
-	pcf8523: rtc@68 {
+	rtc@68 {
 		compatible = "nxp,pcf8523";
 		reg = <0x68>;
 	};
