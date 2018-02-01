@@ -14,6 +14,14 @@ menuconfig ARCH_MXC
 
 if ARCH_MXC
 
+config MXC_USE_VENDOR_DRIVERS
+        bool "Use Vendor drivers instead of Mainline"
+        help
+          This tree includes many vendor specific drivers that conflict or
+          duplicate existing mainline kernel drivers.  This option will be
+          used to try and distinguish which driver will be available in the
+          kernel build
+
 config MXC_TZIC
 	bool
 
