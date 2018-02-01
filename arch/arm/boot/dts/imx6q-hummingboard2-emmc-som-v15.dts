@@ -48,6 +48,10 @@
 #include "imx6qdl-sr-som-emmc.dtsi"
 #include "imx6qdl-sr-som-ti.dtsi"
 #include "imx6qdl-hummingboard2.dtsi"
+#include "imx6qdl-hummingboard2-emmc.dtsi"
+#ifdef MXC_USE_VENDOR_DRIVERS
+#include "imx6qdl-hummingboard2-vendor.dtsi"
+#endif
 
 / {
 	model = "SolidRun HummingBoard2 Dual/Quad (1.5som+emmc)";
