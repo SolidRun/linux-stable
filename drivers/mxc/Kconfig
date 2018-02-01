@@ -1,6 +1,6 @@
 # drivers/mxc/Kconfig
 
-if ARCH_MXC
+if ARCH_MXC && MXC_USE_VENDOR_DRIVERS
 
 menu "MXC support drivers"
 
