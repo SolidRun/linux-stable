@@ -14,8 +14,14 @@ config FB_MXC
 	  If you plan to use the LCD display with your MXC system, say
 	  Y here.
 
+config FB_MXC_IPUV3_FB
+	depends on FB_MXC
+	select MXC_IPU_V3
+	tristate "MXC IPUv3 Framebuffer driver"
+
 config FB_MXC_SYNC_PANEL
 	depends on FB_MXC
+	select FB_MXC_IPUV3_FB
 	tristate "Synchronous Panel Framebuffer"
 
 config FB_MXC_LCDIF
