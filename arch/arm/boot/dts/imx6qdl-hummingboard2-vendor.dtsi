@@ -1,0 +1,362 @@
+/*
+ * Device Tree file for SolidRun HummingBoard2
+ * Copyright (C) 2015 Rabeeh Khoury <rabeeh@solid-run.com>
+ *
+ * This file is dual-licensed: you can use it either under the terms
+ * of the GPL or the X11 license, at your option. Note that this dual
+ * licensing only applies to this file, and not this project as a
+ * whole.
+ *
+ *  a) This file is free software; you can redistribute it and/or
+ *     modify it under the terms of the GNU General Public License as
+ *     published by the Free Software Foundation; either version 2 of the
+ *     License.
+ *
+ *     This file is distributed in the hope that it will be useful
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU General Public License for more details.
+ *
+ * Or, alternatively
+ *
+ *  b) Permission is hereby granted, free of charge, to any person
+ *     obtaining a copy of this software and associated documentation
+ *     files (the "Software"), to deal in the Software without
+ *     restriction, including without limitation the rights to use
+ *     copy, modify, merge, publish, distribute, sublicense, and/or
+ *     sell copies of the Software, and to permit persons to whom the
+ *     Software is furnished to do so, subject to the following
+ *     conditions:
+ *
+ *     The above copyright notice and this permission notice shall be
+ *     included in all copies or substantial portions of the Software.
+ *
+ *     THE SOFTWARE IS PROVIDED , WITHOUT WARRANTY OF ANY KIND
+ *     EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ *     OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ *     NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ *     HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY
+ *     WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ *     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ *     OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+/ {
+	aliases {
+		mmc0 = &usdhc2;
+		mmc1 = &usdhc1;
+		mxcfb0 = &mxcfb1;
+		mxcfb2 = &mxcfb2;
+	};
+
+	chosen {
+		bootargs = "quiet console=ttymxc0,115200 root=/dev/mmcblk0p2 rw";
+		stdout-path = &uart1;
+	};
+
+	ir_recv: ir-receiver {
+		compatible = "gpio-ir-receiver";
+		gpios = <&gpio7 9 1>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_hummingboard2_gpio7_9>;
+		linux,rc-map-name = "rc-rc6-mce";
+	};
+
+	mxcfb1: fb@0 {
+		compatible = "fsl,mxc_sdc_fb";
+		disp_dev = "hdmi";
+		interface_pix_fmt = "RGB24";
+		mode_str ="1920x1080M@60";
+		default_bpp = <32>;
+		int_clk = <0>;
+		late_init = <0>;
+		status = "okay";
+	};
+
+	mxcfb2: fb@1 {
+		compatible = "fsl,mxc_sdc_fb";
+		disp_dev = "ldb";
+		interface_pix_fmt = "RGB666";
+		default_bpp = <16>;
+		int_clk = <0>;
+		late_init = <0>;
+		status = "disabled";
+	};
+
+	sound-hdmi {
+		compatible = "fsl,imx6q-audio-hdmi",
+			     "fsl,imx-audio-hdmi";
+		model = "imx-audio-hdmi";
+		hdmi-controller = <&hdmi_audio>;
+	};
+
+	v4l2_cap_0 {
+		compatible = "fsl,imx6q-v4l2-capture";
+		ipu_id = <0>;
+		csi_id = <1>;
+		mclk_source = <0>;
+		mipi_camera = <1>;
+		default_input = <0>;
+		status = "okay";
+	};
+
+	v4l2_out {
+		compatible = "fsl,mxc_v4l2_output";
+		status = "okay";
+	};
+};
+
+&dcic1 {
+	dcic_id = <0>;
+	dcic_mux = "dcic-hdmi";
+	status = "okay";
+};
+
+&dcic2 {
+	dcic_id = <1>;
+	dcic_mux = "dcic-lvds1";
+	status = "okay";
+};
+
+&ecspi2 {
+	fsl,spi-num-chipselects = <1>;
+
+	spidev0: spi@0 {
+		compatible = "spidev";
+		reg = <0>;
+		spi-max-frequency = <20000000>;
+	};
+};
+
+&gpc {
+	fsl,cpu_pupscr_sw2iso = <0xf>;
+	fsl,cpu_pupscr_sw = <0xf>;
+	fsl,cpu_pdnscr_iso2sw = <0x1>;
+	fsl,cpu_pdnscr_iso = <0x1>;
+};
+
+&can1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_hummingboard_flexcan1>;
+	status = "disabled";
+};
+
+&hdmi {
+	status = "disabled";
+};
+
+&hdmi_core {
+	ipu_id = <0>;
+	disp_id = <0>;
+	status = "okay";
+};
+
+&hdmi_video {
+	fsl,phy_reg_vlev = <0x0294>;
+	fsl,phy_reg_cksymtx = <0x800d>;
+	status = "okay";
+};
+
+&hdmi_audio {
+	status = "okay";
+};
+
+&hdmi_cec {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_hummingboard2_hdmi>;
+	status = "okay";
+};
+
+&i2c1 {
+	clock-frequency = <100000>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_hummingboard2_i2c1>;
+	status = "okay";
+
+	camera@3c {
+		compatible = "ovti,ov5640_mipi";
+		reg = <0x3c>;
+                clocks = <&clks IMX6QDL_CLK_CKO2>;
+                clock-names = "csi_mclk";
+                pwn-gpios = <&gpio4 14 GPIO_ACTIVE_LOW>;
+                rst-gpios = <&gpio2 10 GPIO_ACTIVE_HIGH>;
+                ipu_id = <0>;
+                csi_id = <1>;
+                mclk = <24000000>;
+                mclk_source = <0>;
+                pinctrl-names = "default";
+                pinctrl-0 = <&pinctrl_hummingboard2_mipi>;
+                extended-buffer;
+        };
+
+	rtc@68 {
+		compatible = "nxp,pcf8523";
+		reg = <0x68>;
+		nxp,12p5_pf;
+	};
+};
+
+&i2c2 {
+	ddc@50 {
+		compatible = "fsl,imx6-hdmi-i2c";
+		reg = <0x50>;
+	};
+};
+
+&iomuxc {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_hog>;
+	hummingboard2 {
+		pinctrl_hog: hoggrp {
+		fsl,pins = <
+				/*
+				 * 36 pin headers GPIO description. The pins
+				 * numbering as following -
+				 *
+				 * 	3.2v	5v	74	75
+				 *	73	72	71	70
+				 *	69	68	67	66
+				 *
+				 *	77	78	79	76
+				 *	65	64	61	60
+				 *	53	52	51	50
+				 *	49	48	166	132
+				 *	95	94	90	91
+				 *	GND	54	24	204
+				 *
+				 * The GPIO numbers can be extracted using
+				 * signal name from below.
+				 * Example -
+				 * MX6QDL_PAD_EIM_DA10__GPIO3_IO10 is
+				 * GPIO(3,10) which is (3-1)*32+10 = gpio 74
+				 *
+				 * i.e. The mapping of GPIO(X,Y) to Linux gpio
+				 * number is : gpio number = (X-1) * 32 + Y
+				 */
+				/* DI1_PIN15 */
+				MX6QDL_PAD_EIM_DA10__GPIO3_IO10 0x400130b1
+				/* DI1_PIN02 */
+				MX6QDL_PAD_EIM_DA11__GPIO3_IO11 0x400130b1
+				/* DISP1_DATA00 */
+				MX6QDL_PAD_EIM_DA9__GPIO3_IO09 0x400130b1
+				/* DISP1_DATA01 */
+				MX6QDL_PAD_EIM_DA8__GPIO3_IO08 0x400130b1
+				/* DISP1_DATA02 */
+				MX6QDL_PAD_EIM_DA7__GPIO3_IO07 0x400130b1
+				/* DISP1_DATA03 */
+				MX6QDL_PAD_EIM_DA6__GPIO3_IO06 0x400130b1
+				/* DISP1_DATA04 */
+				MX6QDL_PAD_EIM_DA5__GPIO3_IO05 0x400130b1
+				/* DISP1_DATA05 */
+				MX6QDL_PAD_EIM_DA4__GPIO3_IO04 0x400130b1
+				/* DISP1_DATA06 */
+				MX6QDL_PAD_EIM_DA3__GPIO3_IO03 0x400130b1
+				/* DISP1_DATA07 */
+				MX6QDL_PAD_EIM_DA2__GPIO3_IO02 0x400130b1
+				/* DI1_D0_CS */
+				MX6QDL_PAD_EIM_DA13__GPIO3_IO13 0x400130b1
+				/* DI1_D1_CS */
+				MX6QDL_PAD_EIM_DA14__GPIO3_IO14 0x400130b1
+				/* DI1_PIN01 */
+				MX6QDL_PAD_EIM_DA15__GPIO3_IO15 0x400130b1
+				/* DI1_PIN03 */
+				MX6QDL_PAD_EIM_DA12__GPIO3_IO12 0x400130b1
+				/* DISP1_DATA08 */
+				MX6QDL_PAD_EIM_DA1__GPIO3_IO01 0x400130b1
+				/* DISP1_DATA09 */
+				MX6QDL_PAD_EIM_DA0__GPIO3_IO00 0x400130b1
+				/* DISP1_DATA10 */
+				MX6QDL_PAD_EIM_EB1__GPIO2_IO29 0x400130b1
+				/* DISP1_DATA11 */
+				MX6QDL_PAD_EIM_EB0__GPIO2_IO28 0x400130b1
+				/* DISP1_DATA12 */
+				MX6QDL_PAD_EIM_A17__GPIO2_IO21 0x400130b1
+				/* DISP1_DATA13 */
+				MX6QDL_PAD_EIM_A18__GPIO2_IO20 0x400130b1
+				/* DISP1_DATA14 */
+				MX6QDL_PAD_EIM_A19__GPIO2_IO19 0x400130b1
+				/* DISP1_DATA15 */
+				MX6QDL_PAD_EIM_A20__GPIO2_IO18 0x400130b1
+				/* DISP1_DATA16 */
+				MX6QDL_PAD_EIM_A21__GPIO2_IO17 0x400130b1
+				/* DISP1_DATA17 */
+				MX6QDL_PAD_EIM_A22__GPIO2_IO16 0x400130b1
+				/* DISP1_DATA18 */
+				MX6QDL_PAD_EIM_A23__GPIO6_IO06 0x400130b1
+				/* DISP1_DATA19 */
+				MX6QDL_PAD_EIM_A24__GPIO5_IO04 0x400130b1
+				/* DISP1_DATA20 */
+				MX6QDL_PAD_EIM_D31__GPIO3_IO31 0x400130b1
+				/* DISP1_DATA21 */
+				MX6QDL_PAD_EIM_D30__GPIO3_IO30 0x400130b1
+				/* DISP1_DATA22 */
+				MX6QDL_PAD_EIM_D26__GPIO3_IO26 0x400130b1
+				/* DISP1_DATA23 */
+				MX6QDL_PAD_EIM_D27__GPIO3_IO27 0x400130b1
+				/* DI1_DISP_CLK */
+				MX6QDL_PAD_EIM_A16__GPIO2_IO22 0x400130b1
+				/* SPDIF_IN */
+				MX6QDL_PAD_ENET_RX_ER__GPIO1_IO24 0x400130b1
+				/* SPDIF_OUT */
+				MX6QDL_PAD_GPIO_17__GPIO7_IO12 0x400130b1
+
+				/* MikroBUS GPIO pin number 10 */
+				MX6QDL_PAD_EIM_LBA__GPIO2_IO27 0x400130b1
+			>;
+		};
+
+		pinctrl_hummingboard_flexcan1: hummingboard-flexcan1 {
+		fsl,pins = <
+				MX6QDL_PAD_KEY_ROW2__FLEXCAN1_RX 0x1b0b1
+				MX6QDL_PAD_KEY_COL2__FLEXCAN1_TX 0x1b0b1
+			>;
+		};
+	};
+};
+
+&ldb {
+	status = "disabled";
+
+	lvds@0 {
+		fsl,data-mapping = "spwg";
+		fsl,data-width = <18>;
+		crtc = "ipu2-di0";
+		primary;
+
+		display-timings {
+			native-mode = <&timing0>;
+			timing0: hsd100pxn1 {
+				clock-frequency = <65000000>;
+				hactive = <1024>;
+				vactive = <768>;
+				hback-porch = <220>;
+				hfront-porch = <40>;
+				vback-porch = <21>;
+				vfront-porch = <7>;
+				hsync-len = <60>;
+				vsync-len = <10>;
+			};
+		};
+	};
+};
+
+&mipi_csi {
+	ipu_id = <0>;
+	csi_id = <1>;
+	v_channel = <0>;
+	lanes = <2>;
+	mipi_dphy_clk = <0x14>;
+	status = "okay";
+};
+
+&pwm3 {
+	status = "disabled";
+};
+
+&pwm4 {
+	status = "disabled";
+};
+
+&ssi1 {
+	fsl,mode = "i2s-slave";
+};
