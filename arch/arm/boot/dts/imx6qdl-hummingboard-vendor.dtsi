@@ -1,0 +1,353 @@
+/*
+ * Copyright (C) 2013,2014 Russell King
+ *
+ * This file is dual-licensed: you can use it either under the terms
+ * of the GPL or the X11 license, at your option. Note that this dual
+ * licensing only applies to this file, and not this project as a
+ * whole.
+ *
+ *  a) This file is free software; you can redistribute it and/or
+ *     modify it under the terms of the GNU General Public License as
+ *     published by the Free Software Foundation; either version 2 of the
+ *     License.
+ *
+ *     This file is distributed in the hope that it will be useful
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU General Public License for more details.
+ *
+ * Or, alternatively
+ *
+ *  b) Permission is hereby granted, free of charge, to any person
+ *     obtaining a copy of this software and associated documentation
+ *     files (the "Software"), to deal in the Software without
+ *     restriction, including without limitation the rights to use
+ *     copy, modify, merge, publish, distribute, sublicense, and/or
+ *     sell copies of the Software, and to permit persons to whom the
+ *     Software is furnished to do so, subject to the following
+ *     conditions:
+ *
+ *     The above copyright notice and this permission notice shall be
+ *     included in all copies or substantial portions of the Software.
+ *
+ *     THE SOFTWARE IS PROVIDED , WITHOUT WARRANTY OF ANY KIND
+ *     EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ *     OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ *     NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ *     HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY
+ *     WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ *     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ *     OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+/ {
+	aliases {
+                mmc0 = &usdhc2;
+                mmc1 = &usdhc1;
+		mxcfb0 = &mxcfb1;
+		mxcfb2 = &mxcfb2;
+	};
+
+	chosen {
+		bootargs = "quiet console=ttymxc0,115200 root=/dev/mmcblk0p2 rw";
+		stdout-path = &uart1;
+	};
+
+	ir_recv: ir-receiver {
+		compatible = "gpio-ir-receiver";
+		gpios = <&gpio3 5 1>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_hummingboard_gpio3_5>;
+		linux,rc-map-name = "rc-rc6-mce";
+	};
+
+	mxcfb1: fb@0 {
+		compatible = "fsl,mxc_sdc_fb";
+		disp_dev = "hdmi";
+		interface_pix_fmt = "RGB24";
+		mode_str ="1920x1080M@60";
+		default_bpp = <32>;
+		int_clk = <0>;
+		late_init = <0>;
+		status = "okay";
+        };
+
+        mxcfb2: fb@1 {
+                compatible = "fsl,mxc_sdc_fb";
+                disp_dev = "ldb";
+                interface_pix_fmt = "RGB666";
+                default_bpp = <16>;
+                int_clk = <0>;
+                late_init = <0>;
+                status = "disabled";
+        };
+
+	sound-hdmi {
+		compatible = "fsl,imx6q-audio-hdmi",
+			     "fsl,imx-audio-hdmi";
+		model = "imx-audio-hdmi";
+		hdmi-controller = <&hdmi_audio>;
+	};
+
+	v4l2_cap_0 {
+		compatible = "fsl,imx6q-v4l2-capture";
+		ipu_id = <0>;
+		csi_id = <1>;
+		mclk_source = <0>;
+		mipi_camera = <1>;
+		default_input = <1>;
+		status = "okay";
+	};
+
+	v4l2_out {
+		compatible = "fsl,mxc_v4l2_output";
+		status = "okay";
+	};
+};
+
+&dcic1 {
+	dcic_id = <0>;
+	dcic_mux = "dcic-hdmi";
+	status = "okay";
+};
+
+&dcic2 {
+	dcic_id = <1>;
+	dcic_mux = "dcic-lvds1";
+	status = "okay";
+};
+
+&ecspi2 {
+	fsl,spi-num-chipselects = <1>;
+	cs-gpios = <&gpio2 26 0>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_hummingboard_ecspi2>;
+	status = "okay";
+
+	spidev0: spi@0 {
+		compatible = "spidev";
+		reg = <0>;
+		spi-max-frequency = <20000000>;
+	};
+};
+
+&hdmi {
+	status = "disabled";
+};
+
+&hdmi_core {
+	ipu_id = <0>;
+	disp_id = <0>;
+	status = "okay";
+};
+
+&hdmi_video {
+	fsl,phy_reg_vlev = <0x0294>;
+	fsl,phy_reg_cksymtx = <0x800d>;
+	status = "okay";
+};
+
+&hdmi_audio {
+	status = "okay";
+};
+
+&hdmi_cec {
+        pinctrl-names = "default";
+        pinctrl-0 = <&pinctrl_hummingboard_hdmi>;
+        status = "okay";
+};
+
+&i2c1 {
+	/* Raspberry Pi camera rev 1.3 */
+	camera@36 {
+		compatible = "ovti,ov5647_mipi";
+		reg = <0x36>;
+		/* Pi camera has its own 25MHz clock. */
+		clocks = <&clks 0>;
+		clock-names = "csi_mclk";
+		DOVDD-supply = <&v_3v2>;
+		AVDD-supply = <&v_3v2>;
+		DVDD-supply = <&v_3v2>;
+		pwn-gpios = <&gpio2 10 GPIO_ACTIVE_HIGH>;
+		led-gpios = <&gpio6 15 GPIO_ACTIVE_HIGH>;
+		ipu_id = <0>;
+		csi_id = <1>;
+		mclk = <25000000>;
+		mclk_source = <0>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_hummingboard_mipi>;
+		extended-buffer;
+	};
+
+	/* Pro baseboard model */
+	rtc@68 {
+		compatible = "nxp,pcf8523";
+		reg = <0x68>;
+		nxp,12p5_pf;
+	};
+};
+
+&i2c2 {
+	ddc@50 {
+		compatible = "fsl,imx6-hdmi-i2c";
+		reg = <0x50>;
+	};
+};
+
+&i2c3 {
+	clock-frequency = <100000>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_hummingboard_i2c3>;
+	status = "okay";
+};
+
+&iomuxc {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_hog>;
+	hummingboard {
+                pinctrl_hog: hoggrp {
+                        fsl,pins = <
+                                /*
+                                 * 26 pin header GPIO description. The pins
+                                 * numbering as following -
+                                 * GPIO number | GPIO (bank,num) |  PIN number
+                                 * ------------+-----------------+------------
+                                 * gpio1       | (1,1)           | IO7
+                                 * gpio73      | (3,9)           | IO11
+                                 * gpio72      | (3,8)           | IO12
+                                 * gpio71      | (3,7)           | IO13
+                                 * gpio70      | (3,6)           | IO15
+                                 * gpio194     | (7,2)           | IO16
+                                 * gpio195     | (7,3)           | IO18
+                                 * gpio67      | (3,3)           | IO22
+                                 *
+                                 * Notice the gpioX and GPIO (Y,Z) mapping forumla :
+                                 * X = (Y-1) * 32 + Z
+                                 */
+                                MX6QDL_PAD_GPIO_1__GPIO1_IO01 0x400130b1
+                                MX6QDL_PAD_EIM_DA9__GPIO3_IO09 0x400130b1
+                                MX6QDL_PAD_EIM_DA8__GPIO3_IO08 0x400130b1
+                                MX6QDL_PAD_EIM_DA7__GPIO3_IO07 0x400130b1
+                                MX6QDL_PAD_EIM_DA6__GPIO3_IO06 0x400130b1
+                                MX6QDL_PAD_SD3_CMD__GPIO7_IO02 0x400130b1
+                                MX6QDL_PAD_SD3_CLK__GPIO7_IO03 0x400130b1
+                                MX6QDL_PAD_EIM_DA3__GPIO3_IO03 0x400130b1
+                        >;
+                };
+
+		pinctrl_hummingboard_i2c3: hummingboard-i2c3 {
+			fsl,pins = <
+				MX6QDL_PAD_EIM_D17__I2C3_SCL 0x4001b8b1
+				MX6QDL_PAD_EIM_D18__I2C3_SDA 0x4001b8b1
+			>;
+		};
+
+		pinctrl_hummingboard_mipi: hummingboard_mipi {
+			fsl,pins = <
+				MX6QDL_PAD_SD4_DAT2__GPIO2_IO10 0x17059
+				MX6QDL_PAD_NANDF_CS2__GPIO6_IO15 0x13059
+			>;
+		};
+
+		pinctrl_hummingboard_ecspi2: hummingboard_ecspi2 {
+			fsl,pins = <
+				MX6QDL_PAD_EIM_OE__ECSPI2_MISO   0x100b1
+				MX6QDL_PAD_EIM_CS1__ECSPI2_MOSI  0x100b1
+				MX6QDL_PAD_EIM_CS0__ECSPI2_SCLK  0x100b1
+				MX6QDL_PAD_EIM_RW__GPIO2_IO26    0x000b1 /* CS */
+			>;
+		};
+
+		pinctrl_hummingboard_usdhc2_aux: hummingboard-usdhc2-aux {
+			fsl,pins = <
+				MX6QDL_PAD_GPIO_4__GPIO1_IO04    0x13071
+				MX6QDL_PAD_KEY_ROW1__SD2_VSELECT 0x1b071
+			>;
+		};
+
+		pinctrl_hummingboard_usdhc2: hummingboard-usdhc2 {
+			fsl,pins = <
+				MX6QDL_PAD_SD2_CMD__SD2_CMD    0x17059
+				MX6QDL_PAD_SD2_CLK__SD2_CLK    0x10059
+				MX6QDL_PAD_SD2_DAT0__SD2_DATA0 0x17059
+				MX6QDL_PAD_SD2_DAT1__SD2_DATA1 0x17059
+				MX6QDL_PAD_SD2_DAT2__SD2_DATA2 0x17059
+				MX6QDL_PAD_SD2_DAT3__SD2_DATA3 0x13059
+			>;
+		};
+
+		pinctrl_hummingboard_usdhc2_100mhz: hummingboard-usdhc2-100mhz {
+			fsl,pins = <
+				MX6QDL_PAD_SD2_CMD__SD2_CMD    0x170b9
+				MX6QDL_PAD_SD2_CLK__SD2_CLK    0x100b9
+				MX6QDL_PAD_SD2_DAT0__SD2_DATA0 0x170b9
+				MX6QDL_PAD_SD2_DAT1__SD2_DATA1 0x170b9
+				MX6QDL_PAD_SD2_DAT2__SD2_DATA2 0x170b9
+				MX6QDL_PAD_SD2_DAT3__SD2_DATA3 0x130b9
+			>;
+		};
+
+		pinctrl_hummingboard_usdhc2_200mhz: hummingboard-usdhc2-200mhz {
+			fsl,pins = <
+				MX6QDL_PAD_SD2_CMD__SD2_CMD    0x170f9
+				MX6QDL_PAD_SD2_CLK__SD2_CLK    0x100f9
+				MX6QDL_PAD_SD2_DAT0__SD2_DATA0 0x170f9
+				MX6QDL_PAD_SD2_DAT1__SD2_DATA1 0x170f9
+				MX6QDL_PAD_SD2_DAT2__SD2_DATA2 0x170f9
+				MX6QDL_PAD_SD2_DAT3__SD2_DATA3 0x130f9
+			>;
+		};
+	};
+};
+
+&ldb {
+	status = "disabled";
+
+	lvds-channel@0 {
+		fsl,data-mapping = "spwg";
+		fsl,data-width = <18>;
+		crtc = "ipu2-di0";
+		primary;
+
+		display-timings {
+			native-mode = <&timing0>;
+			timing0: hsd100pxn1 {
+				clock-frequency = <65000000>;
+				hactive = <1024>;
+				vactive = <768>;
+				hback-porch = <220>;
+				hfront-porch = <40>;
+				vback-porch = <21>;
+				vfront-porch = <7>;
+				hsync-len = <60>;
+				vsync-len = <10>;
+			};
+		};
+	};
+};
+
+&mipi_csi {
+	ipu_id = <0>;
+	csi_id = <1>;
+	v_channel = <0>;
+	lanes = <2>;
+	mipi_dphy_clk = /bits/ 8 <0x28>;
+	status = "okay";
+};
+
+&usdhc2 {
+	pinctrl-names = "default", "state_100mhz", "state_200mhz";
+	pinctrl-0 = <
+		&pinctrl_hummingboard_usdhc2_aux
+		&pinctrl_hummingboard_usdhc2
+	>;
+	pinctrl-1 = <
+		&pinctrl_hummingboard_usdhc2_aux
+		&pinctrl_hummingboard_usdhc2_100mhz
+        >;
+	pinctrl-2 = <
+		&pinctrl_hummingboard_usdhc2_aux
+		&pinctrl_hummingboard_usdhc2_200mhz
+	>;
+	status = "okay";
+};
