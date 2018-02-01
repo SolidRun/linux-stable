@@ -45,6 +45,9 @@
 #include "imx6qdl-sr-som.dtsi"
 #include "imx6qdl-sr-som-brcm.dtsi"
 #include "imx6qdl-hummingboard.dtsi"
+#ifdef MXC_USE_VENDOR_DRIVERS
+#include "imx6qdl-hummingboard-vendor.dtsi"
+#endif
 
 / {
 	model = "SolidRun HummingBoard Dual/Quad";
