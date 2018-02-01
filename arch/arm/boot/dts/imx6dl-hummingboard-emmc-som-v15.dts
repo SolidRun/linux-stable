@@ -46,6 +46,9 @@
 #include "imx6qdl-sr-som-ti.dtsi"
 #include "imx6qdl-sr-som-emmc.dtsi"
 #include "imx6qdl-hummingboard.dtsi"
+#ifdef MXC_USE_VENDOR_DRIVERS
+#include "imx6qdl-hummingboard-vendor.dtsi"
+#endif
 
 / {
 	model = "SolidRun HummingBoard Solo/DualLite (1.5som+emmc)";
