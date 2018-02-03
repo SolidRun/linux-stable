@@ -41,6 +41,7 @@
 struct uart_port;
 struct serial_struct;
 struct device;
+struct device_node;
 
 /*
  * This structure describes all the operations that can be done on the
