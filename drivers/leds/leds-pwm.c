@@ -328,7 +328,6 @@ static int led_pwm_add(struct device *dev, struct led_pwm_priv *priv,
 	led_data->cdev.max_brightness = led->max_brightness;
 	led_data->cdev.flags = LED_CORE_SUSPENDRESUME;
 	led_data->octave = 4;
-	led_data->period = led_data->pwm->state.period;
 
 	led_data->can_sleep = pwm_can_sleep(led_data->pwm);
 	if (!led_data->can_sleep)
@@ -336,6 +335,7 @@ static int led_pwm_add(struct device *dev, struct led_pwm_priv *priv,
 	else
 		led_data->cdev.brightness_set_blocking = led_pwm_set_blocking;
 
+	led_data->period = led_data->pwm->state.period;
 	/*
 	 * FIXME: pwm_apply_args() should be removed when switching to the
 	 * atomic PWM API.
