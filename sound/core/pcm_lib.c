@@ -1422,8 +1422,15 @@ static int snd_pcm_hw_rule_msbits(struct snd_pcm_hw_params *params,
 	int width = l & 0xffff;
 	unsigned int msbits = l >> 16;
 	struct snd_interval *i = hw_param_interval(params, SNDRV_PCM_HW_PARAM_SAMPLE_BITS);
+	struct snd_mask *m = hw_param_mask(params, SNDRV_PCM_HW_PARAM_FORMAT);
 
-	if (!snd_interval_single(i))
+	if (!snd_interval_single(i) || !snd_mask_single(m))
+		return 0;
+
+	if (snd_mask_test(m, SNDRV_PCM_FORMAT_S24_LE) ||
+	    snd_mask_test(m, SNDRV_PCM_FORMAT_S24_BE) ||
+	    snd_mask_test(m, SNDRV_PCM_FORMAT_U24_LE) ||
+	    snd_mask_test(m, SNDRV_PCM_FORMAT_U24_BE))
 		return 0;
 
 	if ((snd_interval_value(i) == width) ||
