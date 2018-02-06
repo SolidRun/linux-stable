@@ -279,11 +279,6 @@ static u32 hdmi_dma_add_frame_info(struct hdmi_dma_priv *priv,
 	/* fill data */
 	if (priv->sample_bits == 16)
 		pcm_data <<= 8;
-	else
-		pcm_data >>= 8;
-	/* this is probably a workaround for a bug in the pcm subsystem     */
-	/* shifting should not be needed when using SNDRV_PCM_FORMAT_S24_LE */
-
 	subframe.B.data = pcm_data;
 
 	/* fill p (parity) Note: Do not include b ! */
