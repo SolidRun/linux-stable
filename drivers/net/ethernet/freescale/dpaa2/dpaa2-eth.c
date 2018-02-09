@@ -803,7 +803,20 @@ static netdev_tx_t dpaa2_eth_tx(struct sk_buff *skb, struct net_device *net_dev)
 	u16 queue_mapping;
 	unsigned int needed_headroom;
 	u32 fd_len;
+	u8 prio;
 	int err, i;
+
+	queue_mapping = skb_get_queue_mapping(skb);
+	prio = netdev_txq_to_tc(net_dev, queue_mapping);
+
+	/* Hardware interprets priority level 0 as being the highest,
+	 * so we need to do a reverse mapping to the netdev tc index
+	 */
+	if (net_dev->num_tc)
+		prio = net_dev->num_tc - prio - 1;
+
+	queue_mapping %= dpaa2_eth_queue_count(priv);
+	fq = &priv->fq[queue_mapping];
 
 	percpu_stats = this_cpu_ptr(priv->percpu_stats);
 	percpu_extras = this_cpu_ptr(priv->percpu_extras);
@@ -855,14 +868,8 @@ static netdev_tx_t dpaa2_eth_tx(struct sk_buff *skb, struct net_device *net_dev)
 	/* Tracing point */
 	trace_dpaa2_tx_fd(net_dev, &fd);
 
-	/* TxConf FQ selection relies on queue id from the stack.
-	 * In case of a forwarded frame from another DPNI interface, we choose
-	 * a queue affined to the same core that processed the Rx frame
-	 */
-	queue_mapping = skb_get_queue_mapping(skb);
-	fq = &priv->fq[queue_mapping];
 	for (i = 0; i < DPAA2_ETH_ENQUEUE_RETRIES; i++) {
-		err = priv->enqueue(priv, fq, &fd, 0);
+		err = priv->enqueue(priv, fq, &fd, prio);
 		if (err != -EBUSY)
 			break;
 	}
@@ -1913,6 +1920,84 @@ static int dpaa2_eth_xdp_xmit(struct net_device *net_dev, int n,
 	return n - drops;
 }
 
+static int dpaa2_eth_update_xps(struct dpaa2_eth_priv *priv)
+{
+	struct net_device *net_dev = priv->net_dev;
+	unsigned int i, num_queues;
+	struct cpumask xps_mask;
+	struct dpaa2_eth_fq *fq;
+	int err = 0;
+
+	num_queues = (net_dev->num_tc ? : 1) * dpaa2_eth_queue_count(priv);
+	for (i = 0; i < num_queues; i++) {
+		fq = &priv->fq[i % dpaa2_eth_queue_count(priv)];
+		cpumask_clear(&xps_mask);
+		cpumask_set_cpu(fq->target_cpu, &xps_mask);
+		err = netif_set_xps_queue(net_dev, &xps_mask, i);
+		if (err) {
+			dev_info_once(net_dev->dev.parent,
+				      "Error setting XPS queue\n");
+			break;
+		}
+	}
+
+	return err;
+}
+
+static int dpaa2_eth_setup_tc(struct net_device *net_dev,
+			      enum tc_setup_type type,
+			      void *type_data)
+{
+	struct dpaa2_eth_priv *priv = netdev_priv(net_dev);
+	struct tc_mqprio_qopt *mqprio = (struct tc_mqprio_qopt *)type_data;
+	int i, err = 0;
+
+	if (type != TC_SETUP_QDISC_MQPRIO)
+		return -EINVAL;
+
+	if (mqprio->num_tc > dpaa2_eth_tc_count(priv)) {
+		netdev_err(net_dev, "Max %d traffic classes supported\n",
+			   dpaa2_eth_tc_count(priv));
+		return -EINVAL;
+	}
+
+	if (mqprio->num_tc == net_dev->num_tc)
+		return 0;
+
+	mqprio->hw = TC_MQPRIO_HW_OFFLOAD_TCS;
+
+	if (!mqprio->num_tc) {
+		netdev_reset_tc(net_dev);
+		err = netif_set_real_num_tx_queues(net_dev,
+						   dpaa2_eth_queue_count(priv));
+		if (err)
+			return err;
+
+		goto update_xps;
+	}
+
+	err = netdev_set_num_tc(net_dev, mqprio->num_tc);
+	if (err)
+		return err;
+
+	err = netif_set_real_num_tx_queues(net_dev, mqprio->num_tc *
+					   dpaa2_eth_queue_count(priv));
+	if (err)
+		return err;
+
+	for (i = 0; i < mqprio->num_tc; i++) {
+		err = netdev_set_tc_queue(net_dev, i,
+					  dpaa2_eth_queue_count(priv),
+					  i * dpaa2_eth_queue_count(priv));
+		if (err)
+			return err;
+	}
+
+update_xps:
+	err = dpaa2_eth_update_xps(priv);
+	return err;
+}
+
 static const struct net_device_ops dpaa2_eth_ops = {
 	.ndo_open = dpaa2_eth_open,
 	.ndo_start_xmit = dpaa2_eth_tx,
@@ -1925,6 +2010,7 @@ static const struct net_device_ops dpaa2_eth_ops = {
 	.ndo_change_mtu = dpaa2_eth_change_mtu,
 	.ndo_bpf = dpaa2_eth_xdp,
 	.ndo_xdp_xmit = dpaa2_eth_xdp_xmit,
+	.ndo_setup_tc = dpaa2_eth_setup_tc,
 };
 
 static void cdan_cb(struct dpaa2_io_notification_ctx *ctx)
@@ -2179,10 +2265,8 @@ static struct dpaa2_eth_channel *get_affine_channel(struct dpaa2_eth_priv *priv,
 static void set_fq_affinity(struct dpaa2_eth_priv *priv)
 {
 	struct device *dev = priv->net_dev->dev.parent;
-	struct cpumask xps_mask;
 	struct dpaa2_eth_fq *fq;
-	int rx_cpu, txc_cpu;
-	int i, err;
+	int rx_cpu, txc_cpu, i;
 
 	/* For each FQ, pick one channel/CPU to deliver frames to.
 	 * This may well change at runtime, either through irqbalance or
@@ -2202,17 +2286,6 @@ static void set_fq_affinity(struct dpaa2_eth_priv *priv)
 			break;
 		case DPAA2_TX_CONF_FQ:
 			fq->target_cpu = txc_cpu;
-
-			/* Tell the stack to affine to txc_cpu the Tx queue
-			 * associated with the confirmation one
-			 */
-			cpumask_clear(&xps_mask);
-			cpumask_set_cpu(txc_cpu, &xps_mask);
-			err = netif_set_xps_queue(priv->net_dev, &xps_mask,
-						  fq->flowid);
-			if (err)
-				dev_err(dev, "Error setting XPS queue\n");
-
 			txc_cpu = cpumask_next(txc_cpu, &priv->dpio_cpumask);
 			if (txc_cpu >= nr_cpu_ids)
 				txc_cpu = cpumask_first(&priv->dpio_cpumask);
@@ -2222,6 +2295,8 @@ static void set_fq_affinity(struct dpaa2_eth_priv *priv)
 		}
 		fq->channel = get_affine_channel(priv, fq->target_cpu);
 	}
+
+	dpaa2_eth_update_xps(priv);
 }
 
 static void setup_fqs(struct dpaa2_eth_priv *priv)
@@ -3784,7 +3859,7 @@ static int dpaa2_eth_probe(struct fsl_mc_device *dpni_dev)
 	dev = &dpni_dev->dev;
 
 	/* Net device */
-	net_dev = alloc_etherdev_mq(sizeof(*priv), DPAA2_ETH_MAX_TX_QUEUES);
+	net_dev = alloc_etherdev_mq(sizeof(*priv), DPAA2_ETH_MAX_NETDEV_QUEUES);
 	if (!net_dev) {
 		dev_err(dev, "alloc_etherdev_mq() failed\n");
 		return -ENOMEM;
