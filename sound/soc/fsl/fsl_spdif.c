@@ -1270,15 +1270,23 @@ static int fsl_spdif_probe_txclk(struct fsl_spdif_priv *spdif_priv,
 			dev_err(dev, "no rxtx%d clock in devicetree\n", i);
 			return PTR_ERR(clk);
 		}
-		if (!clk_get_rate(clk))
+		if (!clk_get_rate(clk)) {
+			devm_clk_put(&pdev->dev, clk);
 			continue;
+		}
 
 		ret = fsl_spdif_txclk_caldiv(spdif_priv, clk, savesub, index,
 					     i == STC_TXCLK_SPDIF_ROOT);
-		if (savesub == ret)
+		if (savesub == ret) {
+			devm_clk_put(&pdev->dev, clk);
 			continue;
+		}
 
 		savesub = ret;
+
+		if (spdif_priv->txclk[index])
+			devm_clk_put(&pdev->dev, spdif_priv->txclk[index]);
+
 		spdif_priv->txclk[index] = clk;
 		spdif_priv->txclk_src[index] = i;
 
