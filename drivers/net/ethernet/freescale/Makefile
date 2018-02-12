@@ -3,7 +3,8 @@
 #
 
 obj-$(CONFIG_FEC) += fec.o
-fec-objs :=fec_main.o fec_fixup.o fec_ptp.o
+fec-objs :=fec_main.o fec_fixup.o
+fec-$(CONFIG_PTP_1588_CLOCK) += fec_ptp.o
 CFLAGS_fec_main.o := -D__CHECK_ENDIAN__
 CFLAGS_fec_ptp.o := -D__CHECK_ENDIAN__
 
