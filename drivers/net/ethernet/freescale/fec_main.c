@@ -1062,8 +1062,10 @@ fec_restart(struct net_device *ndev)
 	writel(ecntl, fep->hwp + FEC_ECNTRL);
 	fec_enet_active_rxring(ndev);
 
+#ifdef CONFIG_PTP_1588_CLOCK
 	if (fep->bufdesc_ex)
 		fec_ptp_start_cyclecounter(ndev);
+#endif
 
 	/* Enable interrupts we wish to service */
 	if (fep->link)
@@ -1591,9 +1593,11 @@ fec_enet_interrupt(int irq, void *dev_id)
 		}
 	}
 
+#ifdef CONFIG_PTP_1588_CLOCK
 	if (fep->ptp_clock)
 		if (fec_ptp_check_pps_event(fep))
 			ret = IRQ_HANDLED;
+#endif
 	return ret;
 }
 
@@ -2239,9 +2243,11 @@ static int fec_enet_get_ts_info(struct net_device *ndev,
 					SOF_TIMESTAMPING_TX_HARDWARE |
 					SOF_TIMESTAMPING_RX_HARDWARE |
 					SOF_TIMESTAMPING_RAW_HARDWARE;
+#ifdef CONFIG_PTP_1588_CLOCK
 		if (fep->ptp_clock)
 			info->phc_index = ptp_clock_index(fep->ptp_clock);
 		else
+#endif
 			info->phc_index = -1;
 
 		info->tx_types = (1 << HWTSTAMP_TX_OFF) |
@@ -2660,7 +2666,9 @@ static const struct ethtool_ops fec_enet_ethtool_ops = {
 
 static int fec_enet_ioctl(struct net_device *ndev, struct ifreq *rq, int cmd)
 {
+#ifdef CONFIG_PTP_1588_CLOCK
 	struct fec_enet_private *fep = netdev_priv(ndev);
+#endif
 	struct phy_device *phydev = ndev->phydev;
 
 	if (!netif_running(ndev))
@@ -2669,12 +2677,14 @@ static int fec_enet_ioctl(struct net_device *ndev, struct ifreq *rq, int cmd)
 	if (!phydev)
 		return -ENODEV;
 
+#ifdef CONFIG_PTP_1588_CLOCK
 	if (fep->bufdesc_ex) {
 		if (cmd == SIOCSHWTSTAMP)
 			return fec_ptp_set(ndev, rq);
 		if (cmd == SIOCGHWTSTAMP)
 			return fec_ptp_get(ndev, rq);
 	}
+#endif
 
 	return phy_mii_ioctl(phydev, rq, cmd);
 }
@@ -3652,8 +3662,10 @@ fec_probe(struct platform_device *pdev)
 	if (ret)
 		goto failed_reset;
 
+#ifdef CONFIG_PTP_1588_CLOCK
 	if (fep->bufdesc_ex)
 		fec_ptp_init(pdev);
+#endif
 
 	ret = fec_enet_init(ndev);
 	if (ret)
@@ -3712,8 +3724,10 @@ fec_probe(struct platform_device *pdev)
 	device_init_wakeup(&ndev->dev, fep->wol_flag &
 			   FEC_WOL_HAS_MAGIC_PACKET);
 
+#ifdef CONFIG_PTP_1588_CLOCK
 	if (fep->bufdesc_ex && fep->ptp_clock)
 		netdev_info(ndev, "registered PHC device %d\n", fep->dev_id);
+#endif
 
 	fep->rx_copybreak = COPYBREAK_DEFAULT;
 	INIT_WORK(&fep->tx_timeout_work, fec_enet_timeout_work);
@@ -3729,7 +3743,9 @@ failed_register:
 failed_mii_init:
 failed_irq:
 failed_init:
+#ifdef CONFIG_PTP_1588_CLOCK
 	fec_ptp_stop(pdev);
+#endif
 	if (fep->reg_phy)
 		regulator_disable(fep->reg_phy);
 failed_reset:
@@ -3760,7 +3776,9 @@ fec_drv_remove(struct platform_device *pdev)
 
 	device_remove_file(&pdev->dev, &dev_attr_events);
 	cancel_work_sync(&fep->tx_timeout_work);
+#ifdef CONFIG_PTP_1588_CLOCK
 	fec_ptp_stop(pdev);
+#endif
 	unregister_netdev(ndev);
 	fec_enet_mii_remove(fep);
 	if (fep->reg_phy)
