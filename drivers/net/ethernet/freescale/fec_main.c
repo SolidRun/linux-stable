@@ -2005,7 +2005,10 @@ static int fec_enet_mii_probe(struct net_device *ndev)
 #endif
 		phy_dev->advertising = phy_dev->supported;
 	} else {
+		phy_dev->advertising &= ~(SUPPORTED_1000baseT_Half |
+					  SUPPORTED_1000baseT_Full);
 		phy_dev->advertising = phy_dev->supported & PHY_BASIC_FEATURES;
+
 	}
 
 	fep->link = 0;
