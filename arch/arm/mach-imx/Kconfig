@@ -531,7 +531,6 @@ config SOC_IMX6Q
 	select PCI_DOMAINS if PCI
 	select PINCTRL_IMX6Q
 	select SOC_IMX6
-	select MXC_MLB150
 
 	help
 	  This enables support for Freescale i.MX6 Quad processor.
