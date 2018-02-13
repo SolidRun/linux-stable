@@ -844,6 +844,8 @@ static int imx_gpc_genpd_init(struct device *dev, struct regulator *pu_reg)
 	imx6q_pu_domain.num_clks = i;
 
 	ipg = of_clk_get(dev->of_node, pu_clks);
+	if (IS_ERR(ipg))
+		goto err;
 
 	/* Get disp domain clks */
 	for (i = pu_clks + ipg_clks; i < pu_clks + ipg_clks + disp_clks;
@@ -879,6 +881,7 @@ static int imx_gpc_genpd_init(struct device *dev, struct regulator *pu_reg)
 
 power_off:
 	imx6q_pm_pu_power_off(&imx6q_pu_domain.base);
+err:
 	return -EINVAL;
 }
 
