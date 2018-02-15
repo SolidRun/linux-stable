@@ -58,6 +58,9 @@
 #define CEC_TX_INPROGRESS		-1
 #define CEC_TX_AVAIL			0
 
+#define	CEC_TX_RETRIES			3
+
+
 /* These flags must not collide with HDMI_IH_CEC_STAT0_xxxx */
 #define	CEC_STAT0_EX_CONNECTED		0x0100
 #define	CEC_STAT0_EX_DISCONNECTED	0x0200
@@ -213,6 +216,7 @@ static irqreturn_t mxc_hdmi_cec_isr(int irq, void *data)
 static void mxc_hdmi_cec_handle(struct hdmi_cec_priv *priv, u32 cec_stat)
 {
 	int i;
+	u8 val;
 	struct hdmi_cec_event *event;
 
 	if (!priv->open_count)
@@ -269,19 +273,18 @@ static void mxc_hdmi_cec_handle(struct hdmi_cec_priv *priv, u32 cec_stat)
 	}
 
 	/* An error is detected on cec line (for initiator only). */
-	if (cec_stat & HDMI_IH_CEC_STAT0_ERROR_INIT) {
-		priv->tx_answer = cec_stat;
-		wake_up(&tx_queue);
-		return;
-	}
 	/* A frame is not acknowledged in a directly addressed message.
 	 * Or a frame is negatively acknowledged in
 	 * a broadcast message (for initiator only).
 	 */
-	if (cec_stat & HDMI_IH_CEC_STAT0_NACK) {
-		priv->send_error++;
-		priv->tx_answer = cec_stat;
-		wake_up(&tx_queue);
+	if (cec_stat & (HDMI_IH_CEC_STAT0_ERROR_INIT | HDMI_IH_CEC_STAT0_NACK)) {
+		if (++priv->send_error < CEC_TX_RETRIES) {
+			val = hdmi_readb(HDMI_CEC_CTRL) & ~0x07;
+			hdmi_writeb(val | 0x01, HDMI_CEC_CTRL);
+		} else {
+			priv->tx_answer = cec_stat;
+			wake_up(&tx_queue);
+		}
 	}
 
 	/* An error is notified by a follower.
@@ -426,10 +429,9 @@ static ssize_t hdmi_cec_write(struct file *file, const char __user *buf,
 	msg_len = count;
 	hdmi_writeb(msg_len, HDMI_CEC_TX_CNT);
 	for (i = 0; i < msg_len; i++)
-		hdmi_writeb(msg[i], HDMI_CEC_TX_DATA0+i);
-	val = hdmi_readb(HDMI_CEC_CTRL);
-	val |= 0x01;
-	hdmi_writeb(val, HDMI_CEC_CTRL);
+		hdmi_writeb(msg[i], HDMI_CEC_TX_DATA0 + i);
+	val = hdmi_readb(HDMI_CEC_CTRL) & ~0x07;
+	hdmi_writeb(val | 0x03, HDMI_CEC_CTRL);
 
 	mutex_unlock(&priv->lock);
 
