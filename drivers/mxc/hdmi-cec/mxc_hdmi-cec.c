@@ -397,6 +397,7 @@ static ssize_t hdmi_cec_write(struct file *file, const char __user *buf,
 	int ret = 0;
 	u8 i, msg_len, val;
 	u8 msg[MAX_MESSAGE_LEN];
+	struct hdmi_cec_event *event;
 	struct hdmi_cec_priv *priv = file->private_data;
 
 	pr_debug("function : %s\n", __func__);
@@ -445,6 +446,24 @@ static ssize_t hdmi_cec_write(struct file *file, const char __user *buf,
 		ret = -EPIPE;	/* other error */
 
 	priv->tx_answer = CEC_TX_AVAIL;
+
+	if (ret >= 0 || ret == -EIO) {
+		mutex_lock(&priv->lock);
+
+		event = alloc_event();
+		if (event) {
+			event->event_type = (ret == -EIO) ?
+				MESSAGE_TYPE_NOACK : MESSAGE_TYPE_SEND_SUCCESS;
+			event->msg_len = msg_len;
+			memcpy(event->msg, msg, msg_len);
+
+			list_add_tail(&event->list, &ev_pending);
+			wake_up(&rx_queue);
+		}
+
+		mutex_unlock(&priv->lock);
+	}
+
 	return ret;
 }
 
