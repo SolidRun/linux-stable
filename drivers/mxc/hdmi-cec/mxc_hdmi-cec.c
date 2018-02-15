@@ -47,7 +47,7 @@
 #include "mxc_hdmi-cec.h"
 
 
-#define MAX_MESSAGE_LEN			17
+#define MAX_MESSAGE_LEN			16
 
 #define MESSAGE_TYPE_RECEIVE_SUCCESS	1
 #define MESSAGE_TYPE_NOACK		2
@@ -92,6 +92,7 @@ struct hdmi_cec_event {
 	int event_type;
 	int msg_len;
 	u8 msg[MAX_MESSAGE_LEN];
+	u8 padding[4];		/* compatibility with old userland */
 	struct list_head list;
 };
 
@@ -342,15 +343,21 @@ static int hdmi_cec_open(struct inode *inode, struct file *file)
 static ssize_t hdmi_cec_read(struct file *file, char __user *buf, size_t count,
 			    loff_t *ppos)
 {
-	ssize_t len;
+	ssize_t len = 0;
 	struct hdmi_cec_event *event;
 
 	pr_debug("function : %s\n", __func__);
 
 	mutex_lock(&hdmi_cec_data.lock);
-	if (!hdmi_cec_data.is_started) {
+
+	if (!hdmi_cec_data.is_started)
+		len = -EACCES;
+	else if (count < offsetof(struct hdmi_cec_event, padding))
+		len = -EINVAL;
+
+	if (len < 0) {
 		mutex_unlock(&hdmi_cec_data.lock);
-		return -EACCES;
+		return len;
 	}
 
 	if (list_empty(&ev_pending)) {
@@ -367,7 +374,8 @@ static ssize_t hdmi_cec_read(struct file *file, char __user *buf, size_t count,
 		} while (list_empty(&ev_pending));
 	}
 
-	len = offsetof(struct hdmi_cec_event, list);
+	/* Hack: older versions of libcec attempt to read more bytes than we provide */
+	len = min(count, offsetof(struct hdmi_cec_event, list));
 	event = list_first_entry(&ev_pending, struct hdmi_cec_event, list);
 	if (copy_to_user(buf, event, len))
 		len = -EFAULT;
