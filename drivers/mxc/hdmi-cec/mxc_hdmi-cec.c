@@ -334,6 +334,7 @@ static int hdmi_cec_open(struct inode *inode, struct file *file)
 	}
 	hdmi_cec_data.open_count = 1;
 	file->private_data = (void *)(&hdmi_cec_data);
+	hdmi_cec_data.tx_answer = CEC_TX_AVAIL;
 	hdmi_cec_data.logical_address = 15;
 	hdmi_cec_data.is_started = false;
 	mutex_unlock(&hdmi_cec_data.lock);
@@ -399,7 +400,9 @@ static ssize_t hdmi_cec_write(struct file *file, const char __user *buf,
 	if (!hdmi_cec_data.is_started)
 		ret = -EACCES;
 	else if (hdmi_cec_data.tx_answer != CEC_TX_AVAIL)
-		ret = -EBUSY;
+		ret = -EAGAIN;
+	else if (hdmi_cec_data.link_status != 1)
+		ret = -EAGAIN;
 	else if (count > MAX_MESSAGE_LEN)
 		ret = -EINVAL;
 	else if (copy_from_user(msg, buf, count))
@@ -426,18 +429,15 @@ static ssize_t hdmi_cec_write(struct file *file, const char __user *buf,
 	ret = wait_event_interruptible_timeout(
 		tx_queue, hdmi_cec_data.tx_answer != CEC_TX_INPROGRESS, HZ);
 
-	if (ret < 0) {
+	if (ret < 0)
 		ret = -ERESTARTSYS;
-		goto tx_out;
-	}
-
-	if (hdmi_cec_data.tx_answer & HDMI_IH_CEC_STAT0_DONE)
-		/* msg correctly sent */
-		ret = msg_len;
+	else if (hdmi_cec_data.tx_answer & HDMI_IH_CEC_STAT0_DONE)
+		ret = msg_len;	/* msg sent, ACK received */
+	else if (hdmi_cec_data.tx_answer & HDMI_IH_CEC_STAT0_NACK)
+		ret = -EIO;	/* msg sent, NACK received */
 	else
-		ret = -EIO;
+		ret = -EPIPE;	/* other error */
 
-tx_out:
 	hdmi_cec_data.tx_answer = CEC_TX_AVAIL;
 	return ret;
 }
@@ -580,6 +580,7 @@ static int hdmi_cec_release(struct inode *inode, struct file *file)
 		hdmi_cec_data.open_count = 0;
 		hdmi_cec_data.is_started = false;
 		hdmi_cec_data.logical_address = 15;
+		hdmi_cec_data.tx_answer = CEC_TX_AVAIL;
 
 		free_events();
 	}
@@ -595,13 +596,17 @@ static unsigned int hdmi_cec_poll(struct file *file, poll_table *wait)
 	pr_debug("function : %s\n", __func__);
 
 	poll_wait(file, &rx_queue, wait);
+	poll_wait(file, &tx_queue, wait);
+
+	if (hdmi_cec_data.link_status == 1 &&
+	    hdmi_cec_data.tx_answer == CEC_TX_AVAIL)
+		mask |= POLLOUT | POLLWRNORM;
 
 	mutex_lock(&hdmi_cec_data.lock);
-	if (hdmi_cec_data.tx_answer == CEC_TX_AVAIL)
-		mask =  (POLLOUT | POLLWRNORM);
 	if (!list_empty(&ev_pending))
-		mask |= (POLLIN | POLLRDNORM);
+		mask |= POLLIN | POLLRDNORM;
 	mutex_unlock(&hdmi_cec_data.lock);
+
 	return mask;
 }
 
