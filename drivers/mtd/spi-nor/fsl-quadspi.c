@@ -41,6 +41,7 @@
 #define QUADSPI_QUIRK_TKT253890		(1 << 2)
 /* Controller cannot wake up from wait mode, TKT245618 */
 #define QUADSPI_QUIRK_TKT245618         (1 << 3)
+#define QUADSPI_ADDR_REMAP		(1 << 4)
 
 /* The registers */
 #define QUADSPI_MCR			0x00
@@ -274,7 +275,7 @@ static const struct fsl_qspi_devtype_data ls2080a_data = {
 	.rxfifo = 128,
 	.txfifo = 64,
 	.ahb_buf_size = 1024,
-	.driver_data = QUADSPI_QUIRK_TKT253890,
+	.driver_data = QUADSPI_QUIRK_TKT253890 | QUADSPI_ADDR_REMAP,
 };
 
 
@@ -318,6 +319,22 @@ static inline int needs_fill_txfifo(struct fsl_qspi *q)
 static inline int needs_wakeup_wait_mode(struct fsl_qspi *q)
 {
 	return q->devtype_data->driver_data & QUADSPI_QUIRK_TKT245618;
+}
+
+/*
+ * QSPI memory regions split into two parts: a 256MB region that is located
+ * in the least significant 4GB of the SoC address space and a 3.75GB region
+ * that is located above the least significant 4GB of the SoC address space.
+ *
+ * The 4GB QSPI address space map is shown below.
+ *
+ * SoC Address			   QSPI Address
+ * 0x00_2000_0000-0x00_2FFF_FFFF   0x00_0000_0000-0x00_0FFF_FFFF	First 256MB
+ * 0x04_1000_0000-0x04_FFFF_FFFF   0x00_1000_0000-0x00_FFFF_FFFF	Last 3.75GB
+ */
+static inline int need_address_remap(struct fsl_qspi *q)
+{
+	return q->devtype_data->driver_data & QUADSPI_ADDR_REMAP;
 }
 
 /*
@@ -542,6 +559,10 @@ fsl_qspi_runcmd(struct fsl_qspi *q, u8 cmd, unsigned int addr, int len)
 	int seqid;
 	u32 reg, reg2;
 	int err;
+	u32 memmap_phyadd = q->memmap_phy;
+
+	if (need_address_remap(q))
+		memmap_phyadd = 0;
 
 	init_completion(&q->c);
 	dev_dbg(q->dev, "to 0x%.8x:0x%.8x, len:%d, cmd:%.2x\n",
@@ -550,7 +571,7 @@ fsl_qspi_runcmd(struct fsl_qspi *q, u8 cmd, unsigned int addr, int len)
 	/* save the reg */
 	reg = qspi_readl(q, base + QUADSPI_MCR);
 
-	qspi_writel(q, q->memmap_phy + q->chip_base_addr + addr,
+	qspi_writel(q, memmap_phyadd + q->chip_base_addr + addr,
 			base + QUADSPI_SFAR);
 	qspi_writel(q, QUADSPI_RBCT_WMRK_MASK | QUADSPI_RBCT_RXBRD_USEIPS,
 			base + QUADSPI_RBCT);
@@ -688,11 +709,15 @@ static void fsl_qspi_set_map_addr(struct fsl_qspi *q)
 {
 	int nor_size = q->nor_size;
 	void __iomem *base = q->iobase;
+	u32 memmap_phyadd = q->memmap_phy;
 
-	qspi_writel(q, nor_size + q->memmap_phy, base + QUADSPI_SFA1AD);
-	qspi_writel(q, nor_size * 2 + q->memmap_phy, base + QUADSPI_SFA2AD);
-	qspi_writel(q, nor_size * 3 + q->memmap_phy, base + QUADSPI_SFB1AD);
-	qspi_writel(q, nor_size * 4 + q->memmap_phy, base + QUADSPI_SFB2AD);
+	if (need_address_remap(q))
+		memmap_phyadd = 0;
+
+	qspi_writel(q, nor_size + memmap_phyadd, base + QUADSPI_SFA1AD);
+	qspi_writel(q, nor_size * 2 + memmap_phyadd, base + QUADSPI_SFA2AD);
+	qspi_writel(q, nor_size * 3 + memmap_phyadd, base + QUADSPI_SFB1AD);
+	qspi_writel(q, nor_size * 4 + memmap_phyadd, base + QUADSPI_SFB2AD);
 }
 
 /*
