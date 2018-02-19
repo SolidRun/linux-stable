@@ -54,6 +54,7 @@ struct imx_sgtl5000_data {
 	struct snd_soc_jack hp_jack;
 	struct snd_soc_jack_pin hp_jack_pins;
 	struct snd_soc_jack_gpio hp_jack_gpio;
+	int jack_gpio;
 };
 
 static ssize_t show_headphone(struct device *dev,
@@ -129,12 +130,16 @@ static int hp_init(struct device *dev, struct imx_sgtl5000_data *data)
 	ret = snd_soc_card_jack_new(&data->card, "Headphone Jack", SND_JACK_HEADPHONE,
 		&data->hp_jack, &data->hp_jack_pins, 1);
 
-	ret = snd_soc_jack_add_gpios(&data->hp_jack, 1, &data->hp_jack_gpio);
-	if (!ret)
-		data->hp_det_status = gpiod_get_value_cansleep(data->hp_jack_gpio.desc);
-	else
-		snd_soc_jack_report(&data->hp_jack, SND_JACK_HEADPHONE, SND_JACK_HEADPHONE);
+	if (gpio_is_valid(data->jack_gpio)) {
+		ret = snd_soc_jack_add_gpios(&data->hp_jack, 1, &data->hp_jack_gpio);
+		if (!ret) {
+			data->hp_det_status = gpiod_get_value_cansleep(data->hp_jack_gpio.desc);
+			goto out;
+		}
+	}
+	snd_soc_jack_report(&data->hp_jack, SND_JACK_HEADPHONE, SND_JACK_HEADPHONE);
 
+out:
 	return ret;
 }
 
@@ -500,6 +505,8 @@ static int imx_sgtl5000_probe(struct platform_device *pdev)
 	}
 	of_property_read_u8_array(np, "amp-gain-seq", data->amp_gain_seq,
 			(1 << i));
+
+	data->jack_gpio = of_get_named_gpio(np, "hp-detect", 0);
 
 	data->card.dev = &pdev->dev;
 	ret = snd_soc_of_parse_card_name(&data->card, "model");
