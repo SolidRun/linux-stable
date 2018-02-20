@@ -355,8 +355,6 @@ static ssize_t hdmi_cec_read(struct file *file, char __user *buf, size_t count,
 	struct hdmi_cec_event *event;
 	struct hdmi_cec_priv *priv = file->private_data;
 
-	pr_debug("function : %s\n", __func__);
-
 	mutex_lock(&priv->lock);
 
 	if (!priv->is_started)
@@ -402,8 +400,6 @@ static ssize_t hdmi_cec_write(struct file *file, const char __user *buf,
 	u8 msg[MAX_MESSAGE_LEN];
 	struct hdmi_cec_event *event;
 	struct hdmi_cec_priv *priv = file->private_data;
-
-	pr_debug("function : %s\n", __func__);
 
 	mutex_lock(&priv->lock);
 
@@ -474,8 +470,6 @@ void hdmi_cec_hpd_changed(unsigned int state)
 	u32 cec_stat0;
 	unsigned long flags;
 	struct hdmi_cec_priv *priv = &hdmi_cec_data;
-
-	pr_debug("function : %s (%d)\n", __func__, state);
 
 	link_status = state & 1;
 
@@ -555,8 +549,6 @@ static long hdmi_cec_ioctl(struct file *file, u_int cmd, u_long arg)
 	struct mxc_edid_cfg hdmi_edid_cfg;
 	struct hdmi_cec_priv *priv = file->private_data;
 
-	pr_debug("function : %s\n", __func__);
-
 	switch (cmd) {
 	case HDMICEC_IOC_SETLOGICALADDRESS:
 		mutex_lock(&priv->lock);
@@ -602,8 +594,6 @@ static int hdmi_cec_release(struct inode *inode, struct file *file)
 {
 	struct hdmi_cec_priv *priv = file->private_data;
 
-	pr_debug("function : %s\n", __func__);
-
 	mutex_lock(&priv->lock);
 	if (priv->open_count) {
 		priv->open_count = 0;
@@ -622,8 +612,6 @@ static unsigned int hdmi_cec_poll(struct file *file, poll_table *wait)
 {
 	unsigned int mask = 0;
 	struct hdmi_cec_priv *priv = file->private_data;
-
-	pr_debug("function : %s\n", __func__);
 
 	poll_wait(file, &rx_queue, wait);
 	poll_wait(file, &tx_queue, wait);
