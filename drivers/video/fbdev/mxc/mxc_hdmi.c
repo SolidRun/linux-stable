@@ -203,7 +203,6 @@ static bool hdcp_init;
 static struct regulator *hdmi_regulator;
 
 extern const struct fb_videomode mxc_cea_mode[64];
-extern void mxc_hdmi_cec_handle(u16 cec_stat);
 
 static void mxc_hdmi_setup(struct mxc_hdmi *hdmi, unsigned long event);
 static void hdmi_enable_overflow_interrupts(void);
@@ -2138,7 +2137,7 @@ static void hotplug_worker(struct work_struct *work)
 			kobject_uevent_env(&hdmi->pdev->dev.kobj, KOBJ_CHANGE, envp);
 #ifdef CONFIG_MXC_HDMI_CEC
 			if (hdmi->edid_cfg.hdmi_cap)
-				mxc_hdmi_cec_handle(0x80);
+				hdmi_cec_hpd_changed(1);
 #endif
 		}
 	} else if (hdmi->cable_plugin && !keepalive) {
@@ -2152,7 +2151,7 @@ static void hotplug_worker(struct work_struct *work)
 		kobject_uevent_env(&hdmi->pdev->dev.kobj, KOBJ_CHANGE, envp);
 #ifdef CONFIG_MXC_HDMI_CEC
 		if (hdmi->edid_cfg.hdmi_cap)
-			mxc_hdmi_cec_handle(0x100);
+			hdmi_cec_hpd_changed(0);
 #endif
 	}
 
