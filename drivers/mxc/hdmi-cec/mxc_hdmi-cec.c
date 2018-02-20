@@ -47,24 +47,22 @@
 #include "mxc_hdmi-cec.h"
 
 
-#define MAX_MESSAGE_LEN		17
+#define MAX_MESSAGE_LEN			17
 
-#define MESSAGE_TYPE_RECEIVE_SUCCESS		1
+#define MESSAGE_TYPE_RECEIVE_SUCCESS	1
 #define MESSAGE_TYPE_NOACK		2
-#define MESSAGE_TYPE_DISCONNECTED		3
+#define MESSAGE_TYPE_DISCONNECTED	3
 #define MESSAGE_TYPE_CONNECTED		4
-#define MESSAGE_TYPE_SEND_SUCCESS		5
+#define MESSAGE_TYPE_SEND_SUCCESS	5
 
-#define CEC_TX_INPROGRESS -1
-#define CEC_TX_AVAIL 0
+#define CEC_TX_INPROGRESS		-1
+#define CEC_TX_AVAIL			0
 
 struct hdmi_cec_priv {
 	int  receive_error;
 	int  send_error;
 	u8 Logical_address;
 	bool cec_state;
-	u8 last_msg[MAX_MESSAGE_LEN];
-	u8 msg_len;
 	int tx_answer;
 	u16 latest_cec_stat;
 	u8 link_status;
@@ -234,11 +232,6 @@ static void mxc_hdmi_cec_worker(struct work_struct *work)
 	hdmi_writeb(val, HDMI_IH_MUTE_CEC_STAT0);
 }
 
-/*!
- * @brief open function for cec file operation
- *
- * @return  0 on success or negative error code on error
- */
 static int hdmi_cec_open(struct inode *inode, struct file *filp)
 {
 	mutex_lock(&hdmi_cec_data.lock);
@@ -258,10 +251,9 @@ static ssize_t hdmi_cec_read(struct file *file, char __user *buf, size_t count,
 			    loff_t *ppos)
 {
 	struct hdmi_cec_event *event = NULL;
+
 	pr_debug("function : %s\n", __func__);
 
-	if (!open_count)
-		return -ENODEV;
 	mutex_lock(&hdmi_cec_data.lock);
 	if (false == hdmi_cec_data.cec_state) {
 		mutex_unlock(&hdmi_cec_data.lock);
@@ -303,8 +295,6 @@ static ssize_t hdmi_cec_write(struct file *file, const char __user *buf,
 
 	pr_debug("function : %s\n", __func__);
 
-	if (!open_count)
-		return -ENODEV;
 	mutex_lock(&hdmi_cec_data.lock);
 	if (false == hdmi_cec_data.cec_state) {
 		mutex_unlock(&hdmi_cec_data.lock);
@@ -332,8 +322,6 @@ static ssize_t hdmi_cec_write(struct file *file, const char __user *buf,
 	val = hdmi_readb(HDMI_CEC_CTRL);
 	val |= 0x01;
 	hdmi_writeb(val, HDMI_CEC_CTRL);
-	memcpy(hdmi_cec_data.last_msg, msg, msg_len);
-	hdmi_cec_data.msg_len = msg_len;
 	mutex_unlock(&hdmi_cec_data.lock);
 
 	ret = wait_event_interruptible_timeout(tx_cec_queue, hdmi_cec_data.tx_answer != CEC_TX_INPROGRESS, HZ);
@@ -347,9 +335,9 @@ static ssize_t hdmi_cec_write(struct file *file, const char __user *buf,
 		/* msg correctly sent */
 		ret = msg_len;
 	else
-		ret =  -EIO;
+		ret = -EIO;
 
-	tx_out:
+tx_out:
 	hdmi_cec_data.tx_answer = CEC_TX_AVAIL;
 	return ret;
 }
@@ -373,20 +361,15 @@ static void hdmi_stop_device(void)
 	mutex_unlock(&hdmi_cec_data.lock);
 }
 
-/*!
- * @brief IO ctrl function for vpu file operation
- * @param cmd IO ctrl command
- * @return  0 on success or negative error code on error
- */
 static long hdmi_cec_ioctl(struct file *filp, u_int cmd,
 		     u_long arg)
 {
 	int ret = 0, status = 0;
 	u8 val = 0;
 	struct mxc_edid_cfg hdmi_edid_cfg;
+
 	pr_debug("function : %s\n", __func__);
-	if (!open_count)
-		return -ENODEV;
+
 	switch (cmd) {
 	case HDMICEC_IOC_SETLOGICALADDRESS:
 		mutex_lock(&hdmi_cec_data.lock);
@@ -443,13 +426,12 @@ static long hdmi_cec_ioctl(struct file *filp, u_int cmd,
     return ret;
 }
 
-/*!
- * @brief Release function for vpu file operation
- * @return  0 on success or negative error code on error
- */
 static int hdmi_cec_release(struct inode *inode, struct file *filp)
 {
 	struct hdmi_cec_event *event, *tmp_event;
+
+	pr_debug("function : %s\n", __func__);
+
 	mutex_lock(&hdmi_cec_data.lock);
 	if (open_count) {
 		open_count = 0;
@@ -479,7 +461,7 @@ static unsigned int hdmi_cec_poll(struct file *file, poll_table *wait)
 	if (hdmi_cec_data.tx_answer == CEC_TX_AVAIL)
 		mask =  (POLLOUT | POLLWRNORM);
 	if (!list_empty(&head))
-			mask |= (POLLIN | POLLRDNORM);
+		mask |= (POLLIN | POLLRDNORM);
 	mutex_unlock(&hdmi_cec_data.lock);
 	return mask;
 }
@@ -505,14 +487,14 @@ static int hdmi_cec_dev_probe(struct platform_device *pdev)
 
 	hdmi_cec_major = register_chrdev(hdmi_cec_major, "mxc_hdmi_cec", &hdmi_cec_fops);
 	if (hdmi_cec_major < 0) {
-		dev_err(&pdev->dev, "hdmi_cec: unable to get a major for HDMI CEC\n");
+		dev_err(&pdev->dev, "Unable to get a major for HDMI CEC\n");
 		err = -EBUSY;
 		goto out;
 	}
 
 	res = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
 	if (unlikely(res == NULL)) {
-		dev_err(&pdev->dev, "hdmi_cec:No HDMI irq line provided\n");
+		dev_err(&pdev->dev, "No HDMI irq line provided\n");
 		goto err_out_chrdev;
 	}
 	spin_lock_init(&hdmi_cec_data.irq_lock);
@@ -522,7 +504,7 @@ static int hdmi_cec_dev_probe(struct platform_device *pdev)
 	err = devm_request_irq(&pdev->dev, irq, mxc_hdmi_cec_isr, IRQF_SHARED,
 			dev_name(&pdev->dev), &hdmi_cec_data);
 	if (err < 0) {
-		dev_err(&pdev->dev, "hdmi_cec:Unable to request irq: %d\n", err);
+		dev_err(&pdev->dev, "Unable to request irq: %d\n", err);
 		goto err_out_chrdev;
 	}
 
@@ -532,8 +514,8 @@ static int hdmi_cec_dev_probe(struct platform_device *pdev)
 		goto err_out_chrdev;
 	}
 
-	temp_class = device_create(hdmi_cec_class, NULL, MKDEV(hdmi_cec_major, 0),
-														 NULL, "mxc_hdmi_cec");
+	temp_class = device_create(hdmi_cec_class, NULL,
+				   MKDEV(hdmi_cec_major, 0), NULL, "mxc_hdmi_cec");
 	if (IS_ERR(temp_class)) {
 		err = PTR_ERR(temp_class);
 		goto err_out_class;
@@ -541,7 +523,7 @@ static int hdmi_cec_dev_probe(struct platform_device *pdev)
 
 	pinctrl = devm_pinctrl_get_select_default(&pdev->dev);
 	if (IS_ERR(pinctrl)) {
-		dev_err(&pdev->dev, "can't get/select CEC pinctrl\n");
+		dev_err(&pdev->dev, "Can't get/select CEC pinctrl\n");
 		goto err_out_class;
 	}
 
@@ -569,14 +551,13 @@ out:
 
 static int hdmi_cec_dev_remove(struct platform_device *pdev)
 {
-	if (hdmi_cec_data.cec_state)
-		hdmi_stop_device();
-	if (hdmi_cec_major > 0) {
-		device_destroy(hdmi_cec_class, MKDEV(hdmi_cec_major, 0));
-		class_destroy(hdmi_cec_class);
-		unregister_chrdev(hdmi_cec_major, "mxc_hdmi_cec");
-		hdmi_cec_major = 0;
-}
+	hdmi_stop_device();
+
+	device_destroy(hdmi_cec_class, MKDEV(hdmi_cec_major, 0));
+	class_destroy(hdmi_cec_class);
+	unregister_chrdev(hdmi_cec_major, "mxc_hdmi_cec");
+	hdmi_cec_major = 0;
+
 	return 0;
 }
 
@@ -590,9 +571,9 @@ static struct platform_driver mxc_hdmi_cec_driver = {
 	.probe = hdmi_cec_dev_probe,
 	.remove = hdmi_cec_dev_remove,
 	.driver = {
-		   .name = "mxc_hdmi_cec",
-		.of_match_table	= imx_hdmi_cec_match,
-		   },
+		.name = "mxc_hdmi_cec",
+		.of_match_table = imx_hdmi_cec_match,
+	},
 };
 
 module_platform_driver(mxc_hdmi_cec_driver);
