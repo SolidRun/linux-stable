@@ -66,6 +66,7 @@ const struct fb_videomode mxc_cea_mode[64] = {
 		FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
 		FB_VMODE_INTERLACED | FB_VMODE_ASPECT_16_9, 0,
 	},
+#ifdef	PIXEL_REPETITION_FIXED
 	/* #6: 720(1440)x480iH@59.94/60Hz 4:3 */
 	[6] = {
 		NULL, 60, 1440, 480, 18554/*37108*/, 114, 38, 15, 4, 124, 3, 0,
@@ -86,6 +87,7 @@ const struct fb_videomode mxc_cea_mode[64] = {
 		NULL, 60, 1440, 240, 37108, 114, 38, 15, 4, 124, 3, 0,
 		FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9, 0,
 	},
+#endif
 	/* #14: 1440x480p@59.94/60Hz 4:3 */
 	[14] = {
 		NULL, 60, 1440, 480, 18500, 120, 32, 30, 9, 124, 6, 0,
@@ -124,6 +126,7 @@ const struct fb_videomode mxc_cea_mode[64] = {
 		FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
 		FB_VMODE_INTERLACED | FB_VMODE_ASPECT_16_9, 0,
 	},
+#ifdef	PIXEL_REPETITION_FIXED
 	/* #23: 720(1440)x288pH@50Hz 4:3 */
 	[23] = {
 		NULL, 50, 1440, 288, 37037, 138, 24, 19, 2, 126, 3, 0,
@@ -134,12 +137,13 @@ const struct fb_videomode mxc_cea_mode[64] = {
 		NULL, 50, 1440, 288, 37037, 138, 24, 19, 2, 126, 3, 0,
 		FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9, 0,
 	},
-	/* #29: 720(1440)x576pH@50Hz 4:3 */
+#endif
+	/* #29: 1440x576p@50Hz 4:3 */
 	[29] = {
 		NULL, 50, 1440, 576, 18518, 136, 24, 39, 5, 128, 5, 0,
 		FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_4_3, 0,
 	},
-	/* #30: 720(1440)x576pH@50Hz 16:9 */
+	/* #30: 1440x576p@50Hz 16:9 */
 	[30] = {
 		NULL, 50, 1440, 576, 18518, 136, 24, 39, 5, 128, 5, 0,
 		FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9, 0,
