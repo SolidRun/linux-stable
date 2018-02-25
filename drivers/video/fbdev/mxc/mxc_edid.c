@@ -62,7 +62,7 @@ const struct fb_videomode mxc_cea_mode[64] = {
 	},
 	/* #5: 1920x1080i@59.94/60Hz 16:9 */
 	[5] = {
-		NULL, 60, 1920, 1080, 13763, 148, 88, 15, 2, 44, 5,
+		NULL, 60, 1920, 1080, 13468, 148, 88, 31, 4, 44, 10,
 		FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
 		FB_VMODE_INTERLACED | FB_VMODE_ASPECT_16_9, 0,
 	},
@@ -120,7 +120,7 @@ const struct fb_videomode mxc_cea_mode[64] = {
 	},
 	/* #20: 1920x1080i@50Hz */
 	[20] = {
-		NULL, 50, 1920, 1080, 13480, 148, 528, 15, 5, 528, 5,
+		NULL, 50, 1920, 1080, 13468, 148, 528, 31, 4, 44, 10,
 		FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
 		FB_VMODE_INTERLACED | FB_VMODE_ASPECT_16_9, 0,
 	},

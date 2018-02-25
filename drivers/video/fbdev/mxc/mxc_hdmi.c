@@ -1519,7 +1519,7 @@ static void hdmi_config_AVI(struct mxc_hdmi *hdmi)
  */
 static void hdmi_av_composer(struct mxc_hdmi *hdmi)
 {
-	u8 inv_val;
+	u8 inv_val, vshift;
 	struct fb_info *fbi = hdmi->fbi;
 	struct fb_videomode fb_mode;
 	struct hdmi_vmode *vmode = &hdmi->hdmi_data.video_mode;
@@ -1529,13 +1529,15 @@ static void hdmi_av_composer(struct mxc_hdmi *hdmi)
 
 	fb_var_to_videomode(&fb_mode, &fbi->var);
 
+	vshift = (fb_mode.vmode & FB_VMODE_INTERLACED) ? 1 : 0;
+
 	vmode->mHSyncPolarity = ((fb_mode.sync & FB_SYNC_HOR_HIGH_ACT) != 0);
 	vmode->mVSyncPolarity = ((fb_mode.sync & FB_SYNC_VERT_HIGH_ACT) != 0);
 	vmode->mInterlaced = ((fb_mode.vmode & FB_VMODE_INTERLACED) != 0);
-	vmode->mPixelClock = (fb_mode.xres + fb_mode.left_margin +
+	vmode->mPixelClock = ((fb_mode.xres + fb_mode.left_margin +
 		fb_mode.right_margin + fb_mode.hsync_len) * (fb_mode.yres +
 		fb_mode.upper_margin + fb_mode.lower_margin +
-		fb_mode.vsync_len) * fb_mode.refresh;
+		fb_mode.vsync_len) * fb_mode.refresh) >> vshift;
 
 	dev_dbg(&hdmi->pdev->dev, "final pixclk = %d\n", vmode->mPixelClock);
 
@@ -1577,9 +1579,9 @@ static void hdmi_av_composer(struct mxc_hdmi *hdmi)
 	hdmi_writeb(fb_mode.xres >> 8, HDMI_FC_INHACTV1);
 	hdmi_writeb(fb_mode.xres, HDMI_FC_INHACTV0);
 
-	/* Set up vertical blanking pixel region width */
-	hdmi_writeb(fb_mode.yres >> 8, HDMI_FC_INVACTV1);
-	hdmi_writeb(fb_mode.yres, HDMI_FC_INVACTV0);
+	/* Set up vertical active pixel region width */
+	hdmi_writeb((fb_mode.yres >> vshift) >> 8, HDMI_FC_INVACTV1);
+	hdmi_writeb(fb_mode.yres >> vshift, HDMI_FC_INVACTV0);
 
 	/* Set up horizontal blanking pixel region width */
 	hblank = fb_mode.left_margin + fb_mode.right_margin +
@@ -1590,21 +1592,21 @@ static void hdmi_av_composer(struct mxc_hdmi *hdmi)
 	/* Set up vertical blanking pixel region width */
 	vblank = fb_mode.upper_margin + fb_mode.lower_margin +
 		fb_mode.vsync_len;
-	hdmi_writeb(vblank, HDMI_FC_INVBLANK);
+	hdmi_writeb(vblank >> vshift, HDMI_FC_INVBLANK);
 
 	/* Set up HSYNC active edge delay width (in pixel clks) */
 	hdmi_writeb(fb_mode.right_margin >> 8, HDMI_FC_HSYNCINDELAY1);
 	hdmi_writeb(fb_mode.right_margin, HDMI_FC_HSYNCINDELAY0);
 
-	/* Set up VSYNC active edge delay (in pixel clks) */
-	hdmi_writeb(fb_mode.lower_margin, HDMI_FC_VSYNCINDELAY);
+	/* Set up VSYNC active edge delay (in scan lines) */
+	hdmi_writeb(fb_mode.lower_margin >> vshift, HDMI_FC_VSYNCINDELAY);
 
 	/* Set up HSYNC active pulse width (in pixel clks) */
 	hdmi_writeb(fb_mode.hsync_len >> 8, HDMI_FC_HSYNCINWIDTH1);
 	hdmi_writeb(fb_mode.hsync_len, HDMI_FC_HSYNCINWIDTH0);
 
-	/* Set up VSYNC active edge delay (in pixel clks) */
-	hdmi_writeb(fb_mode.vsync_len, HDMI_FC_VSYNCINWIDTH);
+	/* Set up VSYNC active pulse width (in scan lines) */
+	hdmi_writeb(fb_mode.vsync_len >> vshift, HDMI_FC_VSYNCINWIDTH);
 
 	dev_dbg(&hdmi->pdev->dev, "%s exit\n", __func__);
 }
@@ -1968,13 +1970,11 @@ static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 	for (i = 0; i < hdmi->fbi->monspecs.modedb_len; i++) {
 		/*
 		 * We might check here if mode is supported by HDMI.
-		 * We do not currently support interlaced modes.
 		 * And add CEA modes in the modelist.
 		 */
 		mode = &hdmi->fbi->monspecs.modedb[i];
 
-		if (!(mode->vmode & FB_VMODE_INTERLACED) &&
-				(!only_cea || mxc_edid_mode_to_vic(mode))) {
+		if ( !only_cea || mxc_edid_mode_to_vic(mode)) {
 
 			dev_dbg(&hdmi->pdev->dev, "Added mode %d:", i);
 			dev_dbg(&hdmi->pdev->dev,
@@ -2767,14 +2767,15 @@ static int mxc_hdmi_disp_init(struct mxc_dispdrv_handle *disp,
 		console_lock();
 
 		fb_destroy_modelist(&hdmi->fbi->modelist);
+		fb_add_videomode(&vga_mode, &hdmi->fbi->modelist);
 
-		/*Add all no interlaced CEA mode to default modelist */
+		/*Add all CEA modes to default modelist */
 		for (i = 0; i < ARRAY_SIZE(mxc_cea_mode); i++) {
 			mode = &mxc_cea_mode[i];
-			if (!(mode->vmode & FB_VMODE_INTERLACED) && (mode->xres != 0)) {
+			if (mode->xres != 0) {
 				struct fb_videomode m = *mode;
-				 m.flag |= FB_MODE_IS_STANDARD;
-				fb_add_videomode(mode, &hdmi->fbi->modelist);
+				m.flag |= FB_MODE_IS_STANDARD;
+				fb_add_videomode(&m, &hdmi->fbi->modelist);
 			}
 		}
 
