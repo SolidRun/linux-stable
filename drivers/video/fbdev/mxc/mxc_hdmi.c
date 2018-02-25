@@ -2372,6 +2372,7 @@ static void mxc_hdmi_setup(struct mxc_hdmi *hdmi, unsigned long event)
 	else
 		hdmi->hdmi_data.colorimetry = eITU709;
 
+#ifdef	PIXEL_REPETITION_FIXED
 	if ((hdmi->vic == 10) || (hdmi->vic == 11) ||
 		(hdmi->vic == 12) || (hdmi->vic == 13) ||
 		(hdmi->vic == 14) || (hdmi->vic == 15) ||
@@ -2382,6 +2383,7 @@ static void mxc_hdmi_setup(struct mxc_hdmi *hdmi, unsigned long event)
 		(hdmi->vic == 37) || (hdmi->vic == 38))
 		hdmi->hdmi_data.video_mode.mPixelRepetitionOutput = 1;
 	else
+#endif
 		hdmi->hdmi_data.video_mode.mPixelRepetitionOutput = 0;
 
 	hdmi->hdmi_data.video_mode.mPixelRepetitionInput = 0;
