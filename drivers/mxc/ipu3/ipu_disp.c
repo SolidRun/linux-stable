@@ -2112,7 +2112,7 @@ int32_t ipu_init_sync_panel(struct ipu_soc *ipu, int disp, uint32_t pixel_clk,
 				_ipu_di_sync_config(ipu,
 						disp, 		/* display */
 						DI_SYNC_COUNT_1, 		/* counter */
-						v_total*2 - 1, 	/* run count */
+						v_total - 1, 	/* run count */
 						(3 - 1),	/* run_resolution, counter 1 can reference to counter 6,7,8 with run_resolution=2,3,4 */
 						1, 		/* offset */
 						(3 - 1), 	/* offset resolution, 3=counter 7 */
