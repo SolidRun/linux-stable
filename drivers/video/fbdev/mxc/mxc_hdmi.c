@@ -1974,7 +1974,7 @@ static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 		 */
 		mode = &hdmi->fbi->monspecs.modedb[i];
 
-		if ( !only_cea || mxc_edid_mode_to_vic(mode)) {
+		if ( !(only_cea && hdmi->edid_cfg.hdmi_cap) || mxc_edid_mode_to_vic(mode)) {
 
 			dev_dbg(&hdmi->pdev->dev, "Added mode %d:", i);
 			dev_dbg(&hdmi->pdev->dev,
