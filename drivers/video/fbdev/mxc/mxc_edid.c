@@ -343,7 +343,7 @@ int mxc_edid_parse_ext_blk(unsigned char *edid,
 				}
 			case 0x3: /*Vendor specific data*/
 				{
-					unsigned char IEEE_reg_iden[3];
+					unsigned      IEEE_reg_iden;
 					unsigned char deep_color;
 					unsigned char latency_present;
 					unsigned char I_latency_present;
@@ -352,23 +352,29 @@ int mxc_edid_parse_ext_blk(unsigned char *edid,
 					unsigned char hdmi_3d_multi_present;
 					unsigned char hdmi_vic_len;
 					unsigned char hdmi_3d_len;
-					unsigned char index_inc = 0;
+					unsigned char index_inc;
 					unsigned char vsd_end;
 
-					vsd_end = index + blklen;
+					IEEE_reg_iden = (blklen > 2) ?
+						((edid[index+3] << 16) | (edid[index+2] << 8) | edid[index+1]) : 0;
 
-					IEEE_reg_iden[0] = edid[index+1];
-					IEEE_reg_iden[1] = edid[index+2];
-					IEEE_reg_iden[2] = edid[index+3];
-					cfg->physical_address[0] = (edid[index+4] & 0xf0) >> 4;
-					cfg->physical_address[1] = (edid[index+4] & 0x0f);
-					cfg->physical_address[2] = (edid[index+5] & 0xf0) >> 4;
-					cfg->physical_address[3] = (edid[index+5] & 0x0f);
+					if (IEEE_reg_iden != 0x000c03) {
+						DPRINTK("VSD block OUI=0x%06x (unknown) present\n", IEEE_reg_iden);
+						index += blklen;
+						break;
+					}
 
-					if ((IEEE_reg_iden[0] == 0x03) &&
-							(IEEE_reg_iden[1] == 0x0c) &&
-							(IEEE_reg_iden[2] == 0x00))
-						cfg->hdmi_cap = 1;
+					DPRINTK("VSD block HDMI 1.x 'HDMI Licensing, LLC' present\n");
+
+					cfg->hdmi_cap = 1;
+					cfg->physical_address[0] = edid[index+4] >> 4;
+					cfg->physical_address[1] = edid[index+4] & 0x0f;
+					cfg->physical_address[2] = edid[index+5] >> 4;
+					cfg->physical_address[3] = edid[index+5] & 0x0f;
+
+					DPRINTK("VSD physical address 0x%x%x%x%x\n",
+						cfg->physical_address[0], cfg->physical_address[1],
+						cfg->physical_address[2], cfg->physical_address[3]);
 
 					if (blklen > 5) {
 						deep_color = edid[index+6];
@@ -386,7 +392,6 @@ int mxc_edid_parse_ext_blk(unsigned char *edid,
 							cfg->vsd_dvi_dual = true;
 					}
 
-					DPRINTK("VSD hdmi capability %d\n", cfg->hdmi_cap);
 					DPRINTK("VSD support ai %d\n", cfg->vsd_support_ai);
 					DPRINTK("VSD support deep color 48bit %d\n", cfg->vsd_dc_48bit);
 					DPRINTK("VSD support deep color 36bit %d\n", cfg->vsd_dc_36bit);
@@ -420,6 +425,7 @@ int mxc_edid_parse_ext_blk(unsigned char *edid,
 						break;
 					}
 
+					vsd_end = index + blklen;
 					index += 9;
 
 					/*latency present */
@@ -462,6 +468,8 @@ int mxc_edid_parse_ext_blk(unsigned char *edid,
 						}
 
 						if (hdmi_3d_len > 0) {
+							index_inc = 0;
+
 							if (hdmi_3d_present) {
 								if (hdmi_3d_multi_present == 0x1) {
 									cfg->hdmi_3d_struct_all = (edid[index] << 8) | edid[index+1];
@@ -470,8 +478,7 @@ int mxc_edid_parse_ext_blk(unsigned char *edid,
 									cfg->hdmi_3d_struct_all = (edid[index] << 8) | edid[index+1];
 									cfg->hdmi_3d_mask_all = (edid[index+2] << 8) | edid[index+3];
 									index_inc = 4;
-								} else
-									index_inc = 0;
+								}
 							}
 
 							DPRINTK("HDMI 3d struct all =0x%x\n", cfg->hdmi_3d_struct_all);
@@ -507,7 +514,6 @@ int mxc_edid_parse_ext_blk(unsigned char *edid,
 					}
 
 					index = vsd_end;
-
 					break;
 				}
 			case 0x1: /*Audio data block*/
