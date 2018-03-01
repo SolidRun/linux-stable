@@ -196,6 +196,7 @@
 /* LUT0 programmed by bootloader, for run-time create entry for LUT seqid 1 */
 #define SEQID_LUT0_BOOTLOADER	0
 #define SEQID_LUT1_RUNTIME	1
+#define SEQID_LUT2_AHBREAD	2
 
 #define QUADSPI_MIN_IOMAP SZ_4M
 
@@ -452,6 +453,8 @@ static void fsl_qspi_prepare_lut(struct spi_nor *nor,
 
 	/* Dynamic LUT */
 	lut_base = SEQID_LUT1_RUNTIME * 4;
+	if (ops == FSL_QSPI_OPS_READ)
+		lut_base = SEQID_LUT2_AHBREAD * 4;
 
 	/* default, STOP instruction to be programmed in (lut_base + 1) reg */
 	stop_lut = 1;
@@ -510,7 +513,7 @@ static void fsl_qspi_prepare_lut(struct spi_nor *nor,
 
 			/* For AHB read, add seqid in BFGENCR register. */
 			qspi_writel(q,
-				    SEQID_LUT1_RUNTIME <<
+				    SEQID_LUT2_AHBREAD <<
 				    QUADSPI_BFGENCR_SEQID_SHIFT,
 				    q->iobase + QUADSPI_BFGENCR);
 		}
@@ -729,7 +732,7 @@ static int fsl_qspi_init_ahb_read(struct fsl_qspi *q)
 	qspi_writel(q, 0, base + QUADSPI_BUF2IND);
 
 	/* Set dynamic LUT entry as lut sequence for AHB Read . */
-	seqid = SEQID_LUT1_RUNTIME;
+	seqid = SEQID_LUT2_AHBREAD;
 	if (seqid < 0)
 		return seqid;
 
@@ -1216,6 +1219,8 @@ static int fsl_qspi_probe(struct platform_device *pdev)
 		if (nor->page_size > q->devtype_data->txfifo)
 			nor->page_size = q->devtype_data->txfifo;
 
+		/*required for memory mapped AHB read*/
+		fsl_qspi_prepare_lut(nor, FSL_QSPI_OPS_READ, nor->read_opcode);
 		i++;
 	}
 
@@ -1223,6 +1228,8 @@ static int fsl_qspi_probe(struct platform_device *pdev)
 	ret = fsl_qspi_nor_setup_last(q);
 	if (ret)
 		goto last_init_failed;
+
+
 
 	fsl_qspi_clk_disable_unprep(q);
 	return 0;
