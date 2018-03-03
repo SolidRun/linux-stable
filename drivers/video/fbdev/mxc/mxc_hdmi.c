@@ -2356,6 +2356,9 @@ static void mxc_hdmi_setup(struct mxc_hdmi *hdmi, unsigned long event)
 		}
 	}
 
+	if (hdmi->blank != FB_BLANK_UNBLANK)
+		return;
+
 	hdmi_disable_overflow_interrupts();
 
 	dev_dbg(&hdmi->pdev->dev, "CEA mode used vic=%d\n", hdmi->vic);
