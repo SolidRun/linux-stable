@@ -784,6 +784,7 @@ EXPORT_SYMBOL(mxc_edid_mode_to_vic);
 int mxc_edid_read(struct i2c_adapter *adp, unsigned short addr,
 	unsigned char *edid, struct mxc_edid_cfg *cfg, struct fb_info *fbi)
 {
+	struct fb_videomode *m;
 	int ret = 0, extblknum;
 	if (!adp || !edid || !cfg || !fbi)
 		return -EINVAL;
@@ -798,6 +799,13 @@ int mxc_edid_read(struct i2c_adapter *adp, unsigned short addr,
 	/* edid first block parsing */
 	memset(&fbi->monspecs, 0, sizeof(fbi->monspecs));
 	fb_edid_to_monspecs(edid, &fbi->monspecs);
+
+	for (m = fbi->monspecs.modedb; m < fbi->monspecs.modedb + fbi->monspecs.modedb_len; m++) {
+		if (m->xres / 16 == m->yres / 9)
+			m->vmode |= FB_VMODE_ASPECT_16_9;
+		else if (m->xres / 4 == m->yres / 3)
+			m->vmode |= FB_VMODE_ASPECT_4_3;
+	}
 
 	if (extblknum) {
 		int i;
