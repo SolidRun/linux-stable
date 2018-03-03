@@ -1401,8 +1401,8 @@ static void hdmi_config_AVI(struct mxc_hdmi *hdmi)
 	fb_var_to_videomode(&mode, &hdmi->fbi->var);
 	/* Use mode from list extracted from EDID to get aspect ratio */
 	if (!list_empty(&hdmi->fbi->modelist)) {
-		edid_mode = fb_find_nearest_mode(&mode, &hdmi->fbi->modelist);
-		if (edid_mode->vmode & FB_VMODE_ASPECT_16_9)
+		edid_mode = mxc_fb_find_nearest_mode(&mode, &hdmi->fbi->modelist);
+		if (edid_mode && (edid_mode->vmode & FB_VMODE_ASPECT_16_9))
 			aspect_16_9 = true;
 		else
 			aspect_16_9 = false;
@@ -2065,7 +2065,7 @@ static void mxc_hdmi_set_mode(struct mxc_hdmi *hdmi)
 	fb_var_to_videomode(&m, &var);
 	dump_fb_videomode(&m);
 
-	mode = fb_find_nearest_mode(&m, &hdmi->fbi->modelist);
+	mode = mxc_fb_find_nearest_mode(&m, &hdmi->fbi->modelist);
 	if (!mode) {
 		pr_err("%s: could not find mode in modelist\n", __func__);
 		return;
@@ -2086,7 +2086,7 @@ static void mxc_hdmi_set_mode(struct mxc_hdmi *hdmi)
 		dev_dbg(&hdmi->pdev->dev, "%s: New video mode\n", __func__);
 		mxc_hdmi_set_mode_to_vga_dvi(hdmi);
 		fb_videomode_to_var(&hdmi->fbi->var, mode);
-		dump_fb_videomode((struct fb_videomode *)mode);
+		dump_fb_videomode(mode);
 		mxc_hdmi_notify_fb(hdmi);
 	}
 
@@ -2345,12 +2345,14 @@ static void mxc_hdmi_setup(struct mxc_hdmi *hdmi, unsigned long event)
 		memcpy(&hdmi->previous_non_vga_mode, &m,
 		       sizeof(struct fb_videomode));
 		if (!list_empty(&hdmi->fbi->modelist)) {
-			edid_mode = fb_find_nearest_mode(&m, &hdmi->fbi->modelist);
-			pr_debug("edid mode ");
-			dump_fb_videomode((struct fb_videomode *)edid_mode);
-			/* update fbi mode */
-			hdmi->fbi->mode = (struct fb_videomode *)edid_mode;
-			hdmi->vic = mxc_edid_mode_to_vic(edid_mode);
+			edid_mode = mxc_fb_find_nearest_mode(&m, &hdmi->fbi->modelist);
+			if (edid_mode) {
+				pr_debug("edid mode ");
+				dump_fb_videomode(edid_mode);
+				/* update fbi mode */
+				hdmi->fbi->mode = (struct fb_videomode *)edid_mode;
+				hdmi->vic = mxc_edid_mode_to_vic(edid_mode);
+			}
 		}
 	}
 
@@ -2789,7 +2791,7 @@ static int mxc_hdmi_disp_init(struct mxc_dispdrv_handle *disp,
 	fb_var_to_videomode(&m, &hdmi->fbi->var);
 
 	hdmi->dft_mode_set = false;
-	mode = fb_find_nearest_mode(&m, &hdmi->fbi->modelist);
+	mode = mxc_fb_find_nearest_mode(&m, &hdmi->fbi->modelist);
 	if (!mode) {
 		pr_err("%s: could not find mode in modelist\n", __func__);
 		return -1;
