@@ -943,6 +943,19 @@ int mxc_edid_read(struct i2c_adapter *adp, unsigned short addr,
 			m->vmode |= FB_VMODE_ASPECT_16_9;
 		else if (m->xres / 4 == m->yres / 3)
 			m->vmode |= FB_VMODE_ASPECT_4_3;
+
+		/* HACK: our IPU doesn't like some timings calculated by the VESA formula
+		   especially, lower_margin == 1 is not acceptable. so let's increase the
+		   vertical blanking intervall a bit in this situation */
+		if (m->lower_margin == 1) {
+			m->lower_margin += 2;
+			m->vsync_len += 2;
+			m->pixclock = KHZ2PICOS(((m->xres + m->left_margin + m->right_margin + m->hsync_len) *
+					        (m->yres + m->upper_margin + m->lower_margin + m->vsync_len) *
+					        m->refresh) / 1000) << !!(m->vmode & FB_VMODE_INTERLACED);
+			pr_warn("%s: Vertical blanking adjusted for %dx%d%c-%d. Please check modedb!\n",
+				__func__, m->xres, m->yres, (m->vmode & FB_VMODE_INTERLACED) ? 'i' : 'p', m->refresh);
+		}
 	}
 
 	if (extblknum) {
