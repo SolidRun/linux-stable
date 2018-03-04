@@ -754,6 +754,22 @@ int mxc_edid_parse_ext_blk(unsigned char *edid,
 	specs->modedb_len += num;
 	specs->modedb = m;
 
+	/* Remove FB_MODE_IS_STANDARD if an alternate aspect ratio exists.
+	   This allows to distiguish between 16:9 and 4:3 modes in sysfs. */
+	for (mode = &specs->modedb[1]; mode < &specs->modedb[specs->modedb_len]; mode++) {
+		if (mode->flag != FB_MODE_IS_STANDARD || !(mode->vmode & FB_VMODE_ASPECT_MASK))
+			continue;
+
+		mode->vmode ^= FB_VMODE_ASPECT_MASK;
+		for (m = mode - 1; m >= specs->modedb; m--) {
+		      if (fb_mode_is_equal(mode, m)) {
+			      mode->flag &= ~FB_MODE_IS_STANDARD;
+			      break;
+		      }
+		}
+		mode->vmode ^= FB_VMODE_ASPECT_MASK;
+	}
+
 	return 0;
 }
 EXPORT_SYMBOL(mxc_edid_parse_ext_blk);

@@ -2777,11 +2777,17 @@ static int mxc_hdmi_disp_init(struct mxc_dispdrv_handle *disp,
 		fb_add_videomode(&vga_mode, &hdmi->fbi->modelist);
 
 		/*Add all CEA modes to default modelist */
-		for (i = 0; i < ARRAY_SIZE(mxc_cea_mode); i++) {
+		for (i = 2; i < ARRAY_SIZE(mxc_cea_mode); i++) {
 			mode = &mxc_cea_mode[i];
 			if (mode->xres != 0) {
 				struct fb_videomode m = *mode;
-				m.flag |= FB_MODE_IS_STANDARD;
+
+				/* Set FB_MODE_IS_STANDARD only if no alternate aspect ratio exists */
+				m.vmode ^= FB_VMODE_ASPECT_MASK;
+				if (!fb_mode_is_equal(&m, mode - 1))
+					m.flag |= FB_MODE_IS_STANDARD;
+				m.vmode ^= FB_VMODE_ASPECT_MASK;
+
 				fb_add_videomode(&m, &hdmi->fbi->modelist);
 			}
 		}
