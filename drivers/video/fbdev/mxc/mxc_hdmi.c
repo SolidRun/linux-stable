@@ -1957,7 +1957,7 @@ static void mxc_hdmi_notify_fb(struct mxc_hdmi *hdmi)
 
 static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 {
-	int i;
+	int i, pass;
 	struct fb_videomode *mode;
 
 	dev_dbg(&hdmi->pdev->dev, "%s\n", __func__);
@@ -1967,25 +1967,28 @@ static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 	fb_destroy_modelist(&hdmi->fbi->modelist);
 	fb_add_videomode(&vga_mode, &hdmi->fbi->modelist);
 
-	for (i = 0; i < hdmi->fbi->monspecs.modedb_len; i++) {
-		/*
-		 * We might check here if mode is supported by HDMI.
-		 * And add CEA modes in the modelist.
-		 */
-		mode = &hdmi->fbi->monspecs.modedb[i];
+	for (pass = 0; pass < 2; pass++) {
+		/* Start from the end because fb_add_videomode() will prepend new entries */
+		for (i = hdmi->fbi->monspecs.modedb_len - 1; i >= 0; i--) {
+			mode = &hdmi->fbi->monspecs.modedb[i];
 
-		if ( !(only_cea && hdmi->edid_cfg.hdmi_cap) || mxc_edid_mode_to_vic(mode)) {
+			/* Process 'detailed' modes in second pass */
+			if (pass != !!(mode->flag & FB_MODE_IS_DETAILED))
+				continue;
 
-			dev_dbg(&hdmi->pdev->dev, "Added mode %d:", i);
-			dev_dbg(&hdmi->pdev->dev,
-				"xres = %d, yres = %d, freq = %d, vmode = %d, flag = %d\n",
-				hdmi->fbi->monspecs.modedb[i].xres,
-				hdmi->fbi->monspecs.modedb[i].yres,
-				hdmi->fbi->monspecs.modedb[i].refresh,
-				hdmi->fbi->monspecs.modedb[i].vmode,
-				hdmi->fbi->monspecs.modedb[i].flag);
+			if ( !(only_cea && hdmi->edid_cfg.hdmi_cap) || mxc_edid_mode_to_vic(mode)) {
 
-			fb_add_videomode(mode, &hdmi->fbi->modelist);
+				dev_dbg(&hdmi->pdev->dev, "Added mode %d:", i);
+				dev_dbg(&hdmi->pdev->dev,
+					"xres = %d, yres = %d, freq = %d, vmode = %d, flag = %d\n",
+					hdmi->fbi->monspecs.modedb[i].xres,
+					hdmi->fbi->monspecs.modedb[i].yres,
+					hdmi->fbi->monspecs.modedb[i].refresh,
+					hdmi->fbi->monspecs.modedb[i].vmode,
+					hdmi->fbi->monspecs.modedb[i].flag);
+
+				fb_add_videomode(mode, &hdmi->fbi->modelist);
+			}
 		}
 	}
 
