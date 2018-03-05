@@ -856,13 +856,13 @@ static int bcm_resource(struct acpi_resource *ares, void *data)
 
 static int bcm_gpio_set_device_wakeup(struct bcm_device *dev, bool awake)
 {
-	gpiod_set_value(dev->device_wakeup, awake);
+	gpiod_set_value_cansleep(dev->device_wakeup, awake);
 	return 0;
 }
 
 static int bcm_gpio_set_shutdown(struct bcm_device *dev, bool powered)
 {
-	gpiod_set_value(dev->shutdown, powered);
+	gpiod_set_value_cansleep(dev->shutdown, powered);
 	return 0;
 }
 
