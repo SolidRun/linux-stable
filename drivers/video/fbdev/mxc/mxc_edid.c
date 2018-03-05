@@ -406,7 +406,8 @@ int mxc_edid_parse_ext_blk(unsigned char *edid,
 		return 0;
 	revision = edid[index++];
 	DPRINTK("cea extent revision %d\n", revision);
-	mode = kzalloc(50 * sizeof(struct fb_videomode), GFP_KERNEL);
+	mode = kzalloc((ARRAY_SIZE(mxc_cea_mode) + 8) *
+			sizeof(struct fb_videomode), GFP_KERNEL);
 	if (mode == NULL)
 		return -1;
 
@@ -742,14 +743,14 @@ int mxc_edid_parse_ext_blk(unsigned char *edid,
 		return 0;
 	}
 
+	memcpy(m, mode, num * sizeof(struct fb_videomode));
+	kfree(mode);
+
 	if (specs->modedb_len) {
-		memmove(m, specs->modedb,
-			specs->modedb_len * sizeof(struct fb_videomode));
+		memcpy(m + num, specs->modedb,
+		       specs->modedb_len * sizeof(struct fb_videomode));
 		kfree(specs->modedb);
 	}
-	memmove(m+specs->modedb_len, mode,
-		num * sizeof(struct fb_videomode));
-	kfree(mode);
 
 	specs->modedb_len += num;
 	specs->modedb = m;
