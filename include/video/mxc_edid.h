@@ -103,10 +103,12 @@ extern const struct fb_videomode mxc_cea_mode[64];
 
 int mxc_edid_var_to_vic(const struct fb_var_screeninfo *var);
 int mxc_edid_mode_to_vic(const struct fb_videomode *mode);
-int mxc_edid_read(struct i2c_adapter *adp, unsigned short addr,
-	unsigned char *edid, struct mxc_edid_cfg *cfg, struct fb_info *fbi);
-int mxc_edid_parse_ext_blk(unsigned char *edid, struct mxc_edid_cfg *cfg,
-	struct fb_monspecs *specs);
 const struct fb_videomode *mxc_fb_find_nearest_mode(const struct fb_videomode *mode,
 						    struct list_head *head);
+int mxc_edid_get_ext_blks(unsigned char *edid, int *num_ext_blocks);
+void mxc_edid_parse(unsigned char *edid, int num_ext_blocks,
+			    struct mxc_edid_cfg *cfg, struct fb_info *fbi);
+int mxc_edid_external_get(struct i2c_adapter *adp, unsigned short addr,
+			    unsigned char *data, int num_blocks_max);
+
 #endif
