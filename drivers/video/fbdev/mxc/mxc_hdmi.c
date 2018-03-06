@@ -1611,76 +1611,31 @@ static void hdmi_av_composer(struct mxc_hdmi *hdmi)
 	dev_dbg(&hdmi->pdev->dev, "%s exit\n", __func__);
 }
 
-static int mxc_edid_override(struct mxc_hdmi *hdmi, unsigned char *edid,
-			struct mxc_edid_cfg *cfg, struct fb_info *fbi,
-			unsigned char *override, int override_length)
+static int mxc_edid_override_get(struct mxc_hdmi *hdmi,
+			unsigned char *data, int num_blocks_max)
 {
-	int extblknum;
-	int j, ret;
+	int num_ext_blocks;
 
-	if (!edid || !cfg || !fbi)
-		return -EINVAL;
-
-	/* reset edid data zero */
-	memset(edid, 0, EDID_LENGTH*4);
-	memset(cfg, 0, sizeof(struct mxc_edid_cfg));
-
-	/* Check first three byte of EDID head */
-	if ((override_length < 128) ||
-	    (override[0] != 0x00) ||
-	    (override[1] != 0xFF) ||
-	    (override[2] != 0xFF)) {
-		dev_info(&hdmi->pdev->dev, "EDID head check failed!");
+	if (hdmi->override_edid_length < EDID_LENGTH ||
+	    !mxc_edid_get_ext_blks(hdmi->override_edid, &num_ext_blocks)) {
+		dev_err(&hdmi->pdev->dev, "EDID override header check failed!");
 		return -ENOENT;
 	}
 
-	memcpy(edid, override, 128);
+	if (num_ext_blocks > num_blocks_max - 1)
+		num_ext_blocks = num_blocks_max - 1;
 
-	extblknum = edid[0x7E];
-	if (extblknum == 255)
-		extblknum = 0;
-	if (((extblknum + 1) * 128) > override_length)
-		extblknum = (override_length >> 7) - 1;
+	if ((num_ext_blocks + 1) * EDID_LENGTH > hdmi->override_edid_length)
+		num_ext_blocks = (hdmi->override_edid_length / EDID_LENGTH) - 1;
 
-	if (extblknum)
-		memcpy(&edid[EDID_LENGTH], &override[128], 128);
-
-	/* edid first block parsing */
-	memset(&fbi->monspecs, 0, sizeof(fbi->monspecs));
-	fb_edid_to_monspecs(edid, &fbi->monspecs);
-
-	if (extblknum) {
-		ret = mxc_edid_parse_ext_blk(edid + EDID_LENGTH,
-				cfg, &fbi->monspecs);
-		if (ret < 0)
-			return -ENOENT;
-	}
-
-	/* need read segment block? */
-	if (extblknum > 1) {
-		for (j = 2; j <= extblknum; j++) {
-			/* edid ext block parsing */
-			ret = mxc_edid_parse_ext_blk(&override[j * 128],
-					cfg, &fbi->monspecs);
-			if (ret < 0)
-				return -ENOENT;
-		}
-	}
-	return 0;
+	memcpy(data, hdmi->override_edid, (num_ext_blocks + 1) * EDID_LENGTH);
+	return num_ext_blocks;
 }
 
-static int mxc_edid_read_internal(struct mxc_hdmi *hdmi, unsigned char *edid,
-			struct mxc_edid_cfg *cfg, struct fb_info *fbi)
+static int mxc_edid_internal_get(struct mxc_hdmi *hdmi,
+			unsigned char *data, int num_blocks_max)
 {
-	int extblknum;
-	int i, j, ret;
-	unsigned char *ediddata = edid;
-	unsigned char tmpedid[EDID_LENGTH];
-
-	dev_info(&hdmi->pdev->dev, "%s\n", __func__);
-
-	if (!edid || !cfg || !fbi)
-		return -EINVAL;
+	int i, block_num = 0, num_ext_blocks = 0;
 
 	/* init HDMI I2CM for read edid*/
 	hdmi_writeb(0x0, HDMI_I2CM_DIV);
@@ -1705,86 +1660,41 @@ static int mxc_edid_read_internal(struct mxc_hdmi *hdmi, unsigned char *edid,
 		    HDMI_I2CM_CTLINT_ARBITRATION_POL,
 		    HDMI_I2CM_CTLINT);
 
-	/* reset edid data zero */
-	memset(edid, 0, EDID_LENGTH*4);
-	memset(cfg, 0, sizeof(struct mxc_edid_cfg));
+	do {
+		for (i = 0; i < EDID_LENGTH; i++)
+			*data++ = hdmi_edid_i2c_read(hdmi, i, block_num);
 
-	/* Check first three byte of EDID head */
-	if (!(hdmi_edid_i2c_read(hdmi, 0, 0) == 0x00) ||
-		!(hdmi_edid_i2c_read(hdmi, 1, 0) == 0xFF) ||
-		!(hdmi_edid_i2c_read(hdmi, 2, 0) == 0xFF)) {
-		dev_info(&hdmi->pdev->dev, "EDID head check failed!");
-		return -ENOENT;
-	}
-
-	for (i = 0; i < 128; i++) {
-		*ediddata = hdmi_edid_i2c_read(hdmi, i, 0);
-		ediddata++;
-	}
-
-	extblknum = edid[0x7E];
-	if (extblknum == 255)
-		extblknum = 0;
-
-	if (extblknum) {
-		ediddata = edid + EDID_LENGTH;
-		for (i = 0; i < 128; i++) {
-			*ediddata = hdmi_edid_i2c_read(hdmi, i, 1);
-			ediddata++;
-		}
-	}
-
-	/* edid first block parsing */
-	memset(&fbi->monspecs, 0, sizeof(fbi->monspecs));
-	fb_edid_to_monspecs(edid, &fbi->monspecs);
-
-	if (extblknum) {
-		ret = mxc_edid_parse_ext_blk(edid + EDID_LENGTH,
-				cfg, &fbi->monspecs);
-		if (ret < 0)
-			return -ENOENT;
-	}
-
-	/* need read segment block? */
-	if (extblknum > 1) {
-		for (j = 2; j <= extblknum; j++) {
-			for (i = 0; i < 128; i++)
-				tmpedid[i] = hdmi_edid_i2c_read(hdmi, i, j);
-
-			/* edid ext block parsing */
-			ret = mxc_edid_parse_ext_blk(tmpedid,
-					cfg, &fbi->monspecs);
-			if (ret < 0)
+		if (block_num++ == 0) {
+			if (!mxc_edid_get_ext_blks(data - EDID_LENGTH, &num_ext_blocks)) {
+				dev_err(&hdmi->pdev->dev, "EDID internal header check failed!");
 				return -ENOENT;
-		}
-	}
+			}
 
-	return 0;
+			if (num_ext_blocks > num_blocks_max - 1)
+				num_ext_blocks = num_blocks_max - 1;
+		}
+	} while (block_num <= num_ext_blocks);
+
+	return num_ext_blocks;
 }
 
 static int mxc_hdmi_read_edid(struct mxc_hdmi *hdmi)
 {
-	int ret = -EINVAL;
-	u8 edid_old[HDMI_EDID_LEN];
-	u8 clkdis;
+	int ret;
+	u8 clkdis, edid_new[HDMI_EDID_LEN] = { 0 };
+	const int num_blks_max = HDMI_EDID_LEN / EDID_LENGTH;
 
 	dev_dbg(&hdmi->pdev->dev, "%s\n", __func__);
 
-	/* save old edid */
-	memcpy(edid_old, hdmi->edid, HDMI_EDID_LEN);
-
 	if (hdmi->override_edid) {
-		ret = mxc_edid_override(hdmi, hdmi->edid, &hdmi->edid_cfg,
-				hdmi->fbi, hdmi->override_edid,
-				hdmi->override_edid_length);
-	}
-
-	if (!ret) {
+		/* EDID loaded from device tree */
+		ret = mxc_edid_override_get(hdmi, edid_new, num_blks_max);
 	} else if (!hdcp_init) {
-		ret = mxc_edid_read(hdmi_i2c->adapter, hdmi_i2c->addr,
-				hdmi->edid, &hdmi->edid_cfg, hdmi->fbi);
+		/* Read EDID via I2C when HDCP disabled */
+		ret = mxc_edid_external_get(hdmi_i2c->adapter,
+			hdmi_i2c->addr, edid_new, num_blks_max);
 	} else {
-		/* Read EDID via HDMI DDC when HDCP Enable */
+		/* Read EDID via HDMI DDC when HDCP enabled */
 
 		/* Disable HDCP clk */
 		if (hdmi->hdmi_data.hdcp_enable) {
@@ -1793,8 +1703,7 @@ static int mxc_hdmi_read_edid(struct mxc_hdmi *hdmi)
 			hdmi_writeb(clkdis, HDMI_MC_CLKDIS);
 		}
 
-		ret = mxc_edid_read_internal(hdmi, hdmi->edid,
-				&hdmi->edid_cfg, hdmi->fbi);
+		ret = mxc_edid_internal_get(hdmi, edid_new, num_blks_max);
 
 		/* Enable HDCP clk */
 		if (hdmi->hdmi_data.hdcp_enable) {
@@ -1802,20 +1711,24 @@ static int mxc_hdmi_read_edid(struct mxc_hdmi *hdmi)
 			clkdis &= ~HDMI_MC_CLKDIS_HDCPCLK_DISABLE;
 			hdmi_writeb(clkdis, HDMI_MC_CLKDIS);
 		}
-
 	}
+
 	if (ret < 0) {
 		dev_dbg(&hdmi->pdev->dev, "read failed\n");
 		return HDMI_EDID_FAIL;
 	}
 
-	/* Save edid cfg for audio driver */
-	hdmi_set_edid_cfg(&hdmi->edid_cfg);
-
-	if (!memcmp(edid_old, hdmi->edid, HDMI_EDID_LEN)) {
+	if (memcmp(hdmi->edid, edid_new, HDMI_EDID_LEN) == 0) {
 		dev_info(&hdmi->pdev->dev, "same edid\n");
 		return HDMI_EDID_SAME;
 	}
+
+	/* Now parse the information... */
+	memcpy(hdmi->edid, edid_new, HDMI_EDID_LEN);
+	mxc_edid_parse(hdmi->edid, ret, &hdmi->edid_cfg, hdmi->fbi);
+
+	/* Save edid cfg for audio driver */
+	hdmi_set_edid_cfg(&hdmi->edid_cfg);
 
 	if (hdmi->fbi->monspecs.modedb_len == 0) {
 		dev_info(&hdmi->pdev->dev, "No modes read from edid\n");

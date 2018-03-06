@@ -338,6 +338,59 @@ int mxc_edid_fb_mode_is_equal(bool use_aspect,
 		abs(mode1->refresh - mode2->refresh) <= 1 &&
 		(mode1->vmode & mask) == (mode2->vmode & mask));
 }
+EXPORT_SYMBOL(mxc_edid_fb_mode_is_equal);
+
+int mxc_edid_external_get(struct i2c_adapter *adp, unsigned short addr,
+				  unsigned char *data, int num_blocks_max)
+{
+	int ret, msg_ofs, block_num = 0, num_ext_blocks = 0;
+	unsigned char segment, regaddr;
+	struct i2c_msg msg[3] = {
+		{
+		.addr	= 0x30,
+		.flags	= 0,
+		.len	= 1,
+		.buf	= &segment,
+		}, {
+		.addr	= addr,
+		.flags	= 0,
+		.len	= 1,
+		.buf	= &regaddr,
+		}, {
+		.addr	= addr,
+		.flags	= I2C_M_RD,
+		.len	= EDID_LENGTH,
+		.buf	= data,
+		},
+	};
+
+	do {
+		regaddr = (block_num & 1) * EDID_LENGTH;
+		segment = block_num >> 1;
+		msg_ofs = (segment == 0) ? 1 : 0;
+
+		ret = i2c_transfer(adp, msg + msg_ofs, ARRAY_SIZE(msg) - msg_ofs);
+		if (ret != ARRAY_SIZE(msg) - msg_ofs) {
+			dev_err(&adp->dev, "EDID external failed to read block %d\n", block_num);
+			return -EIO;
+		}
+
+		msg[2].buf += EDID_LENGTH;
+
+		if (block_num++ == 0) {
+			if (!mxc_edid_get_ext_blks(data, &num_ext_blocks)) {
+				dev_err(&adp->dev, "EDID external header check failed!");
+				return -ENOENT;
+			}
+
+			if (num_ext_blocks > num_blocks_max - 1)
+				num_ext_blocks = num_blocks_max - 1;
+		}
+	} while (block_num <= num_ext_blocks);
+
+	return num_ext_blocks;
+}
+EXPORT_SYMBOL(mxc_edid_external_get);
 
 static void get_detailed_timing(unsigned char *block,
 				struct fb_videomode *mode)
@@ -392,9 +445,8 @@ static void get_detailed_timing(unsigned char *block,
 	       (VSYNC_POSITIVE) ? "+" : "-");
 }
 
-int mxc_edid_parse_ext_blk(unsigned char *edid,
-		struct mxc_edid_cfg *cfg,
-		struct fb_monspecs *specs)
+static int parse_ext_blk(unsigned char *edid,
+		struct mxc_edid_cfg *cfg, struct fb_monspecs *specs)
 {
 	char detail_timing_desc_offset;
 	struct fb_videomode *mode, *m;
@@ -412,9 +464,6 @@ int mxc_edid_parse_ext_blk(unsigned char *edid,
 		return -1;
 
 	detail_timing_desc_offset = edid[index++];
-
-	memset(cfg->sample_rates, 0, sizeof(cfg->sample_rates));
-	memset(cfg->sample_sizes, 0, sizeof(cfg->sample_sizes));
 
 	if (revision >= 2) {
 		cfg->cea_underscan = (edid[index] >> 7) & 0x1;
@@ -773,121 +822,66 @@ int mxc_edid_parse_ext_blk(unsigned char *edid,
 
 	return 0;
 }
-EXPORT_SYMBOL(mxc_edid_parse_ext_blk);
 
-unsigned char *override_edid;
-
-void mxc_set_edid_address(unsigned char *edid)
+int mxc_edid_get_ext_blks(unsigned char *edid, int *num_ext_blocks)
 {
-	pr_debug("%s: edid=%p\n", __func__, edid);
-	override_edid = edid;
-}
-EXPORT_SYMBOL(mxc_set_edid_address);
-
-static int mxc_edid_override(struct i2c_adapter *adp,
-		unsigned short addr, unsigned char *edid)
-{
-	int extblknum = 0;
-	unsigned char *slim_edid = override_edid;
-	memcpy(edid, slim_edid, EDID_LENGTH);
-
-	pr_debug("%s: for slim\n", __func__);
-	extblknum = edid[0x7E];
-	if (extblknum)
-		memcpy(edid + EDID_LENGTH, slim_edid + EDID_LENGTH, EDID_LENGTH);
-	return extblknum;
-}
-
-static int mxc_edid_readblk(struct i2c_adapter *adp,
-		unsigned short addr, unsigned char *edid)
-{
-	int ret = 0, extblknum = 0;
-	unsigned char regaddr = 0x0;
-	struct i2c_msg msg[2] = {
-		{
-		.addr	= addr,
-		.flags	= 0,
-		.len	= 1,
-		.buf	= &regaddr,
-		}, {
-		.addr	= addr,
-		.flags	= I2C_M_RD,
-		.len	= EDID_LENGTH,
-		.buf	= edid,
-		},
+	static const u8 edid_header[] = {
+		0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00
 	};
 
-	if (override_edid)
-		return mxc_edid_override(adp, addr, edid);
-
-	ret = i2c_transfer(adp, msg, ARRAY_SIZE(msg));
-	if (ret != ARRAY_SIZE(msg)) {
-		DPRINTK("unable to read EDID block\n");
-		return -EIO;
+	if (memcmp(edid, edid_header, sizeof(edid_header)) == 0) {
+		*num_ext_blocks = (edid[0x7E] == 0xFF) ? 0 : edid[0x7E];
+		return 1;
 	}
 
-	if (edid[1] == 0x00)
-		return -ENOENT;
+	return 0;
+}
+EXPORT_SYMBOL(mxc_edid_get_ext_blks);
 
-	extblknum = edid[0x7E];
+void mxc_edid_parse(unsigned char *edid,
+	int num_ext_blocks, struct mxc_edid_cfg *cfg, struct fb_info *fbi)
+{
+	struct fb_videomode *m;
 
-	if (extblknum) {
-		regaddr = 128;
-		msg[1].buf = edid + EDID_LENGTH;
+	if (!edid || !cfg || !fbi)
+		return;
 
-		ret = i2c_transfer(adp, msg, ARRAY_SIZE(msg));
-		if (ret != ARRAY_SIZE(msg)) {
-			DPRINTK("unable to read EDID ext block\n");
-			return -EIO;
+	/* Free old monspecs */
+	if (fbi->monspecs.modedb_len > 0)
+		fb_destroy_modedb(fbi->monspecs.modedb);
+
+	/* edid first block parsing */
+	memset(&fbi->monspecs, 0, sizeof(fbi->monspecs));
+	fb_edid_to_monspecs(edid, &fbi->monspecs);
+
+	for (m = fbi->monspecs.modedb; m < fbi->monspecs.modedb + fbi->monspecs.modedb_len; m++) {
+		if (m->xres / 16 == m->yres / 9)
+			m->vmode |= FB_VMODE_ASPECT_16_9;
+		else if (m->xres / 4 == m->yres / 3)
+			m->vmode |= FB_VMODE_ASPECT_4_3;
+
+		/* HACK: Our IPU doesn't like some timings calculated by the VESA formula.
+		   Especially, a lower margin below 2 is not acceptable. So let's increase
+		   the vertical blanking intervall a bit in this situation */
+		if (m->lower_margin <= 1) {
+			m->lower_margin += 2;
+			m->vsync_len += 2;
+			m->pixclock = KHZ2PICOS(((m->xres + m->left_margin + m->right_margin + m->hsync_len) *
+						  (m->yres + m->upper_margin + m->lower_margin + m->vsync_len) *
+						  m->refresh) / (1000 << !!(m->vmode & FB_VMODE_INTERLACED)));
+			pr_warn("%s: Vertical blanking adjusted for %dx%d%c-%d. Please check modedb!\n",
+				__func__, m->xres, m->yres, (m->vmode & FB_VMODE_INTERLACED) ? 'i' : 'p', m->refresh);
 		}
 	}
 
-	return extblknum;
-}
-
-static int mxc_edid_readsegblk(struct i2c_adapter *adp, unsigned short addr,
-			unsigned char *edid, int seg_num)
-{
-	int ret = 0;
-	unsigned char segment = 0x1, regaddr = 0;
-	struct i2c_msg msg[3] = {
-		{
-		.addr	= 0x30,
-		.flags	= 0,
-		.len	= 1,
-		.buf	= &segment,
-		}, {
-		.addr	= addr,
-		.flags	= 0,
-		.len	= 1,
-		.buf	= &regaddr,
-		}, {
-		.addr	= addr,
-		.flags	= I2C_M_RD,
-		.len	= EDID_LENGTH,
-		.buf	= edid,
-		},
-	};
-
-	ret = i2c_transfer(adp, msg, ARRAY_SIZE(msg));
-	if (ret != ARRAY_SIZE(msg)) {
-		DPRINTK("unable to read EDID block\n");
-		return -EIO;
+	/* edid extension block parsing */
+	memset(cfg, 0, sizeof(struct mxc_edid_cfg));
+	while (num_ext_blocks-- > 0) {
+		edid += EDID_LENGTH;
+		parse_ext_blk(edid, cfg, &fbi->monspecs);
 	}
-
-	if (seg_num == 2) {
-		regaddr = 128;
-		msg[2].buf = edid + EDID_LENGTH;
-
-		ret = i2c_transfer(adp, msg, ARRAY_SIZE(msg));
-		if (ret != ARRAY_SIZE(msg)) {
-			DPRINTK("unable to read EDID block\n");
-			return -EIO;
-		}
-	}
-
-	return ret;
 }
+EXPORT_SYMBOL(mxc_edid_parse);
 
 int mxc_edid_var_to_vic(const struct fb_var_screeninfo *var)
 {
@@ -918,74 +912,6 @@ int mxc_edid_mode_to_vic(const struct fb_videomode *mode)
 	return 0;
 }
 EXPORT_SYMBOL(mxc_edid_mode_to_vic);
-
-/* make sure edid has 512 bytes*/
-int mxc_edid_read(struct i2c_adapter *adp, unsigned short addr,
-	unsigned char *edid, struct mxc_edid_cfg *cfg, struct fb_info *fbi)
-{
-	struct fb_videomode *m;
-	int ret = 0, extblknum;
-	if (!adp || !edid || !cfg || !fbi)
-		return -EINVAL;
-
-	memset(edid, 0, EDID_LENGTH*4);
-	memset(cfg, 0, sizeof(struct mxc_edid_cfg));
-
-	extblknum = mxc_edid_readblk(adp, addr, edid);
-	if (extblknum < 0)
-		return extblknum;
-
-	/* edid first block parsing */
-	memset(&fbi->monspecs, 0, sizeof(fbi->monspecs));
-	fb_edid_to_monspecs(edid, &fbi->monspecs);
-
-	for (m = fbi->monspecs.modedb; m < fbi->monspecs.modedb + fbi->monspecs.modedb_len; m++) {
-		if (m->xres / 16 == m->yres / 9)
-			m->vmode |= FB_VMODE_ASPECT_16_9;
-		else if (m->xres / 4 == m->yres / 3)
-			m->vmode |= FB_VMODE_ASPECT_4_3;
-
-		/* HACK: our IPU doesn't like some timings calculated by the VESA formula
-		   especially, lower_margin == 1 is not acceptable. so let's increase the
-		   vertical blanking intervall a bit in this situation */
-		if (m->lower_margin == 1) {
-			m->lower_margin += 2;
-			m->vsync_len += 2;
-			m->pixclock = KHZ2PICOS(((m->xres + m->left_margin + m->right_margin + m->hsync_len) *
-					        (m->yres + m->upper_margin + m->lower_margin + m->vsync_len) *
-					        m->refresh) / 1000) << !!(m->vmode & FB_VMODE_INTERLACED);
-			pr_warn("%s: Vertical blanking adjusted for %dx%d%c-%d. Please check modedb!\n",
-				__func__, m->xres, m->yres, (m->vmode & FB_VMODE_INTERLACED) ? 'i' : 'p', m->refresh);
-		}
-	}
-
-	if (extblknum) {
-		int i;
-
-		/* FIXME: mxc_edid_readsegblk() won't read more than 2 blocks
-		 * and the for-loop will read past the end of the buffer! :-( */
-		if (extblknum > 3) {
-			WARN_ON(true);
-			return -EINVAL;
-		}
-
-		/* need read segment block? */
-		if (extblknum > 1) {
-			ret = mxc_edid_readsegblk(adp, addr,
-				edid + EDID_LENGTH*2, extblknum - 1);
-			if (ret < 0)
-				return ret;
-		}
-
-		for (i = 1; i <= extblknum; i++)
-			/* edid ext block parsing */
-			mxc_edid_parse_ext_blk(edid + i*EDID_LENGTH,
-					cfg, &fbi->monspecs);
-	}
-
-	return 0;
-}
-EXPORT_SYMBOL(mxc_edid_read);
 
 const struct fb_videomode *mxc_fb_find_nearest_mode(const struct fb_videomode *mode,
 						    struct list_head *head)
