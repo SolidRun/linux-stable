@@ -2005,7 +2005,6 @@ static void  mxc_hdmi_default_edid_cfg(struct mxc_hdmi *hdmi)
 
 static void  mxc_hdmi_default_modelist(struct mxc_hdmi *hdmi)
 {
-	struct fb_modelist *modelist;
 	struct fb_videomode *m;
 
 	dev_dbg(&hdmi->pdev->dev, "%s\n", __func__);
@@ -2019,9 +2018,8 @@ static void  mxc_hdmi_default_modelist(struct mxc_hdmi *hdmi)
 
 	/* If the current modelist is already default, don't re-create it*/
 	if (list_is_singular(&hdmi->fbi->modelist)) {
-		modelist = list_entry((&hdmi->fbi->modelist)->next,
-				struct fb_modelist, list);
-		m = &modelist->mode;
+		m = &list_first_entry(&hdmi->fbi->modelist,
+					struct fb_modelist, list)->mode;
 		if (fb_mode_is_equal(m, &hdmi->default_mode)) {
 			dev_info(&hdmi->pdev->dev,
 				"Modelist is already default, no need to re-create!\n");
@@ -2648,10 +2646,10 @@ static void hdmi_get_of_property(struct mxc_hdmi *hdmi)
 static int mxc_hdmi_disp_init(struct mxc_dispdrv_handle *disp,
 			      struct mxc_dispdrv_setting *setting)
 {
-	int ret = 0;
 	u32 i;
-	const struct fb_videomode *mode;
+	int ret;
 	struct fb_videomode m;
+	const struct fb_videomode *mode, *native;
 	struct mxc_hdmi *hdmi = mxc_dispdrv_getdata(disp);
 	int irq = platform_get_irq(hdmi->pdev, 0);
 	int edid_status = HDMI_EDID_FAIL;
@@ -2761,17 +2759,16 @@ static int mxc_hdmi_disp_init(struct mxc_dispdrv_handle *disp,
 
 	spin_lock_init(&hdmi->irq_lock);
 
-	/* Set the default mode and modelist when disp init. */
-	fb_find_mode(&hdmi->fbi->var, hdmi->fbi,
-		     hdmi->dft_mode_str, NULL, 0, NULL,
-		     hdmi->default_bpp);
-
 	if (hdmi->override_edid)
 		edid_status = mxc_hdmi_read_edid(hdmi);
+
+	/* Set initial modelist */
 	switch (edid_status) {
 	case HDMI_EDID_SUCCESS:
 	case HDMI_EDID_SAME:
 		mxc_hdmi_edid_rebuild_modelist(hdmi);
+		native = &list_first_entry(&hdmi->fbi->modelist,
+					struct fb_modelist, list)->mode;
 		break;
 	default:
 		console_lock();
@@ -2796,17 +2793,21 @@ static int mxc_hdmi_disp_init(struct mxc_dispdrv_handle *disp,
 		}
 
 		console_unlock();
+		native = &vga_mode;
 	}
 
+	/* Set the default mode */
+	fb_find_mode(&hdmi->fbi->var, hdmi->fbi,
+		hdmi->dft_mode_str, NULL, 0, native, hdmi->default_bpp);
 
-	/* Find a nearest mode in default modelist */
+	/* Find nearest mode in default modelist */
 	fb_var_to_videomode(&m, &hdmi->fbi->var);
 
 	hdmi->dft_mode_set = false;
 	mode = mxc_fb_find_nearest_mode(&m, &hdmi->fbi->modelist);
 	if (!mode) {
-		pr_err("%s: could not find mode in modelist\n", __func__);
-		return -1;
+		pr_warn("%s: Could not find default mode in modelist\n", __func__);
+		mode = native;
 	}
 	dump_fb_videomode(mode);
 	/* Save default video mode */
