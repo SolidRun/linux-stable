@@ -793,6 +793,11 @@ done:
 
 			ret = fb_find_mode_cvt(&cvt_mode, margins, rb);
 
+			if (interlace) {
+				cvt_mode.refresh /= 2;
+				cvt_mode.pixclock *= 2;
+			}
+
 			if (!ret && !fb_try_mode(var, info, &cvt_mode, bpp)) {
 				DPRINTK("modedb CVT: CVT mode ok\n");
 				return 1;
