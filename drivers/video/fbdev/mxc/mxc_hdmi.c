@@ -74,7 +74,7 @@
 #define XVYCC444            4
 
 static int only_cea = 1;
-module_param(only_cea, int, 0644);
+module_param(only_cea, int, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(only_cea, "Allow only CEA modes");
 
 static int keepalive = 0;
@@ -180,6 +180,7 @@ struct mxc_hdmi {
 	struct fb_videomode default_mode;
 	struct fb_videomode previous_non_vga_mode;
 	bool requesting_vga_for_initialization;
+	bool allow_non_cea;
 
 	int *gpr_base;
 	int *gpr_hdmi_base;
@@ -1880,6 +1881,8 @@ static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 	fb_destroy_modelist(&hdmi->fbi->modelist);
 	fb_add_videomode(&vga_mode, &hdmi->fbi->modelist);
 
+	hdmi->allow_non_cea = !hdmi->edid_cfg.hdmi_cap || !only_cea;
+
 	for (pass = 0; pass < 2; pass++) {
 		/* Start from the end because fb_add_videomode() will prepend new entries */
 		for (i = hdmi->fbi->monspecs.modedb_len - 1; i >= 0; i--) {
@@ -1889,7 +1892,7 @@ static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 			if (pass != !!(mode->flag & FB_MODE_IS_DETAILED))
 				continue;
 
-			if ( !(only_cea && hdmi->edid_cfg.hdmi_cap) || mxc_edid_mode_to_vic(mode)) {
+			if (hdmi->allow_non_cea || mxc_edid_mode_to_vic(mode)) {
 
 				dev_dbg(&hdmi->pdev->dev, "Added mode %d:", i);
 				dev_dbg(&hdmi->pdev->dev,
@@ -1961,7 +1964,7 @@ static void mxc_hdmi_set_mode_to_vga_dvi(struct mxc_hdmi *hdmi)
 	hdmi->requesting_vga_for_initialization = false;
 }
 
-static void mxc_hdmi_set_mode(struct mxc_hdmi *hdmi)
+static void mxc_hdmi_set_mode(struct mxc_hdmi *hdmi, bool force_new)
 {
 	const struct fb_videomode *mode;
 	struct fb_videomode m;
@@ -1987,7 +1990,7 @@ static void mxc_hdmi_set_mode(struct mxc_hdmi *hdmi)
 
 	/* If both video mode and work mode same as previous,
 	 * init HDMI again */
-	if (fb_mode_is_equal(&hdmi->previous_non_vga_mode, mode) &&
+	if (!force_new && fb_mode_is_equal(&hdmi->previous_non_vga_mode, mode) &&
 		(hdmi->edid_cfg.hdmi_cap != hdmi->hdmi_data.video_mode.mDVI)) {
 		dev_dbg(&hdmi->pdev->dev,
 				"%s: Video mode same as previous\n", __func__);
@@ -2009,6 +2012,7 @@ static void mxc_hdmi_set_mode(struct mxc_hdmi *hdmi)
 static void mxc_hdmi_cable_connected(struct mxc_hdmi *hdmi)
 {
 	int edid_status;
+	struct list_head modelist = hdmi->fbi->modelist;
 
 	dev_dbg(&hdmi->pdev->dev, "%s\n", __func__);
 
@@ -2040,9 +2044,10 @@ static void mxc_hdmi_cable_connected(struct mxc_hdmi *hdmi)
 		mxc_hdmi_edid_rebuild_modelist(hdmi);
 		break;
 
-	/* Rebuild even if they're the same in case only_cea changed */
+	/* Rebuild only if 'allow_non_cea' has changed */
 	case HDMI_EDID_SAME:
-		mxc_hdmi_edid_rebuild_modelist(hdmi);
+		if (hdmi->allow_non_cea != (!hdmi->edid_cfg.hdmi_cap || !only_cea))
+			mxc_hdmi_edid_rebuild_modelist(hdmi);
 		break;
 
 	case HDMI_EDID_FAIL:
@@ -2055,7 +2060,8 @@ static void mxc_hdmi_cable_connected(struct mxc_hdmi *hdmi)
 	}
 
 	/* Setting video mode */
-	mxc_hdmi_set_mode(hdmi);
+	mxc_hdmi_set_mode(hdmi,
+		memcmp(&modelist, &hdmi->fbi->modelist, sizeof(modelist)) != 0);
 
 	dev_dbg(&hdmi->pdev->dev, "%s exit\n", __func__);
 }
