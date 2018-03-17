@@ -77,8 +77,8 @@ static int only_cea = 1;
 module_param(only_cea, int, 0644);
 MODULE_PARM_DESC(only_cea, "Allow only CEA modes");
 
-static int keepalive = 1;
-module_param(keepalive, int, 0644);
+static int keepalive = 0;
+module_param(keepalive, int, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(keepalive, "Keep HDMI PHY running when unplugged");
 
 /*
@@ -1719,7 +1719,7 @@ static int mxc_hdmi_read_edid(struct mxc_hdmi *hdmi)
 	}
 
 	if (memcmp(hdmi->edid, edid_new, HDMI_EDID_LEN) == 0) {
-		dev_info(&hdmi->pdev->dev, "same edid\n");
+		dev_dbg(&hdmi->pdev->dev, "same edid\n");
 		return HDMI_EDID_SAME;
 	}
 
@@ -2112,26 +2112,22 @@ static void hotplug_worker(struct work_struct *work)
 	dev_dbg(&hdmi->pdev->dev, "hdmi_phy_stat0=0x%x, hdmi_phy_pol0=0x%x\n",
 			hdmi_phy_stat0, hdmi_phy_pol0);
 
-	/* Make HPD intr active low to capture unplug event or
-	 * active high to capture plugin event */
-	hdmi_writeb((HDMI_DVI_STAT & ~hdmi_phy_stat0), HDMI_PHY_POL0);
-
 	/* check cable status */
 	if (hdmi_phy_stat0 & HDMI_DVI_STAT) {
-		/* Plugin event */
-		dev_dbg(&hdmi->pdev->dev, "EVENT=plugin\n");
-		mxc_hdmi_cable_connected(hdmi);
+		if (!hdmi->cable_plugin) {
+			/* Plugin event */
+			dev_dbg(&hdmi->pdev->dev, "EVENT=plugin\n");
+			mxc_hdmi_cable_connected(hdmi);
+			hdmi_set_cable_state(1);
 
-		hdmi_set_cable_state(1);
-
-		sprintf(event_string, "EVENT=plugin");
-		kobject_uevent_env(&hdmi->pdev->dev.kobj, KOBJ_CHANGE, envp);
+			sprintf(event_string, "EVENT=plugin");
+			kobject_uevent_env(&hdmi->pdev->dev.kobj, KOBJ_CHANGE, envp);
 #ifdef CONFIG_MXC_HDMI_CEC
-		mxc_hdmi_cec_handle(0x80);
+			if (hdmi->edid_cfg.hdmi_cap)
+				mxc_hdmi_cec_handle(0x80);
 #endif
-		if (keepalive)
-                        hdmi_writeb(HDMI_DVI_STAT, HDMI_PHY_POL0);
-	} else if (!keepalive) {
+		}
+	} else if (hdmi->cable_plugin && !keepalive) {
 		/* Plugout event */
 		dev_dbg(&hdmi->pdev->dev, "EVENT=plugout\n");
 		hdmi_set_cable_state(0);
@@ -2141,7 +2137,8 @@ static void hotplug_worker(struct work_struct *work)
 		sprintf(event_string, "EVENT=plugout");
 		kobject_uevent_env(&hdmi->pdev->dev.kobj, KOBJ_CHANGE, envp);
 #ifdef CONFIG_MXC_HDMI_CEC
-		mxc_hdmi_cec_handle(0x100);
+		if (hdmi->edid_cfg.hdmi_cap)
+			mxc_hdmi_cec_handle(0x100);
 #endif
 	}
 
@@ -2150,6 +2147,9 @@ static void hotplug_worker(struct work_struct *work)
 	spin_lock_irqsave(&hdmi->irq_lock, flags);
 
 	if (!keepalive) {
+		/* Make HPD interrupt sensitive for the opposite level */
+		hdmi_writeb((HDMI_DVI_STAT & ~hdmi_phy_stat0), HDMI_PHY_POL0);
+
 		/* Re-enable HPD interrupts */
 		hdmi_phy_mask0 = hdmi_readb(HDMI_PHY_MASK0);
 		hdmi_phy_mask0 &= ~HDMI_DVI_STAT;
@@ -2222,7 +2222,8 @@ static irqreturn_t mxc_hdmi_hotplug(int irq, void *data)
 		/* Clear Hotplug interrupts */
 		hdmi_writeb(HDMI_DVI_IH_STAT, HDMI_IH_PHY_STAT0);
 
-		schedule_delayed_work(&(hdmi->hotplug_work), msecs_to_jiffies(20));
+		/* Note: the delay is for debouncing */
+		schedule_delayed_work(&(hdmi->hotplug_work), msecs_to_jiffies(500));
 	}
 
 	/* Check HDCP  interrupt state */
@@ -2734,21 +2735,6 @@ static int mxc_hdmi_disp_init(struct mxc_dispdrv_handle *disp,
 	/* Default setting HDMI working in HDMI mode*/
 	hdmi->edid_cfg.hdmi_cap = true;
 
-	INIT_DELAYED_WORK(&hdmi->hotplug_work, hotplug_worker);
-	INIT_DELAYED_WORK(&hdmi->hdcp_hdp_work, hdcp_hdp_worker);
-
-	/* Configure registers related to HDMI interrupt
-	 * generation before registering IRQ. */
-	hdmi_writeb(HDMI_DVI_STAT, HDMI_PHY_POL0);
-
-	/* Clear Hotplug interrupts */
-	hdmi_writeb(HDMI_DVI_IH_STAT, HDMI_IH_PHY_STAT0);
-
-	hdmi->nb.notifier_call = mxc_hdmi_fb_event;
-	ret = fb_register_client(&hdmi->nb);
-	if (ret < 0)
-		goto efbclient;
-
 	memset(&hdmi->hdmi_data, 0, sizeof(struct hdmi_data_info));
 
 	/* Default HDMI working in RGB mode */
@@ -2764,6 +2750,16 @@ static int mxc_hdmi_disp_init(struct mxc_dispdrv_handle *disp,
 		hdmi->hdmi_data.rgb_quant_range = HDMI_FC_AVICONF2_RGB_QUANT_MASK;
 	}
 
+	INIT_DELAYED_WORK(&hdmi->hotplug_work, hotplug_worker);
+	INIT_DELAYED_WORK(&hdmi->hdcp_hdp_work, hdcp_hdp_worker);
+
+	/* Configure registers related to HDMI interrupt
+	 * generation before registering IRQ. */
+	hdmi_writeb(HDMI_DVI_STAT, HDMI_PHY_POL0);
+
+	/* Clear Hotplug interrupts */
+	hdmi_writeb(HDMI_DVI_IH_STAT, HDMI_IH_PHY_STAT0);
+
 	ret = devm_request_irq(&hdmi->pdev->dev, irq, mxc_hdmi_hotplug, IRQF_SHARED,
 			dev_name(&hdmi->pdev->dev), hdmi);
 	if (ret < 0) {
@@ -2771,6 +2767,11 @@ static int mxc_hdmi_disp_init(struct mxc_dispdrv_handle *disp,
 			"Unable to request irq: %d\n", ret);
 		goto ereqirq;
 	}
+
+	hdmi->nb.notifier_call = mxc_hdmi_fb_event;
+	ret = fb_register_client(&hdmi->nb);
+	if (ret < 0)
+		goto efbclient;
 
 	ret = device_create_file(&hdmi->pdev->dev, &dev_attr_fb_name);
 	if (ret < 0)
