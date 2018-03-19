@@ -36,6 +36,8 @@
 #define REG_MONTHS   0x08
 #define REG_YEARS    0x09
 
+#define SOFTWARE_RESET 0x58
+
 struct pcf8523 {
 	struct rtc_device *rtc;
 };
@@ -241,9 +243,8 @@ static int pcf8523_start_rtc(struct i2c_client *client)
 	return 0;
 }
 
-static int pcf8523_rtc_read_time(struct device *dev, struct rtc_time *tm)
+static int pcf8523_get_datetime(struct i2c_client *client, struct rtc_time *tm)
 {
-	struct i2c_client *client = to_i2c_client(dev);
 	u8 start = REG_SECONDS, regs[7];
 	struct i2c_msg msgs[2];
 	int err;
@@ -272,6 +273,18 @@ static int pcf8523_rtc_read_time(struct device *dev, struct rtc_time *tm)
 	tm->tm_wday = regs[4] & 0x7;
 	tm->tm_mon = bcd2bin(regs[5] & 0x1f) - 1;
 	tm->tm_year = bcd2bin(regs[6]) + 100;
+
+	return 0;
+}
+
+static int pcf8523_rtc_read_time(struct device *dev, struct rtc_time *tm)
+{
+	struct i2c_client *client = to_i2c_client(dev);
+	int err;
+
+	err = pcf8523_get_datetime(client, tm);
+	if (err < 0)
+		return err;
 
 	return rtc_valid_tm(tm);
 }
@@ -369,6 +382,7 @@ static int pcf8523_probe(struct i2c_client *client,
 	struct device_node *np = client->dev.of_node;
 #endif
 	struct pcf8523 *pcf;
+	struct rtc_time tm;
 	u8 value;
 	int err;
 
@@ -403,6 +417,13 @@ static int pcf8523_probe(struct i2c_client *client,
 	err = pcf8523_set_pm(client, 0);
 	if (err < 0)
 		return err;
+
+	err = pcf8523_get_datetime(client, &tm);
+	if (err < 0 || ((tm.tm_year - 100) >= 38)) {
+		dev_info(&client->dev, "problem getting date or invalid date, \
+					performing a software reset\n");
+		pcf8523_write(client, REG_CONTROL1, SOFTWARE_RESET);
+	}
 
 	pcf->rtc = devm_rtc_device_register(&client->dev, DRIVER_NAME,
 				       &pcf8523_rtc_ops, THIS_MODULE);
