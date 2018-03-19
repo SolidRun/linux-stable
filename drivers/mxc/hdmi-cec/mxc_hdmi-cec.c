@@ -532,6 +532,8 @@ static int hdmi_cec_dev_probe(struct platform_device *pdev)
 	}
 	spin_lock_init(&hdmi_cec_data.irq_lock);
 
+	INIT_DELAYED_WORK(&hdmi_cec_data.hdmi_cec_work, mxc_hdmi_cec_worker);
+
 	err = devm_request_irq(&pdev->dev, irq, mxc_hdmi_cec_isr, IRQF_SHARED,
 			dev_name(&pdev->dev), &hdmi_cec_data);
 	if (err < 0) {
@@ -567,7 +569,6 @@ static int hdmi_cec_dev_probe(struct platform_device *pdev)
 	hdmi_cec_data.Logical_address = 15;
 	hdmi_cec_data.tx_answer = CEC_TX_AVAIL;
 	platform_set_drvdata(pdev, &hdmi_cec_data);
-	INIT_DELAYED_WORK(&hdmi_cec_data.hdmi_cec_work, mxc_hdmi_cec_worker);
 
 	dev_info(&pdev->dev, "HDMI CEC initialized\n");
 	goto out;
