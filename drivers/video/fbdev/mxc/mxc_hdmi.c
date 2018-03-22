@@ -2063,6 +2063,10 @@ static void mxc_hdmi_cable_connected(struct mxc_hdmi *hdmi)
 	mxc_hdmi_set_mode(hdmi,
 		memcmp(&modelist, &hdmi->fbi->modelist, sizeof(modelist)) != 0);
 
+	console_lock();
+	fb_blank(hdmi->fbi, FB_BLANK_UNBLANK);
+	console_unlock();
+
 	dev_dbg(&hdmi->pdev->dev, "%s exit\n", __func__);
 }
 
@@ -2087,6 +2091,10 @@ static void mxc_hdmi_cable_disconnected(struct mxc_hdmi *hdmi)
 	u8  clkdis;
 
 	dev_dbg(&hdmi->pdev->dev, "%s\n", __func__);
+
+	console_lock();
+	fb_blank(hdmi->fbi, FB_BLANK_POWERDOWN);
+	console_unlock();
 
 	/* Save CEC clock */
 	clkdis = hdmi_readb(HDMI_MC_CLKDIS) & HDMI_MC_CLKDIS_CECCLK_DISABLE;
@@ -2372,6 +2380,8 @@ static void mxc_hdmi_fb_registered(struct mxc_hdmi *hdmi)
 
 	if (hdmi->fb_reg)
 		return;
+
+	fb_blank(hdmi->fbi, FB_BLANK_POWERDOWN);
 
 	spin_lock_irqsave(&hdmi->irq_lock, flags);
 
