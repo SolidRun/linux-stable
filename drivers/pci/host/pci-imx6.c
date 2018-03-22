@@ -79,6 +79,7 @@ struct imx_pcie {
 	struct clk		*pcie;
 	struct clk		*pcie_ext_src;
 	struct regmap		*iomuxc_gpr;
+	struct regmap		*ccm_base;
 	enum imx_pcie_variants variant;
 	u32			hsio_cfg;
 	u32			tx_deemph_gen1;
@@ -1064,9 +1065,15 @@ static void imx_pcie_init_phy(struct imx_pcie *imx_pcie)
 		else
 			val = IOMUXC_GPR16;
 
-		regmap_update_bits(imx_pcie->iomuxc_gpr, val,
-				IMX8MQ_GPR_PCIE_REF_USE_PAD,
-				IMX8MQ_GPR_PCIE_REF_USE_PAD);
+		if (imx_pcie->ext_osc) {
+			regmap_update_bits(imx_pcie->iomuxc_gpr, val,
+					IMX8MQ_GPR_PCIE_REF_USE_PAD,
+					IMX8MQ_GPR_PCIE_REF_USE_PAD);
+		} else {
+			regmap_update_bits(imx_pcie->iomuxc_gpr, val,
+					IMX8MQ_GPR_PCIE_REF_USE_PAD,
+					0);
+		}
 	} else if (imx_pcie->variant == IMX7D) {
 		/* Enable PCIe PHY 1P0D */
 		regulator_set_voltage(imx_pcie->pcie_phy_regulator,
@@ -2218,6 +2225,12 @@ static int imx_pcie_probe(struct platform_device *pdev)
 			dev_err(&pdev->dev,
 				"imx8mq pcie phy src missing or invalid\n");
 			return PTR_ERR(imx_pcie->reg_gpc);
+		}
+
+		if (!imx_pcie->ext_osc) {
+			imx_pcie->ccm_base=syscon_regmap_lookup_by_compatible("fsl,imx8mq-anatop");
+			regmap_update_bits(imx_pcie->ccm_base, 0x74, 0xFFFFFFFF, 0x1B);
+			regmap_update_bits(imx_pcie->ccm_base, 0x7C, 0xFFFFFFFF, 0x77777);
 		}
 	} else if (imx_pcie->variant == IMX6SX) {
 		imx_pcie->pcie_inbound_axi = devm_clk_get(&pdev->dev,
