@@ -1040,7 +1040,7 @@ static bool mxcfb_can_set_par_on_the_fly(struct fb_info *fbi,
 	if (new_space == YCbCr)
 		return false;
 
-	mem_len = fbi->var.yres_virtual * fbi->fix.line_length;
+	mem_len = ALIGN(fbi->var.yres_virtual, 16) * fbi->fix.line_length;
 	if (mxc_fbi->resolve && mxc_fbi->gpu_sec_buf_off) {
 		if (fbi->var.vmode & FB_VMODE_YWRAP)
 			mem_len = mxc_fbi->gpu_sec_buf_off + mem_len / 2;
@@ -2943,8 +2943,8 @@ static int mxcfb_map_video_memory(struct fb_info *fbi)
 {
 	struct mxcfb_info *mxc_fbi = (struct mxcfb_info *)fbi->par;
 
-	if (fbi->fix.smem_len < fbi->var.yres_virtual * fbi->fix.line_length)
-		fbi->fix.smem_len = fbi->var.yres_virtual *
+	if (fbi->fix.smem_len < ALIGN(fbi->var.yres_virtual, 16) * fbi->fix.line_length)
+		fbi->fix.smem_len = ALIGN(fbi->var.yres_virtual, 16) *
 				    fbi->fix.line_length;
 
 	if (mxc_fbi->resolve && mxc_fbi->gpu_sec_buf_off) {
