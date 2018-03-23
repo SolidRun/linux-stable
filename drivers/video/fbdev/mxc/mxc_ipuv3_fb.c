@@ -120,6 +120,7 @@ struct mxcfb_info {
 	bool cur_prefetch;
 	spinlock_t spin_lock;	/* for PRE small yres cases */
 	struct ipu_pre_context *pre_config;
+	bool triple_buffer;
 };
 
 struct mxcfb_pfmt {
@@ -1189,6 +1190,10 @@ static int mxcfb_set_par(struct fb_info *fbi)
 	if (fbi->var.xres == 0 || fbi->var.yres == 0)
 		return 0;
 
+	if (fbi->var.xres_virtual == 0 || fbi->var.yres_virtual == 0)
+		return 0;
+
+
 	prev_line_length = fbi->fix.line_length;
 	mxcfb_set_fix(fbi);
 
@@ -1658,7 +1663,6 @@ static int mxcfb_check_var(struct fb_var_screeninfo *var, struct fb_info *info)
 	unsigned int fr_xoff, fr_yoff, fr_w, fr_h, line_length;
 	unsigned long base = 0;
 	int ret, bw = 0, bh = 0;
-	bool triple_buffer = false;
 
 	if (var->xres == 0 || var->yres == 0)
 		return 0;
@@ -1711,9 +1715,8 @@ static int mxcfb_check_var(struct fb_var_screeninfo *var, struct fb_info *info)
 	if (var->xres_virtual < var->xres)
 		var->xres_virtual = var->xres;
 
-	if (var->yres_virtual < var->yres) {
+	if (mxc_fbi->triple_buffer) {
 		var->yres_virtual = var->yres * 3;
-		triple_buffer = true;
 	}
 
 	if ((var->bits_per_pixel != 32) && (var->bits_per_pixel != 24) &&
@@ -1731,7 +1734,7 @@ static int mxcfb_check_var(struct fb_var_screeninfo *var, struct fb_info *info)
 	if (ipu_pixel_format_is_gpu_tile(var->nonstd)) {
 		fmt_to_tile_alignment(var->nonstd, &bw, &bh);
 		var->xres_virtual = ALIGN(var->xres_virtual, bw);
-		if (triple_buffer)
+		if (mxc_fbi->triple_buffer)
 			var->yres_virtual = 3 * ALIGN(var->yres, bh);
 		else
 			var->yres_virtual = ALIGN(var->yres_virtual, bh);
@@ -3470,6 +3473,8 @@ static int mxcfb_option_setup(struct platform_device *pdev, struct fb_info *fbi)
 			fb_pix_fmt = bpp_to_pixfmt(pdata->default_bpp);
 			if (fb_pix_fmt)
 				pixfmt_to_var(fb_pix_fmt, &fbi->var);
+		} else if (!strncmp(opt, "single_buffer", 13)) {
+			pdata->single_buffer = true;
 		} else
 			fb_mode_str = opt;
 	}
@@ -3764,6 +3769,7 @@ static int mxcfb_get_of_property(struct platform_device *pdev,
 		return err;
 	}
 
+	plat_data->single_buffer = of_property_read_bool(np, "single_buffer");
 	plat_data->prefetch = of_property_read_bool(np, "prefetch");
 	err = of_property_read_u32(np, "di_msb", &di_msb);
 	if (!err)
@@ -3838,6 +3844,7 @@ static int mxcfb_probe(struct platform_device *pdev)
 	mxcfbi = (struct mxcfb_info *)fbi->par;
 	mxcfbi->ipu_int_clk = plat_data->int_clk;
 	mxcfbi->late_init = plat_data->late_init;
+	mxcfbi->triple_buffer = !plat_data->single_buffer;
 	mxcfbi->fb_pix_fmt = plat_data->fb_pix_fmt;
 	mxcfbi->first_set_par = true;
 	mxcfbi->prefetch = plat_data->prefetch;

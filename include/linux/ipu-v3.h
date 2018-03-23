@@ -758,6 +758,7 @@ struct ipuv3_fb_platform_data {
 	char				*mode_str;
 	int				default_bpp;
 	bool				int_clk;
+	bool				single_buffer;
 
 	/* reserved mem */
 	resource_size_t 		res_base[2];
