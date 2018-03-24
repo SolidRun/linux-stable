@@ -1062,21 +1062,6 @@ static int sdma_disable_channel(struct dma_chan *chan)
 	return 0;
 }
 
-static int sdma_disable_channel_with_delay(struct dma_chan *chan)
-{
-	sdma_disable_channel(chan);
-
-	/*
-	 * According to NXP R&D team a delay of one BD SDMA cost time
-	 * (maximum is 1ms) should be added after disable of the channel
-	 * bit, to ensure SDMA core has really been stopped after SDMA
-	 * clients call .device_terminate_all.
-	 */
-	mdelay(1);
-
-	return 0;
-}
-
 static void sdma_set_watermarklevel_for_p2p(struct sdma_channel *sdmac)
 {
 	struct sdma_engine *sdma = sdmac->sdma;
