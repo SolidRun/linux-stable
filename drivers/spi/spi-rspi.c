@@ -1051,6 +1051,10 @@ static int qspi_setup_sequencer(struct rspi_data *rspi,
 	}
 	if (i) {
 		/* Set final transfer data length and sequence length */
+		rspi_write16(rspi,
+			rspi_read16(rspi, RSPI_SPCMD(i - 1)) &
+			~SPCMD_SSLKP,
+			RSPI_SPCMD(i - 1));
 		rspi_write32(rspi, len, QSPI_SPBMUL(i - 1));
 		rspi_write8(rspi, i - 1, RSPI_SPSCR);
 	}
