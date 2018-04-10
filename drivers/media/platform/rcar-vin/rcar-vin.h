@@ -31,6 +31,10 @@
 /* Max number on VIN instances that can be in a system */
 #define RCAR_VIN_NUM 8
 
+/* The base for the r8a7747x driver controls.
+ * We reserve 16 controls for this driver. */
+#define V4L2_CID_USER_R8A7747X_BASE		(V4L2_CID_USER_BASE + 0x1090)
+
 struct rvin_group;
 
 enum model_id {
