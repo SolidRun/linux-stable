@@ -1960,7 +1960,7 @@ static void mxc_hdmi_set_mode_to_vga_dvi(struct mxc_hdmi *hdmi)
 	fb_videomode_to_var(&hdmi->fbi->var, &vga_mode);
 
 	hdmi->requesting_vga_for_initialization = true;
-	mxc_hdmi_notify_fb(hdmi);
+	mxc_hdmi_setup(hdmi, 0);
 	hdmi->requesting_vga_for_initialization = false;
 }
 
