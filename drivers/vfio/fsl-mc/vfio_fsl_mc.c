@@ -18,10 +18,7 @@
 #include <linux/types.h>
 #include <linux/vfio.h>
 #include <linux/delay.h>
-
-#include "../../staging/fsl-mc/include/mc.h"
-#include "../../staging/fsl-mc/include/dprc.h"
-#include "../../staging/fsl-mc/bus/dprc-cmd.h"
+#include <linux/fsl/mc.h>
 
 #include "vfio_fsl_mc_private.h"
 
