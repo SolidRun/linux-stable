@@ -466,9 +466,11 @@ int btbcm_setup_patchram(struct hci_dev *hdev)
 	if (err)
 		return err;
 
-	switch ((rev & 0xf000) >> 12) {
-	case 0:
-	case 3:
+	/* Upper nibble of rev should be between 0 and 3? */
+	if (((rev & 0xf000) >> 12) > 3)
+		return 0;
+
+	if (hdev->bus != HCI_USB) {
 		for (i = 0; bcm_uart_subver_table[i].name; i++) {
 			if (subver == bcm_uart_subver_table[i].subver) {
 				hw_name = bcm_uart_subver_table[i].name;
@@ -478,9 +480,7 @@ int btbcm_setup_patchram(struct hci_dev *hdev)
 
 		snprintf(fw_name, sizeof(fw_name), "brcm/%s.hcd",
 			 hw_name ? : "BCM");
-		break;
-	case 1:
-	case 2:
+	} else {
 		/* Read USB Product Info */
 		skb = btbcm_read_usb_product(hdev);
 		if (IS_ERR(skb))
@@ -499,9 +499,6 @@ int btbcm_setup_patchram(struct hci_dev *hdev)
 
 		snprintf(fw_name, sizeof(fw_name), "brcm/%s-%4.4x-%4.4x.hcd",
 			 hw_name ? : "BCM", vid, pid);
-		break;
-	default:
-		return 0;
 	}
 
 	bt_dev_info(hdev, "%s (%3.3u.%3.3u.%3.3u) build %4.4u",
