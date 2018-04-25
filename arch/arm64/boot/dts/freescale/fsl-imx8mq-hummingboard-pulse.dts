@@ -250,7 +250,7 @@
 		pinctrl_typec: typecgrp {
 			fsl,pins = <
 				MX8MQ_IOMUXC_NAND_RE_B_GPIO3_IO15	0x16
-				MX8MQ_IOMUXC_NAND_CE2_B_GPIO3_IO3	0x17059
+				MX8MQ_IOMUXC_GPIO1_IO06_GPIO1_IO6	0x17059
 			>;
 		};
 
@@ -351,6 +351,24 @@
 				remote-endpoint = <&mipi2_sensor_ep>;
 			};
 		};
+	};
+
+	typec_ptn5100: ptn5110@50 {
+		compatible = "usb,tcpci";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_typec>;
+		reg = <0x50>;
+		interrupt-parent = <&gpio1>;
+		interrupts = <6 8>;
+		ss-sel-gpios = <&gpio3 15 GPIO_ACTIVE_HIGH>;
+		src-pdos = <0x380190c8>;
+		snk-pdos = <0x380190c8 0x3802d0c8>;
+		max-snk-mv = <9000>;
+		max-snk-ma = <2000>;
+		op-snk-mw = <9000>;
+		max-snk-mw = <18000>;
+		port-type = "drp";
+		default-role = "sink";
 	};
 };
 
@@ -471,7 +489,7 @@
 
 &usb_dwc3_0 {
 	status = "okay";
-	//extcon = <&typec_ptn5100>;
+	extcon = <&typec_ptn5100>;
 	dr_mode = "otg";
 };
 
