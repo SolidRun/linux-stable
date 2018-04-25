@@ -170,8 +170,10 @@
 
 		pinctrl_csi2: csi2grp {
 			fsl,pins = <
+/* Place holder until PowerDown and Reset GPIOs are finalized.
 				MX8MQ_IOMUXC_GPIO1_IO05_GPIO1_IO5		0x19
 				MX8MQ_IOMUXC_GPIO1_IO06_GPIO1_IO6		0x19
+*/
 				MX8MQ_IOMUXC_GPIO1_IO15_CCMSRCGPCMIX_CLKO2	0x59
 			>;
 		};
@@ -338,8 +340,10 @@
 		assigned-clock-parents = <&clk IMX8MQ_SYS2_PLL_200M>;
 		assigned-clock-rates = <0>, <20000000>;
 		csi_id = <0>;
+/*
 		pwn-gpios = <&gpio1 5 GPIO_ACTIVE_HIGH>;
 		rst-gpios = <&gpio1 6 GPIO_ACTIVE_HIGH>;
+*/
 		mclk = <20000000>;
 		mclk_source = <0>;
 		port {
