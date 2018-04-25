@@ -377,6 +377,11 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_i2c3>;
 	status = "okay";
+
+	rtc@69 {
+		compatible = "abracon,ab1805";
+		reg = <0x69>;
+	};
 };
 
 &mipi_csi_2 {
