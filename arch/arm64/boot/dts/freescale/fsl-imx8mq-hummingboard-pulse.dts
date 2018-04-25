@@ -1,0 +1,548 @@
+/*
+ * Copyright (C) 2018 Jon Nettleton <jon@solid-run.com>
+ *
+ * This file is dual-licensed: you can use it either under the terms
+ * of the GPL or the X11 license, at your option. Note that this dual
+ * licensing only applies to this file, and not this project as a
+ * whole.
+ *
+ *  a) This file is free software; you can redistribute it and/or
+ *     modify it under the terms of the GNU General Public License
+ *     version 2 as published by the Free Software Foundation.
+ *
+ *     This file is distributed in the hope that it will be useful,
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU General Public License for more details.
+ *
+ * Or, alternatively,
+ *
+ *  b) Permission is hereby granted, free of charge, to any person
+ *     obtaining a copy of this software and associated documentation
+ *     files (the "Software"), to deal in the Software without
+ *     restriction, including without limitation the rights to use,
+ *     copy, modify, merge, publish, distribute, sublicense, and/or
+ *     sell copies of the Software, and to permit persons to whom the
+ *     Software is furnished to do so, subject to the following
+ *     conditions:
+ *
+ *     The above copyright notice and this permission notice shall be
+ *     included in all copies or substantial portions of the Software.
+ *
+ *     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ *     EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ *     OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ *     NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ *     HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ *     WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ *     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ *     OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+/dts-v1/;
+
+#include "fsl-imx8mq.dtsi"
+#include "fsl-imx8mq-sr-som.dtsi"
+
+/ {
+	model = "SolidRun i.MX8MQ HummingBoard Pulse";
+	compatible = "solidrun,hummingboard-pulse", "fsl,imx8mq";
+
+	chosen {
+		bootargs = "console=ttymxc0,115200 earlycon=ec_imx6q,0x30860000,115200";
+		stdout-path = &uart1;
+	};
+
+	display-subsystem {
+		compatible = "fsl,imx-display-subsystem";
+		memory-region = <&graphics_mem>;
+		ports = <&dcss_port>;
+	};
+
+	regulators {
+		compatible = "simple-bus";
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		reg_audio: audio {
+			compatible = "regulator-fixed";
+			regulator-name = "wm8904_supply";
+			regulator-min-microvolt = <3300000>;
+			regulator-max-microvolt = <3300000>;
+			regulator-always-on;
+		};
+
+		reg_usdhc2_vmmc: usdhc2_vmmc {
+			compatible = "regulator-fixed";
+			regulator-name = "VSD_3V3";
+			regulator-min-microvolt = <3300000>;
+			regulator-max-microvolt = <3300000>;
+			gpio = <&gpio2 19 GPIO_ACTIVE_HIGH>;
+			enable-active-high;
+		};
+
+		v_5v0: regulator-v-5v0 {
+			compatible = "regulator-fixed";
+			regulator-always-on;
+			regulator-max-microvolt = <5000000>;
+			regulator-min-microvolt = <5000000>;
+			regulator-name = "v_5v0";
+		};
+	};
+
+	sound-wm8904 {
+		compatible = "fsl,imx-audio-wm8904";
+		model = "imx-wm8904";
+		audio-cpu = <&sai2>;
+		audio-codec = <&wm8904>;
+		audio-routing =
+			"Headphone Jack", "HPOUTL",
+			"Headphone Jack", "HPOUTR",
+			"IN1L", "Mic Jack",
+			"Playback", "CPU-Playback",
+			"CPU-Capture", "Capture";
+	};
+
+	sound-hdmi {
+		compatible = "fsl,imx8mq-evk-cdnhdmi",
+				"fsl,imx-audio-cdnhdmi";
+		model = "imx-audio-hdmi";
+		audio-cpu = <&sai4>;
+		protocol = <1>;
+		hdmi-out;
+		constraint-rate = <44100>,
+				<88200>,
+				<176400>,
+				<32000>,
+				<48000>,
+				<96000>,
+				<192000>;
+	};
+
+	sound-spdif {
+		compatible = "fsl,imx-audio-spdif";
+		model = "imx-spdif";
+		spdif-controller = <&spdif1>;
+		spdif-out;
+		spdif-in;
+	};
+
+	sound-hdmi-arc {
+		compatible = "fsl,imx-audio-spdif";
+		model = "imx-hdmi-arc";
+		spdif-controller = <&spdif2>;
+		spdif-in;
+	};
+};
+
+&clk {
+	assigned-clocks = <&clk IMX8MQ_AUDIO_PLL1>, <&clk IMX8MQ_AUDIO_PLL2>;
+	assigned-clock-rates = <786432000>, <722534400>;
+};
+
+&csi2_bridge {
+	fsl,mipi-mode;
+	fsl,two-8bit-sensor-mode;
+	status = "disabled";
+};
+
+&dcss {
+	disp-dev = "hdmi_disp";
+	status = "okay";
+};
+
+&hdmi {
+	status = "okay";
+};
+
+&iomuxc {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_hog>;
+
+	imx8mq-sr-hb {
+		pinctrl_hog: hoggrp {
+			fsl,pins = <
+				/* MikroBus Analog */
+				MX8MQ_IOMUXC_NAND_DATA05_GPIO3_IO11		0x41
+				/* MikroBus Reset */
+				MX8MQ_IOMUXC_SAI2_RXD0_GPIO4_IO23		0x41
+				/* The following 2 pins need to be commented out and
+				 * reconfigured to enable RTS/CTS on UART3
+				 */ 
+				/* MikroBus PWM */
+				MX8MQ_IOMUXC_ECSPI1_MISO_GPIO5_IO8		0x41
+				/* MikroBus INT */
+				MX8MQ_IOMUXC_ECSPI1_SS0_GPIO5_IO9		0x41
+			>;
+		};
+
+		pinctrl_i2c2: i2c2grp {
+			fsl,pins = <
+				MX8MQ_IOMUXC_I2C2_SCL_I2C2_SCL			0x4000007f
+				MX8MQ_IOMUXC_I2C2_SDA_I2C2_SDA			0x4000007f
+			>;
+		};
+
+		pinctrl_i2c3: i2c3grp {
+			fsl,pins = <
+				MX8MQ_IOMUXC_I2C3_SCL_I2C3_SCL			0x4000007f
+				MX8MQ_IOMUXC_I2C3_SDA_I2C3_SDA			0x4000007f
+			>;
+		};
+
+		pinctrl_sai1_pcm: sai1grp_pcm {
+			fsl,pins = <
+				MX8MQ_IOMUXC_SAI1_MCLK_SAI1_MCLK		0xd6
+				MX8MQ_IOMUXC_SAI1_TXFS_SAI1_TX_SYNC		0xd6
+				MX8MQ_IOMUXC_SAI1_RXD7_SAI1_TX_SYNC		0xd6
+				MX8MQ_IOMUXC_SAI1_TXC_SAI1_TX_BCLK		0xd6
+				MX8MQ_IOMUXC_SAI1_TXD0_SAI1_TX_DATA0		0xd6
+				MX8MQ_IOMUXC_SAI1_TXD1_SAI1_TX_DATA1		0xd6
+				MX8MQ_IOMUXC_SAI1_TXD2_SAI1_TX_DATA2		0xd6
+				MX8MQ_IOMUXC_SAI1_TXD3_SAI1_TX_DATA3		0xd6
+				MX8MQ_IOMUXC_SAI1_TXD4_SAI1_TX_DATA4		0xd6
+				MX8MQ_IOMUXC_SAI1_TXD5_SAI1_TX_DATA5		0xd6
+				MX8MQ_IOMUXC_SAI1_TXD6_SAI1_TX_DATA6		0xd6
+				MX8MQ_IOMUXC_SAI1_TXD7_SAI1_TX_DATA7		0xd6
+			>;
+		};
+
+		pinctrl_sai1_pcm_b2m: sai1grp_pcm_b2m {
+			fsl,pins = <
+				MX8MQ_IOMUXC_SAI1_MCLK_SAI1_MCLK		0xd6
+				MX8MQ_IOMUXC_SAI1_TXFS_SAI1_TX_SYNC		0xd6
+				MX8MQ_IOMUXC_SAI1_RXD7_SAI1_TX_SYNC		0xd6
+				MX8MQ_IOMUXC_SAI1_TXC_SAI1_TX_BCLK		0xd6
+				MX8MQ_IOMUXC_SAI1_TXD0_SAI1_TX_DATA0		0xd6
+				MX8MQ_IOMUXC_SAI1_TXD1_SAI1_TX_DATA1		0xd6
+				MX8MQ_IOMUXC_SAI1_TXD2_SAI1_TX_DATA2		0xd6
+				MX8MQ_IOMUXC_SAI1_TXD3_SAI1_TX_DATA3		0xd6
+				MX8MQ_IOMUXC_SAI1_TXD4_SAI1_TX_DATA4		0xd6
+				MX8MQ_IOMUXC_SAI1_TXD5_SAI1_TX_DATA5		0xd6
+				MX8MQ_IOMUXC_SAI1_TXD6_SAI1_TX_DATA6		0xd6
+				MX8MQ_IOMUXC_SAI1_TXD7_SAI1_TX_DATA7		0xd6
+			>;
+		};
+
+		pinctrl_sai1_dsd: sai1grp_dsd {
+			fsl,pins = <
+				MX8MQ_IOMUXC_SAI1_MCLK_SAI1_MCLK		0xd6
+				MX8MQ_IOMUXC_SAI1_TXFS_SAI1_TX_SYNC		0xd6
+				MX8MQ_IOMUXC_SAI1_RXD7_SAI1_TX_SYNC		0xd6
+				MX8MQ_IOMUXC_SAI1_TXC_SAI1_TX_BCLK		0xd6
+				MX8MQ_IOMUXC_SAI1_TXD0_SAI1_TX_DATA0		0xd6
+				MX8MQ_IOMUXC_SAI1_TXD1_SAI1_TX_DATA1		0xd6
+				MX8MQ_IOMUXC_SAI1_TXD2_SAI1_TX_DATA2		0xd6
+				MX8MQ_IOMUXC_SAI1_TXD3_SAI1_TX_DATA3		0xd6
+				MX8MQ_IOMUXC_SAI1_TXD4_SAI1_TX_DATA4		0xd6
+				MX8MQ_IOMUXC_SAI1_TXD5_SAI1_TX_DATA5		0xd6
+				MX8MQ_IOMUXC_SAI1_TXD6_SAI1_TX_DATA6		0xd6
+				MX8MQ_IOMUXC_SAI1_TXD7_SAI1_TX_DATA7		0xd6
+			>;
+		};
+
+		pinctrl_sai2: sai2grp {
+			fsl,pins = <
+				MX8MQ_IOMUXC_SAI2_TXFS_SAI2_TX_SYNC	0xd6
+				MX8MQ_IOMUXC_SAI2_TXC_SAI2_TX_BCLK	0xd6
+				MX8MQ_IOMUXC_SAI2_MCLK_SAI2_MCLK	0xd6
+				MX8MQ_IOMUXC_SAI2_TXD0_SAI2_TX_DATA0	0xd6
+				MX8MQ_IOMUXC_GPIO1_IO08_GPIO1_IO8	0xd6
+			>;
+		};
+
+		pinctrl_sai5: sai5grp {
+			fsl,pins = <
+				MX8MQ_IOMUXC_SAI5_MCLK_SAI5_MCLK	0xd6
+				MX8MQ_IOMUXC_SAI5_RXC_SAI5_RX_BCLK	0xd6
+				MX8MQ_IOMUXC_SAI5_RXFS_SAI5_RX_SYNC	0xd6
+				MX8MQ_IOMUXC_SAI5_RXD0_SAI5_RX_DATA0	0xd6
+				MX8MQ_IOMUXC_SAI5_RXD1_SAI5_RX_DATA1    0xd6
+				MX8MQ_IOMUXC_SAI5_RXD2_SAI5_RX_DATA2    0xd6
+				MX8MQ_IOMUXC_SAI5_RXD3_SAI5_RX_DATA3    0xd6
+			>;
+		};
+
+		pinctrl_spdif1: spdif1grp {
+			fsl,pins = <
+				MX8MQ_IOMUXC_SPDIF_TX_SPDIF1_OUT	0xd6
+				MX8MQ_IOMUXC_SPDIF_RX_SPDIF1_IN		0xd6
+			>;
+		};
+
+
+		pinctrl_typec: typecgrp {
+			fsl,pins = <
+				MX8MQ_IOMUXC_NAND_RE_B_GPIO3_IO15	0x16
+				MX8MQ_IOMUXC_GPIO1_IO06_GPIO1_IO6	0x17059
+			>;
+		};
+
+		pinctrl_uart2: uart2grp {
+			fsl,pins = <
+				MX8MQ_IOMUXC_UART2_TXD_UART2_DCE_TX		0x49
+				MX8MQ_IOMUXC_UART2_RXD_UART2_DCE_RX		0x49
+/* These pins are currently allocated to the uBLOX module on the SOM
+				MX8MQ_IOMUXC_UART4_RXD_UART2_DCE_CTS_B		0x49
+				MX8MQ_IOMUXC_UART4_TXD_UART2_DCE_RTS_B		0x49
+*/
+			>;
+		};
+
+		pinctrl_uart3: uart3grp {
+			fsl,pins = <
+				MX8MQ_IOMUXC_UART3_TXD_UART3_DCE_TX		0x49
+				MX8MQ_IOMUXC_UART3_RXD_UART3_DCE_RX		0x49
+				/* These pins are by default GPIO on the Mikro Bus
+				 * Header.  To use RTS/CTS on UART3 comment them out
+				 * of the hoggrp and enable them here
+				MX8MQ_IOMUXC_ECSPI1_MISO_UART3_DCE_CTS_B	0x49
+				MX8MQ_IOMUXC_ECSPI1_SS0_UART3_DCE_RTS_B		0x49
+				 */
+			>;
+		};
+
+		pinctrl_usbh1_vbus: usbh1-vbus {
+			fsl,pins = <MX8MQ_IOMUXC_NAND_CE1_B_GPIO3_IO2	0x19>;
+		};
+
+		pinctrl_usdhc2_gpio: usdhc2grpgpio {
+			fsl,pins = <
+				MX8MQ_IOMUXC_SD2_CD_B_GPIO2_IO12	0x41
+			>;
+		};
+
+		pinctrl_usdhc2: usdhc2grp {
+			fsl,pins = <
+				MX8MQ_IOMUXC_SD2_CLK_USDHC2_CLK			0x83
+				MX8MQ_IOMUXC_SD2_CMD_USDHC2_CMD			0xc3
+				MX8MQ_IOMUXC_SD2_DATA0_USDHC2_DATA0		0xc3
+				MX8MQ_IOMUXC_SD2_DATA1_USDHC2_DATA1		0xc3
+				MX8MQ_IOMUXC_SD2_DATA2_USDHC2_DATA2		0xc3
+				MX8MQ_IOMUXC_SD2_DATA3_USDHC2_DATA3		0xc3
+				MX8MQ_IOMUXC_GPIO1_IO04_USDHC2_VSELECT		0xc1
+			>;
+		};
+
+		pinctrl_usdhc2_100mhz: usdhc2grp100mhz {
+			fsl,pins = <
+				MX8MQ_IOMUXC_SD2_CLK_USDHC2_CLK			0x8d
+				MX8MQ_IOMUXC_SD2_CMD_USDHC2_CMD			0xcd
+				MX8MQ_IOMUXC_SD2_DATA0_USDHC2_DATA0		0xcd
+				MX8MQ_IOMUXC_SD2_DATA1_USDHC2_DATA1		0xcd
+				MX8MQ_IOMUXC_SD2_DATA2_USDHC2_DATA2		0xcd
+				MX8MQ_IOMUXC_SD2_DATA3_USDHC2_DATA3		0xcd
+				MX8MQ_IOMUXC_GPIO1_IO04_USDHC2_VSELECT		0xc1
+			>;
+		};
+
+		pinctrl_usdhc2_200mhz: usdhc2grp200mhz {
+			fsl,pins = <
+				MX8MQ_IOMUXC_SD2_CLK_USDHC2_CLK			0x9f
+				MX8MQ_IOMUXC_SD2_CMD_USDHC2_CMD			0xdf
+				MX8MQ_IOMUXC_SD2_DATA0_USDHC2_DATA0		0xdf
+				MX8MQ_IOMUXC_SD2_DATA1_USDHC2_DATA1		0xdf
+				MX8MQ_IOMUXC_SD2_DATA2_USDHC2_DATA2		0xdf
+				MX8MQ_IOMUXC_SD2_DATA3_USDHC2_DATA3		0xdf
+				MX8MQ_IOMUXC_GPIO1_IO04_USDHC2_VSELECT		0xc1
+			>;
+		};
+	};
+};
+
+&i2c2 {
+	clock-frequency = <100000>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_i2c2>;
+	status = "okay";
+
+	wm8904: codec@1a {
+		compatible = "wlf,wm8904";
+		reg = <0x1a>;
+		clocks = <&clk IMX8MQ_CLK_SAI2_ROOT>;
+		clock-names = "mclk";
+		DCVDD-supply = <&reg_audio>;
+		DBVDD-supply = <&reg_audio>;
+		AVDD-supply = <&reg_audio>;
+		CPVDD-supply = <&reg_audio>;
+		MICVDD-supply = <&reg_audio>;
+		gpio-cfg = <
+			0x0018 /* GPIO1 => DMIC_CLK */
+			0xffff /* GPIO2 => don't touch */
+			0xffff /* GPIO3 => don't touch */
+			0xffff /* GPIO4 => don't touch */
+		>;
+		status = "okay";
+	};
+
+	typec_ptn5100: ptn5110@50 {
+		compatible = "usb,tcpci";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_typec>;
+		reg = <0x50>;
+		interrupt-parent = <&gpio1>;
+		interrupts = <6 8>;
+		ss-sel-gpios = <&gpio3 15 GPIO_ACTIVE_HIGH>;
+		src-pdos = <0x380190c8>;
+		snk-pdos = <0x380190c8 0x3802d0c8>;
+		max-snk-mv = <9000>;
+		max-snk-ma = <2000>;
+		op-snk-mw = <9000>;
+		max-snk-mw = <18000>;
+		port-type = "drp";
+		default-role = "sink";
+	};
+};
+
+&i2c3 {
+	clock-frequency = <100000>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_i2c3>;
+	status = "okay";
+
+	rtc@69 {
+		compatible = "abracon,ab1805";
+		reg = <0x69>;
+		abracon,tc-diode = "schottky";
+		abracon,tc-resistor = <3>;
+	};
+};
+
+&mipi_csi_2 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+	status = "disabled";
+};
+
+&pcie1{
+	clocks = <&clk IMX8MQ_CLK_PCIE2_ROOT>,
+		<&clk IMX8MQ_CLK_PCIE2_AUX>,
+		<&clk IMX8MQ_CLK_PCIE2_PHY>,
+		<&clk IMX8MQ_CLK_CLK2_CG>;
+	clock-names = "pcie", "pcie_aux", "pcie_phy", "pcie_bus";
+	fsl,max-link-speed = <1>;
+	hard-wired = <1>;
+	status = "okay";
+};
+
+&sai1 {
+	pinctrl-names = "default", "pcm_b2m", "dsd";
+	pinctrl-0 = <&pinctrl_sai1_pcm>;
+	pinctrl-1 = <&pinctrl_sai1_pcm_b2m>;
+	pinctrl-2 = <&pinctrl_sai1_dsd>;
+	assigned-clocks = <&clk IMX8MQ_CLK_SAI1>;
+	assigned-clock-parents = <&clk IMX8MQ_AUDIO_PLL1_OUT>;
+	assigned-clock-rates = <49152000>;
+	clocks = <&clk IMX8MQ_CLK_SAI1_IPG>, <&clk IMX8MQ_CLK_DUMMY>,
+		<&clk IMX8MQ_CLK_SAI1_ROOT>, <&clk IMX8MQ_CLK_DUMMY>,
+		<&clk IMX8MQ_CLK_DUMMY>, <&clk IMX8MQ_AUDIO_PLL1_OUT>,
+		<&clk IMX8MQ_AUDIO_PLL2_OUT>;
+	clock-names = "bus", "mclk0", "mclk1", "mclk2", "mclk3", "pll8k", "pll11k";
+	fsl,sai-multi-lane;
+	fsl,dataline,dsd = <0 0xff 0xff 2 0xff 0x11>;
+	dmas = <&sdma2 8 26 0>, <&sdma2 9 26 0>;
+	status = "okay";
+};
+
+&sai2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_sai2>;
+	assigned-clocks = <&clk IMX8MQ_CLK_SAI2>;
+	assigned-clock-parents = <&clk IMX8MQ_AUDIO_PLL1_OUT>;
+	assigned-clock-rates = <24576000>;
+	status = "okay";
+};
+
+&sai4 {
+	assigned-clocks = <&clk IMX8MQ_CLK_SAI4>;
+	assigned-clock-parents = <&clk IMX8MQ_AUDIO_PLL1_OUT>;
+	assigned-clock-rates = <24576000>;
+	clocks = <&clk IMX8MQ_CLK_SAI4_IPG>, <&clk IMX8MQ_CLK_DUMMY>,
+		<&clk IMX8MQ_CLK_SAI4_ROOT>, <&clk IMX8MQ_CLK_DUMMY>,
+		<&clk IMX8MQ_CLK_DUMMY>, <&clk IMX8MQ_AUDIO_PLL1_OUT>,
+		<&clk IMX8MQ_AUDIO_PLL2_OUT>;
+	clock-names = "bus", "mclk0", "mclk1", "mclk2", "mclk3", "pll8k", "pll11k";
+	status = "okay";
+};
+
+&sai5 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_sai5>;
+	assigned-clocks = <&clk IMX8MQ_CLK_SAI5>;
+	assigned-clock-parents = <&clk IMX8MQ_AUDIO_PLL1_OUT>;
+	assigned-clock-rates = <49152000>;
+	clocks = <&clk IMX8MQ_CLK_SAI5_IPG>, <&clk IMX8MQ_CLK_DUMMY>,
+		<&clk IMX8MQ_CLK_SAI5_ROOT>, <&clk IMX8MQ_CLK_DUMMY>,
+		<&clk IMX8MQ_CLK_DUMMY>, <&clk IMX8MQ_AUDIO_PLL1_OUT>,
+		<&clk IMX8MQ_AUDIO_PLL2_OUT>;
+	clock-names = "bus", "mclk0", "mclk1", "mclk2", "mclk3", "pll8k", "pll11k";
+	fsl,sai-asynchronous;
+	status = "okay";
+};
+
+&snvs_pwrkey {
+	status = "disabled";
+};
+
+&spdif1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_spdif1>;
+	assigned-clocks = <&clk IMX8MQ_CLK_SPDIF1>;
+	assigned-clock-parents = <&clk IMX8MQ_AUDIO_PLL1_OUT>;
+	assigned-clock-rates = <24576000>;
+	status = "okay";
+};
+
+&spdif2 {
+	assigned-clocks = <&clk IMX8MQ_CLK_SPDIF2>;
+	assigned-clock-parents = <&clk IMX8MQ_AUDIO_PLL1_OUT>;
+	assigned-clock-rates = <24576000>;
+	status = "okay";
+};
+
+&uart2 { /* J-Header */
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_uart2>;
+	assigned-clocks = <&clk IMX8MQ_CLK_UART2>;
+	assigned-clock-parents = <&clk IMX8MQ_CLK_25M>;
+	status = "okay";
+};
+
+&uart3 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_uart3>;
+	assigned-clocks = <&clk IMX8MQ_CLK_UART3>;
+	assigned-clock-parents = <&clk IMX8MQ_SYS1_PLL_80M>;
+	fsl,uart-has-rtscts;
+	status = "okay";
+};
+
+&usdhc2 {
+	pinctrl-names = "default", "state_100mhz", "state_200mhz";
+	pinctrl-0 = <&pinctrl_usdhc2>, <&pinctrl_usdhc2_gpio>;
+	pinctrl-1 = <&pinctrl_usdhc2_100mhz>, <&pinctrl_usdhc2_gpio>;
+	pinctrl-2 = <&pinctrl_usdhc2_200mhz>, <&pinctrl_usdhc2_gpio>;
+	cd-gpios = <&gpio2 12 GPIO_ACTIVE_LOW>;
+	vmmc-supply = <&reg_usdhc2_vmmc>;
+	status = "okay";
+};
+
+&usb_dwc3_0 {
+	status = "okay";
+	extcon = <&typec_ptn5100>;
+	dr_mode = "otg";
+};
+
+&usb_dwc3_1 {
+	status = "okay";
+	dr_mode = "host";
+	snps,host-vbus-glitches;
+};
+
+&usb3_phy0 {
+	status = "okay";
+};
+
+&usb3_phy1 {
+	status = "okay";
+};

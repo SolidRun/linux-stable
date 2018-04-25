@@ -151,7 +151,8 @@ static int imx8mq_cpufreq_init(struct cpufreq_policy *policy)
 		return ret;
 	}
 
-	policy->suspend_freq = policy->max;
+	if (!policy->suspend_freq)
+		policy->suspend_freq = policy->max;
 
 	return 0;
 }
