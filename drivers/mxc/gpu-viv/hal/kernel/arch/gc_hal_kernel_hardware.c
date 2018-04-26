@@ -3755,7 +3755,7 @@ gckHARDWARE_Link(
             gckOS_MemoryBarrier(Hardware->os, logical + 1));
 
         /* Compute number of 64-byte aligned bytes to fetch. */
-        bytes = gcmALIGN(FetchAddress + FetchSize, 64) - FetchAddress;
+        bytes = gcmALIGN(FetchAddress + FetchSize, 8) - FetchAddress;
 
         /* Append LINK(bytes / 8), FetchAddress. */
         link = ((((gctUINT32) (0)) & ~(((gctUINT32) (((gctUINT32) ((((1 ?
