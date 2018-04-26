@@ -1175,6 +1175,14 @@ typedef enum _gceSURF_FORMAT
 }
 gceSURF_FORMAT;
 
+typedef enum _gceIMAGE_MEM_TYPE
+{
+    gcvIMAGE_MEM_DEFAULT,
+    gcvIMAGE_MEM_HOST_PTR,
+    gcvIMAGE_MEM_HOST_PTR_UNCACHED,
+}
+gceIMAGE_MEM_TYPE;
+
 typedef enum _gceSURF_YUV_COLOR_SPACE
 {
     gcvSURF_ITU_REC601,
