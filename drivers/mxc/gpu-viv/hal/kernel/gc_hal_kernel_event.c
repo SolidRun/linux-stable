@@ -2334,16 +2334,6 @@ gckEVENT_Notify(
 
         gckOS_AtomGet(Event->os, Event->pending, (gctINT32_PTR)&pending);
 
-        if (pending == 0)
-        {
-            /* Release the mutex queue. */
-            gcmkONERROR(gckOS_ReleaseMutex(Event->os, Event->eventQueueMutex));
-            acquired = gcvFALSE;
-
-            /* No more pending interrupts - done. */
-            break;
-        }
-
         if (pending & 0x80000000)
         {
             gcmkPRINT("AXI BUS ERROR");
@@ -2368,6 +2358,12 @@ gckEVENT_Notify(
 #endif
 
             pending &= 0xBFFFFFFF;
+        }
+
+        if (pending == 0)
+        {
+            /* No more pending interrupts - done. */
+            break;
         }
 
         gcmkTRACE_ZONE_N(
