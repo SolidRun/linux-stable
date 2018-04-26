@@ -2127,12 +2127,6 @@ gckEVENT_Notify(
     {
         gcsEVENT_PTR record;
 
-        /* Grab the mutex queue. */
-        gcmkONERROR(gckOS_AcquireMutex(Event->os,
-                                       Event->eventQueueMutex,
-                                       gcvINFINITE));
-        acquired = gcvTRUE;
-
         gckOS_AtomGet(Event->os, Event->pending, (gctINT32_PTR)&pending);
 
         if (pending == 0)
@@ -2178,6 +2172,12 @@ gckEVENT_Notify(
             );
 
         queue = gcvNULL;
+
+        /* Grab the mutex queue. */
+        gcmkONERROR(gckOS_AcquireMutex(Event->os,
+                                       Event->eventQueueMutex,
+                                       gcvINFINITE));
+        acquired = gcvTRUE;
 
         gcmDEBUG_ONLY(
             if (IDs == 0)
