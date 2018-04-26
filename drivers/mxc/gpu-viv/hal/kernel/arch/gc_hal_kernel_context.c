@@ -2956,14 +2956,12 @@ gckCONTEXT_Update(
             /* Determine the location of the first NOP. */
             nop = &buffer->logical[base + (attribCount | 1)];
 
+            if ((nop + (nopCount * 2)) >= buffer->logical + Context->totalSize)
+                nopCount = (buffer->logical + Context->totalSize - nop) / 2;
+
             /* Fill the unused space with NOPs. */
             for (i = 0; i < nopCount; i += 1)
             {
-                if (nop >= buffer->logical + Context->totalSize)
-                {
-                    break;
-                }
-
                 /* Generate a NOP command. */
                 *nop = ((((gctUINT32) (0)) & ~(((gctUINT32) (((gctUINT32) ((((1 ?
  31:27) - (0 ? 31:27) + 1) == 32) ? ~0U : (~(~0U << ((1 ? 31:27) - (0 ?
