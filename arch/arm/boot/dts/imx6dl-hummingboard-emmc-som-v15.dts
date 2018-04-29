@@ -54,3 +54,36 @@
 	model = "SolidRun HummingBoard Solo/DualLite (1.5som+emmc)";
 	compatible = "solidrun,hummingboard/dl", "fsl,imx6dl";
 };
+
+&can1 {
+	/* This is always disabled since the eMMC uses the canbus pins */
+	status = "disabled";
+};
+
+&pinctrl_hog {
+	fsl,pins = <
+		/*
+		 * 26 pin header GPIO description. The pins
+		 * numbering as following -
+		 * GPIO number | GPIO (bank,num) |  PIN number
+		 * ------------+-----------------+------------
+		 * gpio1       | (1,1)     | IO7
+		 * gpio73      | (3,9)     | IO11
+		 * gpio72      | (3,8)     | IO12
+		 * gpio71      | (3,7)     | IO13
+		 * gpio70      | (3,6)     | IO15
+		 * NA          |           | IO16
+		 * NA          |           | IO18
+		 * gpio67      | (3,3)     | IO22
+		 *
+		 * Notice the gpioX and GPIO (Y,Z) mapping forumla :
+		 * X = (Y-1) * 32 + Z
+		 */
+		MX6QDL_PAD_GPIO_1__GPIO1_IO01 0x400130b1
+		MX6QDL_PAD_EIM_DA9__GPIO3_IO09 0x400130b1
+		MX6QDL_PAD_EIM_DA8__GPIO3_IO08 0x400130b1
+		MX6QDL_PAD_EIM_DA7__GPIO3_IO07 0x400130b1
+		MX6QDL_PAD_EIM_DA6__GPIO3_IO06 0x400130b1
+		MX6QDL_PAD_EIM_DA3__GPIO3_IO03 0x400130b1
+	>;
+};
