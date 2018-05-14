@@ -1251,7 +1251,7 @@ static int busfreq_probe(struct platform_device *pdev)
 	ultra_low_bus_freq_mode = 0;
 	cur_bus_freq_mode = BUS_FREQ_HIGH;
 
-	bus_freq_scaling_is_active = 1;
+	bus_freq_scaling_is_active = 0;
 	bus_freq_scaling_initialized = 1;
 
 	ddr_low_rate = LPAPM_CLK;
