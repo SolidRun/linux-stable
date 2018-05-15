@@ -176,7 +176,6 @@ struct mxc_hdmi {
 	int default_bpp;
 	bool irq_enabled;
 	spinlock_t irq_lock;
-	bool phy_enabled;
 	struct fb_videomode default_mode;
 	struct fb_videomode previous_non_vga_mode;
 	bool requesting_vga_for_initialization;
@@ -1381,7 +1380,6 @@ static void mxc_hdmi_phy_init(struct mxc_hdmi *hdmi)
 		hdmi_phy_configure(hdmi, 0, 8, cscon);
 	}
 
-	hdmi->phy_enabled = true;
 	if (!hdmi->hdmi_data.video_mode.mDVI)
 		hdmi_enable_overflow_interrupts();
 }
@@ -1742,9 +1740,6 @@ static void mxc_hdmi_phy_disable(struct mxc_hdmi *hdmi)
 {
 	dev_dbg(&hdmi->pdev->dev, "%s\n", __func__);
 
-	if (!hdmi->phy_enabled)
-		return;
-
 	hdmi_disable_overflow_interrupts();
 
 	/* Setting PHY to reset status */
@@ -1756,7 +1751,6 @@ static void mxc_hdmi_phy_disable(struct mxc_hdmi *hdmi)
 	mxc_hdmi_phy_gen2_txpwron(0);
 	mxc_hdmi_phy_gen2_pddq(1);
 
-	hdmi->phy_enabled = false;
 	dev_dbg(&hdmi->pdev->dev, "%s - exit\n", __func__);
 }
 
