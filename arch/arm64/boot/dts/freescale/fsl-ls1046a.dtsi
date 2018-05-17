@@ -722,6 +722,7 @@
 			#size-cells = <2>;
 			device_type = "pci";
 			dma-coherent;
+			iommu-map = <0 &smmu 0 1>;
 			num-lanes = <4>;
 			num-ib-windows = <6>;
 			num-ob-windows = <6>;
@@ -749,6 +750,7 @@
 			#size-cells = <2>;
 			device_type = "pci";
 			dma-coherent;
+			iommu-map = <0 &smmu 0 1>;
 			num-lanes = <2>;
 			num-ib-windows = <6>;
 			num-ob-windows = <6>;
@@ -776,6 +778,7 @@
 			#size-cells = <2>;
 			device_type = "pci";
 			dma-coherent;
+			iommu-map = <0 &smmu 0 1>;
 			num-lanes = <2>;
 			num-ib-windows = <6>;
 			num-ob-windows = <6>;
