@@ -289,10 +289,10 @@
 		};
 
 		ftm0: ftm0@29d0000 {
-			compatible = "fsl,ftm-alarm";
+			compatible = "fsl,ls1012a-ftm-alarm";
 			reg = <0x0 0x29d0000 0x0 0x10000>,
 			      <0x0 0x1ee2140 0x0 0x4>;
-			reg-names = "ftm", "FlexTimer1";
+			reg-names = "ftm", "pmctrl";
 			interrupts = <0 86 0x4>;
 			big-endian;
 		};
