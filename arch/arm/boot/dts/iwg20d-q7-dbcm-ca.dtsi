@@ -63,6 +63,13 @@
 		output-high;
 		line-name = "tvp-power";
 	};
+
+	cam-power{
+		gpio-hog;
+		gpios = <3 GPIO_ACTIVE_HIGH>;
+		output-high;
+		line-name = "cam-power";
+	};
 };
 
 &hscif1 {
@@ -121,6 +128,19 @@
 			};
 		};
 	};
+
+	ov5640@3c {
+		compatible = "ovti,ov5640";
+		reg = <0x3c>;
+		remote = <&vin2>;
+
+		port {
+			ov5640: endpoint {
+				bus-width = <8>;
+				remote-endpoint = <&vin2ep>;
+			};
+		};
+	};
 };
 
 &pfc {
@@ -148,6 +168,11 @@
 		groups = "vin0_data8", "vin0_clk";
 		function = "vin0";
 	};
+
+	vin2_pins: vin2 {
+		groups = "vin2_data8", "vin2_clk";
+		function = "vin2";
+	};
 };
 
 &scif1 {
@@ -168,6 +193,22 @@
 
 		vin0ep: endpoint {
 			remote-endpoint = <&tvp5150>;
+			bus-width = <8>;
+		};
+	};
+};
+
+&vin2 {
+	status = "okay";
+	pinctrl-0 = <&vin2_pins>;
+	pinctrl-names = "default";
+
+	port {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		vin2ep: endpoint {
+			remote-endpoint = <&ov5640>;
 			bus-width = <8>;
 		};
 	};
