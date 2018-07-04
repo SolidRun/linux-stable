@@ -91,6 +91,7 @@ struct pca954x {
 	struct irq_domain *irq;
 	unsigned int irq_mask;
 	raw_spinlock_t lock;
+	u8 disable_mux;		/* do not disable mux if val not 0 */
 };
 
 /* Provide specs for the PCA954x types we know about */
@@ -258,6 +259,13 @@ static int pca954x_deselect_mux(struct i2c_mux_core *muxc, u32 chan)
 	if (!(data->deselect & (1 << chan)))
 		return 0;
 
+#ifdef CONFIG_ARCH_LAYERSCAPE
+	if (data->disable_mux != 0)
+		data->last_chan = data->chip->nchans;
+	else
+		data->last_chan = 0;
+	return pca954x_reg_write(muxc->parent, client, data->disable_mux);
+#endif
 	/* Deselect active channel */
 	data->last_chan = 0;
 	return pca954x_reg_write(muxc->parent, client, data->last_chan);
@@ -367,6 +375,26 @@ static int pca954x_probe(struct i2c_client *client,
 		return -ENOMEM;
 	data = i2c_mux_priv(muxc);
 
+#ifdef CONFIG_ARCH_LAYERSCAPE
+	/* The point here is that you must not disable a mux if there
+	 * are no pullups on the input or you mess up the I2C. This
+	 * needs to be put into the DTS really as the kernel cannot
+	 * know this otherwise.
+	 */
+	data->chip = of_device_get_match_data(dev);
+	if (!data->chip)
+		data->chip = &chips[id->driver_data];
+
+	data->disable_mux = np &&
+		of_property_read_bool(np, "i2c-mux-never-disable") &&
+		data->chip->muxtype == pca954x_ismux ?
+		data->chip->enable : 0;
+	/* force the first selection */
+	if (data->disable_mux != 0)
+		data->last_chan = data->chip->nchans;
+	else
+		data->last_chan = 0;
+#endif
 	i2c_set_clientdata(client, muxc);
 	data->client = client;
 
@@ -381,10 +409,11 @@ static int pca954x_probe(struct i2c_client *client,
 		udelay(1);
 	}
 
+#ifndef CONFIG_ARCH_LAYERSCAPE
 	data->chip = of_device_get_match_data(dev);
 	if (!data->chip)
 		data->chip = &chips[id->driver_data];
-
+#endif
 	if (data->chip->id.manufacturer_id != I2C_DEVICE_ID_NONE) {
 		struct i2c_device_identity id;
 
@@ -406,12 +435,18 @@ static int pca954x_probe(struct i2c_client *client,
 	 * that the mux is in fact present. This also
 	 * initializes the mux to disconnected state.
 	 */
+#ifdef CONFIG_ARCH_LAYERSCAPE
+	if (i2c_smbus_write_byte(client, data->disable_mux) < 0) {
+#else
 	if (i2c_smbus_write_byte(client, 0) < 0) {
 		dev_warn(dev, "probe failed\n");
+#endif
 		return -ENODEV;
 	}
 
+#ifndef CONFIG_ARCH_LAYERSCAPE
 	data->last_chan = 0;		   /* force the first selection */
+#endif
 
 	idle_disconnect_dt = np &&
 		of_property_read_bool(np, "i2c-mux-idle-disconnect");
@@ -479,6 +514,13 @@ static int pca954x_resume(struct device *dev)
 	struct i2c_mux_core *muxc = i2c_get_clientdata(client);
 	struct pca954x *data = i2c_mux_priv(muxc);
 
+#ifdef CONFIG_ARCH_LAYERSCAPE
+	if (data->disable_mux != 0)
+		data->last_chan = data->chip->nchans;
+	else
+		data->last_chan = 0;
+	return i2c_smbus_write_byte(client, data->disable_mux);
+#endif
 	data->last_chan = 0;
 	return i2c_smbus_write_byte(client, 0);
 }
