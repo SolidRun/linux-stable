@@ -218,6 +218,10 @@ static const struct edid_quirk {
 
 	/* OSVR HDK and HDK2 VR Headsets */
 	{ "SVR", 0x1019, EDID_QUIRK_NON_DESKTOP },
+
+	/* Quantum data 980 */
+	{ "QDI", 980, EDID_QUIRK_PREFER_LARGE_60 },
+	{ "QDI", 178, EDID_QUIRK_PREFER_LARGE_60 },
 };
 
 /*
