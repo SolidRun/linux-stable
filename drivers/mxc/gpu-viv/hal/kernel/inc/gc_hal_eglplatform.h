@@ -584,3 +584,4 @@ gcoOS_RSForSwap(
 #endif
 
 #endif /* __gc_hal_eglplatform_h_ */
+
