@@ -220,6 +220,8 @@ static int rcar_gen2_phy_power_on(struct phy *p)
 	writel(value, usbhs_base + USBHS_UGCTRL);
 
 	if (of_machine_is_compatible("renesas,r8a77470")) {
+		/* Wait min. 340 μs for USB PHY power stable */
+		udelay(340);
 		/* Power on USB20 PHY */
 		value = readl(usb20_base + USB20_USBCTR_REG);
 		value |= USB20_USBCTR_PLL_RST;
