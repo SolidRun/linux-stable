@@ -40,12 +40,27 @@
  */
 #include <dt-bindings/gpio/gpio.h>
 / {
-	clk_brcm: brcm-clock {
-		compatible = "gpio-gate-clock";
-		#clock-cells = <0>;
+        clk_brcm_wifi: brcm-wifi-clock {
+                /* This is a hack around the kernel - using "fixed clock"
+                 * results in the "pinctrl" properties being ignored, and
+                 * the clock not being output.  Instead, use a gated clock
+                 * and the unrouted WL_XTAL_PU gpio.
+                 */
+                compatible = "gpio-gate-clock";
+                #clock-cells = <0>;
+                clock-frequency = <32768>;
+                pinctrl-names = "default";
+                pinctrl-0 = <&pinctrl_microsom_brcm_wifi_clk>;
+                enable-gpios = <&gpio5 5 GPIO_ACTIVE_HIGH>;
+        };
+
+	pwrseq_brcm_wifi: brcm-wifi-pwrseq {
+		compatible = "mmc-pwrseq-simple";
 		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_microsom_brcm_osc>;
-		enable-gpios = <&gpio5 5 GPIO_ACTIVE_HIGH>;
+		pinctrl-0 = <&pinctrl_microsom_brcm_wifi_en>, <&pinctrl_microsom_brcm_bt_en>;
+		reset-gpios = <&gpio5 26 GPIO_ACTIVE_LOW>, <&gpio6 0 GPIO_ACTIVE_LOW>;
+		clocks = <&clk_brcm_wifi>;
+		clock-names = "ext_clock";
 	};
 
 	reg_brcm: brcm-reg {
@@ -59,29 +74,20 @@
 		regulator-max-microvolt = <3300000>;
 		startup-delay-us = <200000>;
 	};
-
-	usdhc1_pwrseq: usdhc1_pwrseq {
-		compatible = "mmc-pwrseq-simple";
-		reset-gpios = <&gpio5 26 GPIO_ACTIVE_LOW>,
-			      <&gpio6 0 GPIO_ACTIVE_LOW>;
-		clocks = <&clk_brcm>;
-		clock-names = "ext_clock";
-	};
 };
 
 &iomuxc {
 	microsom {
 		pinctrl_microsom_brcm_bt: microsom-brcm-bt {
 			fsl,pins = <
-				MX6QDL_PAD_CSI0_DAT14__GPIO6_IO00	0x40013070
 				MX6QDL_PAD_CSI0_DAT15__GPIO6_IO01	0x40013070
 				MX6QDL_PAD_CSI0_DAT18__GPIO6_IO04	0x40013070
+				MX6QDL_PAD_CSI0_DAT19__GPIO6_IO05	0x40013070
 			>;
 		};
-
-		pinctrl_microsom_brcm_osc: microsom-brcm-osc {
+		pinctrl_microsom_brcm_bt_en: microsom-brcm-bt-en {
 			fsl,pins = <
-				MX6QDL_PAD_DISP0_DAT11__GPIO5_IO05	0x40013070
+				MX6QDL_PAD_CSI0_DAT14__GPIO6_IO00	0x40013070
 			>;
 		};
 
@@ -91,12 +97,24 @@
 			>;
 		};
 
-		pinctrl_microsom_brcm_wifi: microsom-brcm-wifi {
+		pinctrl_microsom_brcm_wifi_clk: microsom-brcm-clk {
 			fsl,pins = <
-				MX6QDL_PAD_GPIO_8__XTALOSC_REF_CLK_32K	0x1b0b0
-				MX6QDL_PAD_CSI0_DATA_EN__GPIO5_IO20	0x40013070
+				MX6QDL_PAD_GPIO_8__XTALOSC_REF_CLK_32K	0x000b0
+				/* unrouted pin */
+				MX6QDL_PAD_DISP0_DAT11__GPIO5_IO05	0x40013070
+			>;
+		};
+
+		pinctrl_microsom_brcm_wifi_en: microsom-brcm-wifi-en {
+			fsl,pins = <
 				MX6QDL_PAD_CSI0_DAT8__GPIO5_IO26	0x40013070
-				MX6QDL_PAD_CSI0_DAT9__GPIO5_IO27	0x40013070
+			>;
+		};
+
+		pinctrl_microsom_brcm_wifi_irq: microsom-brcm-wifi-irq {
+			fsl,pins = <
+				MX6QDL_PAD_CSI0_DAT9__GPIO5_IO27	0x1b0b0
+				MX6QDL_PAD_CSI0_DATA_EN__GPIO5_IO20	0x1b0b0
 			>;
 		};
 
@@ -125,20 +143,44 @@
 /* UART4 - Connected to optional BRCM Wifi/BT/FM */
 &uart4 {
 	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_microsom_brcm_bt &pinctrl_microsom_uart4>;
+	pinctrl-0 = <&pinctrl_microsom_uart4>;
 	uart-has-rtscts;
 	status = "okay";
+
+        bluetooth {
+                compatible = "brcm,bcm43438-bt";
+                clocks = <&clk_brcm_wifi>;
+                clock-names = "ext_clock";
+                device-wakeup-gpios = <&gpio6 1 GPIO_ACTIVE_HIGH>;
+                shutdown-gpios = <&gpio6 5 GPIO_ACTIVE_HIGH>;
+                pinctrl-names = "default";
+                pinctrl-0 = <&pinctrl_microsom_brcm_bt>;
+		max-speed = <3000000>;
+        };
 };
 
 /* USDHC1 - Connected to optional BRCM Wifi/BT/FM */
 &usdhc1 {
+	#address-cells = <1>;
+	#size-cells = <0>;
 	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_microsom_brcm_wifi &pinctrl_microsom_usdhc1>;
+	pinctrl-0 = <&pinctrl_microsom_usdhc1>;
 	bus-width = <4>;
-	mmc-pwrseq = <&usdhc1_pwrseq>;
-	keep-power-in-suspend;
-	no-1-8-v;
 	non-removable;
+	no-1-8-v;
+	keep-power-in-suspend;
+	mmc-pwrseq = <&pwrseq_brcm_wifi>;
 	vmmc-supply = <&reg_brcm>;
 	status = "okay";
+
+	brcmf: wifi@1 {
+		compatible = "brcm,bcm4329-fmac";
+		reg = <1>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_microsom_brcm_wifi_irq>;
+/* OOB Interrupts are broken on BCM4330 with the brcmfmac driver
+		interrupt-parent = <&gpio5>;
+		interrupts = <20 IRQ_TYPE_LEVEL_LOW>;
+*/
+	};
 };
