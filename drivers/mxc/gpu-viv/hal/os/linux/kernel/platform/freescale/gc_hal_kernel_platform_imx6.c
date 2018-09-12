@@ -64,6 +64,10 @@
 #include <linux/of_address.h>
 #endif
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,9,0)
+#include <linux/of_reserved_mem.h>
+#endif
+
 #if USE_PLATFORM_DRIVER
 #   include <linux/platform_device.h>
 #endif
@@ -560,6 +564,11 @@ gckPLATFORM_AdjustParam(
             Args->registerMemSizeVG = res->end - res->start + 1;
         }
     }
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,9,0)
+    if (!of_reserved_mem_device_init_by_idx(&pdev->dev, pdev->dev.of_node, 0))
+        dev_info(&pdev->dev, "GPU Successfully registered to custom memory-region\n");
+#endif
 
     res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "phys_baseaddr");
     if (res && !Args->baseAddress && !Args->physSize)
