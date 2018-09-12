@@ -51,6 +51,11 @@
 #include <linux/string.h>
 #include <linux/time.h>
 #include <linux/uaccess.h>
+#include <linux/version.h>
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,9,0)
+#include <linux/of_reserved_mem.h>
+#endif
 
 #include "mxc_dispdrv.h"
 
@@ -3828,6 +3833,11 @@ static int mxcfb_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "get mxcfb of property fail\n");
 		return ret;
 	}
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
+	if (!of_reserved_mem_device_init_by_idx(&pdev->dev, pdev->dev.of_node, 0))
+		dev_info(&pdev->dev, "IPU Successfully registered fbdev to custom memory-region\n");
+#endif
 
 	/* Initialize FB structures */
 	fbi = mxcfb_init_fbinfo(&pdev->dev, &mxcfb_ops);

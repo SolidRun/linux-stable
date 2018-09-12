@@ -74,6 +74,10 @@
 #include <asm/sizes.h>
 #endif
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,9,0)
+#include <linux/of_reserved_mem.h>
+#endif
+
 /* Define one new pgprot which combined uncached and XN(never executable) */
 #define pgprot_noncachedxn(prot) \
 	__pgprot_modify(prot, L_PTE_MT_MASK, L_PTE_MT_UNCACHED | L_PTE_XN)
@@ -1009,6 +1013,11 @@ static int vpu_dev_probe(struct platform_device *pdev)
 		free_irq(vpu_ipi_irq, &vpu_data);
 		goto err_out_class;
 	}
+#endif
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
+	if (!of_reserved_mem_device_init_by_idx(vpu_dev, pdev->dev.of_node, 0))
+		dev_info(vpu_dev, "VPU Successfully registered to custom memory-region\n");
 #endif
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
