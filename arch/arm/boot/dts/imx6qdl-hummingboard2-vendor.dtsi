@@ -70,6 +70,7 @@
 		default_bpp = <32>;
 		int_clk = <0>;
 		late_init = <0>;
+		memory-region = <&graphics_mem>;
 		status = "okay";
 	};
 
@@ -80,6 +81,7 @@
 		default_bpp = <16>;
 		int_clk = <0>;
 		late_init = <0>;
+		memory-region = <&graphics_mem>;
 		status = "disabled";
 	};
 
@@ -104,6 +106,12 @@
 		compatible = "fsl,mxc_v4l2_output";
 		status = "okay";
 	};
+};
+
+&can1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_hummingboard_flexcan1>;
+	status = "disabled";
 };
 
 &dcic1 {
@@ -135,10 +143,12 @@
 	fsl,cpu_pdnscr_iso = <0x1>;
 };
 
-&can1 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_hummingboard_flexcan1>;
-	status = "disabled";
+&gpu_3d {
+	memory-region = <&graphics_mem>;
+};
+
+&gpu_2d {
+	memory-region = <&graphics_mem>;
 };
 
 &hdmi {
@@ -259,4 +269,8 @@
 
 &ssi1 {
 	fsl,mode = "i2s-slave";
+};
+
+&vpu_fsl {
+	memory-region = <&graphics_mem>;
 };
