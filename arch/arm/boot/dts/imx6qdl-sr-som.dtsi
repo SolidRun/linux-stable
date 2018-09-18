@@ -41,6 +41,30 @@
 #include <dt-bindings/gpio/gpio.h>
 
 / {
+        resmem: reserved-memory {
+                #address-cells = <1>;
+                #size-cells = <1>;
+		ranges;
+
+                /* global autoconfigured region for contiguous allocations */
+                linux,cma {
+                        compatible = "shared-dma-pool";
+                        reusable;
+                        size = <0x2000000>;
+                        alloc-ranges = <0 0x40000000>;
+			alignment = <0x400000>;
+                        linux,cma-default;
+                };
+
+		graphics_mem: linux,gpu {
+			compatible = "shared-dma-pool";
+			reusable;
+			size = <0x10000000>;
+			alloc-ranges = <0 0x80000000>;
+			alignment = <0x400000>;
+		};
+        };
+
 	vcc_3v3: regulator-vcc-3v3 {
 		compatible = "regulator-fixed";
 		regulator-always-on;
