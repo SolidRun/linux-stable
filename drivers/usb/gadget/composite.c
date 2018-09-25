@@ -2066,6 +2066,10 @@ void composite_disconnect(struct usb_gadget *gadget)
 	struct usb_composite_dev	*cdev = get_gadget_data(gadget);
 	unsigned long			flags;
 
+	/*workaround: check if cdev is NULL. Exit function*/
+	if (!cdev)
+		return;
+
 	/* REVISIT:  should we have config and device level
 	 * disconnect callbacks?
 	 */
