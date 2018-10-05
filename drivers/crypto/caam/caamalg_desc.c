@@ -1072,6 +1072,7 @@ void cnstr_shdsc_ablkcipher_encap(u32 * const desc, struct alginfo *cdata,
 				  const u32 ctx1_iv_off)
 {
 	u32 *key_jump_cmd;
+	u32 key_option;
 
 	init_sh_desc(desc, HDR_SHARE_SERIAL | HDR_SAVECTX);
 	/* Skip if already shared */
@@ -1079,8 +1080,13 @@ void cnstr_shdsc_ablkcipher_encap(u32 * const desc, struct alginfo *cdata,
 				   JUMP_COND_SHRD);
 
 	/* Load class1 key only */
-	append_key_as_imm(desc, cdata->key_virt, cdata->keylen,
-			  cdata->keylen, CLASS_1 | KEY_DEST_CLASS_REG);
+	key_option = CLASS_1 | KEY_DEST_CLASS_REG | cdata->key_cmd_opt;
+	if (cdata->key_inline)
+		append_key_as_imm(desc, cdata->key_virt, cdata->keylen,
+				  cdata->key_real_len, key_option);
+	else
+		append_key(desc, cdata->key_dma, cdata->key_real_len,
+			   key_option);
 
 	/* Load nonce into CONTEXT1 reg */
 	if (is_rfc3686) {
@@ -1137,6 +1143,7 @@ void cnstr_shdsc_ablkcipher_decap(u32 * const desc, struct alginfo *cdata,
 				  const u32 ctx1_iv_off)
 {
 	u32 *key_jump_cmd;
+	u32 key_option;
 
 	init_sh_desc(desc, HDR_SHARE_SERIAL | HDR_SAVECTX);
 	/* Skip if already shared */
@@ -1144,8 +1151,13 @@ void cnstr_shdsc_ablkcipher_decap(u32 * const desc, struct alginfo *cdata,
 				   JUMP_COND_SHRD);
 
 	/* Load class1 key only */
-	append_key_as_imm(desc, cdata->key_virt, cdata->keylen,
-			  cdata->keylen, CLASS_1 | KEY_DEST_CLASS_REG);
+	key_option = CLASS_1 | KEY_DEST_CLASS_REG | cdata->key_cmd_opt;
+	if (cdata->key_inline)
+		append_key_as_imm(desc, cdata->key_virt, cdata->keylen,
+				  cdata->key_real_len, key_option);
+	else
+		append_key(desc, cdata->key_dma, cdata->key_real_len,
+			   key_option);
 
 	/* Load nonce into CONTEXT1 reg */
 	if (is_rfc3686) {
@@ -1206,6 +1218,7 @@ void cnstr_shdsc_ablkcipher_givencap(u32 * const desc, struct alginfo *cdata,
 				     const u32 ctx1_iv_off)
 {
 	u32 *key_jump_cmd, geniv;
+	u32 key_option;
 
 	init_sh_desc(desc, HDR_SHARE_SERIAL | HDR_SAVECTX);
 	/* Skip if already shared */
@@ -1213,8 +1226,13 @@ void cnstr_shdsc_ablkcipher_givencap(u32 * const desc, struct alginfo *cdata,
 				   JUMP_COND_SHRD);
 
 	/* Load class1 key only */
-	append_key_as_imm(desc, cdata->key_virt, cdata->keylen,
-			  cdata->keylen, CLASS_1 | KEY_DEST_CLASS_REG);
+	key_option = CLASS_1 | KEY_DEST_CLASS_REG | cdata->key_cmd_opt;
+	if (cdata->key_inline)
+		append_key_as_imm(desc, cdata->key_virt, cdata->keylen,
+				  cdata->key_real_len, key_option);
+	else
+		append_key(desc, cdata->key_dma, cdata->key_real_len,
+			   key_option);
 
 	/* Load Nonce into CONTEXT1 reg */
 	if (is_rfc3686) {
