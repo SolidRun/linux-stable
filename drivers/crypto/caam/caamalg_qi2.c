@@ -5718,6 +5718,8 @@ int dpaa2_caam_enqueue(struct device *dev, struct caam_request *req)
 						  &fd);
 		if (err != -EBUSY)
 			break;
+
+		cpu_relax();
 	}
 
 	if (unlikely(err)) {
