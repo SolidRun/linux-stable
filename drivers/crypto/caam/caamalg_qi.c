@@ -2839,7 +2839,7 @@ static int caam_init_common(struct caam_ctx *ctx, struct caam_alg_entry *caam,
 		ctx->authsize = 0;
 	}
 
-	ctx->qidev = priv->qidev;
+	ctx->qidev = ctx->jrdev->parent;
 
 	spin_lock_init(&ctx->lock);
 	ctx->drv_ctx[ENCRYPT] = NULL;
@@ -2995,7 +2995,7 @@ int caam_qi_algapi_init(struct device *ctrldev)
 
 		err = crypto_register_skcipher(&t_alg->skcipher);
 		if (err) {
-			dev_warn(priv->qidev, "%s alg registration failed\n",
+			dev_warn(ctrldev, "%s alg registration failed\n",
 				 t_alg->skcipher.base.cra_driver_name);
 			continue;
 		}
@@ -3051,7 +3051,7 @@ int caam_qi_algapi_init(struct device *ctrldev)
 	}
 
 	if (registered)
-		dev_info(priv->qidev, "algorithms registered in /proc/crypto\n");
+		dev_info(ctrldev, "algorithms registered in /proc/crypto\n");
 
 	return err;
 }
