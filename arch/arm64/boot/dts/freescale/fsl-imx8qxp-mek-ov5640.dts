@@ -1,5 +1,4 @@
 #include "fsl-imx8qxp-mek.dts"
-#include "fsl-imx8qxp-mek-lvds0-it6263.dtsi"
 
 &iomuxc {
 	imx8qxp-mek {
@@ -148,12 +147,4 @@
 			data-lanes = <1 2>;
 		};
 	};
-};
-
-&jpegdec {
-	status = "disabled";
-};
-
-&jpegenc {
-	status = "disabled";
 };
