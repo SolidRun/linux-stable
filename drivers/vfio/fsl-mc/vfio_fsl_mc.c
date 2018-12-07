@@ -533,8 +533,7 @@ static int vfio_fsl_mc_initialize_dprc(struct vfio_fsl_mc_device *vdev)
 	if (WARN_ON(!root_dprc_dev))
 		return -EINVAL;
 
-	ret = fsl_mc_portal_allocate(to_fsl_mc_device(root_dprc_dev),
-				     FSL_MC_IO_ATOMIC_CONTEXT_PORTAL,
+	ret = fsl_mc_portal_allocate(mc_dev, FSL_MC_IO_ATOMIC_CONTEXT_PORTAL,
 				     &mc_dev->mc_io);
 	if (ret < 0)
 		goto clean_msi_domain;
