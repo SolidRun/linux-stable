@@ -618,6 +618,13 @@ static int vfio_fsl_mc_device_remove(struct device *dev, void *data)
 	if (WARN_ON(mc_dev == NULL))
 		return -ENODEV;
 
+	if (strcmp(mc_dev->obj_desc.type, "dprc") == 0) {
+		device_for_each_child(&mc_dev->dev, NULL, vfio_fsl_mc_device_remove);
+		dprc_close(mc_dev->mc_io, 0, mc_dev->mc_handle);
+		fsl_mc_portal_free(mc_dev->mc_io);
+		mc_dev->mc_io = NULL;
+	}
+
 	fsl_mc_device_remove(mc_dev);
 	return 0;
 }
@@ -640,8 +647,10 @@ static void vfio_fsl_mc_cleanup_dprc(struct vfio_fsl_mc_device *vdev)
 	dev_set_msi_domain(&mc_dev->dev, NULL);
 
 	fsl_mc_cleanup_all_resource_pools(mc_dev);
-	dprc_close(mc_dev->mc_io, 0, mc_dev->mc_handle);
-	fsl_mc_portal_free(mc_dev->mc_io);
+	if (mc_dev->mc_io) {
+		dprc_close(mc_dev->mc_io, 0, mc_dev->mc_handle);
+		fsl_mc_portal_free(mc_dev->mc_io);
+	}
 }
 
 static int vfio_fsl_mc_probe(struct fsl_mc_device *mc_dev)
