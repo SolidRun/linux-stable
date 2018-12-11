@@ -1,0 +1,489 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (C) 2016 Marvell Technology Group Ltd.
+ *
+ * Device Tree file for  Armada 8040 A8k-CEx7 community board platform
+ */
+
+#include "armada-8040.dtsi"
+
+#include <dt-bindings/gpio/gpio.h>
+
+/ {
+	model = "Marvell 8040 CEX7";
+	compatible = "marvell,armada-8040-cex", "marvell,armada8040",
+			"marvell,armada-ap806-quad", "marvell,armada-ap806";
+
+	chosen {
+		stdout-path = "serial0:115200n8";
+	};
+
+	memory@0 {
+		device_type = "memory";
+		reg = <0x0 0x0 0x0 0x80000000>;
+	};
+
+	aliases {
+		ethernet0 = &cp0_eth0;
+		ethernet1 = &cp1_eth0;
+		ethernet2 = &cp1_eth1;
+		ethernet3 = &cp1_eth2;
+	};
+
+	/* Regulator labels correspond with schematics */
+	v_5_0: regulator-5-0v {
+		compatible = "regulator-fixed";
+		regulator-name = "v_5_0";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		regulator-always-on;
+		status = "okay";
+	};
+
+	v_3_3: regulator-3-3v {
+		compatible = "regulator-fixed";
+		regulator-name = "v_3_3";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-always-on;
+		status = "okay";
+	};
+
+	v_vddo_h: regulator-1-8v {
+		compatible = "regulator-fixed";
+		regulator-name = "v_vddo_h";
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		regulator-always-on;
+		status = "okay";
+	};
+
+	usb3h0_phy: usb3_phy0 {
+		compatible = "usb-nop-xceiv";
+		vcc-supply = <&v_5_0>;
+	};
+
+	sfp_eth0: sfp-eth0 {
+		/* CON15,16 - CPM lane 4 */
+		compatible = "sff,sfp";
+		i2c-bus = <&cp0_i2c0>;
+		mod-def0-gpio = <&cp0_gpio2 18 GPIO_ACTIVE_LOW>; // cp0 mpp50
+		pinctrl-names = "default";
+		pinctrl-0 = <&sfp0_int_pins >;
+	};
+
+	sfp_eth1: sfp-eth1 {
+		/* CON17,18 - CPS lane 4 */
+		compatible = "sff,sfp";
+		i2c-bus = <&cp0_i2c1>;
+		mod-def0-gpio = <&cp0_gpio2 17 GPIO_ACTIVE_LOW>;//cp0 mpp49
+		pinctrl-names = "default";
+		//pinctrl-0 = <&cp1_sfpp1_pins &cp0_sfpp1_pins>;//old
+		pinctrl-0 = <&sfp1_int_pins>;
+	};
+
+	leds {
+		compatible = "gpio-leds";
+		pinctrl-0 = <&cp0_led16_pins>;
+		pinctrl-names = "default";
+
+		led0 {
+			label = "CEX7:green:led16";
+			gpios = <&cp0_gpio2 22 GPIO_ACTIVE_LOW>;//mpp54
+			default-state = "off";
+		};
+
+		led1{
+			compatible = "gpio-leds";
+			label = "CEX7:yellow:led1";
+			gpios = <&expander0 0 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+
+		led2{
+			label = "CEX7:green:led2";
+			gpios = <&expander0 1 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+
+		led3{
+			label = "CEX7:orange:led3";
+			gpios = <&expander0 2 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+
+		led4{
+			label = "CEX7:yellow:led4";
+			gpios = <&expander0 3 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+
+		led5{
+			label = "CEX7:green:led5";
+			gpios = <&expander0 4 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+
+		led6{
+			label = "CEX7:orange:led6";
+			gpios = <&expander0 5 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+
+
+		led7{
+			label = "CEX7:yellow:led7";
+			gpios = <&expander0 6 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+
+		led8{
+			label = "CEX7:green:led8";
+			gpios = <&expander0 7 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+
+		led9{
+			label = "CEX7:orange:led9";
+			gpios = <&expander0 8 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+
+		led10{
+			label = "CEX7:yellow:led10";
+			gpios = <&expander0 9 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+
+		led11{
+			label = "CEX7:green:led11";
+			gpios = <&expander0 10 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+
+		led12{
+			label = "CEX7:orange:led12";
+			gpios = <&expander0 11 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+
+		led15{
+			label = "CEX7:green:led15";
+			gpios = <&expander1 12 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+
+		led17{
+			label = "CEX7:green:led17";
+			gpios = <&expander1 13 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+	};//end leds
+
+};
+
+&uart0 {
+	status = "okay";
+	pinctrl-0 = <&uart0_pins>;
+	pinctrl-names = "default";
+};
+
+&ap_sdhci0 {
+	bus-width = <8>;
+	/*
+	 * Not stable in HS modes - phy needs "more calibration", so add
+	 * the "slow-mode" and disable SDR104, SDR50 and DDR50 modes.
+	 */
+	marvell,xenon-phy-slow-mode;
+	no-1-8-v;
+	no-sd;
+	no-sdio;
+	non-removable;
+	status = "okay";
+	vqmmc-supply = <&v_vddo_h>;
+};
+
+&cp0_i2c0 {
+	clock-frequency = <100000>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&cp0_i2c0_pins>;
+	status = "okay";
+};
+
+&cp0_i2c1 {
+	clock-frequency = <100000>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&cp0_i2c1_pins>;
+	status = "okay";
+
+	/*
+	 * PCA9655 GPIO expander, 0 Hz to 400 kHz clock frequency.
+	 * 1+4-yellow led1 +led4
+	 * 2+5-green led2+led5
+	 * 3+6-oen  led3+led6
+	 * 10-yellow led7
+	 * 11-green led8
+	 * 12-orn  led9
+	 * 13-yellow led10
+	 * 14-green LED11
+	 * 15-orn LED12
+	 *19-SCL
+	 *20-SDA
+	 *24-RESET
+	 */
+	expander0: gpio-expander@74 {
+		/*
+		 * This is how it should be:
+		 * compatible = "onnn,pca9655", "nxp,pca9555";
+		 * but you can't do this because of the way I2C works.
+		 */
+		compatible = "nxp,pca9539";//compatible = "nxp,pca9539";
+		gpio-controller;
+		#gpio-cells = <2>;
+		reg = <0x74>;
+	};
+};
+
+&cp0_mdio {
+	pinctrl-names = "default";
+	pinctrl-0 = <&cp0_ge_mdio_pins>;
+	status = "okay";
+
+	ge_phy: ethernet-phy@0 {
+		reg = <0>;
+	};
+};
+
+/*pcie {
+			status = "okay";
+			pcie@2,0 {
+				// Port 1, Lane 0. CON3, nearest power.
+			reset-gpios = <&expander0 10 GPIO_ACTIVE_LOW>;
+				status = "okay";
+		};
+};*/
+
+/*&cp0_pcie0 {
+	//pinctrl-names = "default";
+	//pinctrl-0 = <&cp0_pcie_pins>;use sysrst
+	//num-lanes = <4>;
+	//num-viewport = <8>;
+  reset-gpio = <&expander0 10 GPIO_ACTIVE_LOW>;//GPIO_1_0
+	status = "okay";
+};*/
+
+&cp0_pinctrl {
+	cp0_ge_mdio_pins: ge-mdio-pins {
+		marvell,pins = "mpp32", "mpp34";
+		marvell,function = "ge";
+	};
+	cp0_i2c1_pins: i2c1-pins {
+		marvell,pins = "mpp35", "mpp36";
+		marvell,function = "i2c1";
+	};
+	cp0_i2c0_pins: i2c0-pins {
+		marvell,pins = "mpp37", "mpp38";
+		marvell,function = "i2c0";
+	};
+	cp0_xhci_vbus_pins: xhci0-vbus-pins {
+		marvell,pins = "mpp47";
+		marvell,function = "gpio";
+	};
+	cp0_sdhci_pins: sdhci-pins {
+		marvell,pins = "mpp55", "mpp56", "mpp57", "mpp58", "mpp59",
+			       "mpp60", "mpp61";
+		marvell,function = "sdio";
+	};
+	sfp0_int_pins: sfp0-int-pins {
+		marvell,pins = "mpp50";
+		marvell,function = "gpio";
+	};
+	sfp1_int_pins: sfp1-int-pins {
+		marvell,pins = "mpp49";
+		marvell,function = "gpio";
+	};
+	cp0_led16_pins: led0-pins {
+		marvell,pins = "mpp54";
+		marvell,function = "gpio";
+	};
+};
+/*
+&cp0_xmdio {
+	status = "okay";
+
+	phy0: ethernet-phy@0 {
+		compatible = "ethernet-phy-ieee802.3-c45";
+		reg = <0>;
+		sfp = <&sfp_eth0>;
+	};
+
+	phy8: ethernet-phy@8 {
+		compatible = "ethernet-phy-ieee802.3-c45";
+		reg = <8>;
+		sfp = <&sfp_eth1>;
+	};
+};*/
+
+&cp0_ethernet {
+	status = "okay";
+};
+
+&cp0_eth0 {
+	status = "okay";
+	/* Network PHY */
+	//phy = <&phy0>;
+	phy-mode = "10gbase-kr";
+	managed = "in-band-status";
+	/* Generic PHY, providing serdes lanes */
+	phys = <&cp0_comphy4 0>;
+	sfp = <&sfp_eth0>;
+};
+
+&cp0_sata0 {
+	/* CPM Lane 0 - U29 */
+	status = "okay";
+};
+
+&cp0_sdhci0 {
+	/* U6 */
+	broken-cd;
+	bus-width = <4>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&cp0_sdhci_pins>;
+	status = "okay";
+	vqmmc-supply = <&v_3_3>;
+};
+
+&cp0_usb3_0 {
+	/* J38? - USB2.0 only */
+	status = "okay";
+};
+
+&cp0_usb3_1 {
+	/* J38? - USB2.0 only */
+	status = "okay";
+};
+
+&cp1_ethernet {
+	status = "okay";
+};
+
+&cp1_eth0 {
+	status = "okay";
+	/* Network PHY */
+	//phy = <&phy8>;
+	phy-mode = "10gbase-kr";
+	managed = "in-band-status";
+	/* Generic PHY, providing serdes lanes */
+	phys = <&cp1_comphy4 0>;
+	sfp = <&sfp_eth1>;
+};
+
+&cp1_eth1 {
+	/* CPS Lane 0 - J5 (Gigabit RJ45) */
+	status = "okay";
+	/* Network PHY */
+	phy = <&ge_phy>;
+	phy-mode = "sgmii";
+	/* Generic PHY, providing serdes lanes */
+	phys = <&cp1_comphy3 1>;
+};
+
+//********************************---------------------------------------------
+
+&cp1_i2c1 {
+	clock-frequency = <100000>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&cp1_i2c1_pins>;
+	status = "okay";
+	/*
+	 * PCA9655 GPIO expander, 0 Hz to 400 kHz clock frequency.
+	 * 10-I/O GPIO_1_0 -> reset-gpio to PCIe
+	 * 11-I/O GPIO_1_1 -> reset-gpio to mPCIe1
+	 * 12-I/O GPIO_1_2 -> reset-gpio to mPCIe0
+	 * 14-green LED15
+	 * 15-green LED17
+	 *19-SCL
+	 *20-SDA
+	 *24-RESET
+	 */
+	expander1: gpio-expander@74 {
+		/*
+		 * This is how it should be:
+		 * compatible = "onnn,pca9655", "nxp,pca9555";
+		 * but you can't do this because of the way I2C works.
+		 */
+		compatible = "nxp,pca9539";//compatible = "nxp,pca9539";
+		gpio-controller;
+		#gpio-cells = <2>;
+		reg = <0x74>;
+	};
+};
+
+//*************************************************************
+
+&cp0_pcie0 {
+	//pinctrl-names = "default";
+	num-lanes = <4>;
+	num-viewport = <8>;
+  reset-gpio = <&expander1 8 GPIO_ACTIVE_LOW>;//GPIO_1_0
+	status = "okay";
+};
+
+&cp1_pcie0 {
+	//pinctrl-names = "default";
+	num-lanes = <1>;
+	num-viewport = <2>;
+	reset-gpio = <&expander1 10 GPIO_ACTIVE_LOW>;//GPIO_a
+	status = "okay";
+};
+
+&cp1_pcie2 {
+	//pinctrl-names = "default";
+	num-lanes = <1>;
+  num-viewport = <2>;
+	reset-gpio = <&expander1 9 GPIO_ACTIVE_LOW>;//GPIO_1_1
+	status = "okay";
+};
+
+
+
+&cp1_pinctrl {
+	cp1_spi1_pins: spi1-pins {
+		marvell,pins = "mpp12", "mpp13", "mpp14", "mpp15", "mpp16";
+		marvell,function = "spi1";
+	};
+	cp1_sfp_1g_pins: sfp-1g-pins {
+		marvell,pins = "mpp24";
+		marvell,function = "gpio";
+	};
+	cp1_i2c1_pins: i2c1-pins {
+			marvell,pins = "mpp2", "mpp3";
+			marvell,function = "i2c1";
+	};
+
+};
+
+&cp1_sata0 {
+	/* CPS Lane 1 - U32 */
+	/* CPS Lane 3 - U31 */
+	status = "okay";
+};
+
+&cp1_spi1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&cp1_spi1_pins>;
+	status = "okay";
+
+	spi-flash@0 {
+		compatible = "st,w25q32";
+		spi-max-frequency = <50000000>;
+		reg = <0>;
+	};
+};
+
+&cp1_usb3_0 {
+	/* CPS Lane 2 - CON7 */
+	usb-phy = <&usb3h0_phy>;
+	status = "okay";
+};
