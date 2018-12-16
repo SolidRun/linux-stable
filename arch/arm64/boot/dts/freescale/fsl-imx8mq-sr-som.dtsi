@@ -95,12 +95,6 @@
 	fsl,mipi-mode;
 	fsl,two-8bit-sensor-mode;
 	status = "disabled";
-
-	port {
-		csi1_ep: endpoint {
-			remote-endpoint = <&csi1_mipi_ep>;
-		};
-	};
 };
 
 &fec1 {
