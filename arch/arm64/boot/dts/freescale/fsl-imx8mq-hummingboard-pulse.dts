@@ -56,6 +56,12 @@
 		stdout-path = &uart1;
 	};
 
+	display-subsystem {
+		compatible = "fsl,imx-display-subsystem";
+		memory-region = <&graphics_mem>;
+		ports = <&dcss_disp0>;
+	};
+
 	regulators {
 		compatible = "simple-bus";
 		#address-cells = <1>;
@@ -136,6 +142,7 @@
 };
 
 &gpu {
+	memory-region = <&graphics_mem>;
 	status = "okay";
 };
 
@@ -160,7 +167,7 @@
 				MX8MQ_IOMUXC_SAI2_RXD0_GPIO4_IO23		0x41
 				/* The following 2 pins need to be commented out and
 				 * reconfigured to enable RTS/CTS on UART3
-				 */
+				 */ 
 				/* MikroBus PWM */
 				MX8MQ_IOMUXC_ECSPI1_MISO_GPIO5_IO8		0x41
 				/* MikroBus INT */
@@ -355,6 +362,23 @@
 	hard-wired = <1>;
 	ext_osc = <1>;
 	status = "okay";
+};
+
+&resmem {
+	/* global autoconfigured region for contiguous allocations */
+	linux,cma {
+		compatible = "shared-dma-pool";
+		reusable;
+		size = <0 0x4000000>;
+		linux,cma-default;
+	};
+
+	graphics_mem: linux,gpu {
+		compatible = "shared-dma-pool";
+		reusable;
+		size = <0 0xc000000>;
+		alloc-ranges = <0 0x80000000 0 0x80000000>;
+	};
 };
 
 &sai1 {
