@@ -16,6 +16,9 @@
 #include <linux/component.h>
 #include <linux/device.h>
 #include <linux/module.h>
+#include <linux/of.h>
+#include <linux/of_device.h>
+#include <linux/of_reserved_mem.h>
 #include <linux/platform_device.h>
 #include <drm/drmP.h>
 #include <drm/drm_atomic.h>
@@ -440,8 +443,14 @@ static int imx_drm_platform_probe(struct platform_device *pdev)
 	ret = drm_of_component_probe_with_match(&pdev->dev, match, compare_of,
 						&imx_drm_ops);
 
-	if (!ret)
+	if (!ret) {
+		if (!of_reserved_mem_device_init_by_idx(&pdev->dev, pdev->dev.of_node, 0))
+			pr_info("DRM Successfully registered to memory-region\n");
+		else
+			pr_info("DRM Failed to register to memory-region\n");
+
 		ret = dma_set_coherent_mask(&pdev->dev, DMA_BIT_MASK(32));
+	}
 
 	return ret;
 }

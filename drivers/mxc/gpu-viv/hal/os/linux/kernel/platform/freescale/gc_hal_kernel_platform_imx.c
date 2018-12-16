@@ -67,6 +67,7 @@
 #  include <linux/of_platform.h>
 #  include <linux/of_gpio.h>
 #  include <linux/of_address.h>
+#  include <linux/of_reserved_mem.h>
 #endif
 
 #if USE_PLATFORM_DRIVER
@@ -974,6 +975,11 @@ static int patch_param(struct platform_device *pdev,
     }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0)
+    if (!of_reserved_mem_device_init_by_idx(&pdev->dev, pdev->dev.of_node, 0))
+        pr_info("GPU Successfully registered gpu to memory-region\n");
+    else
+        pr_info("GPU Failed to register gpu to memory-region\n");
+
     res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "contiguous_mem");
 
     if (res) {
