@@ -5,7 +5,7 @@
 #include <linux/spinlock.h>
 #include "clk.h"
 
-DEFINE_SPINLOCK(imx_ccm_lock);
+static DEFINE_SPINLOCK(imx_ccm_lock);
 
 bool uart_from_osc;
 
