@@ -41,6 +41,9 @@
 
 /dts-v1/;
 
+/* First 128KB is for PSCI ATF. */
+/memreserve/ 0x40000000 0x00020000;
+
 #include "fsl-imx8mq.dtsi"
 #include "fsl-imx8mq-sr-som.dtsi"
 
@@ -125,18 +128,11 @@
 	fsl,mipi-mode;
 	fsl,two-8bit-sensor-mode;
 	status = "disabled";
-
-	port {
-		csi2_ep: endpoint {
-			remote-endpoint = <&csi2_mipi_ep>;
-		};
-	};
 };
 
 &dcss {
-	status = "okay";
-
 	disp-dev = "hdmi_disp";
+	status = "okay";
 };
 
 &gpu {
@@ -151,30 +147,24 @@
 	status = "okay";
 };
 
-&hdmi_cec {
-	status = "okay";
-};
-
 &iomuxc {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_hog>;
 
-	imx8mq-evk {
+	imx8mq-sr-hb {
 		pinctrl_hog: hoggrp {
 			fsl,pins = <
-				MX8MQ_IOMUXC_NAND_READY_B_GPIO3_IO16		0x19
-				MX8MQ_IOMUXC_NAND_WE_B_GPIO3_IO17		0x19
-				MX8MQ_IOMUXC_NAND_WP_B_GPIO3_IO18		0x19
-			>;
-		};
-
-		pinctrl_csi2: csi2grp {
-			fsl,pins = <
-/* Place holder until PowerDown and Reset GPIOs are finalized.
-				MX8MQ_IOMUXC_GPIO1_IO05_GPIO1_IO5		0x19
-				MX8MQ_IOMUXC_GPIO1_IO06_GPIO1_IO6		0x19
-*/
-				MX8MQ_IOMUXC_GPIO1_IO15_CCMSRCGPCMIX_CLKO2	0x59
+				/* MikroBus Analog */
+				MX8MQ_IOMUXC_NAND_DATA05_GPIO3_IO11		0x41
+				/* MikroBus Reset */
+				MX8MQ_IOMUXC_SAI2_RXD0_GPIO4_IO23		0x41
+				/* The following 2 pins need to be commented out and
+				 * reconfigured to enable RTS/CTS on UART3
+				 */
+				/* MikroBus PWM */
+				MX8MQ_IOMUXC_ECSPI1_MISO_GPIO5_IO8		0x41
+				/* MikroBus INT */
+				MX8MQ_IOMUXC_ECSPI1_SS0_GPIO5_IO9		0x41
 			>;
 		};
 
@@ -189,14 +179,6 @@
 			fsl,pins = <
 				MX8MQ_IOMUXC_I2C3_SCL_I2C3_SCL			0x4000007f
 				MX8MQ_IOMUXC_I2C3_SDA_I2C3_SDA			0x4000007f
-			>;
-		};
-
-		pinctrl_pcie1: pcie1grp {
-			fsl,pins = <
-				MX8MQ_IOMUXC_I2C4_SDA_GPIO5_IO21	0x16
-				MX8MQ_IOMUXC_ECSPI2_SCLK_GPIO5_IO10	0x16
-				MX8MQ_IOMUXC_ECSPI2_MISO_GPIO5_IO12	0x16
 			>;
 		};
 
@@ -258,8 +240,10 @@
 			fsl,pins = <
 				MX8MQ_IOMUXC_UART2_TXD_UART2_DCE_TX		0x49
 				MX8MQ_IOMUXC_UART2_RXD_UART2_DCE_RX		0x49
+/* These pins are currently allocated to the uBLOX module on the SOM
 				MX8MQ_IOMUXC_UART4_RXD_UART2_DCE_CTS_B		0x49
 				MX8MQ_IOMUXC_UART4_TXD_UART2_DCE_RTS_B		0x49
+*/
 			>;
 		};
 
@@ -267,8 +251,12 @@
 			fsl,pins = <
 				MX8MQ_IOMUXC_UART3_TXD_UART3_DCE_TX		0x49
 				MX8MQ_IOMUXC_UART3_RXD_UART3_DCE_RX		0x49
+				/* These pins are by default GPIO on the Mikro Bus
+				 * Header.  To use RTS/CTS on UART3 comment them out
+				 * of the hoggrp and enable them here
 				MX8MQ_IOMUXC_ECSPI1_MISO_UART3_DCE_CTS_B	0x49
 				MX8MQ_IOMUXC_ECSPI1_SS0_UART3_DCE_RTS_B		0x49
+				 */
 			>;
 		};
 
@@ -279,7 +267,6 @@
 		pinctrl_usdhc2_gpio: usdhc2grpgpio {
 			fsl,pins = <
 				MX8MQ_IOMUXC_SD2_CD_B_GPIO2_IO12	0x41
-				MX8MQ_IOMUXC_SD2_RESET_B_GPIO2_IO19	0x41
 			>;
 		};
 
@@ -327,32 +314,6 @@
 	pinctrl-0 = <&pinctrl_i2c2>;
 	status = "okay";
 
-	ov5640_mipi2: ov5640_mipi2@3c {
-		compatible = "ovti,ov5640_mipi";
-		reg = <0x3c>;
-		status = "disabled";
-		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_csi2>;
-		clocks = <&clk IMX8MQ_CLK_CLKO2_DIV>;
-		clock-names = "csi_mclk";
-		assigned-clocks = <&clk IMX8MQ_CLK_CLKO2_SRC>,
-				  <&clk IMX8MQ_CLK_CLKO2_DIV>;
-		assigned-clock-parents = <&clk IMX8MQ_SYS2_PLL_200M>;
-		assigned-clock-rates = <0>, <20000000>;
-		csi_id = <0>;
-/*
-		pwn-gpios = <&gpio1 5 GPIO_ACTIVE_HIGH>;
-		rst-gpios = <&gpio1 6 GPIO_ACTIVE_HIGH>;
-*/
-		mclk = <20000000>;
-		mclk_source = <0>;
-		port {
-			ov5640_mipi2_ep: endpoint {
-				remote-endpoint = <&mipi2_sensor_ep>;
-			};
-		};
-	};
-
 	typec_ptn5100: ptn5110@50 {
 		compatible = "usb,tcpci";
 		pinctrl-names = "default";
@@ -388,21 +349,10 @@
 	#address-cells = <1>;
 	#size-cells = <0>;
 	status = "disabled";
-	port {
-		mipi2_sensor_ep: endpoint1 {
-			remote-endpoint = <&ov5640_mipi2_ep>;
-			data-lanes = <1 2>;
-		};
-
-		csi2_mipi_ep: endpoint2 {
-			remote-endpoint = <&csi2_ep>;
-		};
-	};
 };
 
 &pcie1{
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_pcie1>;
+	hard-wired = <1>;
 	ext_osc = <1>;
 	status = "okay";
 };

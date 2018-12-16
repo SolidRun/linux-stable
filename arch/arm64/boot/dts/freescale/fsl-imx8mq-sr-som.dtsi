@@ -47,22 +47,54 @@
                 regulator-min-microvolt = <3300000>;
                 regulator-max-microvolt = <3300000>;
         };
+
+        cpu_opp_table: cpu_opp_table {
+		compatible = "operating-points-v2";
+		opp-shared;
+		opp00 {
+			opp-hz = /bits/ 64 <1500000000>;
+			opp-microvolt = <1000000>;
+			clock-latency-ns = <960000>;
+		};
+		opp01 {
+			opp-hz = /bits/ 64 <1300000000>;
+			opp-microvolt = <1000000>;
+			clock-latency-ns = <640000>;
+		};
+		opp02 {
+			opp-hz = /bits/ 64 <1000000000>;
+			opp-microvolt = <1000000>;
+			clock-latency-ns = <640000>;
+			opp-suspend;
+		};
+		opp03 {
+			opp-hz = /bits/ 64 <800000000>;
+			opp-microvolt = <10000000>;
+			clock-latency-ns = <640000>;
+		};
+	};
 };
 
 &A53_0 {
-	operating-points = <
-		/* kHz    uV */
-		1500000 1000000
-		1300000 1000000
-		1000000 1000000
-		800000  1000000
-	>;
+	operating-points-v2 = <&cpu_opp_table>;
+};
+
+&A53_1 {
+	operating-points-v2 = <&cpu_opp_table>;
+};
+
+&A53_2 {
+	operating-points-v2 = <&cpu_opp_table>;
+};
+
+&A53_3 {
+	operating-points-v2 = <&cpu_opp_table>;
 };
 
 &csi1_bridge {
 	fsl,mipi-mode;
 	fsl,two-8bit-sensor-mode;
-	status = "okay";
+	status = "disabled";
 
 	port {
 		csi1_ep: endpoint {
@@ -96,16 +128,6 @@
 
 &iomuxc {
 	microsom {
-		pinctrl_csi1: csi1grp {
-			fsl,pins = <
-/* Place holder until PowerDown and Reset GPIOs are finalized.
-				MX8MQ_IOMUXC_GPIO1_IO03_GPIO1_IO3               0x19
-				MX8MQ_IOMUXC_GPIO1_IO06_GPIO1_IO6               0x19
-*/
-				MX8MQ_IOMUXC_GPIO1_IO15_CCMSRCGPCMIX_CLKO2      0x59
-			>;
-		};
-
 		pinctrl_fec1: fec1grp {
 			fsl,pins = <
 				MX8MQ_IOMUXC_ENET_MDC_ENET1_MDC		0x3
@@ -135,9 +157,9 @@
 
 		pinctrl_pcie0: pcie0grp {
 			fsl,pins = <
-				MX8MQ_IOMUXC_I2C4_SCL_GPIO5_IO20	0x16
-				MX8MQ_IOMUXC_SAI2_RXC_GPIO4_IO22	0x16
-				MX8MQ_IOMUXC_SAI2_RXFS_GPIO4_IO21	0x16
+				MX8MQ_IOMUXC_I2C4_SCL_GPIO5_IO20	0x41
+				MX8MQ_IOMUXC_SPDIF_EXT_CLK_GPIO5_IO5	0x41
+				MX8MQ_IOMUXC_SAI2_RXFS_GPIO4_IO21	0x41
 			>;
 		};
 
@@ -317,48 +339,12 @@
 			};
 		};
 	};
-
-	ov5640_mipi: ov5640_mipi@3c {
-		compatible = "ovti,ov5640_mipi";
-		reg = <0x3c>;
-		status = "disabled";
-		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_csi1>;
-		clocks = <&clk IMX8MQ_CLK_CLKO2_DIV>;
-		clock-names = "csi_mclk";
-		assigned-clocks = <&clk IMX8MQ_CLK_CLKO2_SRC>,
-				  <&clk IMX8MQ_CLK_CLKO2_DIV>;
-		assigned-clock-parents = <&clk IMX8MQ_SYS2_PLL_200M>;
-		assigned-clock-rates = <0>, <20000000>;
-		csi_id = <0>;
-/*
-		pwn-gpios = <&gpio1 3 GPIO_ACTIVE_HIGH>;
-		rst-gpios = <&gpio1 6 GPIO_ACTIVE_HIGH>;
-*/
-		mclk = <20000000>;
-		mclk_source = <0>;
-		port {
-			ov5640_mipi1_ep: endpoint {
-				remote-endpoint = <&mipi1_sensor_ep>;
-			};
-		};
-	};
 };
 
 &mipi_csi_1 {
 	#address-cells = <1>;
 	#size-cells = <0>;
-	status = "okay";
-	port {
-		mipi1_sensor_ep: endpoint1 {
-			remote-endpoint = <&ov5640_mipi1_ep>;
-			data-lanes = <1 2>;
-		};
-
-		csi1_mipi_ep: endpoint2 {
-			remote-endpoint = <&csi1_ep>;
-		};
-	};
+	status = "disabled";
 };
 
 &mu {
@@ -369,7 +355,7 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_pcie0>;
 	clkreq-gpio = <&gpio5 20 GPIO_ACTIVE_LOW>;
-	disable-gpio = <&gpio4 22 GPIO_ACTIVE_LOW>;
+	disable-gpio = <&gpio5 5 GPIO_ACTIVE_LOW>;
 	reset-gpio = <&gpio4 21 GPIO_ACTIVE_LOW>;
 	hard-wired = <1>;
 	status = "okay";
