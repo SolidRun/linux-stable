@@ -176,6 +176,16 @@ static int ar8035_phy_fixup(struct phy_device *dev)
 	if (val & BMCR_PDOWN)
 		phy_write(dev, 0x0, val & ~BMCR_PDOWN);
 
+	/* Ar803x extended next page bit is enabled by default,
+	 * Cisco multigig switches read this bit and attempt to negotiate,
+	 * 10Gbps rates even if the next page bit is disabled.  This is
+	 * incorrect behaviour but we still need to accomodate it.  Really
+	 * XNP is only needed for 10Gbps support, so disable XNP.
+	 */
+	val = phy_read(dev, MII_ADVERTISE);
+	val &= ~MDIO_AN_CTRL1_XNP;
+	phy_write(dev, MII_ADVERTISE, val);
+
 	if (!ar803x_smarteee)
 		return 0;
 
