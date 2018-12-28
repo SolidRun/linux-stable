@@ -1360,7 +1360,7 @@ static int imx_uart_startup(struct uart_port *port)
 	u32 ucr1, ucr2, ucr4;
 
 	/* some modem may need reset */
-	if (!(tty_port->flags & ASYNC_SUSPENDED)) {
+	if (!tty_port_suspended(tty_port)) {
 		retval = device_reset(sport->port.dev);
 		if (retval && retval != -ENOENT)
 			return retval;
