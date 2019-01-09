@@ -4311,8 +4311,6 @@ static void tcpm_init(struct tcpm_port *port)
 {
 	enum typec_cc_status cc1, cc2;
 
-	port->tcpc->init(port->tcpc);
-
 	tcpm_reset_port(port);
 
 	/*
@@ -4333,7 +4331,7 @@ static void tcpm_init(struct tcpm_port *port)
 	 * Some adapters need a clean slate at startup, and won't recover
 	 * otherwise. So do not try to be fancy and force a clean disconnect.
 	 */
-	tcpm_set_state(port, PORT_RESET, 0);
+	port->tcpc->init(port->tcpc);
 }
 
 static int tcpm_port_type_set(const struct typec_capability *cap,
