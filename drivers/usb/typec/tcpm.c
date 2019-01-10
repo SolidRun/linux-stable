@@ -2649,7 +2649,7 @@ static int tcpm_src_attach(struct tcpm_port *port)
 	if (ret < 0)
 		return ret;
 
-	tcpm_start_drp_toggling(port);
+	tcpm_start_drp_toggling(port, tcpm_rp_cc(port));
 
 	ret = tcpm_set_roles(port, true, TYPEC_SOURCE, TYPEC_HOST);
 	if (ret < 0)
@@ -2773,7 +2773,7 @@ static int tcpm_snk_attach(struct tcpm_port *port)
 	if (ret < 0)
 		return ret;
 
-	tcpm_start_drp_toggling(port);
+	tcpm_start_drp_toggling(port, tcpm_rp_cc(port));
 
 	ret = tcpm_set_roles(port, true, TYPEC_SINK, TYPEC_DEVICE);
 	if (ret < 0)
