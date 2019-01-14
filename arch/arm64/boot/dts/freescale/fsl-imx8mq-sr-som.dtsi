@@ -405,6 +405,12 @@
 	assigned-clocks = <&clk IMX8MQ_CLK_UART4_SRC>;
 	assigned-clock-parents = <&clk IMX8MQ_SYS1_PLL_80M>;
 	status = "okay";
+
+        bluetooth {
+                compatible = "bluetooth,h4";
+		speed = <1000000>; 
+		status = "disabled";
+        };
 };
 
 &usdhc1 {
