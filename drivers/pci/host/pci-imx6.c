@@ -910,6 +910,7 @@ static void imx_pcie_phy_pwr_dn(struct imx_pcie *imx_pcie)
 
 	if (imx_pcie->variant != IMX8MQ)
 		return;
+
 	/*
 	 * Power up PHY.
 	 * pcie phy ref clock select by gpr configuration.
@@ -1073,6 +1074,15 @@ static void imx_pcie_init_phy(struct imx_pcie *imx_pcie)
 			regmap_update_bits(imx_pcie->iomuxc_gpr, val,
 					IMX8MQ_GPR_PCIE_REF_USE_PAD,
 					0);
+		}
+
+		if (imx_pcie->pcie_ext_src) {
+			if (clk_prepare_enable(imx_pcie->pcie_ext_src)) {
+				dev_err(imx_pcie->pp.dev,
+					"unable to enable pcie_ext_src clock\n");
+				return;
+			}
+			udelay(100);
 		}
 	} else if (imx_pcie->variant == IMX7D) {
 		/* Enable PCIe PHY 1P0D */
@@ -1259,6 +1269,9 @@ static void pci_imx_clk_disable(struct device *dev)
 				BIT(5), BIT(5));
 		break;
 	case IMX8MQ:
+		if (imx_pcie->pcie_ext_src)
+			clk_disable_unprepare(imx_pcie->pcie_ext_src);
+
 		if (imx_pcie->ctrl_id == 0)
 			val = IOMUXC_GPR14;
 		else
@@ -2156,6 +2169,26 @@ static int imx_pcie_probe(struct platform_device *pdev)
 		return PTR_ERR(imx_pcie->pcie_bus);
 	}
 
+	if (imx_pcie->variant == IMX8MQ) {
+		imx_pcie->pcie_ext_src = devm_clk_get(&pdev->dev,
+				"pcie_ext_src");
+		if (IS_ERR(imx_pcie->pcie_ext_src)) {
+			dev_info(&pdev->dev,
+				"pcie_ext_src clk src missing or invalid\n");
+			imx_pcie->pcie_ext_src = NULL;
+		}
+
+		/* Some boards don't have PCIe reset GPIO. */
+		if (gpio_is_valid(imx_pcie->reset_gpio)) {
+			gpio_set_value_cansleep(imx_pcie->reset_gpio,
+						imx_pcie->gpio_active_high);
+			mdelay(20);
+			gpio_set_value_cansleep(imx_pcie->reset_gpio,
+						!imx_pcie->gpio_active_high);
+			mdelay(20);
+		}
+	}
+
 	if (of_property_read_u32(node, "ext_osc", &imx_pcie->ext_osc) < 0)
 		imx_pcie->ext_osc = 0;
 
@@ -2225,12 +2258,6 @@ static int imx_pcie_probe(struct platform_device *pdev)
 			dev_err(&pdev->dev,
 				"imx8mq pcie phy src missing or invalid\n");
 			return PTR_ERR(imx_pcie->reg_gpc);
-		}
-
-		if (!imx_pcie->ext_osc) {
-			imx_pcie->ccm_base=syscon_regmap_lookup_by_compatible("fsl,imx8mq-anatop");
-			regmap_update_bits(imx_pcie->ccm_base, 0x74, 0xFFFFFFFF, 0x1B);
-			regmap_update_bits(imx_pcie->ccm_base, 0x7C, 0xFFFFFFFF, 0x77777);
 		}
 	} else if (imx_pcie->variant == IMX6SX) {
 		imx_pcie->pcie_inbound_axi = devm_clk_get(&pdev->dev,
