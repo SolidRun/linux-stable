@@ -41,6 +41,8 @@ struct clk *imx_clk_frac_pll(const char *name, const char *parent_name, void __i
 
 struct clk *imx_clk_sccg_pll(const char *name, const char *parent_name, void __iomem *base, enum imx_sccg_pll_type pll_type);
 
+struct clk *imx_clk_ana_imx8mq_100_fixed(const char *name, const char *parent_name, void __iomem *base);
+
 enum imx_pllv3_type {
 	IMX_PLLV3_GENERIC,
 	IMX_PLLV3_SYS,

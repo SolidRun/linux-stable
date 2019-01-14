@@ -630,6 +630,9 @@
 
 #define IMX8MQ_VIDEO2_PHY_27MHZ			489
 
-#define IMX8MQ_CLK_END                         490
+#define IMX8MQ_ANA_PLL_OUT			490
+#define IMX8MQ_ANA_PLL_100M			491
+
+#define IMX8MQ_CLK_END                         492
 
 #endif /* __DT_BINDINGS_CLOCK_IMX8MQ_H */
