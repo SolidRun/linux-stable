@@ -151,9 +151,9 @@
 
 		pinctrl_pcie0: pcie0grp {
 			fsl,pins = <
-				MX8MQ_IOMUXC_I2C4_SCL_GPIO5_IO20	0x41
-				MX8MQ_IOMUXC_SPDIF_EXT_CLK_GPIO5_IO5	0x41
-				MX8MQ_IOMUXC_SAI2_RXFS_GPIO4_IO21	0x41
+				MX8MQ_IOMUXC_SPDIF_EXT_CLK_GPIO5_IO5	0x16
+				MX8MQ_IOMUXC_I2C4_SCL_GPIO5_IO20	0x16
+				MX8MQ_IOMUXC_SAI2_RXFS_GPIO4_IO21	0x16
 			>;
 		};
 
@@ -346,11 +346,18 @@
 };
 
 &pcie0{
+	clocks = <&clk IMX8MQ_CLK_PCIE1_ROOT>,
+		<&clk IMX8MQ_CLK_PCIE1_AUX_CG>,
+		<&clk IMX8MQ_CLK_PCIE1_PHY_CG>,
+		<&clk IMX8MQ_ANA_PLL_OUT>,
+		<&clk IMX8MQ_ANA_PLL_100M>;
+	clock-names = "pcie", "pcie_bus", "pcie_phy", "pcie_ext_out", "pcie_ext_src";
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_pcie0>;
 	clkreq-gpio = <&gpio5 20 GPIO_ACTIVE_LOW>;
-	disable-gpio = <&gpio5 5 GPIO_ACTIVE_LOW>;
 	reset-gpio = <&gpio4 21 GPIO_ACTIVE_LOW>;
+	power-on-gpio = <&gpio5 5 GPIO_ACTIVE_LOW>;
+	fsl,max-link-speed = <1>;
 	hard-wired = <1>;
 	status = "okay";
 };
