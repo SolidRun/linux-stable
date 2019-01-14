@@ -620,6 +620,14 @@ static int imx_pcie_enable_ref_clk(struct imx_pcie *imx_pcie)
 		break;
 	case IMX8MQ:
 	case IMX8MM:
+		if (imx_pcie->pcie_ext_src) {
+			if (clk_prepare_enable(imx_pcie->pcie_ext_src)) {
+				dev_err(imx_pcie->pci->dev,
+					"unable to enable pcie_ext_src clock\n");
+				return ret;
+			}
+		}
+
 		/*
 		 * Set the over ride low and enabled
 		 * make sure that REF_CLK is turned on.
@@ -783,12 +791,6 @@ static int imx_pcie_deassert_core_reset(struct imx_pcie *imx_pcie)
 	if (ret) {
 		dev_err(dev, "unable to enable pcie_phy clock\n");
 		goto err_pcie_phy;
-	}
-
-	ret = imx_pcie_enable_ref_clk(imx_pcie);
-	if (ret) {
-		dev_err(dev, "unable to enable pcie ref clock\n");
-		goto err_ref_clk;
 	}
 
 	/* allow the clocks to stabilize */
@@ -964,9 +966,8 @@ static int imx_pcie_deassert_core_reset(struct imx_pcie *imx_pcie)
 	if (ret == 0)
 		return ret;
 
-err_ref_clk:
-	clk_disable_unprepare(imx_pcie->pcie_phy);
 err_pcie_phy:
+	clk_disable_unprepare(imx_pcie->pcie_phy);
 	clk_disable_unprepare(imx_pcie->pcie_bus);
 err_pcie_bus:
 	clk_disable_unprepare(imx_pcie->pcie);
@@ -988,6 +989,7 @@ static void imx_pcie_phy_pwr_up(struct imx_pcie *imx_pcie)
 
 	if ((imx_pcie->variant != IMX8MQ) && (imx_pcie->variant != IMX8MM))
 		return;
+
 	/*
 	 * Power up PHY.
 	 * pcie phy ref clock select by gpr configuration.
@@ -1260,7 +1262,7 @@ static void imx_pcie_init_phy(struct imx_pcie *imx_pcie)
 				udelay(200);
 				dev_info(imx_pcie->pci->dev,
 					"PHY Initialization End!.\n");
-			} else {
+			} else if (!imx_pcie->pcie_ext_src) {
 				np = of_find_compatible_node(NULL, NULL,
 						"fsl,imx8mq-anatop");
 				base = of_iomap(np, 0);
@@ -1481,6 +1483,9 @@ static void pci_imx_clk_disable(struct device *dev)
 	 */
 	case IMX8MQ:
 	case IMX8MM:
+		if (imx_pcie->pcie_ext_src)
+			clk_disable_unprepare(imx_pcie->pcie_ext_src);
+
 		if (imx_pcie->ctrl_id == 0)
 			val = IOMUXC_GPR14;
 		else
@@ -1639,6 +1644,12 @@ static int imx_pcie_host_init(struct pcie_port *pp)
 
 	if (gpio_is_valid(imx_pcie->power_on_gpio))
 		gpio_set_value_cansleep(imx_pcie->power_on_gpio, 1);
+
+	ret = imx_pcie_enable_ref_clk(imx_pcie);
+	if (ret) {
+		dev_err(pci->dev, "unable to enable pcie ref clock\n");
+		return ret;
+	}
 
 	imx_pcie_assert_core_reset(imx_pcie);
 	imx_pcie_init_phy(imx_pcie);
@@ -2413,6 +2424,26 @@ static int imx_pcie_probe(struct platform_device *pdev)
 	if (IS_ERR(imx_pcie->pcie_bus)) {
 		dev_err(dev, "pcie_bus clock source missing or invalid\n");
 		return PTR_ERR(imx_pcie->pcie_bus);
+	}
+
+	if (imx_pcie->variant == IMX8MQ) {
+		imx_pcie->pcie_ext_src = devm_clk_get(&pdev->dev,
+				"pcie_ext_src");
+		if (IS_ERR(imx_pcie->pcie_ext_src)) {
+			dev_info(&pdev->dev,
+				"pcie_ext_src clk src missing or invalid\n");
+			imx_pcie->pcie_ext_src = NULL;
+		}
+
+		/* Some boards don't have PCIe reset GPIO. */
+		if (gpio_is_valid(imx_pcie->reset_gpio)) {
+			gpio_set_value_cansleep(imx_pcie->reset_gpio,
+						imx_pcie->gpio_active_high);
+			mdelay(20);
+			gpio_set_value_cansleep(imx_pcie->reset_gpio,
+						!imx_pcie->gpio_active_high);
+			mdelay(20);
+		}
 	}
 
 	if (of_property_read_u32(node, "ext_osc", &imx_pcie->ext_osc) < 0)
