@@ -371,7 +371,7 @@ static int __swiotlb_dma_mapping_error(struct device *hwdev, dma_addr_t addr)
 static int __swiotlb_dma_supported_quirk(struct device *hwdev, u64 mask)
 {
 	if (mask > DMA_BIT_MASK(32)) {
-		pr_err("Can't support > 32 bit dma.\n");
+		pr_warn("Can't support > 32 bit dma.\n");
 		return 0;
 	}
 
