@@ -420,6 +420,10 @@
 	status = "okay";
 };
 
+&snvs_pwrkey {
+	status = "disabled";
+};
+
 &spdif1 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_spdif1>;
