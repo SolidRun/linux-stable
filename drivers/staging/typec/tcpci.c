@@ -22,6 +22,7 @@
 #include <linux/regmap.h>
 #include <linux/usb/typec.h>
 #include <linux/of_gpio.h>
+#include <linux/gpio/consumer.h>
 #include <linux/extcon.h>
 
 #include "pd.h"
