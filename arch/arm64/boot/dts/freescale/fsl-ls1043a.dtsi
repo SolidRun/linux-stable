@@ -711,6 +711,7 @@
 				usb3-lpm-capable;
 				snps,dis-u1u2-when-u3-quirk;
 				snps,incr-burst-type-adjustment = <1>, <4>, <8>, <16>;
+				snps,host-vbus-glitches;
 				configure-gfladj;
 			};
 
@@ -724,6 +725,7 @@
 				usb3-lpm-capable;
 				snps,dis-u1u2-when-u3-quirk;
 				snps,incr-burst-type-adjustment = <1>, <4>, <8>, <16>;
+				snps,host-vbus-glitches;
 				configure-gfladj;
 			};
 
@@ -737,6 +739,7 @@
 				usb3-lpm-capable;
 				snps,dis-u1u2-when-u3-quirk;
 				snps,incr-burst-type-adjustment = <1>, <4>, <8>, <16>;
+				snps,host-vbus-glitches;
 				configure-gfladj;
 			};
 
