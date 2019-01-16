@@ -1004,6 +1004,8 @@ struct dwc3_scratchpad_array {
  *				interrupted
  * @quirk_stop_ep_in_u1: replace stop commad with disable slot command
  * @dis_metastability_quirk: set to disable metastability quirk.
+ * @host_vbus_glitches: set to avoid vbus glitch during
+ *                      xhci reset.
  * @imod_interval: set the interrupt moderation interval in 250ns
  *                 increments or 0 to disable.
  */
@@ -1177,6 +1179,7 @@ struct dwc3 {
 	unsigned        quirk_stop_ep_in_u1:1;
 
 	unsigned		dis_metastability_quirk:1;
+	unsigned		host_vbus_glitches:1;
 
 	u16			imod_interval;
 };
