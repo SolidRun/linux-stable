@@ -628,6 +628,12 @@
 		assigned-clock-parents = <&clks IMX7D_PLL_AUDIO_POST_DIV>;
 		assigned-clock-rates = <0>, <12288000>;
 	};
+
+	usdhc2_pwrseq: usdhc2_pwrseq {
+		compatible = "mmc-pwrseq-simple";
+		clocks = <&clks IMX7D_CLKO2_ROOT_DIV>;
+		clock-names = "ext_clock";
+	};
 };
 
 &adc1 {
@@ -1073,7 +1079,11 @@
 	bus-width = <4>;
 	non-removable;
 	vmmc-supply = <&reg_wlan>;
+<<<<<<< HEAD
 	vqmmc-1-8-v;
+=======
+	mmc-pwrseq = <&usdhc2_pwrseq>;
+>>>>>>> linux-stable/linux-4.9.y
 	cap-power-off-card;
 	keep-power-in-suspend;
 	status = "okay";
