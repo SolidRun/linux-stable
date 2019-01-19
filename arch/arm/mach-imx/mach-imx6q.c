@@ -183,7 +183,7 @@ static int ar8035_phy_fixup(struct phy_device *dev)
 	 * XNP is only needed for 10Gbps support, so disable XNP.
 	 */
 	val = phy_read(dev, MII_ADVERTISE);
-	val &= ~MDIO_AN_CTRL1_XNP;
+	val &= ~ADVERTISE_RESV;
 	phy_write(dev, MII_ADVERTISE, val);
 
 	if (!ar803x_smarteee)
