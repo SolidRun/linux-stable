@@ -236,7 +236,7 @@ static int aead_setkey(struct crypto_aead *aead, const u8 *key,
 		memcpy(ctx->key, keys.authkey, keys.authkeylen);
 		memcpy(ctx->key + ctx->adata.keylen_pad, keys.enckey,
 		       keys.enckeylen);
-		dma_sync_single_for_device(jrdev, ctx->key_dma,
+		dma_sync_single_for_device(jrdev->parent, ctx->key_dma,
 					   ctx->adata.keylen_pad +
 					   keys.enckeylen, ctx->dir);
 		goto skip_split_key;
@@ -2816,6 +2816,7 @@ static int caam_init_common(struct caam_ctx *ctx, struct caam_alg_entry *caam,
 			    bool uses_dkp)
 {
 	struct caam_drv_private *priv;
+	struct device *dev;
 	/* Digest sizes for MD5, SHA1, SHA-224, SHA-256, SHA-384, SHA-512 */
 	static const u8 digest_size[] = {
 		MD5_DIGEST_SIZE,
@@ -2838,15 +2839,18 @@ static int caam_init_common(struct caam_ctx *ctx, struct caam_alg_entry *caam,
 	}
 
 	priv = dev_get_drvdata(ctx->jrdev->parent);
-	if (priv->era >= 6 && uses_dkp)
+	if (priv->era >= 6 && uses_dkp) {
 		ctx->dir = DMA_BIDIRECTIONAL;
-	else
+		dev = ctx->jrdev->parent;
+	} else {
 		ctx->dir = DMA_TO_DEVICE;
+		dev = ctx->jrdev;
+	}
 
-	ctx->key_dma = dma_map_single(ctx->jrdev, ctx->key, sizeof(ctx->key),
+	ctx->key_dma = dma_map_single(dev, ctx->key, sizeof(ctx->key),
 				      ctx->dir);
-	if (dma_mapping_error(ctx->jrdev, ctx->key_dma)) {
-		dev_err(ctx->jrdev, "unable to map key\n");
+	if (dma_mapping_error(dev, ctx->key_dma)) {
+		dev_err(dev, "unable to map key\n");
 		caam_jr_free(ctx->jrdev);
 		return -ENOMEM;
 	}
@@ -2904,10 +2908,17 @@ static int caam_aead_init(struct crypto_aead *tfm)
 
 static void caam_exit_common(struct caam_ctx *ctx)
 {
+	struct device *dev;
+
 	caam_drv_ctx_rel(ctx->drv_ctx[ENCRYPT]);
 	caam_drv_ctx_rel(ctx->drv_ctx[DECRYPT]);
 
-	dma_unmap_single(ctx->jrdev, ctx->key_dma, sizeof(ctx->key), ctx->dir);
+	if (ctx->dir == DMA_BIDIRECTIONAL)
+		dev = ctx->jrdev->parent;
+	else
+		dev = ctx->jrdev;
+
+	dma_unmap_single(dev, ctx->key_dma, sizeof(ctx->key), ctx->dir);
 
 	caam_jr_free(ctx->jrdev);
 }
