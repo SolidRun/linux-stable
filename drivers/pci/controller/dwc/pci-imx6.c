@@ -81,6 +81,7 @@ struct imx_pcie {
 	struct clk		*misc_per;
 	struct clk		*pcie;
 	struct clk		*pcie_ext_src;
+	struct clk		*pcie_aux;
 	struct regmap		*iomuxc_gpr;
 	enum imx_pcie_variants variant;
 	u32			hsio_cfg;
@@ -699,6 +700,12 @@ static int imx_pcie_enable_ref_clk(struct imx_pcie *imx_pcie)
 		break;
 	case IMX8MQ:
 	case IMX8MM:
+		ret = clk_prepare_enable(imx_pcie->pcie_aux);
+		if (ret) {
+			dev_err(dev, "unable to enable pcie_aux clock\n");
+			break;
+		}
+
 		/*
 		 * Set the over ride low and enabled
 		 * make sure that REF_CLK is turned on.
@@ -1473,6 +1480,8 @@ static void pci_imx_clk_disable(struct device *dev)
 		regmap_update_bits(imx_pcie->iomuxc_gpr, val,
 				IMX8MQ_GPR_PCIE_CLK_REQ_OVERRIDE_EN,
 				0);
+
+		clk_disable_unprepare(imx_pcie->pcie_aux);
 		break;
 	case IMX8QXP:
 	case IMX8QM:
@@ -2446,6 +2455,14 @@ static int imx_pcie_probe(struct platform_device *pdev)
 		imx_pcie->pcie_phy_regulator = devm_regulator_get(&pdev->dev,
 				"pcie-phy");
 	} else if (imx_pcie->variant == IMX8MQ || imx_pcie->variant == IMX8MM) {
+		imx_pcie->pcie_aux = devm_clk_get(&pdev->dev,
+				"pcie_aux");
+		if (IS_ERR(imx_pcie->pcie_aux)) {
+			dev_err(&pdev->dev,
+				"pcie clock source missing or invalid\n");
+			return PTR_ERR(imx_pcie->pcie_aux);
+		}
+
 		imx_pcie->iomuxc_gpr =
 			syscon_regmap_lookup_by_compatible
 			("fsl,imx7d-iomuxc-gpr");
