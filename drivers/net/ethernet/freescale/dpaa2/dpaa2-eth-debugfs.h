@@ -14,6 +14,8 @@ struct dpaa2_debugfs {
 	struct dentry *fq_stats;
 	struct dentry *ch_stats;
 	struct dentry *cpu_stats;
+	struct dentry *reset_stats;
+	struct dentry *reset_mc_stats;
 };
 
 #ifdef CONFIG_DEBUG_FS
