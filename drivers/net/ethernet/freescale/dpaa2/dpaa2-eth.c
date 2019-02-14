@@ -2647,6 +2647,9 @@ static int setup_rx_flow(struct dpaa2_eth_priv *priv,
 		return err;
 	}
 
+	if (fq->tc > 0)
+		return 0;
+
 	/* xdp rxq setup */
 	err = xdp_rxq_info_reg(&fq->channel->xdp.rxq, priv->net_dev,
 			       fq->flowid);
