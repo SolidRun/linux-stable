@@ -392,8 +392,13 @@
 };
 
 &pcie1{
+	clocks = <&clk IMX8MQ_CLK_PCIE2_ROOT>,
+		<&clk IMX8MQ_CLK_PCIE2_AUX>,
+		<&clk IMX8MQ_CLK_PCIE2_PHY>,
+		<&clk IMX8MQ_CLK_CLK2_CG>;
+	clock-names = "pcie", "pcie_bus", "pcie_phy", "pcie_ext_src";
+	fsl,max-link-speed = <1>;
 	hard-wired = <1>;
-	ext_osc = <1>;
 	status = "okay";
 };
 
