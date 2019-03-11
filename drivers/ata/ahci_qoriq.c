@@ -56,6 +56,7 @@
 
 enum ahci_qoriq_type {
 	AHCI_LS1021A,
+	AHCI_LS1028A,
 	AHCI_LS1043A,
 	AHCI_LS2080A,
 	AHCI_LS1046A,
@@ -75,6 +76,7 @@ static bool ecc_initialized;
 
 static const struct of_device_id ahci_qoriq_of_match[] = {
 	{ .compatible = "fsl,ls1021a-ahci", .data = (void *)AHCI_LS1021A},
+	{ .compatible = "fsl,ls1028a-ahci", .data = (void *)AHCI_LS1028A},
 	{ .compatible = "fsl,ls1043a-ahci", .data = (void *)AHCI_LS1043A},
 	{ .compatible = "fsl,ls2080a-ahci", .data = (void *)AHCI_LS2080A},
 	{ .compatible = "fsl,ls1046a-ahci", .data = (void *)AHCI_LS1046A},
@@ -226,6 +228,7 @@ static int ahci_qoriq_phy_init(struct ahci_host_priv *hpriv)
 			writel(AHCI_PORT_AXICC_CFG, reg_base + PORT_AXICC);
 		break;
 
+	case AHCI_LS1028A:
 	case AHCI_LS1088A:
 	case AHCI_LX2160A:
 		if (!(qpriv->ecc_addr || ecc_initialized))
