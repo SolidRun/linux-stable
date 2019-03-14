@@ -878,6 +878,13 @@ static netdev_tx_t dpaa2_eth_tx(struct sk_buff *skb, struct net_device *net_dev)
 	/* Tracing point */
 	trace_dpaa2_tx_fd(net_dev, &fd);
 
+	fd_len = dpaa2_fd_get_len(&fd);
+	nq = netdev_get_tx_queue(net_dev, queue_mapping);
+	netdev_tx_sent_queue(nq, fd_len);
+
+	/* Everything that happens after this enqueues might race with
+	 * the Tx confirmation callback for this frame
+	 */
 	for (i = 0; i < DPAA2_ETH_ENQUEUE_RETRIES; i++) {
 		err = priv->enqueue(priv, fq, &fd, prio);
 		if (err != -EBUSY)
@@ -888,13 +895,10 @@ static netdev_tx_t dpaa2_eth_tx(struct sk_buff *skb, struct net_device *net_dev)
 		percpu_stats->tx_errors++;
 		/* Clean up everything, including freeing the skb */
 		free_tx_fd(priv, fq, &fd, false);
+		netdev_tx_completed_queue(nq, 1, fd_len);
 	} else {
-		fd_len = dpaa2_fd_get_len(&fd);
 		percpu_stats->tx_packets++;
 		percpu_stats->tx_bytes += fd_len;
-
-		nq = netdev_get_tx_queue(net_dev, queue_mapping);
-		netdev_tx_sent_queue(nq, fd_len);
 	}
 
 	return NETDEV_TX_OK;
