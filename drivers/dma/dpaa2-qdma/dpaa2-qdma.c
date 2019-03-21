@@ -1,8 +1,10 @@
 /*
  * drivers/dma/dpaa2-qdma/dpaa2-qdma.c
  *
- * Copyright 2015-2017 NXP Semiconductor, Inc.
+ * Copyright 2015-2016 Freescale Semiconductor, Inc.
+ * Copyright 2017-2018 NXP
  * Author: Changming Huang <jerry.huang@nxp.com>
+ *
  *
  * Driver for the NXP QDMA engine with QMan mode.
  * Channel virtualization is supported through enqueuing of DMA jobs to,

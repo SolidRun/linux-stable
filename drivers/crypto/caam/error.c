@@ -3,6 +3,7 @@
  * CAAM Error Reporting
  *
  * Copyright 2009-2011 Freescale Semiconductor, Inc.
+ * Copyright 2018-2019 NXP
  */
 
 #include "compat.h"

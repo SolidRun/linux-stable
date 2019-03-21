@@ -1,5 +1,6 @@
 /*
  * Copyright 2011 Freescale Semiconductor, Inc
+ * Copyright 2017 NXP
  *
  * Freescale Integrated Flash Controller
  *

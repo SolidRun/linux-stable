@@ -1,7 +1,7 @@
 /*
  * Driver for NXP Layerscape Queue direct memory access controller (qDMA)
  *
- * Copyright 2017 NXP
+ * Copyright 2017-2018 NXP
  *
  * Author:
  *  Jiaheng Fan <jiaheng.fan@nxp.com>

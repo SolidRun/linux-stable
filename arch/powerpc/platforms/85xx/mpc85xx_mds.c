@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2006-2010, 2012-2013 Freescale Semiconductor, Inc.
- * All rights reserved.
+ * Copyright 2017 NXP
  *
  * Author: Andy Fleming <afleming@freescale.com>
  *

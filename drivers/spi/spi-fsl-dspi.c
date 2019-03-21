@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0+
 //
 // Copyright 2013 Freescale Semiconductor, Inc.
+// Copyright 2018 NXP
 //
 // Freescale DSPI driver
 // This file contains a driver for the Freescale DSPI

@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2008-2011 Freescale Semiconductor, Inc. All rights reserved.
+ * Copyright (C) 2008-2011 Freescale Semiconductor, Inc.
+ * Copyright 2018 NXP
  *
  * Author: Yu Liu, <yu.liu@freescale.com>
  *

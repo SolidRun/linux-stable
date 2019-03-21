@@ -3,6 +3,7 @@
  * CAAM Error Reporting code header
  *
  * Copyright 2009-2011 Freescale Semiconductor, Inc.
+ * Copyright 2018 NXP
  */
 
 #ifndef CAAM_ERROR_H

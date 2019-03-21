@@ -1,6 +1,7 @@
 /* Freescale Integrated Flash Controller
  *
  * Copyright 2011 Freescale Semiconductor, Inc
+ * Copyright 2017 NXP
  *
  * Author: Dipen Dudhat <dipen.dudhat@freescale.com>
  *

@@ -2,6 +2,7 @@
  * Freescale FlexTimer Module (FTM) Alarm driver.
  *
  * Copyright 2014 Freescale Semiconductor, Inc.
+ * Copyright 2017-2018 NXP
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License

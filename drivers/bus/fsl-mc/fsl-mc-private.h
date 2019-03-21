@@ -3,6 +3,7 @@
  * Freescale Management Complex (MC) bus private declarations
  *
  * Copyright (C) 2016 Freescale Semiconductor, Inc.
+ * Copyright 2018 NXP
  *
  */
 #ifndef _FSL_MC_PRIVATE_H_

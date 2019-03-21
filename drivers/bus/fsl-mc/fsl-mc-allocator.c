@@ -3,6 +3,7 @@
  * fsl-mc object allocator driver
  *
  * Copyright (C) 2013-2016 Freescale Semiconductor, Inc.
+ * Copyright 2018 NXP
  *
  */
 

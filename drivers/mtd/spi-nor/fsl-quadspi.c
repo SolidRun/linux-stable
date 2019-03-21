@@ -2,6 +2,7 @@
  * Freescale QuadSPI driver.
  *
  * Copyright (C) 2013 Freescale Semiconductor, Inc.
+ * Copyright 2018 NXP
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

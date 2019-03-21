@@ -4,6 +4,7 @@
  * QE Parallel I/O ports configuration routines
  *
  * Copyright 2006 Freescale Semiconductor, Inc. All rights reserved.
+ * Copyright 2017 NXP
  *
  * Author: Li Yang <LeoLi@freescale.com>
  * Based on code from Shlomi Gridish <gridish@freescale.com>

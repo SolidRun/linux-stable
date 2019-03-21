@@ -1,6 +1,8 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Copyright 2008-2011 Freescale Semiconductor, Inc.
+ * Copyright 2018 NXP
+ *
  */
 
 #ifndef CAAM_COMPAT_H

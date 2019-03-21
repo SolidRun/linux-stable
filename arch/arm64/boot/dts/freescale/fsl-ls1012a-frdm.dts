@@ -3,6 +3,7 @@
  * Device Tree file for Freescale LS1012A Freedom Board.
  *
  * Copyright 2016 Freescale Semiconductor, Inc.
+ * Copyright 2017-2018 NXP
  *
  */
 /dts-v1/;

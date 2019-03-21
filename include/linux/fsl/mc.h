@@ -4,6 +4,7 @@
  *
  * Copyright (C) 2014-2016 Freescale Semiconductor, Inc.
  * Author: German Rivera <German.Rivera@freescale.com>
+ * Copyright 2018 NXP
  *
  */
 #ifndef _FSL_MC_H_

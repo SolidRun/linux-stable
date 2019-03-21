@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2015 Freescale Semiconductor, Inc. All rights reserved.
+ * Copyright 2017 NXP
  *
  * Authors:	Zhao Qiang <qiang.zhao@nxp.com>
  *

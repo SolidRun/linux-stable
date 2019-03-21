@@ -4,6 +4,8 @@
  * JobR backend functionality
  *
  * Copyright 2008-2012 Freescale Semiconductor, Inc.
+ * Copyright 2017 NXP
+ *
  */
 
 #include <linux/of_irq.h>

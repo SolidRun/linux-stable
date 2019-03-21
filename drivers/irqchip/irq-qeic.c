@@ -2,6 +2,7 @@
  * drivers/irqchip/irq-qeic.c
  *
  * Copyright (C) 2016 Freescale Semiconductor, Inc.  All rights reserved.
+ * Copyright 2018 NXP
  *
  * Author: Li Yang <leoli@freescale.com>
  * Based on code from Shlomi Gridish <gridish@freescale.com>

@@ -2,6 +2,7 @@
 /*
  * Copyright 2005-2009 MontaVista Software, Inc.
  * Copyright 2008,2012,2015      Freescale Semiconductor, Inc.
+ * Copyright 2017 NXP
  *
  * Ported to 834x by Randy Vinson <rvinson@mvista.com> using code provided
  * by Hunter Wu.

@@ -2,7 +2,7 @@
  * Freescale Management Complex (MC) device passthrough using VFIO
  *
  * Copyright (C) 2013-2016 Freescale Semiconductor, Inc.
- * Copyright 2016-2017 NXP
+ * Copyright 2016-2019 NXP
  * Author: Bharat Bhushan <bharat.bhushan@nxp.com>
  *
  * This file is licensed under the terms of the GNU General Public

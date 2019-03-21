@@ -2,6 +2,7 @@
  * MPC85xx RDB Board Setup
  *
  * Copyright 2009,2012-2013 Freescale Semiconductor Inc.
+ * Copyright 2017 NXP
  *
  * This program is free software; you can redistribute  it and/or modify it
  * under  the terms of  the GNU General  Public License as published by the

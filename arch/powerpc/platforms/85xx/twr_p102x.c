@@ -1,5 +1,6 @@
 /*
  * Copyright 2010-2011, 2013 Freescale Semiconductor, Inc.
+ * Copyright 2017 NXP
  *
  * Author: Michael Johnston <michael.johnston@freescale.com>
  *

@@ -2,7 +2,10 @@
  * Freescale QorIQ AHCI SATA platform driver
  *
  * Copyright 2015 Freescale, Inc.
+ * Copyright 2018 NXP
+ *
  *   Tang Yuantian <Yuantian.Tang@freescale.com>
+ *   Peng Ma <peng.ma@nxp.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

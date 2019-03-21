@@ -3,7 +3,7 @@
  * Public definitions for the CAAM/QI (Queue Interface) backend.
  *
  * Copyright 2013-2016 Freescale Semiconductor, Inc.
- * Copyright 2016-2017 NXP
+ * Copyright 2016-2018 NXP
  */
 
 #ifndef __QI_H__

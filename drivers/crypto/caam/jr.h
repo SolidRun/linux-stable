@@ -3,6 +3,8 @@
  * CAAM public-level include definitions for the JobR backend
  *
  * Copyright 2008-2011 Freescale Semiconductor, Inc.
+ * Copyright 2017-2018 NXP
+ *
  */
 
 #ifndef JR_H

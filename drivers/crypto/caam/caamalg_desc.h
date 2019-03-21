@@ -2,7 +2,7 @@
 /*
  * Shared descriptors for aead, skcipher algorithms
  *
- * Copyright 2016 NXP
+ * Copyright 2016-2018 NXP
  */
 
 #ifndef _CAAMALG_DESC_H_

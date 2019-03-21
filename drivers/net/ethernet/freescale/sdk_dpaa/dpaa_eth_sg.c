@@ -1,4 +1,5 @@
 /* Copyright 2012 Freescale Semiconductor Inc.
+ * Copyright 2017-2019 NXP
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
