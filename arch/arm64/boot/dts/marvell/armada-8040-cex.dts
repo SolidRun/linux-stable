@@ -88,93 +88,92 @@
 		pinctrl-names = "default";
 
 		led0 {
-			label = "CEX7:green:led16";
+			label = "led16";//"CEX7:green:led16"
 			gpios = <&cp0_gpio2 22 GPIO_ACTIVE_LOW>;//mpp54
 			default-state = "off";
 		};
 
 		led1{
 			compatible = "gpio-leds";
-			label = "CEX7:yellow:led1";
+			label = "led1";//"CEX7:yellow:led1"
 			gpios = <&expander0 0 GPIO_ACTIVE_LOW>;
 			default-state = "off";
 		};
 
 		led2{
-			label = "CEX7:green:led2";
+			label = "led2";//"CEX7:green:led2"
 			gpios = <&expander0 1 GPIO_ACTIVE_LOW>;
 			default-state = "off";
 		};
 
 		led3{
-			label = "CEX7:orange:led3";
+			label = "led3";//"CEX7:orange:led3"
 			gpios = <&expander0 2 GPIO_ACTIVE_LOW>;
 			default-state = "off";
 		};
 
 		led4{
-			label = "CEX7:yellow:led4";
+			label = "led4";//"CEX7:yellow:led4"
 			gpios = <&expander0 3 GPIO_ACTIVE_LOW>;
 			default-state = "off";
 		};
 
 		led5{
-			label = "CEX7:green:led5";
+			label = "led5";//"CEX7:green:led5"
 			gpios = <&expander0 4 GPIO_ACTIVE_LOW>;
 			default-state = "off";
 		};
 
 		led6{
-			label = "CEX7:orange:led6";
+			label = "led6";//"CEX7:orange:led6"
 			gpios = <&expander0 5 GPIO_ACTIVE_LOW>;
 			default-state = "off";
 		};
 
-
 		led7{
-			label = "CEX7:yellow:led7";
-			gpios = <&expander0 6 GPIO_ACTIVE_LOW>;
-			default-state = "off";
-		};
-
-		led8{
-			label = "CEX7:green:led8";
-			gpios = <&expander0 7 GPIO_ACTIVE_LOW>;
-			default-state = "off";
-		};
-
-		led9{
-			label = "CEX7:orange:led9";
+			label = "led7";//"CEX7:yellow:led7"
 			gpios = <&expander0 8 GPIO_ACTIVE_LOW>;
 			default-state = "off";
 		};
 
-		led10{
-			label = "CEX7:yellow:led10";
+		led8{
+			label = "led8";//"CEX7:green:led8"
 			gpios = <&expander0 9 GPIO_ACTIVE_LOW>;
 			default-state = "off";
 		};
 
-		led11{
-			label = "CEX7:green:led11";
+		led9{
+			label = "led9";//"CEX7:orange:led9"
 			gpios = <&expander0 10 GPIO_ACTIVE_LOW>;
 			default-state = "off";
 		};
 
-		led12{
-			label = "CEX7:orange:led12";
+		led10{
+			label = "led10";//"CEX7:yellow:led10"
 			gpios = <&expander0 11 GPIO_ACTIVE_LOW>;
 			default-state = "off";
 		};
 
+		led11{
+			label = "led11";//"CEX7:green:led11"
+			gpios = <&expander0 12 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+
+		led12{
+			label = "led12";//"CEX7:orange:led12"
+			gpios = <&expander0 13 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+
 		led15{
-			label = "CEX7:green:led15";
+			label = "led15";//"CEX7:green:led15"
 			gpios = <&expander1 12 GPIO_ACTIVE_LOW>;
 			default-state = "off";
 		};
 
 		led17{
-			label = "CEX7:green:led17";
+			label = "led17";//"CEX7:green:led17"
 			gpios = <&expander1 13 GPIO_ACTIVE_LOW>;
 			default-state = "off";
 		};
@@ -480,6 +479,7 @@
 		spi-max-frequency = <50000000>;
 		reg = <0>;
 	};
+	
 };
 
 &cp1_usb3_0 {
