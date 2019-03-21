@@ -480,6 +480,12 @@
 		reg = <0>;
 	};
 	
+	spi-flash@1 {
+		compatible = "st,w25q32";
+		spi-max-frequency = <50000000>;
+		reg = <1>;// Chip select 1
+	};
+	
 };
 
 &cp1_usb3_0 {
