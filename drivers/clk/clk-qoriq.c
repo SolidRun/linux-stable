@@ -35,6 +35,7 @@
 #define CGA_PLL4	4	/* only on clockgen-1.0, which lacks CGB */
 #define CGB_PLL1	4
 #define CGB_PLL2	5
+#define MAX_PLL_DIV	16
 
 struct clockgen_pll_div {
 	struct clk *clk;
@@ -42,7 +43,7 @@ struct clockgen_pll_div {
 };
 
 struct clockgen_pll {
-	struct clockgen_pll_div div[8];
+	struct clockgen_pll_div div[MAX_PLL_DIV];
 };
 
 #define CLKSEL_VALID	1
@@ -1140,7 +1141,7 @@ static void __init create_one_pll(struct clockgen *cg, int idx)
 		int ret;
 
 		/*
-		 * For platform PLL, there are 8 divider clocks.
+		 * For platform PLL, there are MAX_PLL_DIV divider clocks.
 		 * For core PLL, there are 4 divider clocks at most.
 		 */
 		if (idx != PLATFORM_PLL && i >= 4)
