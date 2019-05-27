@@ -222,10 +222,6 @@ pcie@3600000 {
 	dma-coherent;
 };
 
-&serdes1 {
-	dma-coherent;
-};
-
 &fsldpaa {
 	dma-coherent;
 };
