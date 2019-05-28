@@ -3185,6 +3185,7 @@ static bool ieee80211_amsdu_aggregate(struct ieee80211_sub_if_data *sdata,
 	u8 max_subframes = sta->sta.max_amsdu_subframes;
 	int max_frags = local->hw.max_tx_fragments;
 	int max_amsdu_len = sta->sta.max_amsdu_len;
+	int orig_truesize;
 	__be16 len;
 	void *data;
 	bool ret = false;
@@ -3218,6 +3219,7 @@ static bool ieee80211_amsdu_aggregate(struct ieee80211_sub_if_data *sdata,
 	if (!head)
 		goto out;
 
+	orig_truesize = head->truesize;
 	orig_len = head->len;
 
 	if (skb->len + head->len > max_amsdu_len)
@@ -3272,6 +3274,7 @@ static bool ieee80211_amsdu_aggregate(struct ieee80211_sub_if_data *sdata,
 	*frag_tail = skb;
 
 out_recalc:
+	fq->memory_usage += head->truesize - orig_truesize;
 	if (head->len != orig_len) {
 		flow->backlog += head->len - orig_len;
 		tin->backlog_bytes += head->len - orig_len;
@@ -3614,10 +3617,10 @@ void __ieee80211_subif_start_xmit(struct sk_buff *skb,
 		/* We need a bit of data queued to build aggregates properly, so
 		 * instruct the TCP stack to allow more than a single ms of data
 		 * to be queued in the stack. The value is a bit-shift of 1
-		 * second, so 8 is ~4ms of queued data. Only affects local TCP
+		 * second, so 7 is ~8ms of queued data. Only affects local TCP
 		 * sockets.
 		 */
-		sk_pacing_shift_update(skb->sk, 8);
+		sk_pacing_shift_update(skb->sk, 7);
 
 		fast_tx = rcu_dereference(sta->fast_tx);
 
