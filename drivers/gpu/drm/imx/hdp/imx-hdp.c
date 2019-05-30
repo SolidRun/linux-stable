@@ -15,7 +15,6 @@
 #include <linux/of.h>
 #include <linux/of_address.h>
 #include <linux/of_device.h>
-#include <drm/drm_probe_helper.h>
 
 #include "imx-hdp.h"
 #include "imx-hdmi.h"
@@ -756,8 +755,8 @@ static void imx_hdp_mode_setup(struct imx_hdp *hdp,
 }
 
 static void imx_hdp_bridge_mode_set(struct drm_bridge *bridge,
-				    const struct drm_display_mode *orig_mode,
-				    const struct drm_display_mode *mode)
+				    struct drm_display_mode *orig_mode,
+				    struct drm_display_mode *mode)
 {
 	struct imx_hdp *hdp = bridge->driver_private;
 
