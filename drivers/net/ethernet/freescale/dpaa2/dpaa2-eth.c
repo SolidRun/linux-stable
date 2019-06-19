@@ -326,8 +326,12 @@ static u32 run_xdp(struct dpaa2_eth_priv *priv,
 			       DMA_BIDIRECTIONAL);
 		ch->buf_count--;
 		ch->xdp.flush = true;
-		if (xdp_do_redirect(priv->net_dev, &xdp, xdp_prog))
+		if (xdp_do_redirect(priv->net_dev, &xdp, xdp_prog)) {
 			xdp_return_buff(&xdp);
+			ch->stats.xdp_drop++;
+		} else {
+			ch->stats.xdp_redirect++;
+		}
 		break;
 	default:
 		bpf_warn_invalid_xdp_action(xdp_act);
