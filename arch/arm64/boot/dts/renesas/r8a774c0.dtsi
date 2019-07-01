@@ -1795,6 +1795,18 @@
 			renesas,#wpf = <1>;
 		};
 
+		fdp0: fdpm@fe940000 {
+			compatible = "renesas,fdpm";
+			reg = <0 0xfe940000 0 0x2400>, <0 0xfe950000 0 0x200>;
+			interrupts = <GIC_SPI 262 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 119>, <&cpg CPG_MOD 615>;
+			clock-names = "fdp", "fcp";
+			power-domains = <&sysc R8A774C0_PD_A3VC>;
+			resets = <&cpg 119>, <&cpg 615>;
+			reset-names = "fdp", "fcp";
+			renesas,#ch = <0>;
+		};
+
 		vspb: vspm@fe960000 {
 			compatible = "renesas,vspm";
 			reg = <0 0xfe960000 0 0x8000>, <0 0xfe96f000 0 0x200>;
