@@ -38,6 +38,15 @@
 		reg = <0 0x40000000 0 0x20000000>;
 	};
 
+	reg_1p0v: 1p0v {
+		compatible = "regulator-fixed";
+		regulator-name = "1P0V";
+		regulator-min-microvolt = <1000000>;
+		regulator-max-microvolt = <1000000>;
+		regulator-boot-on;
+		regulator-always-on;
+	};
+
 	reg_1p8v: reg-1p8v {
 		compatible = "regulator-fixed";
 		regulator-name = "fixed-1.8V";
@@ -67,6 +76,10 @@
 		gpios-states = <1>;
 		states = <3300000 1>, <1800000 0>;
 	};
+};
+
+&cpu0 {
+	cpu0-supply = <&reg_1p0v>;
 };
 
 &avb {
