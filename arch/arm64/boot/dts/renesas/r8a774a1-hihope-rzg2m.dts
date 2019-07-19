@@ -53,7 +53,7 @@
 
 	mmngr {
 		compatible = "renesas,mmngr";
-		memory-region = <&mmp_reserved>;
+		memory-region = <&mmp_reserved>, <&lossy_decompress>;
 	};
 
 	mmngrbuf {
