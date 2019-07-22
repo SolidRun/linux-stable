@@ -22,6 +22,9 @@
 		i2c4 = &i2c4;
 		spi0 = &qspi0;
 		spi1 = &qspi1;
+		spi2 = &msiof0;
+		spi3 = &msiof1;
+		spi4 = &msiof2;
 	};
 
 	cpus {
@@ -575,6 +578,45 @@
 			#address-cells = <1>;
 			#size-cells = <0>;
 			resets = <&cpg 917>;
+			status = "disabled";
+		};
+
+		msiof0: spi@e6e20000 {
+			compatible = "renesas,msiof-r8a77470";
+			reg = <0 0xe6e20000 0 0x0064>;
+			interrupts = <0 156 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 0>;
+			dmas = <&dmac0 0x51>, <&dmac0 0x52>;
+			dma-names = "tx", "rx";
+			power-domains = <&sysc R8A77470_PD_ALWAYS_ON>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "disabled";
+		};
+
+		msiof1: spi@e6e10000 {
+			compatible = "renesas,msiof-r8a77470";
+			reg = <0 0xe6e10000 0 0x0064>;
+			interrupts = <0 157 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 208>;
+			dmas = <&dmac0 0x55>, <&dmac0 0x56>;
+			dma-names = "tx", "rx";
+			power-domains = <&sysc R8A77470_PD_ALWAYS_ON>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "disabled";
+		};
+
+		msiof2: spi@e6e00000 {
+			compatible = "renesas,msiof-r8a77470";
+			reg = <0 0xe6e00000 0 0x0064>;
+			interrupts = <0 158 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 205>;
+			dmas = <&dmac0 0x41>, <&dmac0 0x42>;
+			dma-names = "tx", "rx";
+			power-domains = <&sysc R8A77470_PD_ALWAYS_ON>;
+			#address-cells = <1>;
+			#size-cells = <0>;
 			status = "disabled";
 		};
 
