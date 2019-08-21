@@ -29,6 +29,14 @@ config FSL_MC_DPIO
 	  objects individually, but groups them under a service layer
 	  API.
 
+config FSL_RCPM
+	bool "Freescale RCPM support"
+	depends on PM_SLEEP
+	help
+	  The NXP QorIQ Processors based on ARM Core have RCPM module
+	  (Run Control and Power Management), which performs all device-level
+	  tasks associated with power management, such as wakeup source control.
+
 config FSL_QIXIS
 	tristate "QIXIS system controller driver"
 	depends on OF

@@ -8,5 +8,6 @@ obj-$(CONFIG_CPM)			+= qe/
 obj-$(CONFIG_FSL_QIXIS) 		+= qixis_ctrl.o
 obj-$(CONFIG_FSL_GUTS)			+= guts.o
 obj-$(CONFIG_FSL_MC_DPIO) 		+= dpio/
+obj-$(CONFIG_FSL_RCPM)			+= rcpm.o
 obj-$(CONFIG_FSL_LS2_CONSOLE)		+= ls2-console/
 obj-$(CONFIG_FSL_SLEEP_FSM)	+= sleep_fsm.o
