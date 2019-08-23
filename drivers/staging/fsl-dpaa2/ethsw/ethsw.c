@@ -318,8 +318,7 @@ static int ethsw_port_fdb_del_mc(struct ethsw_port_priv *port_priv,
 
 static int port_fdb_add(struct ndmsg *ndm, struct nlattr *tb[],
 			struct net_device *dev, const unsigned char *addr,
-			u16 vid, u16 flags,
-			struct netlink_ext_ack *extack)
+			u16 vid, u16 flagsi)
 {
 	if (is_unicast_ether_addr(addr))
 		return ethsw_port_fdb_add_uc(netdev_priv(dev),
@@ -1206,9 +1205,8 @@ static void ethsw_switchdev_event_work(struct work_struct *work)
 						    fdb_info->addr);
 		if (err)
 			break;
-		fdb_info->offloaded = true;
 		call_switchdev_notifiers(SWITCHDEV_FDB_OFFLOADED, dev,
-					 &fdb_info->info, NULL);
+					 &fdb_info->info);
 		break;
 	case SWITCHDEV_FDB_DEL_TO_DEVICE:
 		if (!fdb_info->added_by_user)
