@@ -182,7 +182,7 @@ static void __dev_sort_resources(struct pci_dev *dev,
 	u16 class = dev->class >> 8;
 
 	/* Don't touch classless devices or host bridges or ioapics.  */
-	if (class == PCI_CLASS_NOT_DEFINED || class == PCI_CLASS_BRIDGE_HOST)
+	if (/*class == PCI_CLASS_NOT_DEFINED ||*/ class == PCI_CLASS_BRIDGE_HOST)
 		return;
 
 	/* Don't touch ioapic devices already enabled by firmware */
