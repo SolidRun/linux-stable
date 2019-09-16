@@ -147,6 +147,7 @@ config VIDEO_MXC_CAPTURE
 config VIDEO_MX8_CAPTURE
 	tristate "MX8 Video For Linux Video Capture"
 	depends on VIDEO_V4L2
+	depends on ARCH_FSL_IMX8QM || ARCH_FSL_IMX8QXP
 	---help---
 	  This is the video4linux2 capture driver based on i.MX8 module.
 

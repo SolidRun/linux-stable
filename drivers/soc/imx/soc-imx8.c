@@ -98,6 +98,7 @@ static u32 imx_init_revision_from_atf(void)
 	return rev;
 }
 
+#ifdef CONFIG_HAVE_IMX_SC
 static u32 imx_init_revision_from_scu(void)
 {
 	uint32_t mu_id;
@@ -142,9 +143,11 @@ static u32 imx_init_revision_from_scu(void)
 
 	return rev;
 }
+#endif
 
 bool TKT340553_SW_WORKAROUND;
 
+#ifdef CONFIG_ARCH_FSL_IMX8QM
 static u32 imx8qm_soc_revision(void)
 {
 	u32 rev = imx_init_revision_from_scu();
@@ -154,12 +157,16 @@ static u32 imx8qm_soc_revision(void)
 
 	return rev;
 }
+#endif
 
+#ifdef CONFIG_ARCH_FSL_IMX8QXP
 static u32 imx8qxp_soc_revision(void)
 {
 	return imx_init_revision_from_scu();
 }
+#endif
 
+#if defined(CONFIG_ARCH_FSL_IMX8MQ) || defined(CONFIG_ARCH_FSL_IMX8MM)
 #define OCOTP_UID_LOW	0x410
 #define OCOTP_UID_HIGH	0x420
 
@@ -192,44 +199,65 @@ put_node:
 	of_node_put(np);
 	return val;
 }
+#endif
 
+#ifdef CONFIG_ARCH_FSL_IMX8MQ
 static u32 imx8mq_soc_revision(void)
 {
 	imx8_soc_uid = imx8mq_soc_get_soc_uid();
 	return imx_init_revision_from_atf();
 }
+#endif
 
+#ifdef CONFIG_ARCH_FSL_IMX8MM
 static u32 imx8mm_soc_revision(void)
 {
 	imx8_soc_uid = imx8mq_soc_get_soc_uid();
 	return imx_init_revision_from_atf();
 }
+#endif
 
+#ifdef CONFIG_ARCH_FSL_IMX8QM
 static struct imx8_soc_data imx8qm_soc_data = {
 	.name = "i.MX8QM",
 	.soc_revision = imx8qm_soc_revision,
 };
+#endif
 
+#ifdef CONFIG_ARCH_FSL_IMX8QXP
 static struct imx8_soc_data imx8qxp_soc_data = {
 	.name = "i.MX8QXP",
 	.soc_revision = imx8qxp_soc_revision,
 };
+#endif
 
+#ifdef CONFIG_ARCH_FSL_IMX8MQ
 static struct imx8_soc_data imx8mq_soc_data = {
 	.name = "i.MX8MQ",
 	.soc_revision = imx8mq_soc_revision,
 };
+#endif
 
+#ifdef CONFIG_ARCH_FSL_IMX8MM
 static struct imx8_soc_data imx8mm_soc_data = {
 	.name = "i.MX8MM",
 	.soc_revision = imx8mm_soc_revision,
 };
+#endif
 
 static const struct of_device_id imx8_soc_match[] = {
+#ifdef CONFIG_ARCH_FSL_IMX8QM
 	{ .compatible = "fsl,imx8qm", .data = &imx8qm_soc_data, },
+#endif
+#ifdef CONFIG_ARCH_FSL_IMX8QXP 
 	{ .compatible = "fsl,imx8qxp", .data = &imx8qxp_soc_data, },
+#endif
+#ifdef CONFIG_ARCH_FSL_IMX8MQ
 	{ .compatible = "fsl,imx8mq", .data = &imx8mq_soc_data, },
+#endif
+#ifdef CONFIG_ARCH_FSL_IMX8MM
 	{ .compatible = "fsl,imx8mm", .data = &imx8mm_soc_data, },
+#endif
 	{ }
 };
 
@@ -539,6 +567,7 @@ int check_m4_enabled(void)
 }
 #endif
 
+#ifdef CONFIG_ARCH_FSL_IMX8MQ
 #define IMX8MQ_FEATURE_BITS	0x450
 #define IMX8MQ_FEATURE_HDCP	(1<<27)
 
@@ -577,11 +606,18 @@ put_node:
 	pr_debug("HDCP is disabled\n");
 	return false;
 }
+#else
+static bool imx8mq_soc_is_hdcp_available(void)
+{
+	return false;
+}
+#endif
 
+#ifdef CONFIG_ARCH_FSL_IMX8QM
 #define IMX8QM_FEATURE_BITS	0x3
 #define IMX8QM_FEATURE_HDCP	(1<<3)
 
-static int imx8qm_soc_is_hdcp_available(void)
+static bool imx8qm_soc_is_hdcp_available(void)
 {
 	sc_ipc_t mu_ipc;
 	sc_ipc_id_t mu_id;
@@ -618,6 +654,12 @@ static int imx8qm_soc_is_hdcp_available(void)
 	pr_debug("HDCP is disabled\n");
 	return false;
 }
+#else
+static bool imx8qm_soc_is_hdcp_available(void)
+{
+	return false;
+}
+#endif
 
 bool check_hdcp_enabled(void)
 {

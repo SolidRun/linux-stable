@@ -191,6 +191,7 @@ int hdp_fw_init(state_struct *state)
 	return 0;
 }
 
+#ifdef CONFIG_ARCH_FSL_IMX8QM
 static void imx8qm_pixel_link_mux(state_struct *state,
 				  struct drm_display_mode *mode)
 {
@@ -366,21 +367,6 @@ void imx8qm_phy_reset(sc_ipc_t ipcHndl, struct hdp_mem *mem, u8 reset)
 	sciErr = sc_misc_set_control(ipcHndl, SC_R_HDMI, SC_C_PHY_RESET, reset);
 	if (sciErr != SC_ERR_NONE)
 		DRM_ERROR("SC_R_HDMI PHY reset failed %d!\n", sciErr);
-}
-
-void imx8mq_phy_reset(sc_ipc_t ipcHndl, struct hdp_mem *mem, u8 reset)
-{
-	void *tmp_addr = mem->rst_base;
-
-	if (reset)
-		__raw_writel(0x8,
-			     (volatile unsigned int *)(tmp_addr+0x4)); /*set*/
-	else
-		__raw_writel(0x8,
-			     (volatile unsigned int *)(tmp_addr+0x8)); /*clear*/
-
-
-	return;
 }
 
 int imx8qm_clock_init(struct hdp_clks *clks)
@@ -724,6 +710,24 @@ void imx8qm_ipg_clock_set_rate(struct hdp_clks *clks)
 		clk_set_rate(clks->clk_ipg,  desired_rate/8);
 	}
 }
+#endif
+
+#ifdef CONFIG_ARCH_FSL_IMX8MQ
+void imx8mq_phy_reset(sc_ipc_t ipcHndl, struct hdp_mem *mem, u8 reset)
+{
+	void *tmp_addr = mem->rst_base;
+
+	if (reset)
+		__raw_writel(0x8,
+			     (volatile unsigned int *)(tmp_addr+0x4)); /*set*/
+	else
+		__raw_writel(0x8,
+			     (volatile unsigned int *)(tmp_addr+0x8)); /*clear*/
+
+
+	return;
+}
+#endif
 
 static u8 imx_hdp_link_rate(struct drm_display_mode *mode)
 {
@@ -1184,6 +1188,7 @@ static int imx8mq_hdp_swrite(struct hdp_mem *mem,
 	return 0;
 }
 
+#ifdef CONFIG_ARCH_FSL_IMX8QM
 static int imx8qm_hdp_read(struct hdp_mem *mem,
 			   unsigned int addr,
 			   unsigned int *value)
@@ -1329,7 +1334,9 @@ static struct hdp_devtype imx8qm_hdmi_devtype = {
 	.rw = &imx8qm_rw,
 	.connector_type = DRM_MODE_CONNECTOR_HDMIA,
 };
+#endif
 
+#ifdef CONFIG_ARCH_FSL_IMX8MQ
 static struct hdp_rw_func imx8mq_rw = {
 	.read_reg = imx8mq_hdp_read,
 	.write_reg = imx8mq_hdp_write,
@@ -1372,12 +1379,17 @@ static struct hdp_devtype imx8mq_dp_devtype = {
 	.rw = &imx8mq_rw,
 	.connector_type = DRM_MODE_CONNECTOR_DisplayPort,
 };
+#endif
 
 static const struct of_device_id imx_hdp_dt_ids[] = {
+#ifdef CONFIG_ARCH_FSL_IMX8QM
 	{ .compatible = "fsl,imx8qm-hdmi", .data = &imx8qm_hdmi_devtype},
 	{ .compatible = "fsl,imx8qm-dp", .data = &imx8qm_dp_devtype},
+#endif
+#ifdef CONFIG_ARCH_FSL_IMX8MQ
 	{ .compatible = "fsl,imx8mq-hdmi", .data = &imx8mq_hdmi_devtype},
 	{ .compatible = "fsl,imx8mq-dp", .data = &imx8mq_dp_devtype},
+#endif
 	{ }
 };
 MODULE_DEVICE_TABLE(of, imx_hdp_dt_ids);

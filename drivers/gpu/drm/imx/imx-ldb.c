@@ -304,7 +304,7 @@ static void imx_ldb_set_clock(struct imx_ldb *ldb, int mux, int chno,
 			chno);
 }
 
-#ifndef CONFIG_HAVE_IMX8_SOC
+#if (!defined(CONFIG_HAVE_IMX8_SOC) || !defined(CONFIG_HAVE_IMX_SC))
 static void dpu_pixel_link_validate(int dpu_id, int stream_id) {}
 static void dpu_pixel_link_invalidate(int dpu_id, int stream_id) {}
 static void dpu_pixel_link_enable(int dpu_id, int stream_id) {}
@@ -1157,7 +1157,7 @@ static int imx_ldb_panel_ddc(struct device *dev,
 	return 0;
 }
 
-#ifndef CONFIG_HAVE_IMX8_SOC
+#if (!defined(CONFIG_HAVE_IMX8_SOC) || !defined(CONFIG_HAVE_IMX_SC))
 static void ldb_pixel_link_init(int id, bool dual) {}
 #else
 static void ldb_pixel_link_init(int id, bool dual)
