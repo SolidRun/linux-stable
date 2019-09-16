@@ -19,6 +19,8 @@
  *    http://www.opensource.org/licenses/gpl-license.html
  *    http://www.gnu.org/copyleft/gpl.html
  *****************************************************************************/
+#define DEBUG
+
 #include <linux/hantrodec.h>
 #include "dwl_defs.h"
 #include <linux/io.h>
@@ -1793,7 +1795,7 @@ static int hantro_dev_probe(struct platform_device *pdev)
 		pr_err("hantro: get regulator failed\n");
 		return -ENODEV;
 	}
-	hantro_update_voltage(&pdev->dev);
+	// hantro_update_voltage(&pdev->dev);
 
 	hantro_clk_enable(&pdev->dev);
 	pm_runtime_enable(&pdev->dev);
@@ -1821,7 +1823,7 @@ static int hantro_dev_probe(struct platform_device *pdev)
 	HANTRO_REG_THERMAL_NOTIFIER(&hantro_thermal_hot_notifier);
 	thermal_event = 0;
 	thermal_cur = 0;
-	hantro_dynamic_clock = 0;
+	hantro_dynamic_clock = 1;
 #endif
 	timeout = 0;
 	goto out;

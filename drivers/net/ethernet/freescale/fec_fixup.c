@@ -148,7 +148,7 @@ put_ocotp_node:
 	of_node_put(ocotp_np);
 }
 
-#ifdef CONFIG_ARCH_MXC_ARM64
+#ifdef CONFIG_ARCH_FSL_IMX8QM
 static void imx8qm_get_mac_from_fuse(int dev_id, unsigned char *mac,
 				     struct imx_fuse_mac_addr *fuse_mapping)
 {

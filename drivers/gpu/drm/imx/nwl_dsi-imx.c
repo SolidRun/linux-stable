@@ -110,6 +110,7 @@ struct devtype {
 	struct clk_config clk_config[4];
 };
 
+#ifdef CONFIG_ARCH_FSL_IMX8QM
 static int imx8qm_dsi_poweron(struct imx_mipi_dsi *dsi);
 static void imx8qm_dsi_poweroff(struct imx_mipi_dsi *dsi);
 static struct devtype imx8qm_dev = {
@@ -126,7 +127,9 @@ static struct devtype imx8qm_dev = {
 	.pxl2dpi_reg   = 0x04,
 	.max_instances =    2,
 };
+#endif
 
+#ifdef CONFIG_ARCH_FSL_IMX8QXP
 static int imx8qxp_dsi_poweron(struct imx_mipi_dsi *dsi);
 static void imx8qxp_dsi_poweroff(struct imx_mipi_dsi *dsi);
 static struct devtype imx8qxp_dev = {
@@ -143,7 +146,9 @@ static struct devtype imx8qxp_dev = {
 	.pxl2dpi_reg   = 0x40,
 	.max_instances =    2,
 };
+#endif
 
+#ifdef CONFIG_ARCH_FSL_IMX8MQ
 static int imx8mq_dsi_poweron(struct imx_mipi_dsi *dsi);
 static void imx8mq_dsi_poweroff(struct imx_mipi_dsi *dsi);
 static struct devtype imx8mq_dev = {
@@ -158,11 +163,18 @@ static struct devtype imx8mq_dev = {
 	.ext_regs = IMX_REG_SRC | IMX_REG_GPR,
 	.max_instances = 1,
 };
+#endif
 
 static const struct of_device_id imx_nwl_dsi_dt_ids[] = {
+#ifdef CONFIG_ARCH_FSL_IMX8QM
 	{ .compatible = "fsl,imx8qm-mipi-dsi", .data = &imx8qm_dev, },
+#endif
+#ifdef CONFIG_ARCH_FSL_IMX8QXP
 	{ .compatible = "fsl,imx8qxp-mipi-dsi", .data = &imx8qxp_dev, },
+#endif
+#ifdef CONFIG_ARCH_FSL_IMX8MQ
 	{ .compatible = "fsl,imx8mq-mipi-dsi_drm", .data = &imx8mq_dev, },
+#endif
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, imx_nwl_dsi_dt_ids);
@@ -211,6 +223,7 @@ static void imx_nwl_dsi_set_clocks(struct imx_mipi_dsi *dsi, bool enable)
 	}
 }
 
+#ifdef CONFIG_HAVE_IMX_SC
 /*
  * v2 is true for QXP
  * On QM, we have 2 DPUs, each one with a MIPI-DSI link
@@ -425,7 +438,9 @@ static void imx8q_dsi_poweroff(struct imx_mipi_dsi *dsi, bool v2)
 
 	sc_ipc_close(ipc_handle);
 }
+#endif
 
+#ifdef CONFIG_ARCH_FSL_IMX8QM
 static int imx8qm_dsi_poweron(struct imx_mipi_dsi *dsi)
 {
 	return imx8q_dsi_poweron(dsi, false);
@@ -435,7 +450,9 @@ static void imx8qm_dsi_poweroff(struct imx_mipi_dsi *dsi)
 {
 	return imx8q_dsi_poweroff(dsi, false);
 }
+#endif
 
+#ifdef CONFIG_ARCH_FSL_IMX8QXP
 static int imx8qxp_dsi_poweron(struct imx_mipi_dsi *dsi)
 {
 	return imx8q_dsi_poweron(dsi, true);
@@ -445,7 +462,9 @@ static void imx8qxp_dsi_poweroff(struct imx_mipi_dsi *dsi)
 {
 	return imx8q_dsi_poweroff(dsi, true);
 }
+#endif
 
+#ifdef CONFIG_ARCH_FSL_IMX8MQ
 static int imx8mq_dsi_poweron(struct imx_mipi_dsi *dsi)
 {
 	regmap_update_bits(dsi->reset, SRC_MIPIPHY_RCR,
@@ -471,6 +490,7 @@ static void imx8mq_dsi_poweroff(struct imx_mipi_dsi *dsi)
 	regmap_update_bits(dsi->reset, SRC_MIPIPHY_RCR,
 			   DPI_RESET_N, 0);
 }
+#endif
 
 static void imx_nwl_dsi_enable(struct imx_mipi_dsi *dsi)
 {
