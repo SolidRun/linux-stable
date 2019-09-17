@@ -72,6 +72,28 @@
 			regulator-always-on;
 		};
 
+		reg_usbh1_vbus: usbh1_vbus {
+			compatible = "regulator-fixed";
+			pinctrl-names = "default";
+			pinctrl-0 = <&pinctrl_reg_usbh1_vbus>;
+			regulator-name = "usbh1_vbus";
+			regulator-min-microvolt = <5000000>;
+			regulator-max-microvolt = <5000000>;
+			gpio = <&gpio1 6 GPIO_ACTIVE_HIGH>;
+			enable-active-high;
+		};
+
+		reg_usb1_vbus: usb1_vbus {
+			compatible = "regulator-fixed";
+			pinctrl-names = "default";
+			pinctrl-0 = <&pinctrl_reg_usb1_vbus>;
+			regulator-name = "usb1_vbus";
+			regulator-min-microvolt = <5000000>;
+			regulator-max-microvolt = <5000000>;
+			gpio = <&gpio3 15 GPIO_ACTIVE_HIGH>;
+			enable-active-high;
+		};
+
 		reg_usdhc2_vmmc: usdhc2_vmmc {
 			compatible = "regulator-fixed";
 			regulator-name = "VSD_3V3";
@@ -271,13 +293,6 @@
 		};
 
 
-		pinctrl_typec: typecgrp {
-			fsl,pins = <
-				MX8MQ_IOMUXC_NAND_RE_B_GPIO3_IO15	0x16
-				MX8MQ_IOMUXC_GPIO1_IO06_GPIO1_IO6	0x17059
-			>;
-		};
-
 		pinctrl_uart2: uart2grp {
 			fsl,pins = <
 				MX8MQ_IOMUXC_UART2_TXD_UART2_DCE_TX		0x49
@@ -302,8 +317,12 @@
 			>;
 		};
 
-		pinctrl_usbh1_vbus: usbh1-vbus {
-			fsl,pins = <MX8MQ_IOMUXC_NAND_CE1_B_GPIO3_IO2	0x19>;
+		pinctrl_reg_usb1_vbus: reg-usb1-vbus {
+			fsl,pins = <MX8MQ_IOMUXC_NAND_RE_B_GPIO3_IO15		0x19>;
+		};
+
+		pinctrl_reg_usbh1_vbus: reg-usbh1-vbus {
+			fsl,pins = <MX8MQ_IOMUXC_GPIO1_IO12_GPIO1_IO12		0x19>;
 		};
 
 		pinctrl_usdhc2_gpio: usdhc2grpgpio {
@@ -373,24 +392,6 @@
 			0xffff /* GPIO4 => don't touch */
 		>;
 		status = "okay";
-	};
-
-	typec_ptn5100: ptn5110@50 {
-		compatible = "usb,tcpci";
-		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_typec>;
-		reg = <0x50>;
-		interrupt-parent = <&gpio1>;
-		interrupts = <6 8>;
-		ss-sel-gpios = <&gpio3 15 GPIO_ACTIVE_HIGH>;
-		src-pdos = <0x380190c8>;
-		snk-pdos = <0x380190c8 0x3802d0c8>;
-		max-snk-mv = <9000>;
-		max-snk-ma = <2000>;
-		op-snk-mw = <9000>;
-		max-snk-mw = <18000>;
-		port-type = "drp";
-		default-role = "sink";
 	};
 };
 
@@ -528,12 +529,13 @@
 };
 
 &usb_dwc3_0 {
+	vbus-supply = <&reg_usb1_vbus>; 
 	status = "okay";
-	extcon = <&typec_ptn5100>;
-	dr_mode = "otg";
+	dr_mode = "host";
 };
 
 &usb_dwc3_1 {
+	vbus-supply = <&reg_usbh1_vbus>; 
 	status = "okay";
 	dr_mode = "host";
 	snps,host-vbus-glitches;
