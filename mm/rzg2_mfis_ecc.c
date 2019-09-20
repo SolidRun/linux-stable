@@ -56,8 +56,8 @@
 #define MAX_BUF			(10)
 
 static unsigned int pid;
-static unsigned int sbit_err_count = 1;
-static unsigned int mbit_err_count = 1;
+static unsigned int sbit_err_count;
+static unsigned int mbit_err_count;
 static unsigned int signal_id;
 
 static int irq10;
@@ -157,6 +157,7 @@ static ssize_t write_sbit_err_count(struct file *file, const char __user *buf,
 	char mybuf[MAX_BUF];
 	int ret;
 	uint32_t mfierrcntr11;
+	uint32_t mfierrctrl10;
 
 	if (count > MAX_BUF)
 		return -EINVAL;
@@ -178,6 +179,15 @@ static ssize_t write_sbit_err_count(struct file *file, const char __user *buf,
 	mfierrcntr11 &= (~SBIT_CNT_SETTING(SBIT_CNT_MAX));
 	writel(mfierrcntr11 | SBIT_CNT_SETTING(sbit_err_count),
 			base_addr + MFIERRCNTR11);
+
+	/*Check and enable interrupt*/
+	mfierrctrl10 = readl(base_addr + MFIERRCTLR10);
+	if (sbit_err_count)
+		mfierrctrl10 |= DRAM_ECC_SBIT_CNT;
+	else
+		mfierrctrl10 &= (~DRAM_ECC_SBIT_CNT);
+
+	writel(mfierrctrl10, base_addr + MFIERRCTLR10);
 
 	return count;
 }
@@ -210,6 +220,7 @@ static ssize_t write_mbit_err_count(struct file *file, const char __user *buf,
 	char mybuf[MAX_BUF];
 	int ret;
 	uint32_t mfierrcntr11;
+	uint32_t mfierrctrl11;
 
 	if (count > MAX_BUF)
 		return -EINVAL;
@@ -232,6 +243,15 @@ static ssize_t write_mbit_err_count(struct file *file, const char __user *buf,
 	mfierrcntr11 &= (~MBIT_CNT_SETTING(MBIT_CNT_MAX));
 	writel(mfierrcntr11 | MBIT_CNT_SETTING(mbit_err_count),
 			base_addr + MFIERRCNTR11);
+
+	/*Check and enable interrupt*/
+	mfierrctrl11 = readl(base_addr + MFIERRCTLR11);
+	if (mbit_err_count)
+		mfierrctrl11 |= DRAM_ECC_MBIT_CNT;
+	else
+		mfierrctrl11 &= (~DRAM_ECC_MBIT_CNT);
+
+	writel(mfierrctrl11, base_addr + MFIERRCTLR11);
 
 	return count;
 }
@@ -324,6 +344,7 @@ static int mfis_ecc_probe(struct platform_device *pdev)
 	uint32_t mfierrctrl11;
 	uint32_t mfierrtgtr10;
 	uint32_t mfierrtgtr11;
+	uint32_t mfierrcntr11;
 
 	mem = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	base_addr = ioremap_nocache(mem->start, resource_size(mem));
@@ -378,20 +399,27 @@ static int mfis_ecc_probe(struct platform_device *pdev)
 
 	iounmap(mstp_base_addr);
 
-	mfierrctrl10 = readl(base_addr + MFIERRCTLR10);
-	mfierrctrl11 = readl(base_addr + MFIERRCTLR11);
+	/*Set error target as interrupt*/
 	mfierrtgtr10 = readl(base_addr + MFIERRTGTR10);
 	mfierrtgtr11 = readl(base_addr + MFIERRTGTR11);
-
-	mfierrctrl10 |= DRAM_ECC_SBIT_CNT;
-	mfierrctrl11 |= DRAM_ECC_MBIT_CNT;
 	mfierrtgtr10 |= DRAM_ECC_SBIT_CNT;
 	mfierrtgtr11 |= DRAM_ECC_MBIT_CNT;
-
-	writel(mfierrctrl10, base_addr + MFIERRCTLR10);
-	writel(mfierrctrl11, base_addr + MFIERRCTLR11);
 	writel(mfierrtgtr10, base_addr + MFIERRTGTR10);
 	writel(mfierrtgtr11, base_addr + MFIERRTGTR11);
+
+	/*Initially disable interrupt*/
+	mfierrctrl10 = readl(base_addr + MFIERRCTLR10);
+	mfierrctrl11 = readl(base_addr + MFIERRCTLR11);
+	mfierrctrl10 &= (~DRAM_ECC_SBIT_CNT);
+	mfierrctrl11 &= (~DRAM_ECC_MBIT_CNT);
+	writel(mfierrctrl10, base_addr + MFIERRCTLR10);
+	writel(mfierrctrl11, base_addr + MFIERRCTLR11);
+
+	/*Set error count to zero*/
+	mfierrcntr11 = readl(base_addr + MFIERRCNTR11);
+	mfierrcntr11 &= (~MBIT_CNT_SETTING(MBIT_CNT_MAX));
+	mfierrcntr11 &= (~SBIT_CNT_SETTING(MBIT_CNT_MAX));
+	writel(mfierrcntr11, base_addr + MFIERRCNTR11);
 
 	signal_id = SIG_ERROR;
 
