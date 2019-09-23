@@ -1692,7 +1692,7 @@ static struct dma_async_tx_descriptor *sdma_prep_dma_cyclic(
 	struct sdma_channel *sdmac = to_sdma_chan(chan);
 	struct sdma_engine *sdma = sdmac->sdma;
 	int channel = sdmac->channel;
-	int i = 0, buf = 0;
+	int i;
 	int num_periods = 0;
 	struct sdma_desc *desc;
 
@@ -1725,7 +1725,7 @@ static struct dma_async_tx_descriptor *sdma_prep_dma_cyclic(
 	if (sdmac->peripheral_type == IMX_DMATYPE_UART)
 		sdmac->chn_count = period_len;
 
-	while (buf < buf_len) {
+	for (i = 0; i < num_periods; i++) {
 		struct sdma_buffer_descriptor *bd = &desc->bd[i];
 		int param;
 
@@ -1752,9 +1752,6 @@ static struct dma_async_tx_descriptor *sdma_prep_dma_cyclic(
 		bd->mode.status = param;
 
 		dma_addr += period_len;
-		buf += period_len;
-
-		i++;
 	}
 	return vchan_tx_prep(&sdmac->vc, &desc->vd, flags);
 
