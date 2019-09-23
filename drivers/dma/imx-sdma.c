@@ -352,6 +352,7 @@ struct sdma_channel {
 };
 
 #define IMX_DMA_SG_LOOP		BIT(0)
+#define IMX_DMA_ACTIVE		BIT(1)
 
 #define MAX_DMA_CHANNELS 32
 #define MXC_SDMA_DEFAULT_PRIORITY 1
@@ -653,6 +654,9 @@ static int sdma_config_ownership(struct sdma_channel *sdmac,
 
 static void sdma_enable_channel(struct sdma_engine *sdma, int channel)
 {
+	struct sdma_channel *sdmac = &sdma->channel[channel];
+
+	sdmac->flags |= IMX_DMA_ACTIVE;
 	writel(BIT(channel), sdma->regs + SDMA_H_START);
 }
 
@@ -744,6 +748,7 @@ static void sdma_event_disable(struct sdma_channel *sdmac, unsigned int event)
 
 static void sdma_update_channel_loop(struct sdma_channel *sdmac)
 {
+	struct sdma_engine *sdma = sdmac->sdma;
 	struct sdma_buffer_descriptor *bd;
 	struct sdma_desc *desc = sdmac->desc;
 	int error = 0;
@@ -790,6 +795,18 @@ static void sdma_update_channel_loop(struct sdma_channel *sdmac)
 		dmaengine_desc_get_callback_invoke(&desc->vd.tx, NULL);
 		spin_lock(&sdmac->vc.lock);
 	}
+
+	/* In some situations it may happen that the sdma does not find any
+	 * usable descriptor in the ring to put data into. The channel is
+	 * stopped then and after having freed some buffers we have to restart
+	 * it manually.
+	 */
+	if ((sdmac->flags & IMX_DMA_ACTIVE) &&
+	    !(readl_relaxed(sdma->regs + SDMA_H_STATSTOP) & BIT(sdmac->channel))) {
+		dev_err_ratelimited(sdma->dev, "SDMA channel %d: cyclic transfer disabled by HW, reenabling\n",
+				    sdmac->channel);
+			writel(BIT(sdmac->channel), sdma->regs + SDMA_H_START);
+	};
 }
 
 static void mxc_sdma_handle_channel_normal(struct sdma_channel *data)
@@ -1058,7 +1075,8 @@ static int sdma_disable_channel(struct dma_chan *chan)
 	struct sdma_engine *sdma = sdmac->sdma;
 	int channel = sdmac->channel;
 
-	writel_relaxed(BIT(channel), sdma->regs + SDMA_H_STATSTOP);
+	sdmac->flags &= ~IMX_DMA_ACTIVE;
+	writel(BIT(channel), sdma->regs + SDMA_H_STATSTOP);
 	sdmac->status = DMA_ERROR;
 
 	return 0;
