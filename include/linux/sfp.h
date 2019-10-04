@@ -275,6 +275,101 @@ struct sfp_diag {
 	__be16 cal_v_offset;
 } __packed;
 
+struct qsfp_sff8x36_id_stat {
+	u8 identifier;
+	u8 rev_compliance;
+	u8 status;
+} __packed;
+
+struct qsfp_sff8x36_id_base {
+	u8 identifier;
+	u8 ext_identifier;
+	u8 connector;
+	u8 compliance[8];
+	u8 encoding;
+	u8 br_nominal;
+	u8 ext_ratesel_compliance;
+	u8 length[5];
+	u8 device_tech;
+	char vendor_name[16];
+	u8 ext_module;
+	u8 oui[3];
+	char vendor_pn[16];
+	char vendor_rev[2];
+	union {
+		__be16 wavelength;
+		u8 copper_atten[2];
+	} __packed;
+	__be16 wavelength_tolerance;
+	u8 max_case_temp;
+	u8 cc_base;
+} __packed;
+
+struct qsfp_sff8436_id_ext {
+	u8 options[4];
+	char vendor_sn[16];
+	u8 datecode[8];
+	u8 diagmon;
+	u8 enh_options;
+	u8 reserved;
+	u8 cc_ext;
+} __packed;
+
+struct qsfp_sff8636_id_ext {
+	u8 link_codes;
+	u8 options[3];
+	char vendor_sn[16];
+	u8 datecode[8];
+	u8 diagmon;
+	u8 enh_options;
+	u8 baud_rate_nominal;
+	u8 cc_ext;
+} __packed;
+
+struct qsfp_sff8x36_id {
+	struct qsfp_sff8x36_id_base base;
+	union {
+		struct qsfp_sff8436_id_ext sff8436;
+		struct qsfp_sff8636_id_ext sff8636;
+	} __packed ext;
+} __packed;
+
+enum {
+#define SFF8X36_ADDR(page, addr)	((page) << 8 | (addr))
+	SFF8X36_STAT			= SFF8X36_ADDR(0, 2),
+	SFF8X36_STAT_FLAT_MEM		= BIT(2),
+	SFF8X36_STAT_INTL		= BIT(1),
+	SFF8X36_STAT_DATA_NOT_READY	= BIT(0),
+	SFF8X36_IRQ_FLAGS		= SFF8X36_ADDR(0, 3),
+	SFF8X36_TEMPERATURE		= SFF8X36_ADDR(0, 22),
+	SFF8X36_SUPPLY_VOLTAGE		= SFF8X36_ADDR(0, 26),
+	SFF8X36_RX_POWER		= SFF8X36_ADDR(0, 34),
+	SFF8X36_TX_BIAS			= SFF8X36_ADDR(0, 42),
+	SFF8X36_TX_POWER		= SFF8X36_ADDR(0, 50),
+	SFF8X36_TX_DISABLE		= SFF8X36_ADDR(0, 86),
+	SFF8X36_TX_DISABLE_TX4		= BIT(3),
+	SFF8X36_TX_DISABLE_TX3		= BIT(2),
+	SFF8X36_TX_DISABLE_TX2		= BIT(1),
+	SFF8X36_TX_DISABLE_TX1		= BIT(0),
+	SFF8X36_RX_RATE_SELECT		= SFF8X36_ADDR(0, 87),
+	SFF8X36_TX_RATE_SELECT		= SFF8X36_ADDR(0, 88),
+	SFF8X36_CTRL_93			= SFF8X36_ADDR(0, 93),
+	SFF8636_CTRL_93_SW_RESET	= BIT(7),
+	SFF8636_CTRL_93_POWER_CLS8	= BIT(3),
+	SFF8636_CTRL_93_POWER_CLS5_7	= BIT(2),
+	SFF8X36_CTRL_93_POWER_SET	= BIT(1),
+	SFF8X36_CTRL_93_POWER_ORIDE	= BIT(0),
+	SFF8X36_CLS8_MAX_POWER		= SFF8X36_ADDR(0, 107),
+	SFF8X36_ID			= SFF8X36_ADDR(0, 128),
+	SFF8X36_OPTIONS195_TX_DISABLE	= BIT(4),
+	SFF8X36_DIAGMON			= SFF8X36_ADDR(0, 220),
+	SFF8636_DIAGMON_TEMP		= BIT(5),
+	SFF8636_DIAGMON_VCC		= BIT(4),
+	SFF8X36_DIAGMON_RXPWR_AVG	= BIT(3),
+	SFF8636_DIAGMON_TXPWR		= BIT(2),
+	SFF8X36_THRESHOLDS		= SFF8X36_ADDR(3, 128),
+};
+
 /* SFF8024 defined constants */
 enum {
 	SFF8024_ID_UNK			= 0x00,
@@ -299,7 +394,7 @@ enum {
 	SFF8024_ENCODING_PAM4		= 0x08,
 
 	SFF8024_CONNECTOR_UNSPEC	= 0x00,
-	/* codes 01-05 not supportable on SFP, but some modules have single SC */
+	// codes 01-05 not supportable on SFP, but some modules have single SC
 	SFF8024_CONNECTOR_SC		= 0x01,
 	SFF8024_CONNECTOR_FIBERJACK	= 0x06,
 	SFF8024_CONNECTOR_LC		= 0x07,
@@ -328,6 +423,21 @@ enum {
 	SFF8024_ECC_10GBASE_T_SR	= 0x1c,
 	SFF8024_ECC_5GBASE_T		= 0x1d,
 	SFF8024_ECC_2_5GBASE_T		= 0x1e,
+};
+
+enum {
+	// rev_compliance
+	// SFF8X36_REV_UNSPEC can be used up to SFF-8636 rev 2.5 exclusive.
+	SFF8X36_REV_UNSPEC		= 0,
+	SFF8X36_REV_8436_4_8		= 1,
+	SFF8X36_REV_8436_4_8P		= 2,
+	SFF8X36_REV_8636_1_3		= 3,
+	SFF8X36_REV_8636_1_4		= 4,
+	SFF8X36_REV_8636_1_5		= 5,
+	SFF8X36_REV_8636_2_0		= 6,
+	SFF8X36_REV_8636_2_5		= 7,
+	SFF8X36_REV_8636_2_8		= 8,
+
 };
 
 /* SFP EEPROM registers */
