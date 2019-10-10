@@ -1218,6 +1218,12 @@ static void sdhci_esdhc_imx_hwinit(struct sdhci_host *host)
 		writel(readl(host->ioaddr + 0x6c) & ~BIT(7),
 			host->ioaddr + 0x6c);
 
+		/*
+		 * enable the new IC fix for ERR004536
+		 */
+		writel(readl(host->ioaddr + 0x6c) & ~BIT(7),
+			host->ioaddr + 0x6c);
+
 		/* disable DLL_CTRL delay line settings */
 		writel(0x0, host->ioaddr + ESDHC_DLL_CTRL);
 
