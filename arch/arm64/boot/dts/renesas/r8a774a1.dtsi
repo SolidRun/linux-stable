@@ -330,6 +330,11 @@
 		#size-cells = <2>;
 		ranges;
 
+		qos@e67e0000 {
+			compatible = "renesas,qos";
+			reg = <0 0xe67e0000 0 0x10090>;
+		};
+
 		rwdt: watchdog@e6020000 {
 			compatible = "renesas,r8a774a1-wdt",
 				     "renesas,rcar-gen3-wdt";
