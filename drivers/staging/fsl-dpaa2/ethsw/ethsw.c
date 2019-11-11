@@ -18,8 +18,6 @@
 
 #include "ethsw.h"
 
-static struct workqueue_struct *ethsw_owq;
-
 /* Minimal supported DPSW version */
 #define DPSW_MIN_VER_MAJOR		8
 #define DPSW_MIN_VER_MINOR		1
@@ -1225,8 +1223,10 @@ static int port_switchdev_event(struct notifier_block *unused,
 				unsigned long event, void *ptr)
 {
 	struct net_device *dev = switchdev_notifier_info_to_dev(ptr);
+	struct ethsw_port_priv *port_priv = netdev_priv(dev);
 	struct ethsw_switchdev_event_work *switchdev_work;
 	struct switchdev_notifier_fdb_info *fdb_info = ptr;
+	struct ethsw_core *ethsw = port_priv->ethsw_data;
 
 	switchdev_work = kzalloc(sizeof(*switchdev_work), GFP_ATOMIC);
 	if (!switchdev_work)
@@ -1256,7 +1256,7 @@ static int port_switchdev_event(struct notifier_block *unused,
 		return NOTIFY_DONE;
 	}
 
-	queue_work(ethsw_owq, &switchdev_work->work);
+	queue_work(ethsw->workqueue, &switchdev_work->work);
 
 	return NOTIFY_DONE;
 
@@ -1411,9 +1411,10 @@ static int ethsw_init(struct fsl_mc_device *sw_dev)
 		}
 	}
 
-	ethsw_owq = alloc_ordered_workqueue("%s_ordered", WQ_MEM_RECLAIM,
-					    "ethsw");
-	if (!ethsw_owq) {
+	ethsw->workqueue = alloc_ordered_workqueue("%s_%d_ordered",
+						   WQ_MEM_RECLAIM, "ethsw",
+						   ethsw->sw_attr.id);
+	if (!ethsw->workqueue) {
 		err = -ENOMEM;
 		goto err_close;
 	}
@@ -1425,7 +1426,7 @@ static int ethsw_init(struct fsl_mc_device *sw_dev)
 	return 0;
 
 err_destroy_ordered_workqueue:
-	destroy_workqueue(ethsw_owq);
+	destroy_workqueue(ethsw->workqueue);
 
 err_close:
 	dpsw_close(ethsw->mc_io, 0, ethsw->dpsw_handle);
@@ -1511,7 +1512,7 @@ static int ethsw_remove(struct fsl_mc_device *sw_dev)
 
 	ethsw_teardown_irqs(sw_dev);
 
-	destroy_workqueue(ethsw_owq);
+	destroy_workqueue(ethsw->workqueue);
 
 	rtnl_lock();
 	ethsw_stop(ethsw);
