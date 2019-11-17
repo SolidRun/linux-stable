@@ -161,6 +161,14 @@ static int phy_mode(enum dpmac_eth_if eth_if, phy_interface_t *if_mode)
 		*if_mode = PHY_INTERFACE_MODE_SGMII;
 		break;
 
+	case DPMAC_ETH_IF_QSGMII:
+		*if_mode = PHY_INTERFACE_MODE_QSGMII;
+		break;
+
+	case DPMAC_ETH_IF_XAUI:
+		*if_mode = PHY_INTERFACE_MODE_XGMII;
+		break;
+
 	case DPMAC_ETH_IF_XFI:
 		*if_mode = PHY_INTERFACE_MODE_10GBASER;
 		break;
@@ -224,6 +232,7 @@ static bool dpaa2_mac_phy_mode_mismatch(struct dpaa2_mac *mac,
 	case PHY_INTERFACE_MODE_10GBASER:
 		return interface != mac->if_mode && !mac->pcs;
 
+	case PHY_INTERFACE_MODE_XAUI:
 	case PHY_INTERFACE_MODE_RGMII:
 	case PHY_INTERFACE_MODE_RGMII_ID:
 	case PHY_INTERFACE_MODE_RGMII_RXID:
@@ -253,6 +262,7 @@ static void dpaa2_mac_validate(struct phylink_config *config,
 
 	switch (state->interface) {
 	case PHY_INTERFACE_MODE_NA:
+	case PHY_INTERFACE_MODE_XAUI:
 	case PHY_INTERFACE_MODE_10GBASER:
 		phylink_set(mask, 10000baseT_Full);
 		phylink_set(mask, 10000baseKR_Full);
