@@ -294,6 +294,10 @@
 			pins = "GP_6_27";
 			bias-pull-up;
 		};
+
+		pwen {
+			pins = "GP_6_26";
+		};
 	};
 
 	usb30_pins: usb30 {
