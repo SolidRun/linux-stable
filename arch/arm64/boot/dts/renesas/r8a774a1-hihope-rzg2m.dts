@@ -39,7 +39,7 @@
 		linux,cma@58000000 {
 			compatible = "shared-dma-pool";
 			reusable;
-			reg = <0x00000000 0x58000000 0x0 0x18000000>;
+			reg = <0x00000000 0x58000000 0x0 0x20000000>;
 			linux,cma-default;
 		};
 
@@ -47,7 +47,7 @@
 		mmp_reserved: linux,multimedia@70000000 {
 			compatible = "shared-dma-pool";
 			reusable;
-			reg = <0x00000000 0x70000000 0x0 0x10000000>;
+			reg = <0x00000000 0x78000000 0x0 0x10000000>;
 		};
 	};
 
