@@ -394,7 +394,9 @@ int dpaa2_mac_connect(struct dpaa2_mac *mac)
 	if (mac->pcs)
 		phylink_set_pcs(mac->phylink, &mac->pcs->pcs);
 
+	rtnl_lock();
 	err = phylink_fwnode_phy_connect(mac->phylink, dpmac_node, 0);
+	rtnl_unlock();
 	if (err) {
 		netdev_err(net_dev, "phylink_fwnode_phy_connect() = %d\n", err);
 		goto err_phylink_destroy;
@@ -419,7 +421,9 @@ void dpaa2_mac_disconnect(struct dpaa2_mac *mac)
 	if (!mac->phylink)
 		return;
 
+	rtnl_lock();
 	phylink_disconnect_phy(mac->phylink);
+	rtnl_unlock();
 	phylink_destroy(mac->phylink);
 	dpaa2_pcs_destroy(mac);
 }
