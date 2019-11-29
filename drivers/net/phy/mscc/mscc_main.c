@@ -1311,8 +1311,8 @@ static bool vsc8584_is_pkg_init(struct phy_device *phydev, bool reversed)
 
 		phy = container_of(map[addr], struct phy_device, mdio);
 
-		if ((phy->phy_id & phydev->drv->phy_id_mask) !=
-		    (phydev->drv->phy_id & phydev->drv->phy_id_mask))
+		if (!phy_id_compare(phy->phy_id, phydev->drv->phy_id,
+				    phydev->drv->phy_id_mask))
 			continue;
 
 		vsc8531 = phy->priv;
