@@ -188,14 +188,6 @@ static int pcf8523_get_datetime(struct i2c_client *client, struct rtc_time *tm)
 	struct i2c_msg msgs[2];
 	int err;
 
-	err = pcf8523_voltage_low(client);
-	if (err < 0) {
-		return err;
-	} else if (err > 0) {
-		dev_err(dev, "low voltage detected, time is unreliable\n");
-		return -EINVAL;
-	}
-
 	msgs[0].addr = client->addr;
 	msgs[0].flags = 0;
 	msgs[0].len = 1;
@@ -228,6 +220,14 @@ static int pcf8523_rtc_read_time(struct device *dev, struct rtc_time *tm)
 {
 	struct i2c_client *client = to_i2c_client(dev);
 	int err;
+
+	err = pcf8523_voltage_low(client);
+	if (err < 0) {
+		return err;
+	} else if (err > 0) {
+		dev_err(dev, "low voltage detected, time is unreliable\n");
+		return -EINVAL;
+	}
 
 	err = pcf8523_get_datetime(client, tm);
 	if (err < 0)
