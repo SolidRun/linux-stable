@@ -19,7 +19,7 @@
 #include <linux/types.h>
 #include <linux/miscdevice.h>
 
-#include "../uapi/ion.h"
+#include "../uapi/linux/ion.h"
 
 /**
  * struct ion_platform_heap - defines a heap in the given platform

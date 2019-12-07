@@ -8,7 +8,7 @@
 #include <linux/fs.h>
 #include <linux/uaccess.h>
 
-#include "ion.h"
+#include <linux/ion.h>
 
 union ion_ioctl_arg {
 	struct ion_allocation_data allocation;

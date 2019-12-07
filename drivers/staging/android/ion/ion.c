@@ -28,7 +28,7 @@
 #include <linux/uaccess.h>
 #include <linux/vmalloc.h>
 
-#include "ion.h"
+#include <linux/ion.h>
 
 static struct ion_device *internal_dev;
 static int heap_id;
