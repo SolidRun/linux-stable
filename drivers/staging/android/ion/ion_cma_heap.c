@@ -18,7 +18,7 @@
 #include <asm/outercache.h>
 #endif
 
-#include "ion.h"
+#include <linux/ion.h>
 
 struct ion_cma_heap {
 	struct ion_heap heap;
