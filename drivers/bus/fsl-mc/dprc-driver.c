@@ -240,11 +240,11 @@ static void dprc_add_new_devices(struct fsl_mc_device *mc_bus_dev,
 int dprc_scan_objects(struct fsl_mc_device *mc_bus_dev,
 		      bool alloc_interrupts)
 {
-	int num_child_objects;
+	int num_child_objects, num_child_objects2;
 	int dprc_get_obj_failures;
 	int error;
-	unsigned int irq_count = mc_bus_dev->obj_desc.irq_count;
-	struct fsl_mc_obj_desc *child_obj_desc_array = NULL;
+	unsigned int irq_count;
+	struct fsl_mc_obj_desc *child_obj_desc_array;
 	struct fsl_mc_bus *mc_bus = to_fsl_mc_bus(mc_bus_dev);
 
 	error = dprc_get_obj_count(mc_bus_dev->mc_io,
@@ -257,6 +257,9 @@ int dprc_scan_objects(struct fsl_mc_device *mc_bus_dev,
 		return error;
 	}
 
+retry:
+	irq_count = mc_bus_dev->obj_desc.irq_count;
+	child_obj_desc_array = NULL;
 	if (num_child_objects != 0) {
 		int i;
 
@@ -313,6 +316,29 @@ int dprc_scan_objects(struct fsl_mc_device *mc_bus_dev,
 				"%d out of %d devices could not be retrieved\n",
 				dprc_get_obj_failures, num_child_objects);
 		}
+	}
+
+	error = dprc_get_obj_count(mc_bus_dev->mc_io,
+				   0,
+				   mc_bus_dev->mc_handle,
+				   &num_child_objects2);
+	if (error < 0) {
+		if (child_obj_desc_array)
+			devm_kfree(&mc_bus_dev->dev, child_obj_desc_array);
+		dev_err(&mc_bus_dev->dev, "dprc_get_obj_count() failed: %d\n",
+			error);
+		return error;
+	}
+
+	if (num_child_objects != num_child_objects2) {
+		/*
+		 * Something changed while reading the number of objects.
+		 * Retry reading the child object list.
+		 */
+		if (child_obj_desc_array)
+			devm_kfree(&mc_bus_dev->dev, child_obj_desc_array);
+		num_child_objects = num_child_objects2;
+		goto retry;
 	}
 
 	/*
