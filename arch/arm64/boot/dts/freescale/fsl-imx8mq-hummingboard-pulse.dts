@@ -58,6 +58,28 @@
 		#address-cells = <1>;
 		#size-cells = <0>;
 
+		reg_usb1_vbus: usb1_vbus {
+			compatible = "regulator-fixed";
+			pinctrl-names = "default";
+			pinctrl-0 = <&pinctrl_reg_usb1_vbus>;
+			regulator-name = "usb1_vbus";
+			regulator-min-microvolt = <5000000>;
+			regulator-max-microvolt = <5000000>;
+			gpio = <&gpio3 15 GPIO_ACTIVE_HIGH>;
+			regulator-boot-on;
+		};
+
+		reg_usbh1_vbus: usbh1_vbus {
+			compatible = "regulator-fixed";
+			pinctrl-names = "default";
+			pinctrl-0 = <&pinctrl_reg_usbh1_vbus>;
+			regulator-name = "usbh1_vbus";
+			regulator-min-microvolt = <5000000>;
+			regulator-max-microvolt = <5000000>;
+			gpio = <&gpio1 12 GPIO_ACTIVE_HIGH>;
+			regulator-boot-on;
+		};
+
 		reg_usdhc2_vmmc: usdhc2_vmmc {
 			compatible = "regulator-fixed";
 			regulator-name = "VSD_3V3";
@@ -188,6 +210,14 @@
 			>;
 		};
 
+		pinctrl_reg_usb1_vbus: reg-usb1-vbus {
+			fsl,pins = <MX8MQ_IOMUXC_NAND_RE_B_GPIO3_IO15		0x19>;
+		};
+
+		pinctrl_reg_usbh1_vbus: reg-usbh1-vbus {
+			fsl,pins = <MX8MQ_IOMUXC_GPIO1_IO12_GPIO1_IO12		0x19>;
+		};
+
 		pinctrl_sai1_pcm: sai1grp_pcm {
 			fsl,pins = <
 				MX8MQ_IOMUXC_SAI1_MCLK_SAI1_MCLK		0xd6
@@ -300,10 +330,6 @@
 			>;
 		};
 
-		pinctrl_usbh1_vbus: usbh1-vbus {
-			fsl,pins = <MX8MQ_IOMUXC_NAND_CE1_B_GPIO3_IO2	0x19>;
-		};
-
 		pinctrl_usdhc2_gpio: usdhc2grpgpio {
 			fsl,pins = <
 				MX8MQ_IOMUXC_SD2_CD_B_GPIO2_IO12	0x41
@@ -370,6 +396,7 @@
 		max-snk-mw = <18000>;
 		port-type = "drp";
 		default-role = "sink";
+		status = "disabled";
 	};
 };
 
@@ -506,14 +533,15 @@
 };
 
 &usb_dwc3_0 {
+	vbus-supply = <&reg_usb1_vbus>;
+	dr_mode = "host";
 	status = "okay";
-	extcon = <&typec_ptn5100>;
-	dr_mode = "otg";
 };
 
 &usb_dwc3_1 {
-	status = "okay";
+	vbus-supply = <&reg_usbh1_vbus>;
 	dr_mode = "host";
+	status = "okay";
 };
 
 &usb3_0 {
