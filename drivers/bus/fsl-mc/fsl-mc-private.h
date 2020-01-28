@@ -3,6 +3,7 @@
  * Freescale Management Complex (MC) bus private declarations
  *
  * Copyright (C) 2016 Freescale Semiconductor, Inc.
+ * Copyright 2020 NXP
  *
  */
 #ifndef _FSL_MC_PRIVATE_H_
@@ -615,7 +616,8 @@ int fsl_mc_msi_domain_alloc_irqs(struct device *dev,
 void fsl_mc_msi_domain_free_irqs(struct device *dev);
 
 int fsl_mc_find_msi_domain(struct device *mc_platform_dev,
-			   struct irq_domain **mc_msi_domain);
+			   struct irq_domain **mc_msi_domain,
+				struct fsl_mc_device *mc_dev);
 
 int fsl_mc_populate_irq_pool(struct fsl_mc_bus *mc_bus,
 			     unsigned int irq_count);

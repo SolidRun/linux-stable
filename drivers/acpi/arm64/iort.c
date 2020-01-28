@@ -16,6 +16,7 @@
 #include <linux/kernel.h>
 #include <linux/list.h>
 #include <linux/pci.h>
+#include <linux/fsl/mc.h>
 #include <linux/platform_device.h>
 #include <linux/slab.h>
 
@@ -675,6 +676,29 @@ static int iort_dev_find_its_id(struct device *dev, u32 req_id,
 }
 
 /**
+ * iort_get_fsl_mc_device_domain() - Find MSI domain related to a device
+ * @dev: The device.
+ * @mc_icid: ICID for the fsl_mc device.
+ *
+ * Returns: the MSI domain for this device, NULL otherwise
+ */
+struct irq_domain *iort_get_fsl_mc_device_domain(struct device *dev,
+							u32 mc_icid)
+{
+	struct fwnode_handle *handle;
+	int its_id;
+
+	if (iort_dev_find_its_id(dev, mc_icid, 0, &its_id))
+		return NULL;
+
+	handle = iort_find_domain_token(its_id);
+	if (!handle)
+		return NULL;
+
+	return irq_find_matching_fwnode(handle, DOMAIN_BUS_FSL_MC_MSI);
+}
+
+/**
  * iort_get_device_domain() - Find MSI domain related to a device
  * @dev: The device.
  * @req_id: Requester ID for the device.
@@ -991,6 +1015,21 @@ static void iort_named_component_init(struct device *dev,
 					   nc->node_flags);
 }
 
+static int iort_fsl_mc_iommu_init(struct device *dev,
+				struct acpi_iort_node *node, u32 *streamid)
+{
+	struct acpi_iort_node *parent;
+	struct fsl_mc_device *mc_dev = to_fsl_mc_device(dev);
+
+	parent = iort_node_map_id(node, mc_dev->icid, streamid,
+						IORT_IOMMU_TYPE);
+
+	if (parent)
+		return iort_iommu_xlate(dev, parent, *streamid);
+
+	return 0;
+}
+
 /**
  * iort_iommu_configure - Set-up IOMMU configuration for a device.
  *
@@ -1029,6 +1068,20 @@ const struct iommu_ops *iort_iommu_configure(struct device *dev)
 
 		if (!err && iort_pci_rc_supports_ats(node))
 			dev->iommu_fwspec->flags |= IOMMU_FWSPEC_PCI_RC_ATS;
+	} else if (dev_is_fsl_mc(dev)) {
+		struct device *dma_dev = dev;
+
+		if (!(to_acpi_device_node(dma_dev->fwnode))) {
+			while (dev_is_fsl_mc(dma_dev))
+				dma_dev = dma_dev->parent;
+		}
+
+		node = iort_scan_node(ACPI_IORT_NODE_NAMED_COMPONENT,
+					iort_match_node_callback, dma_dev);
+		if (!node)
+			return NULL;
+
+		err = iort_fsl_mc_iommu_init(dev, node, &streamid);
 	} else {
 		int i = 0;
 
