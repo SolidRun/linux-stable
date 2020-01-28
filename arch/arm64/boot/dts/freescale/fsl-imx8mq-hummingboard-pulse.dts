@@ -429,6 +429,14 @@
 	status = "okay";
 };
 
+&resmem {
+	/* global autoconfigured region for contiguous allocations */
+	psci-area@0x40000000 {
+		reg = <0x0 0x40000000 0 0x00020000>;
+		no-map;
+	};
+};
+
 &sai1 {
 	pinctrl-names = "default", "pcm_b2m", "dsd";
 	pinctrl-0 = <&pinctrl_sai1_pcm>;
