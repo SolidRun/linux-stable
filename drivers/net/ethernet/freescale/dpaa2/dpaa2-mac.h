@@ -11,6 +11,8 @@
 #include "dpmac.h"
 #include "dpmac-cmd.h"
 
+struct lynx_pcs;
+
 struct dpaa2_mac {
 	struct fsl_mc_device *mc_dev;
 	struct dpmac_link_state state;
@@ -19,6 +21,7 @@ struct dpaa2_mac {
 
 	struct phylink_config phylink_config;
 	struct phylink *phylink;
+	struct lynx_pcs *pcs;
 	phy_interface_t if_mode;
 	enum dpmac_link_type if_link_type;
 };
