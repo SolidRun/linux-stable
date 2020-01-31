@@ -530,7 +530,7 @@ struct sfp_upstream_ops {
 	void (*disconnect_phy)(void *priv);
 };
 
-#if IS_ENABLED(CONFIG_SFP)
+#if IS_ENABLED(CONFIG_SFP_BUS)
 int sfp_parse_port(struct sfp_bus *bus, const struct sfp_eeprom_id *id,
 		   unsigned long *support);
 bool sfp_may_have_phy(struct sfp_bus *bus, const struct sfp_eeprom_id *id);
