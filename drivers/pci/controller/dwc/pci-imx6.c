@@ -2340,8 +2340,7 @@ static int imx_pcie_probe(struct platform_device *pdev)
 	}
 	imx_pcie->dis_gpio = of_get_named_gpio(node, "disable-gpio", 0);
 	if (gpio_is_valid(imx_pcie->dis_gpio)) {
-		ret = devm_gpio_request_one(&pdev->dev, imx_pcie->dis_gpio,
-					    GPIOF_OUT_INIT_HIGH, "PCIe DIS");
+		ret = 0;
 		if (ret) {
 			dev_err(&pdev->dev, "unable to get disable gpio\n");
 			return ret;
