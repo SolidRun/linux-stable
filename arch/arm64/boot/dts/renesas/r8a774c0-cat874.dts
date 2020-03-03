@@ -80,6 +80,22 @@
 			reg = <0x00000000 0x58000000 0x0 0x10000000>;
 			linux,cma-default;
 		};
+
+		/* device specific region for contiguous allocations */
+		mmp_reserved: linux,multimedia {
+			compatible = "shared-dma-pool";
+			reusable;
+			reg = <0x00000000 0x68000000 0x0 0x08000000>;
+		};
+	};
+
+	mmngr {
+		compatible = "renesas,mmngr";
+		memory-region = <&mmp_reserved>;
+	};
+
+	mmngrbuf {
+		compatible = "renesas,mmngrbuf";
 	};
 
 	reg_12p0v: regulator-12p0v {
