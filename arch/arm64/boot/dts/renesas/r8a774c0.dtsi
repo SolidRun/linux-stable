@@ -1753,6 +1753,15 @@
 			status = "disabled";
 		};
 
+		gsx: gsx@fd000000 {
+			compatible = "renesas,gsx";
+			reg = <0 0xfd000000 0 0x40000>;
+			interrupts = <GIC_SPI 119 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 112>;
+			power-domains = <&sysc R8A774C0_PD_3DG_A>;
+			resets = <&cpg 112>;
+		};
+
 		vsp@fe960000 {
 			compatible = "renesas,vspm-vsp2";
 			reg = <0 0xfe960000 0 0x8000>;
