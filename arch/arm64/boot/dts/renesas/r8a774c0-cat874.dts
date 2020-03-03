@@ -98,6 +98,10 @@
 		compatible = "renesas,mmngrbuf";
 	};
 
+	vspm_if {
+		compatible = "renesas,vspm_if";
+	};
+
 	reg_12p0v: regulator-12p0v {
 		compatible = "regulator-fixed";
 		regulator-name = "D12.0V";
@@ -510,5 +514,13 @@
 	pinctrl-0 = <&pwm6_pins>;
 	pinctrl-names = "default";
 
+	status = "okay";
+};
+
+&vspb {
+	status = "okay";
+};
+
+&vspi0 {
 	status = "okay";
 };
