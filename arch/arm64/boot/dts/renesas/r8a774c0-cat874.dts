@@ -18,6 +18,7 @@
 		serial0 = &scif2;
 		serial1 = &hscif2;
 		serial2 = &hscif3;
+		serial3 = &hscif4;
 		mmc0 = &sdhi0;
 		mmc1 = &sdhi3;
 	};
@@ -221,6 +222,14 @@
 	status = "okay";
 };
 
+&hscif4 {
+	pinctrl-0 = <&hscif4_pins>;
+	pinctrl-names = "default";
+
+	uart-has-rtscts;
+	status = "okay";
+};
+
 &i2c0 {
 	status = "okay";
 	clock-frequency = <100000>;
@@ -332,6 +341,11 @@
 	hscif3_pins: hscif3 {
 		groups = "hscif3_data_c", "hscif3_ctrl_c";
 		function = "hscif3";
+	};
+
+	hscif4_pins: hscif4 {
+		groups = "hscif4_data_b";
+		function = "hscif4";
 	};
 
 	i2c1_pins: i2c1 {
