@@ -2489,22 +2489,16 @@
 			status = "disabled";
 		};
 
-		fdp1@fe940000 {
-			compatible = "renesas,fdp1";
-			reg = <0 0xfe940000 0 0x2400>;
+		fdp0: fdpm@fe940000 {
+			compatible = "renesas,fdpm";
+			reg = <0 0xfe940000 0 0x2400>, <0 0xfe950000 0 0x200>;
 			interrupts = <GIC_SPI 262 IRQ_TYPE_LEVEL_HIGH>;
-			clocks = <&cpg CPG_MOD 119>;
+			clocks = <&cpg CPG_MOD 119>, <&cpg CPG_MOD 615>;
+			clock-names = "fdp", "fcp";
 			power-domains = <&sysc R8A774A1_PD_A3VC>;
-			resets = <&cpg 119>;
-			renesas,fcp = <&fcpf0>;
-		};
-
-		fcpf0: fcp@fe950000 {
-			compatible = "renesas,fcpf";
-			reg = <0 0xfe950000 0 0x200>;
-			clocks = <&cpg CPG_MOD 615>;
-			power-domains = <&sysc R8A774A1_PD_A3VC>;
-			resets = <&cpg 615>;
+			resets = <&cpg 119>, <&cpg 615>;
+			reset-names = "fdp", "fcp";
+			renesas,#ch = <0>;
 		};
 
 		fcpvb0: fcp@fe96f000 {
