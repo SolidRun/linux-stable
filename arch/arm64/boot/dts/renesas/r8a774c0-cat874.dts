@@ -116,18 +116,44 @@
 	sound: sound {
 		compatible = "simple-audio-card";
 
-		simple-audio-card,name = "CAT874 HDMI sound";
 		simple-audio-card,format = "i2s";
-		simple-audio-card,bitclock-master = <&sndcpu>;
-		simple-audio-card,frame-master = <&sndcpu>;
+		simple-audio-card,name = "rcar_sound";
 
-		sndcodec: simple-audio-card,codec {
-			sound-dai = <&tda19988>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		simple-audio-card,dai-link@0 {
+			reg = <0>;
+			format = "i2s";
+			cpu {
+				sound-dai = <&rcar_sound 0>;
+				bitclock-master;
+				frame-master;
+			};
+
+			codec {
+				sound-dai = <&tda19988>;
+			};
 		};
 
-		sndcpu: simple-audio-card,cpu {
-			sound-dai = <&rcar_sound>;
+		simple-audio-card,dai-link@1 {
+			reg = <1>;
+			format = "i2s";
+			cpu {
+				sound-dai = <&rcar_sound 1>;
+				bitclock-master;
+				frame-master;
+			};
+
+			codec {
+				sound-dai = <&pcm5102a>;
+			};
 		};
+	};
+
+	pcm5102a: pcm5102a {
+		compatible = "ti,pcm5102a";
+		#sound-dai-cells = <0>;
 	};
 
 	vcc_sdhi0: regulator-vcc-sdhi0 {
@@ -378,12 +404,14 @@
 	};
 
 	sound_clk_pins: sound_clk {
-		groups = "audio_clkout1_a";
+		groups = "audio_clkout1_a",
+			 "audio_clk_a", "audio_clk_b_a", "audio_clk_c_a";
 		function = "audio_clk";
 	};
 
 	sound_pins: sound {
-		groups = "ssi01239_ctrl", "ssi0_data";
+		groups = "ssi01239_ctrl", "ssi0_data",
+			 "ssi349_ctrl", "ssi3_data", "ssi4_data";
 		function = "ssi";
 	};
 
@@ -414,7 +442,7 @@
 	pinctrl-names = "default";
 
 	/* Single DAI */
-	#sound-dai-cells = <0>;
+	#sound-dai-cells = <1>;
 
 	/* audio_clkout0/1/2/3 */
 	#clock-cells = <1>;
@@ -426,7 +454,15 @@
 		dai0 {
 			playback = <&ssi0 &src0 &dvc0>;
 		};
+
+		dai1 {
+			playback = <&ssi4 &src4 &dvc1>;
+		};
 	};
+};
+
+&ssi4 {
+	shared-pin;
 };
 
 &rwdt {
