@@ -60,7 +60,7 @@ int mtk_sgmii_setup_mode_an(struct mtk_sgmii *ss, int id)
 }
 
 int mtk_sgmii_setup_mode_force(struct mtk_sgmii *ss, int id,
-			       const struct phylink_link_state *state)
+			       phy_interface_t interface)
 {
 	unsigned int val;
 
@@ -69,7 +69,7 @@ int mtk_sgmii_setup_mode_force(struct mtk_sgmii *ss, int id,
 
 	regmap_read(ss->regmap[id], ss->ana_rgc3, &val);
 	val &= ~RG_PHY_SPEED_MASK;
-	if (state->interface == PHY_INTERFACE_MODE_2500BASEX)
+	if (interface == PHY_INTERFACE_MODE_2500BASEX)
 		val |= RG_PHY_SPEED_3_125G;
 	regmap_write(ss->regmap[id], ss->ana_rgc3, val);
 
@@ -78,11 +78,33 @@ int mtk_sgmii_setup_mode_force(struct mtk_sgmii *ss, int id,
 	val &= ~SGMII_AN_ENABLE;
 	regmap_write(ss->regmap[id], SGMSYS_PCS_CONTROL_1, val);
 
+	if (interface == PHY_INTERFACE_MODE_1000BASEX ||
+	    interface == PHY_INTERFACE_MODE_2500BASEX) {
+		/* SGMII force mode setting */
+		regmap_read(ss->regmap[id], SGMSYS_SGMII_MODE, &val);
+		val &= ~SGMII_IF_MODE_MASK;
+		val |= SGMII_SPEED_1000;
+		val |= SGMII_DUPLEX_FULL;
+		regmap_write(ss->regmap[id], SGMSYS_SGMII_MODE, val);
+	}
+
+	/* Release PHYA power down state */
+	regmap_read(ss->regmap[id], SGMSYS_QPHY_PWR_STATE_CTRL, &val);
+	val &= ~SGMII_PHYA_PWD;
+	regmap_write(ss->regmap[id], SGMSYS_QPHY_PWR_STATE_CTRL, val);
+
+	return 0;
+}
+
+void mtk_sgmii_link_up(struct mtk_sgmii *ss, int id, int speed, int duplex)
+{
+	unsigned int val;
+
 	/* SGMII force mode setting */
 	regmap_read(ss->regmap[id], SGMSYS_SGMII_MODE, &val);
 	val &= ~SGMII_IF_MODE_MASK;
 
-	switch (state->speed) {
+	switch (speed) {
 	case SPEED_10:
 		val |= SGMII_SPEED_10;
 		break;
@@ -95,17 +117,10 @@ int mtk_sgmii_setup_mode_force(struct mtk_sgmii *ss, int id,
 		break;
 	}
 
-	if (state->duplex == DUPLEX_FULL)
+	if (duplex == DUPLEX_FULL)
 		val |= SGMII_DUPLEX_FULL;
 
 	regmap_write(ss->regmap[id], SGMSYS_SGMII_MODE, val);
-
-	/* Release PHYA power down state */
-	regmap_read(ss->regmap[id], SGMSYS_QPHY_PWR_STATE_CTRL, &val);
-	val &= ~SGMII_PHYA_PWD;
-	regmap_write(ss->regmap[id], SGMSYS_QPHY_PWR_STATE_CTRL, val);
-
-	return 0;
 }
 
 void mtk_sgmii_restart_an(struct mtk_eth *eth, int mac_id)
