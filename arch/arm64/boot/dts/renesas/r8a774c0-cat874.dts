@@ -356,6 +356,11 @@
 		groups = "usb30", "usb30_id";
 		function = "usb30";
 	};
+
+	pwm6_pins: pwm6 {
+		groups = "pwm6_a";
+		function = "pwm6";
+	};
 };
 
 &rcar_sound {
@@ -482,5 +487,12 @@
 };
 
 &tmu4 {
+	status = "okay";
+};
+
+&pwm6 {
+	pinctrl-0 = <&pwm6_pins>;
+	pinctrl-names = "default";
+
 	status = "okay";
 };
