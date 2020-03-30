@@ -95,6 +95,7 @@
 			dynamic-power-coefficient = <854>;
 			clocks = <&cpg CPG_CORE R8A774B1_CLK_Z>;
 			operating-points-v2 = <&cluster0_opp>;
+			cpu-idle-states = <&CPU_SLEEP_0>;
 		};
 
 		a57_1: cpu@1 {
@@ -106,6 +107,7 @@
 			enable-method = "psci";
 			clocks = <&cpg CPG_CORE R8A774B1_CLK_Z>;
 			operating-points-v2 = <&cluster0_opp>;
+			cpu-idle-states = <&CPU_SLEEP_0>;
 		};
 
 		L2_CA57: cache-controller-0 {
@@ -113,6 +115,20 @@
 			power-domains = <&sysc R8A774B1_PD_CA57_SCU>;
 			cache-unified;
 			cache-level = <2>;
+		};
+
+		idle-states {
+			entry-method = "psci";
+
+			CPU_SLEEP_0: cpu-sleep-0 {
+				compatible = "arm,idle-state";
+				arm,psci-suspend-param = <0x0010000>;
+				local-timer-stop;
+				entry-latency-us = <400>;
+				exit-latency-us = <500>;
+				min-residency-us = <4000>;
+				status = "okay";
+			};
 		};
 	};
 
