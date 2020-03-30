@@ -21,6 +21,7 @@
 		serial3 = &hscif4;
 		mmc0 = &sdhi0;
 		mmc1 = &sdhi3;
+		spi0 = &msiof0;
 	};
 
 	chosen {
@@ -400,6 +401,12 @@
 		groups = "tpu0_to0", "tpu0_to1";
 		function = "tpu0";
 	};
+
+	msiof0_pins: spi0 {
+		groups = "msiof0_clk", "msiof0_sync",
+			 "msiof0_rxd", "msiof0_txd";
+		function = "msiof0";
+	};
 };
 
 &rcar_sound {
@@ -546,6 +553,13 @@
 
 &tpu{
 	pinctrl-0 = <&tpu0_pins>;
+	pinctrl-names = "default";
+
+	status = "okay";
+};
+
+&msiof0 {
+	pinctrl-0 = <&msiof0_pins>;
 	pinctrl-names = "default";
 
 	status = "okay";
