@@ -92,6 +92,8 @@
 			next-level-cache = <&L2_CA57>;
 			enable-method = "psci";
 			#cooling-cells = <2>;
+			cooling-min-level = <0>;
+			cooling-max-level = <2>;
 			dynamic-power-coefficient = <854>;
 			clocks = <&cpg CPG_CORE R8A774B1_CLK_Z>;
 			operating-points-v2 = <&cluster0_opp>;
@@ -2777,6 +2779,13 @@
 				};
 			};
 			trips {
+				threshold: trip-point0 {
+					/* miliCelsius  */
+					temperature = <90000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
 				target: trip-point1 {
 					temperature = <100000>;
 					hysteresis = <1000>;
