@@ -750,8 +750,8 @@ extern struct uvc_driver uvc_driver;
 struct uvc_entity *uvc_entity_by_id(struct uvc_device *dev, int id);
 
 /* Video buffers queue management. */
-int uvc_queue_init(struct uvc_video_queue *queue, enum v4l2_buf_type type,
-		   int drop_corrupted);
+int uvc_queue_init(struct uvc_device *dev, struct uvc_video_queue *queue,
+		   enum v4l2_buf_type type, int drop_corrupted);
 void uvc_queue_release(struct uvc_video_queue *queue);
 int uvc_request_buffers(struct uvc_video_queue *queue,
 			struct v4l2_requestbuffers *rb);
