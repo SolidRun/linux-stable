@@ -14,6 +14,7 @@
 #if IS_ENABLED(CONFIG_OF_MDIO)
 extern bool of_mdiobus_child_is_phy(struct device_node *child);
 extern int of_mdiobus_register(struct mii_bus *mdio, struct device_node *np);
+extern struct mdio_device *of_mdio_find_device(struct device_node *np);
 extern struct phy_device *of_phy_find_device(struct device_node *phy_np);
 extern struct phy_device *of_phy_connect(struct net_device *dev,
 					 struct device_node *phy_np,
@@ -68,6 +69,11 @@ static inline int of_mdiobus_register(struct mii_bus *mdio, struct device_node *
 	 */
 
 	return mdiobus_register(mdio);
+}
+
+static inline struct mdio_device *of_mdio_find_device(struct device_node *np)
+{
+	return NULL;
 }
 
 static inline struct phy_device *of_phy_find_device(struct device_node *phy_np)
