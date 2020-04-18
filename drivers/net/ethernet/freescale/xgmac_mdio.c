@@ -2,6 +2,7 @@
  * QorIQ 10G MDIO Controller
  *
  * Copyright 2012 Freescale Semiconductor, Inc.
+ * Copyright 2019 NXP
  *
  * Authors: Andy Fleming <afleming@freescale.com>
  *          Timur Tabi <timur@freescale.com>
@@ -11,6 +12,7 @@
  * kind, whether express or implied.
  */
 
+#include <linux/property.h>
 #include <linux/kernel.h>
 #include <linux/slab.h>
 #include <linux/interrupt.h>
@@ -20,6 +22,7 @@
 #include <linux/of_address.h>
 #include <linux/of_platform.h>
 #include <linux/of_mdio.h>
+#include <linux/acpi.h>
 
 /* Number of microseconds to wait for a register to respond */
 #define TIMEOUT	1000
@@ -241,18 +244,81 @@ static int xgmac_mdio_read(struct mii_bus *bus, int phy_id, int regnum)
 	return value;
 }
 
+/* Extract the clause 22 phy ID from the compatible string of the form
+ * ethernet-phy-idAAAA.BBBB
+ */
+static int xgmac_get_phy_id(struct fwnode_handle *fwnode, u32 *phy_id)
+{
+	const char *cp;
+	unsigned int upper, lower;
+	int ret;
+
+	ret = fwnode_property_read_string(fwnode, "compatible", &cp);
+	if (!ret) {
+		if (sscanf(cp, "ethernet-phy-id%4x.%4x",
+			   &upper, &lower) == 2) {
+			*phy_id = ((upper & 0xFFFF) << 16) | (lower & 0xFFFF);
+			return 0;
+		}
+	}
+	return -EINVAL;
+}
+
+static int xgmac_mdiobus_register_phy(struct mii_bus *bus,
+				      struct fwnode_handle *child, u32 addr)
+{
+	struct phy_device *phy;
+	bool is_c45 = false;
+	int rc;
+	const char *cp;
+	u32 phy_id;
+
+	fwnode_property_read_string(child, "compatible", &cp);
+	if (!strcmp(cp, "ethernet-phy-ieee802.3-c45"))
+		is_c45 = true;
+
+	if (!is_c45 && !xgmac_get_phy_id(child, &phy_id))
+		phy = phy_device_create(bus, addr, phy_id, 0, NULL);
+	else
+		phy = get_phy_device(bus, addr, is_c45);
+	if (IS_ERR(phy))
+		return PTR_ERR(phy);
+
+	phy->irq = bus->irq[addr];
+
+	/* Associate the fwnode with the device structure so it
+	 * can be looked up later.
+	 */
+	phy->mdio.dev.fwnode = child;
+
+	/* All data is now stored in the phy struct, so register it */
+	rc = phy_device_register(phy);
+	if (rc) {
+		phy_device_free(phy);
+		fwnode_handle_put(child);
+		return rc;
+	}
+
+	dev_dbg(&bus->dev, "registered phy at address %i\n", addr);
+
+	return 0;
+}
+
 static int xgmac_mdio_probe(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node;
 	struct mii_bus *bus;
-	struct resource res;
+	struct resource *res;
 	struct mdio_fsl_priv *priv;
 	int ret;
+	struct fwnode_handle *fwnode;
+	struct fwnode_handle *child;
+	int addr, rc;
 
-	ret = of_address_to_resource(np, 0, &res);
-	if (ret) {
+	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	if (!res) {
 		dev_err(&pdev->dev, "could not obtain address\n");
-		return ret;
+		return -ENODEV;
 	}
 
 	bus = mdiobus_alloc_size(sizeof(struct mdio_fsl_priv));
@@ -263,25 +329,55 @@ static int xgmac_mdio_probe(struct platform_device *pdev)
 	bus->read = xgmac_mdio_read;
 	bus->write = xgmac_mdio_write;
 	bus->parent = &pdev->dev;
-	snprintf(bus->id, MII_BUS_ID_SIZE, "%llx", (unsigned long long)res.start);
+	snprintf(bus->id, MII_BUS_ID_SIZE, "%llx", (unsigned long long)res->start);
 
 	/* Set the PHY base address */
 	priv = bus->priv;
-	priv->mdio_base = of_iomap(np, 0);
-	if (!priv->mdio_base) {
+	priv->mdio_base = ioremap(res->start, resource_size(res));
+	if (IS_ERR_OR_NULL(priv->mdio_base)) {
 		ret = -ENOMEM;
 		goto err_ioremap;
 	}
 
-	priv->is_little_endian = of_property_read_bool(pdev->dev.of_node,
-						       "little-endian");
+	priv->is_little_endian = device_property_read_bool(&pdev->dev,
+							   "little-endian");
 
-	priv->has_a011043 = of_property_read_bool(pdev->dev.of_node,
-						  "fsl,erratum-a011043");
+	priv->has_a011043 = device_property_read_bool(&pdev->dev,
+						      "fsl,erratum-a011043");
+	if (is_of_node(pdev->dev.fwnode)) {
+		ret = of_mdiobus_register(bus, np);
+		if (ret) {
+			dev_err(&pdev->dev, "cannot register MDIO bus\n");
+			goto err_registration;
+		}
+	} else if (is_acpi_node(pdev->dev.fwnode)) {
+		/* Mask out all PHYs from auto probing. */
+		bus->phy_mask = ~0;
+		ret = mdiobus_register(bus);
+		if (ret) {
+			dev_err(&pdev->dev, "mdiobus register err(%d)\n", ret);
+			return ret;
+		}
 
-	ret = of_mdiobus_register(bus, np);
-	if (ret) {
-		dev_err(&pdev->dev, "cannot register MDIO bus\n");
+		fwnode = pdev->dev.fwnode;
+	/* Loop over the child nodes and register a phy_device for each PHY */
+		fwnode_for_each_child_node(fwnode, child) {
+			fwnode_property_read_u32(child, "phy-channel", &addr);
+
+			if (addr < 0 || addr >= PHY_MAX_ADDR) {
+				dev_err(&bus->dev, "Invalid PHY address %i\n", addr);
+				continue;
+			}
+
+			rc = xgmac_mdiobus_register_phy(bus, child, addr);
+			if (rc == -ENODEV)
+				dev_err(&bus->dev,
+					"MDIO device at address %d is missing.\n",
+					addr);
+		}
+	} else {
+		dev_err(&pdev->dev, "Cannot get cfg data from DT or ACPI\n");
+		ret = -ENXIO;
 		goto err_registration;
 	}
 
@@ -290,8 +386,6 @@ static int xgmac_mdio_probe(struct platform_device *pdev)
 	return 0;
 
 err_registration:
-	iounmap(priv->mdio_base);
-
 err_ioremap:
 	mdiobus_free(bus);
 
@@ -303,13 +397,12 @@ static int xgmac_mdio_remove(struct platform_device *pdev)
 	struct mii_bus *bus = platform_get_drvdata(pdev);
 
 	mdiobus_unregister(bus);
-	iounmap(bus->priv);
 	mdiobus_free(bus);
 
 	return 0;
 }
 
-static const struct of_device_id xgmac_mdio_match[] = {
+static const struct of_device_id xgmac_mdio_of_match[] = {
 	{
 		.compatible = "fsl,fman-xmdio",
 	},
@@ -318,12 +411,18 @@ static const struct of_device_id xgmac_mdio_match[] = {
 	},
 	{},
 };
-MODULE_DEVICE_TABLE(of, xgmac_mdio_match);
+MODULE_DEVICE_TABLE(of, xgmac_mdio_of_match);
+
+static const struct acpi_device_id xgmac_mdio_acpi_match[] = {
+	{"NXP0006", 0}
+};
+MODULE_DEVICE_TABLE(acpi, xgmac_mdio_acpi_match);
 
 static struct platform_driver xgmac_mdio_driver = {
 	.driver = {
 		.name = "fsl-fman_xmdio",
-		.of_match_table = xgmac_mdio_match,
+		.of_match_table = xgmac_mdio_of_match,
+		.acpi_match_table = ACPI_PTR(xgmac_mdio_acpi_match),
 	},
 	.probe = xgmac_mdio_probe,
 	.remove = xgmac_mdio_remove,
