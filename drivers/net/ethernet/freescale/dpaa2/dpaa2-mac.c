@@ -3,6 +3,9 @@
 
 #include "dpaa2-eth.h"
 #include "dpaa2-mac.h"
+#include <linux/acpi.h>
+#include <linux/phy.h>
+#include <linux/phylink.h>
 
 #define phylink_to_dpaa2_mac(config) \
 	container_of((config), struct dpaa2_mac, phylink_config)
@@ -172,38 +175,56 @@ static int phy_mode(enum dpmac_eth_if eth_if, phy_interface_t *if_mode)
 }
 
 /* Caller must call of_node_put on the returned value */
-static struct device_node *dpaa2_mac_get_node(u16 dpmac_id)
+static struct fwnode_handle *dpaa2_mac_get_node(struct device *dev,
+						u16 dpmac_id)
 {
-	struct device_node *dpmacs, *dpmac = NULL;
-	u32 id;
+	struct acpi_buffer buffer = { ACPI_ALLOCATE_BUFFER, NULL };
+	struct fwnode_handle *dpmacs, *dpmac = NULL;
+	unsigned long long adr;
+	acpi_status status;
 	int err;
+	u32 id;
 
-	dpmacs = of_find_node_by_name(NULL, "dpmacs");
-	if (!dpmacs)
-		return NULL;
+	if (is_of_node(dev->parent->fwnode)) {
+		dpmacs = device_get_named_child_node(dev->parent, "dpmacs");
+		if (!dpmacs)
+			return NULL;
 
-	while ((dpmac = of_get_next_child(dpmacs, dpmac)) != NULL) {
-		err = of_property_read_u32(dpmac, "reg", &id);
-		if (err)
-			continue;
-		if (id == dpmac_id)
-			break;
+		while ((dpmac = fwnode_get_next_child_node(dpmacs, dpmac))) {
+			err = fwnode_property_read_u32(dpmac, "reg", &id);
+			if (err)
+				continue;
+			if (id == dpmac_id)
+				return dpmac;
+		}
+
+	} else if (is_acpi_node(dev->parent->fwnode)) {
+		device_for_each_child_node(dev->parent, dpmac) {
+			status = acpi_evaluate_integer(ACPI_HANDLE_FWNODE(dpmac),
+						       "_ADR", NULL, &adr);
+			if (ACPI_FAILURE(status)) {
+				pr_debug("_ADR returned %d on %s\n",
+					 status, (char *)buffer.pointer);
+				continue;
+			} else {
+				id = (u32)adr;
+				if (id == dpmac_id)
+					return dpmac;
+			}
+		}
 	}
-
-	of_node_put(dpmacs);
-
-	return dpmac;
+	return NULL;
 }
 
-static int dpaa2_mac_get_if_mode(struct device_node *node,
+static int dpaa2_mac_get_if_mode(struct fwnode_handle *dpmac_node,
 				 struct dpmac_attr attr)
 {
 	phy_interface_t if_mode;
 	int err;
 
-	err = of_get_phy_mode(node, &if_mode);
-	if (!err)
-		return if_mode;
+	err = fwnode_get_phy_mode(dpmac_node);
+	if (err > 0)
+		return err;
 
 	err = phy_mode(attr.eth_if, &if_mode);
 	if (!err)
@@ -409,12 +430,12 @@ out:
 }
 
 static int dpaa2_pcs_create(struct dpaa2_mac *mac,
-			    struct device_node *dpmac_node, int id)
+			    struct fwnode_handle *dpmac_node, int id)
 {
 	struct mdio_device *mdiodev;
 	struct device_node *node;
 
-	node = of_parse_phandle(dpmac_node, "pcs-handle", 0);
+	node = of_parse_phandle(to_of_node(dpmac_node), "pcs-handle", 0);
 	if (!node) {
 		/* allow old DT files to work */
 		netdev_warn(mac->net_dev, "pcs-handle node not found\n");
@@ -453,13 +474,40 @@ static void dpaa2_pcs_destroy(struct dpaa2_mac *mac)
 	}
 }
 
+static int fwnode_phy_match(struct device *dev, const void *phy_fwnode)
+{
+	return dev->fwnode == phy_fwnode;
+}
+
+static struct phy_device *fwnode_phy_find_device(struct fwnode_handle *phy_fwnode)
+{
+	struct device *d;
+	struct mdio_device *mdiodev;
+
+	if (!phy_fwnode)
+		return NULL;
+
+	d = bus_find_device(&mdio_bus_type, NULL, phy_fwnode, fwnode_phy_match);
+	if (d) {
+		mdiodev = to_mdio_device(d);
+		if (mdiodev->flags & MDIO_DEVICE_FLAG_PHY)
+			return to_phy_device(d);
+		put_device(d);
+	}
+
+	return NULL;
+}
+
 int dpaa2_mac_connect(struct dpaa2_mac *mac)
 {
 	struct fsl_mc_device *dpmac_dev = mac->mc_dev;
 	struct net_device *net_dev = mac->net_dev;
-	struct device_node *dpmac_node;
+	struct fwnode_handle *dpmac_node = NULL;
+	struct fwnode_reference_args args;
+	struct phy_device *phy_dev;
 	struct phylink *phylink;
 	struct dpmac_attr attr;
+	int status;
 	int err;
 
 	memset(&mac->phylink_config, 0, sizeof(mac->phylink_config));
@@ -479,7 +527,7 @@ int dpaa2_mac_connect(struct dpaa2_mac *mac)
 
 	mac->if_link_type = attr.link_type;
 
-	dpmac_node = dpaa2_mac_get_node(attr.id);
+	dpmac_node = dpaa2_mac_get_node(&mac->mc_dev->dev, attr.id);
 	if (!dpmac_node) {
 		netdev_err(net_dev, "No dpmac@%d node found.\n", attr.id);
 		err = -ENODEV;
@@ -497,7 +545,7 @@ int dpaa2_mac_connect(struct dpaa2_mac *mac)
 	 * error out if the interface mode requests them and there is no PHY
 	 * to act upon them
 	 */
-	if (of_phy_is_fixed_link(dpmac_node) &&
+	if (of_phy_is_fixed_link(to_of_node(dpmac_node)) &&
 	    (mac->if_mode == PHY_INTERFACE_MODE_RGMII_ID ||
 	     mac->if_mode == PHY_INTERFACE_MODE_RGMII_RXID ||
 	     mac->if_mode == PHY_INTERFACE_MODE_RGMII_TXID)) {
@@ -532,7 +580,7 @@ int dpaa2_mac_connect(struct dpaa2_mac *mac)
 			  mac->phylink_config.supported_interfaces);
 
 	phylink = phylink_create(&mac->phylink_config,
-				 of_fwnode_handle(dpmac_node), mac->if_mode,
+				 dpmac_node, mac->if_mode,
 				 &dpaa2_mac_phylink_ops);
 	if (IS_ERR(phylink)) {
 		err = PTR_ERR(phylink);
@@ -543,15 +591,35 @@ int dpaa2_mac_connect(struct dpaa2_mac *mac)
 	if (mac->pcs_sgmii || mac->pcs_10g)
 		phylink_add_pcs(mac->phylink, &dpaa2_pcs_phylink_ops);
 
-	rtnl_lock();
-	err = phylink_of_phy_connect(mac->phylink, dpmac_node, 0);
-	rtnl_unlock();
+	if (is_of_node(dpmac_node)) {
+		rtnl_lock();
+		err = phylink_of_phy_connect(mac->phylink,
+					     to_of_node(dpmac_node), 0);
+		rtnl_unlock();
+	} else if (is_acpi_node(dpmac_node)) {
+		status = acpi_node_get_property_reference(dpmac_node,
+							  "phy-handle",
+							  0, &args);
+		if (ACPI_FAILURE(status))
+			goto err_phylink_destroy;
+		phy_dev = fwnode_phy_find_device(args.fwnode);
+		if (!phy_dev)
+			goto err_phylink_destroy;
+
+		rtnl_lock();
+		err = phylink_connect_phy(mac->phylink, phy_dev);
+		rtnl_unlock();
+		if (err)
+			phy_detach(phy_dev);
+	}
+
 	if (err) {
-		netdev_err(net_dev, "phylink_of_phy_connect() = %d\n", err);
+		netdev_err(net_dev, "phylink_fwnode_phy_connect() = %d\n", err);
 		goto err_phylink_destroy;
 	}
 
-	of_node_put(dpmac_node);
+	if (is_of_node(dpmac_node))
+		of_node_put(to_of_node(dpmac_node));
 
 	return 0;
 
@@ -560,7 +628,8 @@ err_phylink_destroy:
 err_pcs_destroy:
 	dpaa2_pcs_destroy(mac);
 err_put_node:
-	of_node_put(dpmac_node);
+	if (is_of_node(dpmac_node))
+		of_node_put(to_of_node(dpmac_node));
 err_close_dpmac:
 	dpmac_close(mac->mc_io, 0, dpmac_dev->mc_handle);
 	return err;
