@@ -34,6 +34,10 @@ static void dpaa2_mac_pcs_get_state(struct phylink_config *config,
 		phylink_mii_c22_pcs_get_state(mac->pcs_sgmii, state);
 		break;
 
+	case PHY_INTERFACE_MODE_10GBASER:
+		phylink_mii_c45_pcs_get_state(mac->pcs_10g, state);
+		break;
+
 	default:
 		break;
 	}
@@ -146,6 +150,10 @@ static int phy_mode(enum dpmac_eth_if eth_if, phy_interface_t *if_mode)
 		*if_mode = PHY_INTERFACE_MODE_SGMII;
 		break;
 
+	case DPMAC_ETH_IF_XFI:
+		*if_mode = PHY_INTERFACE_MODE_10GBASER;
+		break;
+
 	default:
 		return -EINVAL;
 	}
@@ -202,6 +210,9 @@ static bool dpaa2_mac_phy_mode_mismatch(struct dpaa2_mac *mac,
 	case PHY_INTERFACE_MODE_1000BASEX:
 		return interface != mac->if_mode && !mac->pcs_sgmii;
 
+	case PHY_INTERFACE_MODE_10GBASER:
+		return interface != mac->if_mode && !mac->pcs_10g;
+
 	case PHY_INTERFACE_MODE_RGMII:
 	case PHY_INTERFACE_MODE_RGMII_ID:
 	case PHY_INTERFACE_MODE_RGMII_RXID:
@@ -231,6 +242,17 @@ static void dpaa2_mac_validate(struct phylink_config *config,
 
 	switch (state->interface) {
 	case PHY_INTERFACE_MODE_NA:
+	case PHY_INTERFACE_MODE_10GBASER:
+		phylink_set(mask, 10000baseT_Full);
+		phylink_set(mask, 10000baseKR_Full);
+		phylink_set(mask, 10000baseCR_Full);
+		phylink_set(mask, 10000baseSR_Full);
+		phylink_set(mask, 10000baseLR_Full);
+		phylink_set(mask, 10000baseLRM_Full);
+		phylink_set(mask, 10000baseER_Full);
+		if (state->interface != PHY_INTERFACE_MODE_NA)
+			break;
+		/* fallthrough */
 	case PHY_INTERFACE_MODE_1000BASEX:
 	case PHY_INTERFACE_MODE_SGMII:
 	case PHY_INTERFACE_MODE_RGMII:
@@ -392,7 +414,10 @@ static int dpaa2_pcs_create(struct dpaa2_mac *mac,
 	if (!mdiodev)
 		return -EPROBE_DEFER;
 
+	get_device(&mdiodev->dev);
+
 	mac->pcs_sgmii = mdiodev;
+	mac->pcs_10g = mdiodev;
 	mac->phylink_config.pcs_poll = true;
 
 	return 0;
@@ -403,6 +428,10 @@ static void dpaa2_pcs_destroy(struct dpaa2_mac *mac)
 	if (mac->pcs_sgmii) {
 		put_device(&mac->pcs_sgmii->dev);
 		mac->pcs_sgmii = NULL;
+	}
+	if (mac->pcs_10g) {
+		put_device(&mac->pcs_10g->dev);
+		mac->pcs_10g = NULL;
 	}
 }
 
@@ -483,7 +512,7 @@ int dpaa2_mac_connect(struct dpaa2_mac *mac)
 	}
 	mac->phylink = phylink;
 
-	if (mac->pcs_sgmii)
+	if (mac->pcs_sgmii || mac->pcs_10g)
 		phylink_add_pcs(mac->phylink, &dpaa2_pcs_phylink_ops);
 
 	rtnl_lock();
