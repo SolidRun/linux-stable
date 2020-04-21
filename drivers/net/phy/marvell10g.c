@@ -27,6 +27,7 @@
 #include <linux/delay.h>
 #include <linux/hwmon.h>
 #include <linux/marvell_phy.h>
+#include <linux/of.h>
 #include <linux/phy.h>
 #include <linux/sfp.h>
 
@@ -102,6 +103,8 @@ struct mv3310_priv {
 
 	struct device *hwmon_dev;
 	char *hwmon_name;
+	u8 num_leds;
+	u16 led_mode[4];
 };
 
 #ifdef CONFIG_HWMON
@@ -420,6 +423,43 @@ static const struct sfp_upstream_ops mv3310_sfp_ops = {
 	.module_insert = mv3310_sfp_insert,
 };
 
+static int mv3310_leds_write(struct phy_device *phydev)
+{
+	struct mv3310_priv *priv = dev_get_drvdata(&phydev->mdio.dev);
+	int i, ret;
+
+	for (i = 0; i < priv->num_leds; i++) {
+		ret = phy_write_mmd(phydev, MDIO_MMD_VEND2, 0xf020 + i,
+				    priv->led_mode[i]);
+		if (ret < 0)
+			return ret;
+	}
+
+	return 0;
+}
+
+static int mv3310_fw_config(struct phy_device *phydev)
+{
+	struct mv3310_priv *priv = dev_get_drvdata(&phydev->mdio.dev);
+	struct device_node *node;
+	int ret;
+
+	node = phydev->mdio.dev.of_node;
+	if (!node)
+		return 0;
+
+	ret = of_property_read_variable_u16_array(node, "marvell,led-mode",
+				priv->led_mode, 1, ARRAY_SIZE(priv->led_mode));
+	if (ret == -EINVAL)
+		ret = 0;
+	if (ret < 0)
+		return ret;
+
+	priv->num_leds = ret;
+
+	return 0;
+}
+
 static int mv3310_probe(struct phy_device *phydev)
 {
 	struct mv3310_priv *priv;
@@ -430,6 +470,20 @@ static int mv3310_probe(struct phy_device *phydev)
 	    (phydev->c45_ids.devices_in_package & mmd_mask) != mmd_mask)
 		return -ENODEV;
 
+	priv = devm_kzalloc(&phydev->mdio.dev, sizeof(*priv), GFP_KERNEL);
+	if (!priv)
+		return -ENOMEM;
+
+	dev_set_drvdata(&phydev->mdio.dev, priv);
+
+	ret = mv3310_fw_config(phydev);
+	if (ret < 0)
+		return ret;
+
+	ret = mv3310_leds_write(phydev);
+	if (ret < 0)
+		return ret;
+
 	ret = phy_read_mmd(phydev, MDIO_MMD_PMAPMD, MV_PMA_BOOT);
 	if (ret < 0)
 		return ret;
@@ -439,12 +493,6 @@ static int mv3310_probe(struct phy_device *phydev)
 			 "PHY failed to boot firmware, status=%04x\n", ret);
 		return -ENODEV;
 	}
-
-	priv = devm_kzalloc(&phydev->mdio.dev, sizeof(*priv), GFP_KERNEL);
-	if (!priv)
-		return -ENOMEM;
-
-	dev_set_drvdata(&phydev->mdio.dev, priv);
 
 	ret = phy_read_mmd(phydev, MDIO_MMD_PMAPMD, MV_PMA_FW_VER0);
 	if (ret < 0)
@@ -536,7 +584,7 @@ static int mv3310_config_init(struct phy_device *phydev)
 	if (err && err != -EOPNOTSUPP)
 		return err;
 
-	return 0;
+	return mv3310_leds_write(phydev);
 }
 
 static int mv3310_get_features(struct phy_device *phydev)
