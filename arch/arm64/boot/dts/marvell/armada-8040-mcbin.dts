@@ -21,12 +21,14 @@
 		compatible = "ethernet-phy-ieee802.3-c45";
 		reg = <0>;
 		sfp = <&sfp_eth0>;
+		marvell,led-mode = /bits/ 16 <0x0129 0x095d 0x0855>;
 	};
 
 	phy8: ethernet-phy@8 {
 		compatible = "ethernet-phy-ieee802.3-c45";
 		reg = <8>;
 		sfp = <&sfp_eth1>;
+		marvell,led-mode = /bits/ 16 <0x0129 0x095d 0x0855>;
 	};
 };
 
