@@ -4877,6 +4877,22 @@ static int mvneta_probe(struct platform_device *pdev)
 
 	pp->phylink_config.dev = &dev->dev;
 	pp->phylink_config.type = PHYLINK_NETDEV;
+	__set_bit(PHY_INTERFACE_MODE_SGMII,
+		  pp->phylink_config.supported_interfaces);
+	__set_bit(PHY_INTERFACE_MODE_RGMII,
+		  pp->phylink_config.supported_interfaces);
+	__set_bit(PHY_INTERFACE_MODE_RGMII_ID,
+		  pp->phylink_config.supported_interfaces);
+	__set_bit(PHY_INTERFACE_MODE_RGMII_RXID,
+		  pp->phylink_config.supported_interfaces);
+	__set_bit(PHY_INTERFACE_MODE_RGMII_TXID,
+		  pp->phylink_config.supported_interfaces);
+	__set_bit(PHY_INTERFACE_MODE_QSGMII,
+		  pp->phylink_config.supported_interfaces);
+	__set_bit(PHY_INTERFACE_MODE_1000BASEX,
+		  pp->phylink_config.supported_interfaces);
+	__set_bit(PHY_INTERFACE_MODE_2500BASEX,
+		  pp->phylink_config.supported_interfaces);
 
 	phylink = phylink_create(&pp->phylink_config, pdev->dev.fwnode,
 				 phy_mode, &mvneta_phylink_ops);
