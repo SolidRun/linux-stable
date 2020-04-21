@@ -19,6 +19,7 @@ struct dpaa2_mac {
 
 	struct phylink_config phylink_config;
 	struct phylink *phylink;
+	struct mdio_device *pcs_sgmii;
 	phy_interface_t if_mode;
 	enum dpmac_link_type if_link_type;
 };
