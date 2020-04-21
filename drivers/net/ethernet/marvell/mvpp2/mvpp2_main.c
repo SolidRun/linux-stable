@@ -5452,6 +5452,29 @@ static int mvpp2_port_probe(struct platform_device *pdev,
 		port->phylink_config.dev = &dev->dev;
 		port->phylink_config.type = PHYLINK_NETDEV;
 
+		if (mvpp2_port_supports_xlg(port)) {
+			__set_bit(PHY_INTERFACE_MODE_10GBASER,
+				  port->phylink_config.supported_interfaces);
+			__set_bit(PHY_INTERFACE_MODE_XAUI,
+				  port->phylink_config.supported_interfaces);
+		}
+		if (mvpp2_port_supports_rgmii(port)) {
+			__set_bit(PHY_INTERFACE_MODE_RGMII,
+				  port->phylink_config.supported_interfaces);
+			__set_bit(PHY_INTERFACE_MODE_RGMII_ID,
+				  port->phylink_config.supported_interfaces);
+			__set_bit(PHY_INTERFACE_MODE_RGMII_TXID,
+				  port->phylink_config.supported_interfaces);
+			__set_bit(PHY_INTERFACE_MODE_RGMII_RXID,
+				  port->phylink_config.supported_interfaces);
+		}
+		__set_bit(PHY_INTERFACE_MODE_SGMII,
+			  port->phylink_config.supported_interfaces);
+		__set_bit(PHY_INTERFACE_MODE_1000BASEX,
+			  port->phylink_config.supported_interfaces);
+		__set_bit(PHY_INTERFACE_MODE_2500BASEX,
+			  port->phylink_config.supported_interfaces);
+
 		phylink = phylink_create(&port->phylink_config, port_fwnode,
 					 phy_mode, &mvpp2_phylink_ops);
 		if (IS_ERR(phylink)) {
