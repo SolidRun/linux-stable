@@ -74,6 +74,7 @@ struct phylink {
 
 	struct sfp_bus *sfp_bus;
 	bool sfp_may_have_phy;
+	DECLARE_PHY_INTERFACE_MASK(sfp_interfaces);
 	__ETHTOOL_DECLARE_LINK_MODE_MASK(sfp_support);
 	u8 sfp_port;
 };
@@ -1852,6 +1853,41 @@ static void phylink_sfp_detach(void *upstream, struct sfp_bus *bus)
 	pl->netdev->sfp_bus = NULL;
 }
 
+static const phy_interface_t phylink_sfp_interface_preference[] = {
+	PHY_INTERFACE_MODE_USXGMII,
+	PHY_INTERFACE_MODE_10GBASER,
+	PHY_INTERFACE_MODE_10GKR,
+	PHY_INTERFACE_MODE_2500BASEX,
+	PHY_INTERFACE_MODE_SGMII,
+	PHY_INTERFACE_MODE_1000BASEX,
+};
+
+static phy_interface_t phylink_select_interface(struct phylink *pl,
+						const unsigned long *intf,
+						const char *intf_name)
+{
+	DECLARE_PHY_INTERFACE_MASK(u);
+	phy_interface_t interface;
+	size_t i;
+
+	phy_interface_and(u, intf, pl->config->supported_interfaces);
+
+	interface = PHY_INTERFACE_MODE_NA;
+	for (i = 0; i < ARRAY_SIZE(phylink_sfp_interface_preference); i++)
+		if (test_bit(phylink_sfp_interface_preference[i], u)) {
+			interface = phylink_sfp_interface_preference[i];
+			break;
+		}
+
+	phylink_info(pl, "interfaces=[mac=%*pbl %s=%*pbl] selected %d (%s)\n",
+		     (int)PHY_INTERFACE_MODE_MAX,
+		     pl->config->supported_interfaces,
+		     intf_name, (int)PHY_INTERFACE_MODE_MAX, intf,
+		     interface, phy_modes(interface));
+
+	return interface;
+}
+
 static int phylink_sfp_config(struct phylink *pl, u8 mode,
 			      const unsigned long *supported,
 			      const unsigned long *advertising)
@@ -1934,25 +1970,33 @@ static int phylink_sfp_config(struct phylink *pl, u8 mode,
 	return ret;
 }
 
+static int phylink_sfp_config_nophy(struct phylink *pl)
+{
+	if (!phy_interface_empty(pl->config->supported_interfaces))
+		phylink_select_interface(pl, pl->sfp_interfaces, "sfp");
+
+	return phylink_sfp_config(pl, MLO_AN_INBAND,
+				  pl->sfp_support, pl->sfp_support);
+}
+
 static int phylink_sfp_module_insert(void *upstream,
 				     const struct sfp_eeprom_id *id)
 {
 	struct phylink *pl = upstream;
-	unsigned long *support = pl->sfp_support;
-	DECLARE_PHY_INTERFACE_MASK(sfp_interfaces);
 
 	ASSERT_RTNL();
 
-	linkmode_zero(support);
-	sfp_parse_support(pl->sfp_bus, id, support, sfp_interfaces);
-	pl->sfp_port = sfp_parse_port(pl->sfp_bus, id, support);
+	linkmode_zero(pl->sfp_support);
+	phy_interface_zero(pl->sfp_interfaces);
+	sfp_parse_support(pl->sfp_bus, id, pl->sfp_support, pl->sfp_interfaces);
+	pl->sfp_port = sfp_parse_port(pl->sfp_bus, id, pl->sfp_support);
 
 	/* If this module may have a PHY connecting later, defer until later */
 	pl->sfp_may_have_phy = sfp_may_have_phy(pl->sfp_bus, id);
 	if (pl->sfp_may_have_phy)
 		return 0;
 
-	return phylink_sfp_config(pl, MLO_AN_INBAND, support, support);
+	return phylink_sfp_config_nophy(pl);
 }
 
 static int phylink_sfp_module_start(void *upstream)
@@ -1971,8 +2015,7 @@ static int phylink_sfp_module_start(void *upstream)
 	if (!pl->sfp_may_have_phy)
 		return 0;
 
-	return phylink_sfp_config(pl, MLO_AN_INBAND,
-				  pl->sfp_support, pl->sfp_support);
+	return phylink_sfp_config_nophy(pl);
 }
 
 static void phylink_sfp_module_stop(void *upstream)
@@ -2033,19 +2076,54 @@ static int phylink_sfp_connect_phy(void *upstream, struct phy_device *phy)
 	else
 		mode = MLO_AN_INBAND;
 
-	/* Do the initial configuration */
-	ret = phylink_sfp_config(pl, mode, phy->supported, phy->advertising);
-	if (ret < 0)
-		return ret;
+	if (!phy_interface_empty(phy->supported_interfaces) &&
+	    !phy_interface_empty(pl->config->supported_interfaces)) {
+		interface = phylink_select_interface(pl,
+						     phy->supported_interfaces,
+						     "phy");
+		if (interface == PHY_INTERFACE_MODE_NA) {
+			phylink_err(pl,
+				    "selection of interface for PHY failed\n");
+			return -EINVAL;
+		}
 
-	interface = pl->link_config.interface;
-	ret = phylink_attach_phy(pl, phy, interface);
-	if (ret < 0)
-		return ret;
+		if (pl->cur_link_an_mode != mode ||
+		    pl->link_config.interface != interface) {
+			pl->link_config.interface = interface;
+			pl->cur_link_an_mode = mode;
 
-	ret = phylink_bringup_phy(pl, phy, interface);
-	if (ret)
-		phy_detach(phy);
+			phylink_info(pl, "switched to %s/%s link mode\n",
+				     phylink_an_mode_str(mode),
+				     phy_modes(interface));
+		}
+
+		ret = phylink_attach_phy(pl, phy, interface);
+		if (ret < 0)
+			return ret;
+
+		ret = phylink_bringup_phy(pl, phy, interface);
+		if (ret)
+			phy_detach(phy);
+
+		if (!test_bit(PHYLINK_DISABLE_STOPPED,
+			      &pl->phylink_disable_state))
+			phylink_mac_initial_config(pl, false);
+	} else {
+		/* Do the initial configuration */
+		ret = phylink_sfp_config(pl, mode, phy->supported,
+					phy->advertising);
+		if (ret < 0)
+			return ret;
+
+		interface = pl->link_config.interface;
+		ret = phylink_attach_phy(pl, phy, interface);
+		if (ret < 0)
+			return ret;
+
+		ret = phylink_bringup_phy(pl, phy, interface);
+		if (ret)
+			phy_detach(phy);
+	}
 
 	return ret;
 }

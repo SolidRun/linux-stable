@@ -67,6 +67,7 @@ struct phylink_config {
 	struct device *dev;
 	enum phylink_op_type type;
 	bool pcs_poll;
+	DECLARE_PHY_INTERFACE_MASK(supported_interfaces);
 };
 
 /**
