@@ -212,7 +212,7 @@ static int dpaa2_mac_get_if_mode(struct device_node *node,
 	return err;
 }
 
-static bool dpaa2_mac_phy_mode_mismatch(struct dpaa2_mac *mac,
+static __maybe_unused bool dpaa2_mac_phy_mode_mismatch(struct dpaa2_mac *mac,
 					phy_interface_t interface)
 {
 	switch (interface) {
@@ -238,13 +238,13 @@ static void dpaa2_mac_validate(struct phylink_config *config,
 			       unsigned long *supported,
 			       struct phylink_link_state *state)
 {
-	struct dpaa2_mac *mac = phylink_to_dpaa2_mac(config);
+//	struct dpaa2_mac *mac = phylink_to_dpaa2_mac(config);
 	__ETHTOOL_DECLARE_LINK_MODE_MASK(mask) = { 0, };
 
-	if (state->interface != PHY_INTERFACE_MODE_NA &&
-	    dpaa2_mac_phy_mode_mismatch(mac, state->interface)) {
-		goto empty_set;
-	}
+//	if (state->interface != PHY_INTERFACE_MODE_NA &&
+//	    dpaa2_mac_phy_mode_mismatch(mac, state->interface)) {
+//		goto empty_set;
+//	}
 
 	phylink_set_port_modes(mask);
 	phylink_set(mask, Autoneg);
@@ -515,6 +515,16 @@ int dpaa2_mac_connect(struct dpaa2_mac *mac)
 
 	mac->phylink_config.dev = &net_dev->dev;
 	mac->phylink_config.type = PHYLINK_NETDEV;
+	__set_bit(PHY_INTERFACE_MODE_10GBASER,
+		  mac->phylink_config.supported_interfaces);
+	__set_bit(PHY_INTERFACE_MODE_2500BASEX,
+		  mac->phylink_config.supported_interfaces);
+	__set_bit(PHY_INTERFACE_MODE_QSGMII,
+		  mac->phylink_config.supported_interfaces);
+	__set_bit(PHY_INTERFACE_MODE_SGMII,
+		  mac->phylink_config.supported_interfaces);
+	__set_bit(PHY_INTERFACE_MODE_1000BASEX,
+		  mac->phylink_config.supported_interfaces);
 
 	__set_bit(mac->if_mode, mac->phylink_config.supported_interfaces);
 	if (mac->if_mode == PHY_INTERFACE_MODE_SGMII && mac->pcs_sgmii)
