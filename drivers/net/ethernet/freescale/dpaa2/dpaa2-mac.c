@@ -31,6 +31,7 @@ static void dpaa2_mac_pcs_get_state(struct phylink_config *config,
 	switch (state->interface) {
 	case PHY_INTERFACE_MODE_SGMII:
 	case PHY_INTERFACE_MODE_1000BASEX:
+	case PHY_INTERFACE_MODE_2500BASEX:
 		phylink_mii_c22_pcs_get_state(mac->pcs_sgmii, state);
 		break;
 
@@ -78,6 +79,7 @@ static int dpaa2_mac_pcs_config(struct phylink_config *config,
 		break;
 
 	case PHY_INTERFACE_MODE_1000BASEX:
+	case PHY_INTERFACE_MODE_2500BASEX:
 		link_timer = DPAA2_MAC_PCS_CLK_MHZ * LINK_TIMER_US_IEEE8023;
 		mdiobus_write(mac->pcs_sgmii->bus, mac->pcs_sgmii->addr,
 			      MII_LINK_TIMER_1, link_timer & 0xffff);
@@ -250,6 +252,12 @@ static void dpaa2_mac_validate(struct phylink_config *config,
 		phylink_set(mask, 10000baseLR_Full);
 		phylink_set(mask, 10000baseLRM_Full);
 		phylink_set(mask, 10000baseER_Full);
+		if (state->interface != PHY_INTERFACE_MODE_NA)
+			break;
+		/* fallthrough */
+	case PHY_INTERFACE_MODE_2500BASEX:
+		phylink_set(mask, 2500baseX_Full);
+		phylink_set(mask, 2500baseT_Full);
 		if (state->interface != PHY_INTERFACE_MODE_NA)
 			break;
 		/* fallthrough */
