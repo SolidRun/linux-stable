@@ -102,6 +102,7 @@ enum {
 
 struct mv3310_priv {
 	u32 firmware_ver;
+	bool firmware_failed;
 
 	struct device *hwmon_dev;
 	char *hwmon_name;
@@ -493,7 +494,7 @@ static int mv3310_probe(struct phy_device *phydev)
 	if (ret & MV_PMA_BOOT_FATAL) {
 		dev_warn(&phydev->mdio.dev,
 			 "PHY failed to boot firmware, status=%04x\n", ret);
-		return -ENODEV;
+		priv->firmware_failed = true;
 	}
 
 	ret = phy_read_mmd(phydev, MDIO_MMD_PMAPMD, MV_PMA_FW_VER0);
@@ -538,6 +539,19 @@ static int mv3310_resume(struct phy_device *phydev)
 		return ret;
 
 	return mv3310_hwmon_config(phydev, true);
+}
+
+static int mv3310_start(struct phy_device *phydev)
+{
+	struct mv3310_priv *priv = dev_get_drvdata(&phydev->mdio.dev);
+
+	if (priv->firmware_failed) {
+		dev_warn(&phydev->mdio.dev,
+			 "PHY firmware failure: PHY not starting");
+		return -EINVAL;
+	}
+
+	return 0;
 }
 
 /* Some PHYs in the Alaska family such as the 88X3310 and the 88E2010
@@ -876,6 +890,7 @@ static struct phy_driver mv3310_drivers[] = {
 		.probe		= mv3310_probe,
 		.suspend	= mv3310_suspend,
 		.resume		= mv3310_resume,
+		.start		= mv3310_start,
 		.config_aneg	= mv3310_config_aneg,
 		.aneg_done	= mv3310_aneg_done,
 		.read_status	= mv3310_read_status,
@@ -889,6 +904,7 @@ static struct phy_driver mv3310_drivers[] = {
 		.probe		= mv3310_probe,
 		.suspend	= mv3310_suspend,
 		.resume		= mv3310_resume,
+		.start		= mv3310_start,
 		.soft_reset	= genphy_no_soft_reset,
 		.config_init	= mv3310_config_init,
 		.config_aneg	= mv3310_config_aneg,
