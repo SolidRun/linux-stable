@@ -262,6 +262,12 @@ config SFP
 	select MDIO_I2C
 	select SFP_BUS
 
+config QSFP
+	tristate "QSFP cage support"
+	depends on I2C
+	select MDIO_I2C
+	select SFP_BUS
+
 config ADIN_PHY
 	tristate "Analog Devices Industrial Ethernet PHYs"
 	help
