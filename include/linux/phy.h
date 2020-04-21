@@ -548,6 +548,9 @@ struct phy_driver {
 	int (*suspend)(struct phy_device *phydev);
 	int (*resume)(struct phy_device *phydev);
 
+	int (*start)(struct phy_device *phydev);
+	void (*stop)(struct phy_device *phydev);
+
 	/*
 	 * Configures the advertisement and resets
 	 * autonegotiation if phydev->autoneg is on,
