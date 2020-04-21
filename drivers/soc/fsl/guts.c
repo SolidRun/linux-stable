@@ -3,6 +3,7 @@
  * Freescale QorIQ Platforms GUTS Driver
  *
  * Copyright (C) 2016 Freescale Semiconductor, Inc.
+ * Copyright 2020 NXP
  */
 
 #include <linux/io.h>
@@ -137,7 +138,7 @@ static u32 fsl_guts_get_svr(void)
 
 static int fsl_guts_probe(struct platform_device *pdev)
 {
-	struct device_node *root, *np = pdev->dev.of_node;
+	struct device_node *root;
 	struct device *dev = &pdev->dev;
 	const struct fsl_soc_die_attr *soc_die;
 	const char *machine = NULL;
@@ -148,24 +149,35 @@ static int fsl_guts_probe(struct platform_device *pdev)
 	if (!guts)
 		return -ENOMEM;
 
-	guts->little_endian = of_property_read_bool(np, "little-endian");
+	guts->little_endian = fwnode_property_read_bool(pdev->dev.fwnode,
+							"little-endian");
 
 	guts->regs = devm_platform_ioremap_resource(pdev, 0);
 	if (IS_ERR(guts->regs))
 		return PTR_ERR(guts->regs);
 
 	/* Register soc device */
-	root = of_find_node_by_path("/");
-	if (of_property_read_string(root, "model", &machine))
-		of_property_read_string_index(root, "compatible", 0, &machine);
+	if (dev_of_node(&pdev->dev)) {
+		root = of_find_node_by_path("/");
+		if (of_property_read_string(root, "model", &machine))
+			of_property_read_string_index(root,
+					"compatible", 0, &machine);
+	} else {
+		fwnode_property_read_string(pdev->dev.fwnode,
+				"model", &machine);
+	}
+
 	if (machine) {
 		soc_dev_attr.machine = devm_kstrdup(dev, machine, GFP_KERNEL);
 		if (!soc_dev_attr.machine) {
-			of_node_put(root);
+			if (dev_of_node(&pdev->dev))
+				of_node_put(root);
 			return -ENOMEM;
 		}
 	}
-	of_node_put(root);
+
+	if (dev_of_node(&pdev->dev))
+		of_node_put(root);
 
 	svr = fsl_guts_get_svr();
 	soc_die = fsl_soc_die_match(svr, fsl_soc_die);
@@ -236,10 +248,17 @@ static const struct of_device_id fsl_guts_of_match[] = {
 };
 MODULE_DEVICE_TABLE(of, fsl_guts_of_match);
 
+static const struct acpi_device_id fsl_guts_acpi_match[] = {
+	{"NXP0030", 0 },
+	{ }
+};
+MODULE_DEVICE_TABLE(acpi, fsl_guts_acpi_match);
+
 static struct platform_driver fsl_guts_driver = {
 	.driver = {
 		.name = "fsl-guts",
 		.of_match_table = fsl_guts_of_match,
+		.acpi_match_table = fsl_guts_acpi_match,
 	},
 	.probe = fsl_guts_probe,
 	.remove = fsl_guts_remove,
