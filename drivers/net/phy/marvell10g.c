@@ -473,6 +473,10 @@ static int mv3310_probe(struct phy_device *phydev)
 	    (phydev->c45_ids.devices_in_package & mmd_mask) != mmd_mask)
 		return -ENODEV;
 
+	__set_bit(PHY_INTERFACE_MODE_SGMII, phydev->supported_interfaces);
+	__set_bit(PHY_INTERFACE_MODE_2500BASEX, phydev->supported_interfaces);
+	__set_bit(PHY_INTERFACE_MODE_10GBASER, phydev->supported_interfaces);
+
 	priv = devm_kzalloc(&phydev->mdio.dev, sizeof(*priv), GFP_KERNEL);
 	if (!priv)
 		return -ENOMEM;
