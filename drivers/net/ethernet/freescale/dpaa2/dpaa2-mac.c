@@ -290,7 +290,9 @@ int dpaa2_mac_connect(struct dpaa2_mac *mac)
 	}
 	mac->phylink = phylink;
 
+	rtnl_lock();
 	err = phylink_of_phy_connect(mac->phylink, dpmac_node, 0);
+	rtnl_unlock();
 	if (err) {
 		netdev_err(net_dev, "phylink_of_phy_connect() = %d\n", err);
 		goto err_phylink_destroy;
@@ -314,7 +316,9 @@ void dpaa2_mac_disconnect(struct dpaa2_mac *mac)
 	if (!mac->phylink)
 		return;
 
+	rtnl_lock();
 	phylink_disconnect_phy(mac->phylink);
+	rtnl_unlock();
 	phylink_destroy(mac->phylink);
 	dpmac_close(mac->mc_io, 0, mac->mc_dev->mc_handle);
 }
