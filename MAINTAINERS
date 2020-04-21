@@ -5156,7 +5156,7 @@ S:	Maintained
 F:	drivers/soc/fsl/dpio
 
 DPAA2 ETHERNET DRIVER
-M:	Ioana Radulescu <ruxandra.radulescu@nxp.com>
+M:	Ioana Ciornei <ioana.ciornei@nxp.com>
 L:	netdev@vger.kernel.org
 S:	Maintained
 F:	drivers/net/ethernet/freescale/dpaa2/dpaa2-eth*
