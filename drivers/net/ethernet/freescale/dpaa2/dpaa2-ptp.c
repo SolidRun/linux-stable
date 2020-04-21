@@ -139,6 +139,8 @@ static int dpaa2_ptp_probe(struct fsl_mc_device *mc_dev)
 	if (!ptp_qoriq)
 		return -ENOMEM;
 
+	spin_lock_init(&ptp_qoriq->lock);
+
 	err = fsl_mc_portal_allocate(mc_dev, 0, &mc_dev->mc_io);
 	if (err) {
 		if (err == -ENXIO)

@@ -565,11 +565,13 @@ static int ptp_qoriq_probe(struct platform_device *dev)
 	int err = -ENOMEM;
 	void __iomem *base;
 
-	ptp_qoriq = kzalloc(sizeof(*ptp_qoriq), GFP_KERNEL);
+	ptp_qoriq = devm_kzalloc(&dev->dev, sizeof(*ptp_qoriq), GFP_KERNEL);
 	if (!ptp_qoriq)
 		goto no_memory;
 
 	ptp_qoriq->dev = &dev->dev;
+
+	spin_lock_init(&ptp_qoriq->lock);
 
 	err = -ENODEV;
 
@@ -615,7 +617,6 @@ no_ioremap:
 no_resource:
 	free_irq(ptp_qoriq->irq, ptp_qoriq);
 no_node:
-	kfree(ptp_qoriq);
 no_memory:
 	return err;
 }
@@ -626,7 +627,6 @@ static int ptp_qoriq_remove(struct platform_device *dev)
 
 	ptp_qoriq_free(ptp_qoriq);
 	release_resource(ptp_qoriq->rsrc);
-	kfree(ptp_qoriq);
 	return 0;
 }
 
