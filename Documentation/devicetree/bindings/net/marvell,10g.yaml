@@ -1,0 +1,35 @@
+# SPDX-License-Identifier: GPL-2.0-only OR BSD-2-Clause
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/net/marvell,10g.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: Marvell Alaska X family Ethernet PHYs
+
+maintainers:
+  - Russell King <rmk+kernel@armlinux.org.uk>
+
+allOf:
+  - $ref: ethernet-phy.yaml#
+
+properties:
+  marvell,led-mode:
+    description: |
+      An array of one to four 16-bit integers to write to the PHY LED
+      configuration registers.
+    allOf:
+      - $ref: /schemas/types.yaml#/definitions/uint16-array
+      - minItems: 1
+        maxItems: 4
+
+examples:
+  - |
+    mdio {
+        #address-cells = <1>;
+        #size-cells = <0>;
+        ethernet-phy@0 {
+            reg = <0>;
+            compatible = "ethernet-phy-ieee802.3-c45";
+            marvell,led-mode = /bits/ 16 <0x0129 0x095d 0x0855>;
+        };
+    };
