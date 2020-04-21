@@ -73,6 +73,8 @@ enum {
 	MV_PCS_CSSR1_SPD1_10	= 0x0000,
 	MV_PCS_CSSR1_DUPLEX_FULL= BIT(13),
 	MV_PCS_CSSR1_RESOLVED	= BIT(11),
+	MV_PCS_CSSR1_TX_PAUSE	= BIT(9),
+	MV_PCS_CSSR1_RX_PAUSE	= BIT(8),
 	MV_PCS_CSSR1_MDIX	= BIT(6),
 	MV_PCS_CSSR1_SPD2_MASK	= 0x000c,
 	MV_PCS_CSSR1_SPD2_5000	= 0x0008,
@@ -784,6 +786,10 @@ static int mv3310_read_status_copper(struct phy_device *phydev)
 			 DUPLEX_FULL : DUPLEX_HALF;
 	phydev->mdix = cssr1 & MV_PCS_CSSR1_MDIX ?
 		       ETH_TP_MDI_X : ETH_TP_MDI;
+
+	phydev->resolved_tx_pause = !!(cssr1 & MV_PCS_CSSR1_TX_PAUSE);
+	phydev->resolved_rx_pause = !!(cssr1 & MV_PCS_CSSR1_RX_PAUSE);
+	phydev->resolved_pause_valid = true;
 
 	if (val & MDIO_AN_STAT1_COMPLETE) {
 		val = genphy_c45_read_lpa(phydev);

@@ -152,6 +152,10 @@
 #define MII_M1011_PHY_STATUS_FULLDUPLEX	0x2000
 #define MII_M1011_PHY_STATUS_RESOLVED	0x0800
 #define MII_M1011_PHY_STATUS_LINK	0x0400
+#define MII_M1111_PHY_STATUS_TX_PAUSE	0x0008
+#define MII_M1111_PHY_STATUS_RX_PAUSE	0x0004
+#define MII_88E151X_PHY_STATUS_TX_PAUSE	0x0200
+#define MII_88E151X_PHY_STATUS_RX_PAUSE	0x0100
 
 #define MII_88E3016_PHY_SPEC_CTRL	0x10
 #define MII_88E3016_DISABLE_SCRAMBLER	0x0200
@@ -188,6 +192,8 @@ struct marvell_priv {
 	u64 stats[ARRAY_SIZE(marvell_hw_stats)];
 	char *hwmon_name;
 	struct device *hwmon_dev;
+	u16 tx_pause_mask;
+	u16 rx_pause_mask;
 };
 
 static int marvell_read_page(struct phy_device *phydev)
@@ -1275,6 +1281,7 @@ static void fiber_lpa_mod_linkmode_lpa_t(unsigned long *advertising, u32 lpa)
 static int marvell_read_status_page_an(struct phy_device *phydev,
 				       int fiber, int status)
 {
+	struct marvell_priv *priv = phydev->priv;
 	int lpa;
 	int err;
 
@@ -1330,6 +1337,11 @@ static int marvell_read_status_page_an(struct phy_device *phydev,
 		}
 	}
 
+	phydev->resolved_tx_pause = !!(status & priv->tx_pause_mask);
+	phydev->resolved_rx_pause = !!(status & priv->rx_pause_mask);
+	phydev->resolved_pause_valid = !fiber && priv->tx_pause_mask &&
+				       priv->rx_pause_mask;
+
 	return 0;
 }
 
@@ -1372,6 +1384,7 @@ static int marvell_read_status_page(struct phy_device *phydev, int page)
 	phydev->asym_pause = 0;
 	phydev->speed = SPEED_UNKNOWN;
 	phydev->duplex = DUPLEX_UNKNOWN;
+	phydev->resolved_pause_valid = false;
 
 	linkmode_zero(phydev->lp_advertising);
 	phydev->pause = 0;
@@ -2136,6 +2149,23 @@ static int marvell_probe(struct phy_device *phydev)
 	return 0;
 }
 
+static int marvell_probe_pause(struct phy_device *phydev, u16 tx_pause_mask,
+			       u16 rx_pause_mask)
+{
+	struct marvell_priv *priv;
+	int err;
+
+	err = marvell_probe(phydev);
+	if (err)
+		return err;
+
+	priv = phydev->priv;
+	priv->tx_pause_mask = tx_pause_mask;
+	priv->rx_pause_mask = rx_pause_mask;
+
+	return 0;
+}
+
 static int m88e1121_probe(struct phy_device *phydev)
 {
 	int err;
@@ -2147,11 +2177,18 @@ static int m88e1121_probe(struct phy_device *phydev)
 	return m88e1121_hwmon_probe(phydev);
 }
 
+static int m88e1111_probe(struct phy_device *phydev)
+{
+	return marvell_probe_pause(phydev, MII_M1111_PHY_STATUS_TX_PAUSE,
+				   MII_M1111_PHY_STATUS_RX_PAUSE);
+}
+
 static int m88e1510_probe(struct phy_device *phydev)
 {
 	int err;
 
-	err = marvell_probe(phydev);
+	err = marvell_probe_pause(phydev, MII_88E151X_PHY_STATUS_TX_PAUSE,
+				  MII_88E151X_PHY_STATUS_RX_PAUSE);
 	if (err)
 		return err;
 
@@ -2214,7 +2251,7 @@ static struct phy_driver marvell_drivers[] = {
 		.phy_id_mask = MARVELL_PHY_ID_MASK,
 		.name = "Marvell 88E1111",
 		/* PHY_GBIT_FEATURES */
-		.probe = marvell_probe,
+		.probe = m88e1111_probe,
 		.config_init = &m88e1111_config_init,
 		.config_aneg = &marvell_config_aneg,
 		.read_status = &marvell_read_status,
