@@ -18,6 +18,7 @@
 #include <linux/workqueue.h>
 
 #include "mdio-i2c.h"
+#include "sff.h"
 #include "sfp.h"
 #include "swphy.h"
 
@@ -1369,6 +1370,114 @@ static void sfp_hwmon_exit(struct sfp *sfp)
 }
 #endif
 
+static const struct sff_bitfield sfp_options[] = {
+	{
+		.mask = SFP_OPTIONS_HIGH_POWER_LEVEL,
+		.val = SFP_OPTIONS_HIGH_POWER_LEVEL,
+		.str = "hpl",
+	}, {
+		.mask = SFP_OPTIONS_PAGING_A2,
+		.val = SFP_OPTIONS_PAGING_A2,
+		.str = "paginga2",
+	}, {
+		.mask = SFP_OPTIONS_RETIMER,
+		.val = SFP_OPTIONS_RETIMER,
+		.str = "retimer",
+	}, {
+		.mask = SFP_OPTIONS_COOLED_XCVR,
+		.val = SFP_OPTIONS_COOLED_XCVR,
+		.str = "cooled",
+	}, {
+		.mask = SFP_OPTIONS_POWER_DECL,
+		.val = SFP_OPTIONS_POWER_DECL,
+		.str = "powerdecl",
+	}, {
+		.mask = SFP_OPTIONS_RX_LINEAR_OUT,
+		.val = SFP_OPTIONS_RX_LINEAR_OUT,
+		.str = "rxlinear",
+	}, {
+		.mask = SFP_OPTIONS_RX_DECISION_THRESH,
+		.val = SFP_OPTIONS_RX_DECISION_THRESH,
+		.str = "rxthresh",
+	}, {
+		.mask = SFP_OPTIONS_TUNABLE_TX,
+		.val = SFP_OPTIONS_TUNABLE_TX,
+		.str = "tunabletx",
+	}, {
+		.mask = SFP_OPTIONS_RATE_SELECT,
+		.val = SFP_OPTIONS_RATE_SELECT,
+		.str = "ratesel",
+	}, {
+		.mask = SFP_OPTIONS_TX_DISABLE,
+		.val = SFP_OPTIONS_TX_DISABLE,
+		.str = "txdisable",
+	}, {
+		.mask = SFP_OPTIONS_TX_FAULT,
+		.val = SFP_OPTIONS_TX_FAULT,
+		.str = "txfault",
+	}, {
+		.mask = SFP_OPTIONS_LOS_INVERTED,
+		.val = SFP_OPTIONS_LOS_INVERTED,
+		.str = "los-",
+	}, {
+		.mask = SFP_OPTIONS_LOS_NORMAL,
+		.val = SFP_OPTIONS_LOS_NORMAL,
+		.str = "los+",
+	}, { }
+};
+
+static const struct sff_bitfield diagmon[] = {
+	{
+		.mask = SFP_DIAGMON_DDM,
+		.val = SFP_DIAGMON_DDM,
+		.str = "ddm",
+	}, {
+		.mask = SFP_DIAGMON_INT_CAL,
+		.val = SFP_DIAGMON_INT_CAL,
+		.str = "intcal",
+	}, {
+		.mask = SFP_DIAGMON_EXT_CAL,
+		.val = SFP_DIAGMON_EXT_CAL,
+		.str = "extcal",
+	}, {
+		.mask = SFP_DIAGMON_RXPWR_AVG,
+		.val = SFP_DIAGMON_RXPWR_AVG,
+		.str = "rxpwravg",
+	}, { }
+};
+
+static const struct sff_bitfield sfp_enhopts[] = {
+	{
+		.mask = SFP_ENHOPTS_ALARMWARN,
+		.val = SFP_ENHOPTS_ALARMWARN,
+		.str = "alarmwarn",
+	}, {
+		.mask = SFP_ENHOPTS_SOFT_TX_DISABLE,
+		.val = SFP_ENHOPTS_SOFT_TX_DISABLE,
+		.str = "soft_tx_dis",
+	}, {
+		.mask = SFP_ENHOPTS_SOFT_TX_FAULT,
+		.val = SFP_ENHOPTS_SOFT_TX_FAULT,
+		.str = "soft_tx_fault",
+	}, {
+		.mask = SFP_ENHOPTS_SOFT_RX_LOS,
+		.val = SFP_ENHOPTS_SOFT_RX_LOS,
+		.str = "soft_rx_los",
+	}, {
+		.mask = SFP_ENHOPTS_SOFT_RATE_SELECT,
+		.val = SFP_ENHOPTS_SOFT_RATE_SELECT,
+		.str = "soft_rs",
+	}, {
+		.mask = SFP_ENHOPTS_APP_SELECT_SFF8079,
+		.val = SFP_ENHOPTS_APP_SELECT_SFF8079,
+		.str = "app_sel",
+	}, {
+		.mask = SFP_ENHOPTS_SOFT_RATE_SFF8431,
+		.val = SFP_ENHOPTS_SOFT_RATE_SFF8431,
+		.str = "soft_r8431",
+	}, { }
+};
+
 /* Helpers */
 static void sfp_module_tx_disable(struct sfp *sfp)
 {
@@ -1686,6 +1795,110 @@ static int sfp_sm_mod_hpower(struct sfp *sfp, bool enable)
 	return 0;
 }
 
+static void sfp_print_module_info(struct sfp *sfp, const struct sfp_eeprom_id *id, bool cotsworks)
+{
+	unsigned int br_nom, br_min, br_max;
+	char date[9];
+	char options[80];
+
+	/* Cotsworks also gets the date code wrong. */
+	date[0] = id->ext.datecode[4 - 2 * cotsworks];
+	date[1] = id->ext.datecode[5 - 2 * cotsworks];
+	date[2] = '-';
+	date[3] = id->ext.datecode[2 + 2 * cotsworks];
+	date[4] = id->ext.datecode[3 + 2 * cotsworks];
+	date[5] = '-';
+	date[6] = id->ext.datecode[0];
+	date[7] = id->ext.datecode[1];
+	date[8] = '\0';
+
+	if (id->base.br_nominal == 0) {
+		br_min = br_nom = br_max = 0;
+	} else if (id->base.br_nominal == 255) {
+		br_nom = 250 * id->ext.br_max;
+		br_max = br_nom + br_nom * id->ext.br_min / 100;
+		br_min = br_nom - br_nom * id->ext.br_min / 100;
+	} else {
+		br_nom = id->base.br_nominal * 100;
+		br_min = br_nom - id->base.br_nominal * id->ext.br_min;
+		br_max = br_nom + id->base.br_nominal * id->ext.br_max;
+	}
+
+	dev_info(sfp->dev, "module %.*s %.*s rev %.*s sn %.*s dc %s\n",
+		 (int)sizeof(id->base.vendor_name), id->base.vendor_name,
+		 (int)sizeof(id->base.vendor_pn), id->base.vendor_pn,
+		 (int)sizeof(id->base.vendor_rev), id->base.vendor_rev,
+		 (int)sizeof(id->ext.vendor_sn), id->ext.vendor_sn, date);
+	dev_info(sfp->dev, "  %s connector, encoding %s, bitrate %u.%03u (%u.%03u-%u.%03u) Gbps\n",
+		 sff_connector(id->base.connector),
+		 sff_encoding(id->base.encoding),
+		 br_nom / 1000, br_nom % 1000,
+		 br_min / 1000, br_min % 1000, br_max / 1000, br_max % 1000);
+	dev_info(sfp->dev, "  1000BaseSX%c 1000BaseLX%c 1000BaseCX%c 1000BaseT%c 100BaseLX%c 100BaseFX%c BaseBX10%c BasePX%c\n",
+		 id->base.e1000_base_sx ? '+' : '-',
+		 id->base.e1000_base_lx ? '+' : '-',
+		 id->base.e1000_base_cx ? '+' : '-',
+		 id->base.e1000_base_t ? '+' : '-',
+		 id->base.e100_base_lx ? '+' : '-',
+		 id->base.e100_base_fx ? '+' : '-',
+		 id->base.e_base_bx10 ? '+' : '-',
+		 id->base.e_base_px ? '+' : '-');
+	dev_info(sfp->dev, "  10GBaseSR%c 10GBaseLR%c 10GBaseLRM%c 10GBaseER%c\n",
+		 id->base.e10g_base_sr ? '+' : '-',
+		 id->base.e10g_base_lr ? '+' : '-',
+		 id->base.e10g_base_lrm ? '+' : '-',
+		 id->base.e10g_base_er ? '+' : '-');
+
+	if (!id->base.sfp_ct_passive && !id->base.sfp_ct_active &&
+	    !id->base.e1000_base_t) {
+		char len_9um[16], len_om[16];
+
+		dev_info(sfp->dev, "  Wavelength %unm, fiber lengths:\n",
+			 be16_to_cpup(&id->base.optical_wavelength));
+
+		if (id->base.link_len[0] == 255)
+			strcpy(len_9um, ">254km");
+		else if (id->base.link_len[1] && id->base.link_len[1] != 255)
+			sprintf(len_9um, "%um",
+				id->base.link_len[1] * 100);
+		else if (id->base.link_len[0])
+			sprintf(len_9um, "%ukm", id->base.link_len[0]);
+		else if (id->base.link_len[1] == 255)
+			strcpy(len_9um, ">25.4km");
+		else
+			strcpy(len_9um, "unsupported");
+
+		dev_info(sfp->dev, "    9µm SM    : %s\n", len_9um);
+		dev_info(sfp->dev, " 62.5µm MM OM1: %s\n",
+			 sff_link_len(len_om, sizeof(len_om),
+				      id->base.link_len[3], 10));
+		dev_info(sfp->dev, "   50µm MM OM2: %s\n",
+			 sff_link_len(len_om, sizeof(len_om),
+				      id->base.link_len[2], 10));
+		dev_info(sfp->dev, "   50µm MM OM3: %s\n",
+			 sff_link_len(len_om, sizeof(len_om),
+				      id->base.link_len[5], 10));
+		dev_info(sfp->dev, "   50µm MM OM4: %s\n",
+			 sff_link_len(len_om, sizeof(len_om),
+				      id->base.link_len[4], 10));
+	} else {
+		char len[16];
+		dev_info(sfp->dev, "  Copper length: %s\n",
+			 sff_link_len(len, sizeof(len),
+				      id->base.link_len[4], 1));
+	}
+
+	dev_info(sfp->dev, "  Options: %s\n",
+		 sff_bitfield(options, sizeof(options), sfp_options,
+			      be16_to_cpu(id->ext.options)));
+	dev_info(sfp->dev, "  Diagnostics: %s\n",
+		 sff_bitfield(options, sizeof(options), diagmon,
+			      id->ext.diagmon));
+	dev_info(sfp->dev, "  EnhOpts: %s\n",
+		 sff_bitfield(options, sizeof(options), sfp_enhopts,
+			      id->ext.enhopts));
+}
+
 static int sfp_sm_mod_probe(struct sfp *sfp, bool report)
 {
 	/* SFP module inserted - read I2C data */
@@ -1706,9 +1919,9 @@ static int sfp_sm_mod_probe(struct sfp *sfp, bool report)
 		return -EAGAIN;
 	}
 
-	/* Cotsworks do not seem to update the checksums when they
-	 * do the final programming with the final module part number,
-	 * serial number and date code.
+	/* Cotsworks do not seem to update the checksums when they update the
+	 * module part number, serial number and date code. They also format
+	 * the date code incorrectly.
 	 */
 	cotsworks = !memcmp(id.base.vendor_name, "COTSWORKS       ", 16);
 
@@ -1745,14 +1958,9 @@ static int sfp_sm_mod_probe(struct sfp *sfp, bool report)
 		}
 	}
 
-	sfp->id = id;
+	sfp_print_module_info(sfp, &id, cotsworks);
 
-	dev_info(sfp->dev, "module %.*s %.*s rev %.*s sn %.*s dc %.*s\n",
-		 (int)sizeof(id.base.vendor_name), id.base.vendor_name,
-		 (int)sizeof(id.base.vendor_pn), id.base.vendor_pn,
-		 (int)sizeof(id.base.vendor_rev), id.base.vendor_rev,
-		 (int)sizeof(id.ext.vendor_sn), id.ext.vendor_sn,
-		 (int)sizeof(id.ext.datecode), id.ext.datecode);
+	sfp->id = id;
 
 	/* Check whether we support this module */
 	if (!sfp->type->module_supported(&id)) {
