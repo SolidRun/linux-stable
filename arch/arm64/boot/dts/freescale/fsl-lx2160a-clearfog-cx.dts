@@ -12,4 +12,55 @@
 	model = "SolidRun LX2160A Clearfog CX";
 	compatible = "solidrun,clearfog-cx",
 		"solidrun,lx2160a-cex7", "fsl,lx2160a";
+
+	qsfp: qsfp-0 {
+		compatible = "sff,qsfp28";
+		i2c-bus = <&i2c2>;
+		mod-prs-gpio = <&gpio2 5 GPIO_ACTIVE_LOW>;
+		maximum-power-milliwatt = <3500>;
+	};
+};
+
+&dpmac3 {
+	fixed-link {
+		speed = <10000>;
+		full-duplex;
+	};
+};
+
+&dpmac4 {
+	fixed-link {
+		speed = <10000>;
+		full-duplex;
+	};
+};
+
+&dpmac5 {
+	fixed-link {
+		speed = <10000>;
+		full-duplex;
+	};
+};
+
+&dpmac6 {
+	fixed-link {
+		speed = <10000>;
+		full-duplex;
+	};
+};
+
+&pcs_mdio3 {
+	status = "okay";
+};
+
+&pcs_mdio4 {
+	status = "okay";
+};
+
+&pcs_mdio5 {
+	status = "okay";
+};
+
+&pcs_mdio6 {
+	status = "okay";
 };
