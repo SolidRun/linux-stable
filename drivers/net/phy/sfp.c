@@ -290,6 +290,7 @@ static const struct sff_data sfp_data = {
 static const struct of_device_id sfp_of_match[] = {
 	{ .compatible = "sff,sff", .data = &sff_data, },
 	{ .compatible = "sff,sfp", .data = &sfp_data, },
+	{ .compatible = "sff,sfp+", .data = &sfp_data, },
 	{ },
 };
 MODULE_DEVICE_TABLE(of, sfp_of_match);
