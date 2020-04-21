@@ -2146,6 +2146,15 @@ static int marvell_probe(struct phy_device *phydev)
 
 	phydev->priv = priv;
 
+	__set_bit(PHY_INTERFACE_MODE_GMII, phydev->supported_interfaces);
+	__set_bit(PHY_INTERFACE_MODE_SGMII, phydev->supported_interfaces);
+	__set_bit(PHY_INTERFACE_MODE_TBI, phydev->supported_interfaces);
+	__set_bit(PHY_INTERFACE_MODE_RGMII, phydev->supported_interfaces);
+	__set_bit(PHY_INTERFACE_MODE_RGMII_ID, phydev->supported_interfaces);
+	__set_bit(PHY_INTERFACE_MODE_RGMII_RXID, phydev->supported_interfaces);
+	__set_bit(PHY_INTERFACE_MODE_RGMII_TXID, phydev->supported_interfaces);
+	__set_bit(PHY_INTERFACE_MODE_RTBI, phydev->supported_interfaces);
+
 	return 0;
 }
 
