@@ -619,9 +619,12 @@ static void phylink_resolve(struct work_struct *w)
 	if (mac_config) {
 		if (link_state.interface == pl->link_config.interface) {
 			/* The interface remains unchanged, only the speed,
-			 * duplex or pause settings have changed.
+			 * duplex or pause settings have changed. If we have
+			 * PCS ops, then we're programming the MAC using the
+			 * mac_link_up() parameters rather than mac_config().
 			 */
-			phylink_mac_config(pl, &link_state);
+			if (!pl->pcs_ops)
+				phylink_mac_config(pl, &link_state);
 		} else if (cur_link_state) {
 			/* The interface has changed, but the link is up.
 			 * Force it down and retrigger resolution.
