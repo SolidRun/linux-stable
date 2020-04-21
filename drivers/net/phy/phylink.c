@@ -572,6 +572,7 @@ static void phylink_resolve(struct work_struct *w)
 	struct phylink_link_state link_state;
 	struct net_device *ndev = pl->netdev;
 	bool cur_link_state;
+	bool retrigger = false;
 
 	mutex_lock(&pl->state_mutex);
 	if (pl->netdev)
@@ -583,7 +584,9 @@ static void phylink_resolve(struct work_struct *w)
 		pl->mac_link_dropped = false;
 		link_state.link = false;
 	} else if (pl->mac_link_dropped) {
+		pl->mac_link_dropped = false;
 		link_state.link = false;
+		retrigger = true;
 	} else {
 		switch (pl->cur_link_an_mode) {
 		case MLO_AN_PHY:
@@ -628,10 +631,8 @@ static void phylink_resolve(struct work_struct *w)
 		else
 			phylink_link_up(pl, link_state);
 	}
-	if (!link_state.link && pl->mac_link_dropped) {
-		pl->mac_link_dropped = false;
+	if (retrigger)
 		queue_work(system_power_efficient_wq, &pl->resolve);
-	}
 	mutex_unlock(&pl->state_mutex);
 }
 
