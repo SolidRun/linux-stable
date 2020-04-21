@@ -13,7 +13,8 @@
 struct sfp_quirk {
 	const char *vendor;
 	const char *part;
-	void (*modes)(const struct sfp_eeprom_id *id, unsigned long *modes);
+	void (*modes)(const struct sfp_eeprom_id *id, unsigned long *modes,
+		      unsigned long *interfaces);
 };
 
 /**
@@ -39,9 +40,10 @@ struct sfp_bus {
 };
 
 static void sfp_quirk_2500basex(const struct sfp_eeprom_id *id,
-				unsigned long *modes)
+				unsigned long *modes, unsigned long *interfaces)
 {
 	phylink_set(modes, 2500baseX_Full);
+	__set_bit(PHY_INTERFACE_MODE_2500BASEX, interfaces);
 }
 
 static const struct sfp_quirk sfp_quirks[] = {
@@ -211,12 +213,14 @@ EXPORT_SYMBOL_GPL(sfp_may_have_phy);
  * @bus: a pointer to the &struct sfp_bus structure for the sfp module
  * @id: a pointer to the module's &struct sfp_eeprom_id
  * @support: pointer to an array of unsigned long for the ethtool support mask
+ * @interfaces: pointer to an array of unsigned long for phy interface modes
+ *		mask
  *
  * Parse the EEPROM identification information and derive the supported
  * ethtool link modes for the module.
  */
 void sfp_parse_support(struct sfp_bus *bus, const struct sfp_eeprom_id *id,
-		       unsigned long *support)
+		       unsigned long *support, unsigned long *interfaces)
 {
 	unsigned int br_min, br_nom, br_max;
 	__ETHTOOL_DECLARE_LINK_MODE_MASK(modes) = { 0, };
@@ -243,48 +247,71 @@ void sfp_parse_support(struct sfp_bus *bus, const struct sfp_eeprom_id *id,
 	}
 
 	/* Set ethtool support from the compliance fields. */
-	if (id->base.e10g_base_sr)
+	if (id->base.e10g_base_sr) {
 		phylink_set(modes, 10000baseSR_Full);
-	if (id->base.e10g_base_lr)
+		__set_bit(PHY_INTERFACE_MODE_10GBASER, interfaces);
+	}
+	if (id->base.e10g_base_lr) {
 		phylink_set(modes, 10000baseLR_Full);
-	if (id->base.e10g_base_lrm)
+		__set_bit(PHY_INTERFACE_MODE_10GBASER, interfaces);
+	}
+	if (id->base.e10g_base_lrm) {
 		phylink_set(modes, 10000baseLRM_Full);
-	if (id->base.e10g_base_er)
+		__set_bit(PHY_INTERFACE_MODE_10GBASER, interfaces);
+	}
+	if (id->base.e10g_base_er) {
 		phylink_set(modes, 10000baseER_Full);
+		__set_bit(PHY_INTERFACE_MODE_10GBASER, interfaces);
+	}
 	if (id->base.e1000_base_sx ||
 	    id->base.e1000_base_lx ||
-	    id->base.e1000_base_cx)
+	    id->base.e1000_base_cx) {
 		phylink_set(modes, 1000baseX_Full);
+		__set_bit(PHY_INTERFACE_MODE_1000BASEX, interfaces);
+	}
 	if (id->base.e1000_base_t) {
 		phylink_set(modes, 1000baseT_Half);
 		phylink_set(modes, 1000baseT_Full);
+		__set_bit(PHY_INTERFACE_MODE_1000BASEX, interfaces);
+		__set_bit(PHY_INTERFACE_MODE_SGMII, interfaces);
 	}
 
 	/* 1000Base-PX or 1000Base-BX10 */
 	if ((id->base.e_base_px || id->base.e_base_bx10) &&
-	    br_min <= 1300 && br_max >= 1200)
+	    br_min <= 1300 && br_max >= 1200) {
 		phylink_set(modes, 1000baseX_Full);
+		__set_bit(PHY_INTERFACE_MODE_1000BASEX, interfaces);
+	}
 
 	/* For active or passive cables, select the link modes
 	 * based on the bit rates and the cable compliance bytes.
 	 */
 	if ((id->base.sfp_ct_passive || id->base.sfp_ct_active) && br_nom) {
 		/* This may look odd, but some manufacturers use 12000MBd */
-		if (br_min <= 12000 && br_max >= 10300)
+		if (br_min <= 12000 && br_max >= 10300) {
 			phylink_set(modes, 10000baseCR_Full);
-		if (br_min <= 3200 && br_max >= 3100)
+			__set_bit(PHY_INTERFACE_MODE_10GBASER, interfaces);
+		}
+		if (br_min <= 3200 && br_max >= 3100) {
 			phylink_set(modes, 2500baseX_Full);
-		if (br_min <= 1300 && br_max >= 1200)
+			__set_bit(PHY_INTERFACE_MODE_2500BASEX, interfaces);
+		}
+		if (br_min <= 1300 && br_max >= 1200) {
 			phylink_set(modes, 1000baseX_Full);
+			__set_bit(PHY_INTERFACE_MODE_1000BASEX, interfaces);
+		}
 	}
 	if (id->base.sfp_ct_passive) {
-		if (id->base.passive.sff8431_app_e)
+		if (id->base.passive.sff8431_app_e) {
 			phylink_set(modes, 10000baseCR_Full);
+			__set_bit(PHY_INTERFACE_MODE_10GBASER, interfaces);
+		}
 	}
 	if (id->base.sfp_ct_active) {
 		if (id->base.active.sff8431_app_e ||
 		    id->base.active.sff8431_lim) {
 			phylink_set(modes, 10000baseCR_Full);
+			__set_bit(PHY_INTERFACE_MODE_10GBASER, interfaces);
 		}
 	}
 
@@ -309,12 +336,14 @@ void sfp_parse_support(struct sfp_bus *bus, const struct sfp_eeprom_id *id,
 	case SFF8024_ECC_10GBASE_T_SFI:
 	case SFF8024_ECC_10GBASE_T_SR:
 		phylink_set(modes, 10000baseT_Full);
+		__set_bit(PHY_INTERFACE_MODE_10GBASER, interfaces);
 		break;
 	case SFF8024_ECC_5GBASE_T:
 		phylink_set(modes, 5000baseT_Full);
 		break;
 	case SFF8024_ECC_2_5GBASE_T:
 		phylink_set(modes, 2500baseT_Full);
+		__set_bit(PHY_INTERFACE_MODE_2500BASEX, interfaces);
 		break;
 	default:
 		dev_warn(bus->sfp_dev,
@@ -327,10 +356,14 @@ void sfp_parse_support(struct sfp_bus *bus, const struct sfp_eeprom_id *id,
 	if (id->base.fc_speed_100 ||
 	    id->base.fc_speed_200 ||
 	    id->base.fc_speed_400) {
-		if (id->base.br_nominal >= 31)
+		if (id->base.br_nominal >= 31) {
 			phylink_set(modes, 2500baseX_Full);
-		if (id->base.br_nominal >= 12)
+			__set_bit(PHY_INTERFACE_MODE_2500BASEX, interfaces);
+		}
+		if (id->base.br_nominal >= 12) {
 			phylink_set(modes, 1000baseX_Full);
+			__set_bit(PHY_INTERFACE_MODE_1000BASEX, interfaces);
+		}
 	}
 
 	/* If we haven't discovered any modes that this module supports, try
@@ -341,12 +374,14 @@ void sfp_parse_support(struct sfp_bus *bus, const struct sfp_eeprom_id *id,
 	if (bitmap_empty(modes, __ETHTOOL_LINK_MODE_MASK_NBITS)) {
 		/* If the encoding and bit rate allows 1000baseX */
 		if (id->base.encoding == SFF8024_ENCODING_8B10B && br_nom &&
-		    br_min <= 1300 && br_max >= 1200)
+		    br_min <= 1300 && br_max >= 1200) {
 			phylink_set(modes, 1000baseX_Full);
+			__set_bit(PHY_INTERFACE_MODE_1000BASEX, interfaces);
+		}
 	}
 
 	if (bus->sfp_quirk)
-		bus->sfp_quirk->modes(id, modes);
+		bus->sfp_quirk->modes(id, modes, interfaces);
 
 	bitmap_or(support, support, modes, __ETHTOOL_LINK_MODE_MASK_NBITS);
 

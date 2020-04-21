@@ -1939,11 +1939,12 @@ static int phylink_sfp_module_insert(void *upstream,
 {
 	struct phylink *pl = upstream;
 	unsigned long *support = pl->sfp_support;
+	DECLARE_PHY_INTERFACE_MASK(sfp_interfaces);
 
 	ASSERT_RTNL();
 
 	linkmode_zero(support);
-	sfp_parse_support(pl->sfp_bus, id, support);
+	sfp_parse_support(pl->sfp_bus, id, support, sfp_interfaces);
 	pl->sfp_port = sfp_parse_port(pl->sfp_bus, id, support);
 
 	/* If this module may have a PHY connecting later, defer until later */
