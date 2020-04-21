@@ -47,8 +47,7 @@ obj-$(CONFIG_MDIO_XGENE)	+= mdio-xgene.o
 obj-$(CONFIG_NETWORK_PHY_TIMESTAMPING) += mii_timestamper.o
 
 obj-$(CONFIG_SFP)		+= sff.o sfp.o
-sfp-obj-$(CONFIG_SFP)		+= sfp-bus.o
-obj-y				+= $(sfp-obj-y) $(sfp-obj-m)
+obj-$(CONFIG_SFP_BUS)		+= sfp-bus.o
 
 obj-$(CONFIG_ADIN_PHY)		+= adin.o
 obj-$(CONFIG_AMD_PHY)		+= amd.o
