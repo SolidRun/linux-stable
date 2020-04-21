@@ -2419,6 +2419,12 @@ void phy_get_pause(struct phy_device *phydev, bool *tx_pause, bool *rx_pause)
 		return;
 	}
 
+	if (phydev->resolved_pause_valid) {
+		*tx_pause = phydev->resolved_tx_pause;
+		*rx_pause = phydev->resolved_rx_pause;
+		return;
+	}
+
 	return linkmode_resolve_pause(phydev->advertising,
 				      phydev->lp_advertising,
 				      tx_pause, rx_pause);
