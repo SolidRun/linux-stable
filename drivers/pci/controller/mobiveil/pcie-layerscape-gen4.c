@@ -24,8 +24,6 @@
 
 #include "pcie-mobiveil.h"
 
-#define REV_1_0				(0x10)
-
 /* LUT and PF control registers */
 #define PCIE_LUT_OFF			0x80000
 #define PCIE_LUT_GCR			0x28
@@ -99,10 +97,7 @@ static int ls_pcie_g4_host_init(struct mobiveil_pcie *pci)
 {
 	struct ls_pcie_g4 *pcie = to_ls_pcie_g4(pci);
 
-	pcie->rev = mobiveil_csr_readb(pci, PCI_REVISION_ID);
-
-	if (pcie->rev == REV_1_0)
-		workaround_A011451(pcie);
+	workaround_A011451(pcie);
 
 	return 0;
 }
@@ -245,15 +240,13 @@ static int ls_pcie_g4_read_other_conf(struct pci_bus *bus, unsigned int devfn,
 	struct ls_pcie_g4 *pcie = to_ls_pcie_g4(pci);
 	int ret;
 
-	if (pcie->rev == REV_1_0)
-		ls_pcie_g4_lut_writel(pcie, PCIE_LUT_GCR,
-				      0 << PCIE_LUT_GCR_RRE);
+	ls_pcie_g4_lut_writel(pcie, PCIE_LUT_GCR,
+			      0 << PCIE_LUT_GCR_RRE);
 
 	ret = pci_generic_config_read(bus, devfn, where, size, val);
 
-	if (pcie->rev == REV_1_0)
-		ls_pcie_g4_lut_writel(pcie, PCIE_LUT_GCR,
-				      1 << PCIE_LUT_GCR_RRE);
+	ls_pcie_g4_lut_writel(pcie, PCIE_LUT_GCR,
+			      1 << PCIE_LUT_GCR_RRE);
 
 	return ret;
 }
@@ -338,31 +331,30 @@ static int ls_g4_acpi_pcie_rd_conf(struct pci_bus *bus, u32 devfn,
 	struct ls_pcie_g4 *pcie = (struct ls_pcie_g4 *)(cfg->priv);
 	int ret;
 
-	if (pcie->rev == REV_1_0 && where == PCI_VENDOR_ID)
-		ls_pcie_g4_lut_writel(pcie, PCIE_LUT_GCR,
-				      0 << PCIE_LUT_GCR_RRE);
+	ls_pcie_g4_lut_writel(pcie, PCIE_LUT_GCR,
+			      0 << PCIE_LUT_GCR_RRE);
 
 	ret = pci_generic_config_read(bus, devfn, where, size, val);
 
-	if (pcie->rev == REV_1_0 && where == PCI_VENDOR_ID)
-		ls_pcie_g4_lut_writel(pcie, PCIE_LUT_GCR,
-				      1 << PCIE_LUT_GCR_RRE);
+	ls_pcie_g4_lut_writel(pcie, PCIE_LUT_GCR,
+			      1 << PCIE_LUT_GCR_RRE);
 	return ret;
 }
 
 static int ls_g4_bringup_link(struct ls_pcie_g4 *pcie)
 {
+	struct mobiveil_pcie *mv_pci = &pcie->pci;
 	int retries;
 
 	/* check if the link is up or not */
 	for (retries = 0; retries < LINK_WAIT_MAX_RETRIES; retries++) {
-		if (ls_pcie_g4_link_up(pcie->pci))
+		if (ls_pcie_g4_link_up(mv_pci))
 			return 0;
 
 		usleep_range(LINK_WAIT_MIN, LINK_WAIT_MAX);
 	}
 
-	dev_info(&pcie->pci->pdev->dev, "link never came up\n");
+	dev_info(&mv_pci->pdev->dev, "link never came up\n");
 
 	return -ETIMEDOUT;
 }
@@ -375,21 +367,22 @@ static bool ls_g4_pcie_valid_device(struct pci_bus *bus, unsigned int devfn)
 {
 	struct pci_config_window *cfg = bus->sysdata;
 	struct ls_pcie_g4 *pcie = (struct ls_pcie_g4 *)(cfg->priv);
+	struct mobiveil_pcie *mv_pci = &pcie->pci;
 
 	/* If there is no link, then there is no device */
-	if (bus->number > pcie->pci->rp.root_bus_nr &&
-		 !ls_pcie_g4_link_up(pcie->pci))
+	if (bus->number > mv_pci->rp.root_bus_nr &&
+		 !ls_pcie_g4_link_up(mv_pci))
 		return false;
 
 	/* Only one device down on each root port */
-	if ((bus->number == pcie->pci->rp.root_bus_nr) && (devfn > 0))
+	if ((bus->number == mv_pci->rp.root_bus_nr) && (devfn > 0))
 		return false;
 
 	/*
 	 * Do not read more than one device on the bus directly
 	 * attached to RC
 	 */
-	if ((bus->primary == pcie->pci->rp.root_bus_nr) &&
+	if ((bus->primary == mv_pci->rp.root_bus_nr) &&
 		 (PCI_SLOT(devfn) > 0))
 		return false;
 
@@ -408,13 +401,14 @@ static void __iomem *ls_g4_acpi_pcie_map_bus(struct pci_bus *bus,
 {
 	struct pci_config_window *cfg = bus->sysdata;
 	struct ls_pcie_g4 *pcie = (struct ls_pcie_g4 *)(cfg->priv);
+	struct mobiveil_pcie *mv_pci = &pcie->pci;
 	u32 value;
 
 	if (!ls_g4_pcie_valid_device(bus, devfn))
 		return NULL;
 
-	if (bus->number == pcie->pci->rp.root_bus_nr)
-		return pcie->pci->csr_axi_slave_base + where;
+	if (bus->number == mv_pci->rp.root_bus_nr)
+		return mv_pci->csr_axi_slave_base + where;
 
 	/*
 	 * EP config access (in Config/APIO space)
@@ -426,8 +420,8 @@ static void __iomem *ls_g4_acpi_pcie_map_bus(struct pci_bus *bus,
 		PCI_SLOT(devfn) << PAB_DEVICE_SHIFT |
 		PCI_FUNC(devfn) << PAB_FUNCTION_SHIFT;
 
-	csr_writel(pcie->pci, value, PAB_AXI_AMAP_PEX_WIN_L(WIN_NUM_0));
-	return pcie->pci->rp.config_axi_slave_base + where;
+	mobiveil_csr_writel(mv_pci, value, PAB_AXI_AMAP_PEX_WIN_L(WIN_NUM_0));
+	return mv_pci->rp.config_axi_slave_base + where;
 }
 
 /*
@@ -485,12 +479,12 @@ static int ls_g4_acpi_pcie_init(struct pci_config_window *cfg)
 	mv_pci->pdev = pdev;
 	mv_pci->rp.config_axi_slave_base = cfg->win;
 	mv_pci->rp.root_bus_nr = cfg->busr.start;
-	pcie->pci = mv_pci;
+	pcie->pci = *mv_pci;
 
 	platform_set_drvdata(pdev, pcie);
 
 	/* Perform host specific initialization */
-	ls_pcie_g4_host_init(pcie->pci);
+	ls_pcie_g4_host_init(&pcie->pci);
 
 	/* Bringup Link */
 	ret = ls_g4_bringup_link(pcie);
