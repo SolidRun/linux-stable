@@ -339,6 +339,7 @@ struct mdio_device *of_mdio_find_device(struct device_node *np)
 
 	return to_mdio_device(d);
 }
+EXPORT_SYMBOL(of_mdio_find_device);
 
 /**
  * of_phy_find_device - Give a PHY node, find the phy_device
