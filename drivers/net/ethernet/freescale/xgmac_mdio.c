@@ -414,7 +414,8 @@ static const struct of_device_id xgmac_mdio_of_match[] = {
 MODULE_DEVICE_TABLE(of, xgmac_mdio_of_match);
 
 static const struct acpi_device_id xgmac_mdio_acpi_match[] = {
-	{"NXP0006", 0}
+	{"NXP0006", 0},
+	{"", 0}
 };
 MODULE_DEVICE_TABLE(acpi, xgmac_mdio_acpi_match);
 
