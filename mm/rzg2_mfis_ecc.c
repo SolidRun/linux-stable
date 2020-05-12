@@ -436,6 +436,7 @@ static int mfis_ecc_remove(struct platform_device *pdev)
 static const struct of_device_id mfis_ecc_of_table[] = {
 	{ .compatible = "renesas,mfis-ecc-r8a774c0" },
 	{ .compatible = "renesas,mfis-ecc-r8a774b1" },
+	{ .compatible = "renesas,mfis-ecc-r8a774e1" },
 	{ }
 };
 
