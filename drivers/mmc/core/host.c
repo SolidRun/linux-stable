@@ -341,20 +341,29 @@ EXPORT_SYMBOL(mmc_of_parse);
  * found, negative errno if the voltage-range specification is invalid,
  * or one if the voltage-range is specified and successfully parsed.
  */
-int mmc_of_parse_voltage(struct device_node *np, u32 *mask)
+int mmc_of_parse_voltage(struct device *dev, u32 *mask)
 {
-	const u32 *voltage_ranges;
+	u32 *voltage_ranges;
 	int num_ranges, i;
 
-	voltage_ranges = of_get_property(np, "voltage-ranges", &num_ranges);
-	if (!voltage_ranges) {
-		pr_debug("%pOF: voltage-ranges unspecified\n", np);
-		return 0;
-	}
-	num_ranges = num_ranges / sizeof(*voltage_ranges) / 2;
+	num_ranges = device_property_read_u32_array(dev,
+						    "voltage-ranges", NULL, 0);
+
 	if (!num_ranges) {
-		pr_err("%pOF: voltage-ranges empty\n", np);
+		pr_err("voltage-ranges empty\n");
 		return -EINVAL;
+	}
+
+	voltage_ranges = kcalloc(num_ranges, sizeof(u32), GFP_KERNEL);
+	if (!voltage_ranges)
+		return -ENOMEM;
+
+	device_property_read_u32_array(dev, "voltage-ranges",
+				       voltage_ranges, num_ranges);
+
+	if (!voltage_ranges) {
+		pr_debug("voltage-ranges unspecified\n");
+		return 0;
 	}
 
 	for (i = 0; i < num_ranges; i++) {
@@ -365,8 +374,7 @@ int mmc_of_parse_voltage(struct device_node *np, u32 *mask)
 				be32_to_cpu(voltage_ranges[j]),
 				be32_to_cpu(voltage_ranges[j + 1]));
 		if (!ocr_mask) {
-			pr_err("%pOF: voltage-range #%d is invalid\n",
-				np, i);
+			pr_err("voltage-range #%d is invalid\n", i);
 			return -EINVAL;
 		}
 		*mask |= ocr_mask;

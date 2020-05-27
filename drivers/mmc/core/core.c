@@ -6,6 +6,8 @@
  *  SD support Copyright (C) 2004 Ian Molton, All Rights Reserved.
  *  Copyright (C) 2005-2008 Pierre Ossman, All Rights Reserved.
  *  MMCv4 support Copyright (C) 2006 Philip Langdale, All Rights Reserved.
+ *  Copyright 2020 NXP
+ *
  */
 #include <linux/module.h>
 #include <linux/init.h>

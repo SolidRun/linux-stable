@@ -65,7 +65,7 @@ struct mmc_spi_platform_data *mmc_spi_get_pdata(struct spi_device *spi)
 	if (!oms)
 		return NULL;
 
-	if (mmc_of_parse_voltage(np, &oms->pdata.ocr_mask) <= 0)
+	if (mmc_of_parse_voltage(dev, &oms->pdata.ocr_mask) <= 0)
 		goto err_ocr;
 
 	oms->detect_irq = irq_of_parse_and_map(np, 0);
