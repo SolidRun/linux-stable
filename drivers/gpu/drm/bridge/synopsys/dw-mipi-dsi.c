@@ -119,60 +119,6 @@
 #define DSI_TO_CNT_CFG_V101		0x40
 #define DSI_PCKHDL_CFG_V101		0x18
 
-#define MAX_RD_PKT_SIZE_LP		BIT(24)
-#define DCS_LW_TX_LP			BIT(19)
-#define DCS_SR_0P_TX_LP			BIT(18)
-#define DCS_SW_1P_TX_LP			BIT(17)
-#define DCS_SW_0P_TX_LP			BIT(16)
-#define GEN_LW_TX_LP			BIT(14)
-#define GEN_SR_2P_TX_LP			BIT(13)
-#define GEN_SR_1P_TX_LP			BIT(12)
-#define GEN_SR_0P_TX_LP			BIT(11)
-#define GEN_SW_2P_TX_LP			BIT(10)
-#define GEN_SW_1P_TX_LP			BIT(9)
-#define GEN_SW_0P_TX_LP			BIT(8)
-#define TEAR_FX_EN			BIT(0)
-
-#define CMD_MODE_ALL_LP			(MAX_RD_PKT_SIZE_LP | \
-					 DCS_LW_TX_LP | \
-					 DCS_SR_0P_TX_LP | \
-					 DCS_SW_1P_TX_LP | \
-					 DCS_SW_0P_TX_LP | \
-					 GEN_LW_TX_LP | \
-					 GEN_SR_2P_TX_LP | \
-					 GEN_SR_1P_TX_LP | \
-					 GEN_SR_0P_TX_LP | \
-					 GEN_SW_2P_TX_LP | \
-					 GEN_SW_1P_TX_LP | \
-					 GEN_SW_0P_TX_LP)
-
-#define EN_TEAR_FX_V101			BIT(14)
-#define DCS_LW_TX_LP_V101		BIT(12)
-#define GEN_LW_TX_LP_V101		BIT(11)
-#define MAX_RD_PKT_SIZE_LP_V101		BIT(10)
-#define DCS_SW_2P_TX_LP_V101		BIT(9)
-#define DCS_SW_1P_TX_LP_V101		BIT(8)
-#define DCS_SW_0P_TX_LP_V101		BIT(7)
-#define GEN_SR_2P_TX_LP_V101		BIT(6)
-#define GEN_SR_1P_TX_LP_V101		BIT(5)
-#define GEN_SR_0P_TX_LP_V101		BIT(4)
-#define GEN_SW_2P_TX_LP_V101		BIT(3)
-#define GEN_SW_1P_TX_LP_V101		BIT(2)
-#define GEN_SW_0P_TX_LP_V101		BIT(1)
-
-#define CMD_MODE_ALL_LP_V101		(DCS_LW_TX_LP_V101 | \
-					 GEN_LW_TX_LP_V101 | \
-					 MAX_RD_PKT_SIZE_LP_V101 | \
-					 DCS_SW_2P_TX_LP_V101 | \
-					 DCS_SW_1P_TX_LP_V101 | \
-					 DCS_SW_0P_TX_LP_V101 | \
-					 GEN_SR_2P_TX_LP_V101 | \
-					 GEN_SR_1P_TX_LP_V101 | \
-					 GEN_SR_0P_TX_LP_V101 | \
-					 GEN_SW_2P_TX_LP_V101 | \
-					 GEN_SW_1P_TX_LP_V101 | \
-					 GEN_SW_0P_TX_LP_V101)
-
 #define DSI_GEN_HDR			0x6c
 #define DSI_GEN_PLD_DATA		0x70
 
@@ -275,7 +221,11 @@ struct dw_mipi_dsi {
 	struct regmap_field	*field_dpi_vsync_active_low;
 	struct regmap_field	*field_dpi_hsync_active_low;
 	struct regmap_field	*field_cmd_mode_ack_rqst_en;
-	struct regmap_field	*field_cmd_mode_all_lp_en;
+	struct regmap_field	*field_cmd_mode_gen_sw_sr_en;
+	struct regmap_field	*field_cmd_mode_dcs_sw_sr_en;
+	struct regmap_field	*field_cmd_mode_gen_lw_en;
+	struct regmap_field	*field_cmd_mode_dcs_lw_en;
+	struct regmap_field	*field_cmd_mode_max_rd_pkt_size;
 	struct regmap_field	*field_cmd_mode_en;
 	struct regmap_field	*field_cmd_pkt_status;
 	struct regmap_field	*field_vid_mode_en;
@@ -336,7 +286,11 @@ struct dw_mipi_dsi_variant {
 	struct reg_field	cfg_dpi_hsync_active_low;
 	struct reg_field	cfg_cmd_mode_en;
 	struct reg_field	cfg_cmd_mode_ack_rqst_en;
-	struct reg_field	cfg_cmd_mode_all_lp_en;
+	struct reg_field	cfg_cmd_mode_gen_sw_sr_en;
+	struct reg_field	cfg_cmd_mode_dcs_sw_sr_en;
+	struct reg_field	cfg_cmd_mode_gen_lw_en;
+	struct reg_field	cfg_cmd_mode_dcs_lw_en;
+	struct reg_field	cfg_cmd_mode_max_rd_pkt_size;
 	struct reg_field	cfg_cmd_pkt_status;
 	struct reg_field	cfg_vid_mode_en;
 	struct reg_field	cfg_vid_mode_type;
@@ -390,7 +344,11 @@ static const struct dw_mipi_dsi_variant dw_mipi_dsi_v130_v131_layout = {
 	.cfg_dpi_vsync_active_low =	REG_FIELD(DSI_DPI_CFG_POL, 1, 1),
 	.cfg_dpi_hsync_active_low =	REG_FIELD(DSI_DPI_CFG_POL, 2, 2),
 	.cfg_cmd_mode_ack_rqst_en =	REG_FIELD(DSI_CMD_MODE_CFG, 1, 1),
-	.cfg_cmd_mode_all_lp_en =	REG_FIELD(DSI_CMD_MODE_CFG, 8, 24),
+	.cfg_cmd_mode_gen_sw_sr_en =	REG_FIELD(DSI_CMD_MODE_CFG, 8, 13),
+	.cfg_cmd_mode_gen_lw_en =	REG_FIELD(DSI_CMD_MODE_CFG, 14, 14),
+	.cfg_cmd_mode_dcs_sw_sr_en =	REG_FIELD(DSI_CMD_MODE_CFG, 16, 18),
+	.cfg_cmd_mode_dcs_lw_en =	REG_FIELD(DSI_CMD_MODE_CFG, 19, 19),
+	.cfg_cmd_mode_max_rd_pkt_size =	REG_FIELD(DSI_CMD_MODE_CFG, 24, 24),
 	.cfg_cmd_mode_en =		REG_FIELD(DSI_MODE_CFG, 0, 31),
 	.cfg_cmd_pkt_status =		REG_FIELD(DSI_CMD_PKT_STATUS, 0, 31),
 	.cfg_vid_mode_en =		REG_FIELD(DSI_MODE_CFG, 0, 31),
@@ -445,7 +403,11 @@ static const struct dw_mipi_dsi_variant dw_mipi_dsi_v101_layout = {
 	.cfg_dpi_vsync_active_low =	REG_FIELD(DSI_DPI_CFG, 6, 6),
 	.cfg_dpi_hsync_active_low =	REG_FIELD(DSI_DPI_CFG, 7, 7),
 	.cfg_cmd_mode_en =		REG_FIELD(DSI_CMD_MODE_CFG_V101, 0, 0),
-	.cfg_cmd_mode_all_lp_en =	REG_FIELD(DSI_CMD_MODE_CFG_V101, 1, 12),
+	.cfg_cmd_mode_gen_sw_sr_en =	REG_FIELD(DSI_CMD_MODE_CFG, 1, 6),
+	.cfg_cmd_mode_dcs_sw_sr_en =	REG_FIELD(DSI_CMD_MODE_CFG, 7, 9),
+	.cfg_cmd_mode_max_rd_pkt_size =	REG_FIELD(DSI_CMD_MODE_CFG, 10, 10),
+	.cfg_cmd_mode_gen_lw_en =	REG_FIELD(DSI_CMD_MODE_CFG, 11, 11),
+	.cfg_cmd_mode_dcs_lw_en =	REG_FIELD(DSI_CMD_MODE_CFG, 12, 12),
 	.cfg_cmd_mode_ack_rqst_en =	REG_FIELD(DSI_CMD_MODE_CFG_V101, 13, 13),
 	.cfg_cmd_pkt_status =		REG_FIELD(DSI_CMD_PKT_STATUS_V101, 0, 14),
 	.cfg_vid_mode_en =		REG_FIELD(DSI_VID_MODE_CFG_V101, 0, 0),
@@ -597,17 +559,6 @@ static void dw_mipi_message_config(struct dw_mipi_dsi *dsi,
 				   const struct mipi_dsi_msg *msg)
 {
 	bool lpm = msg->flags & MIPI_DSI_MSG_USE_LPM;
-	u32 cmd_mode_lp = 0;
-
-	switch (dsi->hw_version) {
-	case HWVER_130:
-	case HWVER_131:
-		cmd_mode_lp = CMD_MODE_ALL_LP;
-		break;
-	case HWVER_101:
-		cmd_mode_lp = CMD_MODE_ALL_LP_V101;
-		break;
-	}
 
 	/*
 	 * TODO dw drv improvements
@@ -620,8 +571,14 @@ static void dw_mipi_message_config(struct dw_mipi_dsi *dsi,
 
 	if (msg->flags & MIPI_DSI_MSG_REQ_ACK)
 		regmap_field_write(dsi->field_cmd_mode_ack_rqst_en, 1);
-	if (lpm)
-		regmap_field_write(dsi->field_cmd_mode_all_lp_en, cmd_mode_lp);
+	if (lpm) {
+		regmap_field_write(dsi->field_cmd_mode_gen_sw_sr_en,
+				   ENABLE_LOW_POWER);
+		regmap_field_write(dsi->field_cmd_mode_dcs_sw_sr_en, 7);
+		regmap_field_write(dsi->field_cmd_mode_gen_lw_en, 1);
+		regmap_field_write(dsi->field_cmd_mode_dcs_lw_en, 1);
+		regmap_field_write(dsi->field_cmd_mode_max_rd_pkt_size, 1);
+	}
 
 	regmap_field_write(dsi->field_vid_mode_en_lp_cmd, lpm ? 1 : 0);
 }
@@ -1386,7 +1343,11 @@ static int dw_mipi_dsi_regmap_fields_init(struct dw_mipi_dsi *dsi)
 	INIT_FIELD(dpi_vsync_active_low);
 	INIT_FIELD(dpi_hsync_active_low);
 	INIT_FIELD(cmd_mode_ack_rqst_en);
-	INIT_FIELD(cmd_mode_all_lp_en);
+	INIT_FIELD(cmd_mode_gen_sw_sr_en);
+	INIT_FIELD(cmd_mode_dcs_sw_sr_en);
+	INIT_FIELD(cmd_mode_gen_lw_en);
+	INIT_FIELD(cmd_mode_dcs_lw_en);
+	INIT_FIELD(cmd_mode_max_rd_pkt_size);
 	INIT_FIELD(cmd_mode_en);
 	INIT_FIELD(cmd_pkt_status);
 	INIT_FIELD(vid_mode_en);
