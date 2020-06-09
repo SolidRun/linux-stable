@@ -492,18 +492,10 @@ static int dw_mipi_dsi_stm_probe(struct platform_device *pdev)
 		goto err_dsi_probe;
 	}
 
+	/* enable pclk so MMIO register values can be read, else reads == 0x0 */
 	ret = clk_prepare_enable(pclk);
 	if (ret) {
 		DRM_ERROR("%s: Failed to enable peripheral clk\n", __func__);
-		goto err_dsi_probe;
-	}
-
-	dsi->hw_version = dsi_read(dsi, DSI_VERSION) & VERSION;
-	clk_disable_unprepare(pclk);
-
-	if (dsi->hw_version != HWVER_130 && dsi->hw_version != HWVER_131) {
-		ret = -ENODEV;
-		DRM_ERROR("bad dsi hardware version\n");
 		goto err_dsi_probe;
 	}
 
@@ -520,12 +512,18 @@ static int dw_mipi_dsi_stm_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, dsi);
 
+	/* setup the bridge, this will also access MMIO registers via regmap */
 	dsi->dsi = dw_mipi_dsi_probe(pdev, &dw_mipi_dsi_stm_plat_data);
 	if (IS_ERR(dsi->dsi)) {
 		ret = PTR_ERR(dsi->dsi);
 		dev_err_probe(dev, ret, "Failed to initialize mipi dsi host\n");
 		goto err_dsi_probe;
 	}
+
+	dsi->hw_version = dsi_read(dsi, DSI_VERSION) & VERSION;
+
+	/* initial MMIO config done, disable clk to save power */
+	clk_disable_unprepare(pclk);
 
 	return 0;
 
