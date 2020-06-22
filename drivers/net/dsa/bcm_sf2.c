@@ -512,6 +512,7 @@ static void bcm_sf2_sw_validate(struct dsa_switch *ds, int port,
 	struct bcm_sf2_priv *priv = bcm_sf2_to_priv(ds);
 	__ETHTOOL_DECLARE_LINK_MODE_MASK(mask) = { 0, };
 
+	/* FIXME: Are RGMII_RXID and RGMII_ID actually supported? */
 	if (!phy_interface_mode_is_rgmii(state->interface) &&
 	    state->interface != PHY_INTERFACE_MODE_MII &&
 	    state->interface != PHY_INTERFACE_MODE_REVMII &&
@@ -529,8 +530,13 @@ static void bcm_sf2_sw_validate(struct dsa_switch *ds, int port,
 	/* Allow all the expected bits */
 	phylink_set(mask, Autoneg);
 	phylink_set_port_modes(mask);
-	phylink_set(mask, Pause);
-	phylink_set(mask, Asym_Pause);
+	if (state->interface == PHY_INTERFACE_MODE_RGMII ||
+	    state->interface == PHY_INTERFACE_MODE_RGMII_TXID ||
+	    state->interface == PHY_INTERFACE_MODE_MII ||
+	    state->interface == PHY_INTERFACE_MODE_REVMII) {
+		phylink_set(mask, Pause);
+		phylink_set(mask, Asym_Pause);
+	}
 
 	/* With the exclusion of MII and Reverse MII, we support Gigabit,
 	 * including Half duplex
@@ -564,6 +570,7 @@ static void bcm_sf2_sw_mac_config(struct dsa_switch *ds, int port,
 		return;
 
 	switch (state->interface) {
+	/* FIXME: Are RGMII_RXID and RGMII_ID actually supported? */
 	case PHY_INTERFACE_MODE_RGMII:
 		id_mode_dis = 1;
 		/* fallthrough */
@@ -655,6 +662,7 @@ static void bcm_sf2_sw_mac_link_up(struct dsa_switch *ds, int port,
 		else
 			offset = CORE_STS_OVERRIDE_GMIIP2_PORT(port);
 
+		/* FIXME: Are RGMII_RXID and RGMII_ID actually supported? */
 		if (interface == PHY_INTERFACE_MODE_RGMII ||
 		    interface == PHY_INTERFACE_MODE_RGMII_TXID ||
 		    interface == PHY_INTERFACE_MODE_MII ||
