@@ -381,6 +381,11 @@
 		groups = "pwm6_a";
 		function = "pwm6";
 	};
+
+	tpu0_pins: tpu {
+		groups = "tpu0_to0", "tpu0_to1";
+		function = "tpu0";
+	};
 };
 
 &rcar_sound {
@@ -522,5 +527,12 @@
 };
 
 &vspi0 {
+	status = "okay";
+};
+
+&tpu{
+	pinctrl-0 = <&tpu0_pins>;
+	pinctrl-names = "default";
+
 	status = "okay";
 };
