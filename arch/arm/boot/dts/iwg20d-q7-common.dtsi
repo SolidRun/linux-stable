@@ -179,6 +179,13 @@
 };
 
 &gpio2 {
+	can0-trx-en-gpio {
+		gpio-hog;
+		gpios = <3 GPIO_ACTIVE_HIGH>;
+		output-low;
+		line-name = "can0-trx-en-gpio";
+	};
+
 	touch-interrupt {
 		gpio-hog;
 		gpios = <12 GPIO_ACTIVE_LOW>;
