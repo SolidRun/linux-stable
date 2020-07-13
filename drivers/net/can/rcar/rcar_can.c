@@ -895,6 +895,7 @@ static int __maybe_unused rcar_can_resume(struct device *dev)
 static SIMPLE_DEV_PM_OPS(rcar_can_pm_ops, rcar_can_suspend, rcar_can_resume);
 
 static const struct of_device_id rcar_can_of_table[] __maybe_unused = {
+	{ .compatible = "renesas,can-r8a7742" },
 	{ .compatible = "renesas,can-r8a7744" },
 	{ .compatible = "renesas,can-r8a7745" },
 	{ .compatible = "renesas,can-r8a77470" },
