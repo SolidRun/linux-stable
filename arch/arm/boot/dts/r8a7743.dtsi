@@ -1496,6 +1496,17 @@
 			status = "disabled";
 		};
 
+		sgx@fd800000 {
+			compatible = "renesas,sgx";
+			reg = <0 0xfd800000 0 0x10000>;
+			interrupts = <0 119 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "irq_sgx";
+			clocks = <&cpg CPG_MOD 112>,
+				 <&cpg CPG_MOD 800>;
+			clock-names = "sgx_clk", "ipmmu_clk";
+			power-domains = <&sysc R8A7743_PD_SGX>;
+		};
+
 		pci0: pci@ee090000 {
 			compatible = "renesas,pci-r8a7743",
 				     "renesas,pci-rcar-gen2";
