@@ -309,3 +309,17 @@
 		>;
 	};
 };
+
+/* connected to on-SoM wifi module */
+&pcie0{
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_pcie0>;
+	disable-gpio = <&gpio5 5 GPIO_ACTIVE_LOW>;
+	reset-gpio = <&gpio4 21 GPIO_ACTIVE_LOW>;
+	hard-wired = <1>;
+	status = "okay";
+
+	/* TODO: add IMX8MQ_CLK_CLK2_CG to clocks? */
+	/* TODO: down-rate fsl,max-link-speed to 1? */
+	/* TODO: set ext_osc to 1? */
+};
