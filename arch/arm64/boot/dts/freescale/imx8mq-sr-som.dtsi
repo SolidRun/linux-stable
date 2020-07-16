@@ -3,7 +3,7 @@
  * Copyright (C) 2018 Jon Nettleton <jon@solid-run.com>
  */
 
-#include "imx8mq.dtsi"
+#include "fsl-imx8mq.dtsi"
 
 / {
 	reg_vdd_3v3: regulator-vdd-3v3 {
@@ -127,15 +127,15 @@
 	};
 };
 
-&pgc_gpu{
+&gpu_pd{
 	power-supply = <&sw1a_reg>;
 };
 
-&pgc_vpu {
+&vpu_pd {
 	power-supply = <&sw1c_reg>;
 };
 
-&qspi0 {
+&qspi {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_qspi>;
 	status = "okay";
