@@ -263,3 +263,12 @@
 		>;
 	};
 };
+
+&dcss {
+	disp-dev = "hdmi_disp";
+	status = "okay";
+};
+
+&hdmi {
+	status = "okay";
+};
