@@ -247,3 +247,11 @@
 		>;
 	};
 };
+
+&gpu3d {
+	status = "okay";
+};
+
+&vpu {
+	status = "okay";
+};
