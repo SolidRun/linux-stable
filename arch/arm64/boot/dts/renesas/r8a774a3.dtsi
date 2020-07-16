@@ -1163,45 +1163,73 @@
 		};
 
 		pwm0: pwm@e6e30000 {
+			compatible = "renesas,pwm-r8a774a3", "renesas,pwm-rcar";
 			reg = <0 0xe6e30000 0 0x8>;
+			clocks = <&cpg CPG_MOD 523>;
+			power-domains = <&sysc R8A774A3_PD_ALWAYS_ON>;
+			resets = <&cpg 523>;
 			#pwm-cells = <2>;
-			/* placeholder */
+			status = "disabled";
 		};
 
 		pwm1: pwm@e6e31000 {
+			compatible = "renesas,pwm-r8a774a3", "renesas,pwm-rcar";
 			reg = <0 0xe6e31000 0 0x8>;
+			clocks = <&cpg CPG_MOD 523>;
+			power-domains = <&sysc R8A774A3_PD_ALWAYS_ON>;
+			resets = <&cpg 523>;
 			#pwm-cells = <2>;
-			/* placeholder */
+			status = "disabled";
 		};
 
 		pwm2: pwm@e6e32000 {
+			compatible = "renesas,pwm-r8a774a3", "renesas,pwm-rcar";
 			reg = <0 0xe6e32000 0 0x8>;
+			clocks = <&cpg CPG_MOD 523>;
+			power-domains = <&sysc R8A774A3_PD_ALWAYS_ON>;
+			resets = <&cpg 523>;
 			#pwm-cells = <2>;
-			/* placeholder */
+			status = "disabled";
 		};
 
 		pwm3: pwm@e6e33000 {
+			compatible = "renesas,pwm-r8a774a3", "renesas,pwm-rcar";
 			reg = <0 0xe6e33000 0 0x8>;
+			clocks = <&cpg CPG_MOD 523>;
+			power-domains = <&sysc R8A774A3_PD_ALWAYS_ON>;
+			resets = <&cpg 523>;
 			#pwm-cells = <2>;
-			/* placeholder */
+			status = "disabled";
 		};
 
 		pwm4: pwm@e6e34000 {
+			compatible = "renesas,pwm-r8a774a3", "renesas,pwm-rcar";
 			reg = <0 0xe6e34000 0 0x8>;
+			clocks = <&cpg CPG_MOD 523>;
+			power-domains = <&sysc R8A774A3_PD_ALWAYS_ON>;
+			resets = <&cpg 523>;
 			#pwm-cells = <2>;
-			/* placeholder */
+			status = "disabled";
 		};
 
 		pwm5: pwm@e6e35000 {
+			compatible = "renesas,pwm-r8a774a3", "renesas,pwm-rcar";
 			reg = <0 0xe6e35000 0 0x8>;
+			clocks = <&cpg CPG_MOD 523>;
+			power-domains = <&sysc R8A774A3_PD_ALWAYS_ON>;
+			resets = <&cpg 523>;
 			#pwm-cells = <2>;
-			/* placeholder */
+			status = "disabled";
 		};
 
 		pwm6: pwm@e6e36000 {
+			compatible = "renesas,pwm-r8a774a3", "renesas,pwm-rcar";
 			reg = <0 0xe6e36000 0 0x8>;
+			clocks = <&cpg CPG_MOD 523>;
+			power-domains = <&sysc R8A774A3_PD_ALWAYS_ON>;
+			resets = <&cpg 523>;
 			#pwm-cells = <2>;
-			/* placeholder */
+			status = "disabled";
 		};
 
 		tpu: pwm@e6e80000 {
