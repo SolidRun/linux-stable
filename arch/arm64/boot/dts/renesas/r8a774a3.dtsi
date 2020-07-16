@@ -1233,9 +1233,13 @@
 		};
 
 		tpu: pwm@e6e80000 {
+			compatible = "renesas,tpu";
 			reg = <0 0xe6e80000 0 0x148>;
+			clocks = <&cpg CPG_MOD 304>;
+			power-domains = <&sysc R8A774A3_PD_ALWAYS_ON>;
+			resets = <&cpg 304>;
 			#pwm-cells = <3>;
-			/* placeholder */
+			status = "disabled";
 		};
 
 		scif0: serial@e6e60000 {
