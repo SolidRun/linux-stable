@@ -262,6 +262,14 @@
 			MX8MQ_IOMUXC_GPIO1_IO04_USDHC2_VSELECT		0xc1
 		>;
 	};
+
+	pinctrl_pcie1: pcie1grp {
+		fsl,pins = <
+			MX8MQ_IOMUXC_I2C4_SDA_PCIE2_CLKREQ_B	0x74
+			/* TODO: reset-gpio */
+			/* TODO: disable-gpio */
+		>;
+	};
 };
 
 &dcss {
@@ -279,4 +287,18 @@
 
 &vpu {
 	status = "okay";
+};
+
+/* connected to on-Carrier i210 ethernet controller */
+&pcie1{
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_pcie1>;
+	hard-wired = <1>;
+	ext_osc = <1>;
+	status = "okay";
+
+	/* TODO: down-rate fsl,max-link-speed to 1? */
+	/* TODO: set ext_osc to 0? */
+	/* TODO: reset-gpio */
+	/* TODO: disable-gpio */
 };
