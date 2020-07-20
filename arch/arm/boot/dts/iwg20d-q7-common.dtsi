@@ -400,3 +400,7 @@
 &usbphy {
 	status = "okay";
 };
+
+&tpu {
+	status = "okay";
+};
