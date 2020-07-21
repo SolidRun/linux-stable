@@ -17,6 +17,13 @@
 		stdout-path = &uart1;
 	};
 
+	ir-receiver {
+		compatible = "gpio-ir-receiver";
+		gpios = <&gpio1 12 GPIO_ACTIVE_LOW>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_ir_recv>;
+	};
+
 	reg_usdhc2_vmmc: regulator-usdhc2-vmmc {
 		compatible = "regulator-fixed";
 		pinctrl-names = "default";
@@ -184,6 +191,12 @@
 		fsl,pins = <
 			MX8MQ_IOMUXC_I2C3_SCL_I2C3_SCL		0x4000007f
 			MX8MQ_IOMUXC_I2C3_SDA_I2C3_SDA		0x4000007f
+		>;
+	};
+
+	pinctrl_ir_recv: ir_recv {
+		fsl,pins = <
+			MX8MQ_IOMUXC_GPIO1_IO12_GPIO1_IO12		0x4f
 		>;
 	};
 
