@@ -405,6 +405,10 @@
 
 &usbphy {
 	status = "okay";
+	renesas,id-gpio = <&gpio1 11 GPIO_ACTIVE_LOW>;
+	renesas,vbus-gpio = <&gpio7 24 GPIO_ACTIVE_LOW>;
+	renesas,vbus-pwr-gpio = <&gpio7 23 GPIO_ACTIVE_LOW>;
+	renesas,wakeup;
 };
 
 &tpu {
