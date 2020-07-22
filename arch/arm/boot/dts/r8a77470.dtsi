@@ -275,6 +275,17 @@
 			status = "disabled";
 		};
 
+		sgx@fd800000 {
+			compatible = "renesas,sgx";
+			reg = <0 0xfd800000 0 0x10000>;
+			interrupts = <0 119 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "irq_sgx";
+			clocks = <&cpg CPG_MOD 112>,
+				<&cpg CPG_MOD 800>;
+			clock-names = "sgx_clk", "ipmmu_clk";
+			power-domains = <&sysc R8A77470_PD_SGX>;
+		};
+
 		irqc: interrupt-controller@e61c0000 {
 			compatible = "renesas,irqc-r8a77470", "renesas,irqc";
 			#interrupt-cells = <2>;
