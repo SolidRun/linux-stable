@@ -950,6 +950,16 @@
 			status = "disabled";
 		};
 
+		sgx@fd000000 {
+			compatible = "renesas,sgx";
+			reg = <0 0xfd000000 0 0x10000>;
+			interrupts = <0 119 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "irq_sgx";
+			clocks = <&cpg CPG_MOD 112>;
+			clock-names = "sgx_clk";
+			power-domains = <&sysc R8A7742_PD_RGX>;
+		};
+
 		msiof0: spi@e6e20000 {
 			compatible = "renesas,msiof-r8a7742",
 				     "renesas,rcar-gen2-msiof";
