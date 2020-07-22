@@ -1038,6 +1038,14 @@
 			status = "disabled";
 		};
 
+		tddmac@fea00000 {
+			compatible = "renesas,vspm-tddmac","renesas,vspm";
+			reg = <0 0xfea00000 0 0x200>;
+			interrupts = <0 285 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 115>;
+			power-domains = <&sysc R8A7744_PD_ALWAYS_ON>;
+		};
+
 		hscif0: serial@e62c0000 {
 			compatible = "renesas,hscif-r8a7744",
 				     "renesas,rcar-gen2-hscif", "renesas,hscif";
