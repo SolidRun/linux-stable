@@ -969,6 +969,14 @@
 			status = "disabled";
 		};
 
+		tddmac@fea00000 {
+			compatible = "renesas,vspm-tddmac","renesas,vspm";
+			reg = <0 0xfea00000 0 0x200>;
+			interrupts = <0 285 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 115>;
+			power-domains = <&sysc R8A77470_PD_ALWAYS_ON>;
+		};
+
 		ohci0: usb@ee080000 {
 			compatible = "generic-ohci";
 			reg = <0 0xee080000 0 0x100>;
