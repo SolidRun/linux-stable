@@ -572,6 +572,32 @@ static int mdiobus_create_device(struct mii_bus *bus,
 }
 
 /**
+ * device_mdiobus_register - register mdiobus for either DT or ACPI
+ * @bus: target mii_bus
+ * @dev: given MDIO device
+ *
+ * Description: Given an MDIO device and target mii bus, this function
+ * calls of_mdiobus_register() for DT node and mdiobus_register() in
+ * case of ACPI.
+ *
+ * Returns 0 on success or negative error code on failure.
+ */
+int device_mdiobus_register(struct device *dev,
+			    struct mii_bus *bus)
+{
+	struct fwnode_handle *fwnode = dev_fwnode(dev);
+
+	if (is_of_node(fwnode))
+		return of_mdiobus_register(bus, to_of_node(fwnode));
+	if (fwnode) {
+		bus->dev.fwnode = fwnode;
+		return mdiobus_register(bus);
+	}
+	return -ENODEV;
+}
+EXPORT_SYMBOL(device_mdiobus_register);
+
+/**
  * __mdiobus_register - bring up all the PHYs on a given bus and attach them to bus
  * @bus: target mii_bus
  * @owner: module containing bus accessor functions
