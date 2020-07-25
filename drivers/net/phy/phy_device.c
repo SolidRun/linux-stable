@@ -25,8 +25,10 @@
 #include <linux/mii.h>
 #include <linux/ethtool.h>
 #include <linux/bitmap.h>
+#include <linux/of.h>
 #include <linux/phy.h>
 #include <linux/phy_led_triggers.h>
+#include <linux/platform_device.h>
 #include <linux/sfp.h>
 #include <linux/mdio.h>
 #include <linux/io.h>
@@ -962,6 +964,44 @@ struct phy_device *phy_find_first(struct mii_bus *bus)
 	return NULL;
 }
 EXPORT_SYMBOL(phy_find_first);
+
+/**
+ * phy_find_by_mdio_handle - get phy device from mdio-handle and phy-channel
+ * @fwnode: a pointer to a &struct fwnode_handle  to get mdio-handle and
+ * phy-channel
+ *
+ * Find fwnode_mdio using mdio-handle reference. Using fwnode_mdio get the
+ * mdio bus. Property phy-channel provides the phy address on the mdio bus.
+ * Pass mdio bus and phy address to mdiobus_get_phy() and get corresponding
+ * phy_device. This method is used for ACPI and not for DT.
+ *
+ * Returns pointer to the phy device on success, else ERR_PTR.
+ */
+struct phy_device *phy_find_by_mdio_handle(struct fwnode_handle *fwnode)
+{
+	struct fwnode_handle *fwnode_mdio;
+	struct mii_bus *mdio;
+	int addr;
+	int err;
+
+	if (is_of_node(fwnode))
+		return ERR_PTR(-EINVAL);
+
+	fwnode_mdio = fwnode_find_reference(fwnode, "mdio-handle", 0);
+	mdio = fwnode_mdio_find_bus(fwnode_mdio);
+	fwnode_handle_put(fwnode_mdio);
+	if (!mdio)
+		return ERR_PTR(-ENODEV);
+
+	err = fwnode_property_read_u32(fwnode, "phy-channel", &addr);
+	if (err)
+		return ERR_PTR(err);
+	if (addr >= PHY_MAX_ADDR)
+		return ERR_PTR(-EINVAL);
+
+	return mdiobus_get_phy(mdio, addr);
+}
+EXPORT_SYMBOL(phy_find_by_mdio_handle);
 
 static void phy_link_change(struct phy_device *phydev, bool up, bool do_carrier)
 {
