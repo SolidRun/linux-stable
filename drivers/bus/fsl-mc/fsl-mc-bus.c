@@ -981,6 +981,7 @@ static int fsl_mc_bus_probe(struct platform_device *pdev)
 	if (error < 0)
 		goto error_cleanup_mc_io;
 
+	mc_bus_dev->dev.fwnode = pdev->dev.fwnode;
 	mc->root_mc_bus_dev = mc_bus_dev;
 	mc_bus_dev->dev.fwnode = pdev->dev.fwnode;
 	return 0;
