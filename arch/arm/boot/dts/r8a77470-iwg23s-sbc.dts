@@ -195,6 +195,18 @@
 			};
 		};
 	};
+
+	rcar_dvdec@31 {
+		compatible = "rcar-dvdec";
+		reg = <0x31>;
+		clocks = <&cpg CPG_MOD 927>;
+
+		port {
+			dvdec: endpoint {
+				remote-endpoint = <&vin0ep>;
+			};
+		};
+	};
 };
 
 &ohci1 {
@@ -269,6 +281,11 @@
 	usb1_pins: usb1 {
 		groups = "usb1";
 		function = "usb1";
+	};
+
+	vin0_pins: vin0 {
+		groups = "vin0_data8", "vin0_sync", "vin0_clkenb", "vin0_clk";
+		function = "vin0";
 	};
 };
 
@@ -367,4 +384,19 @@
 	pinctrl-names = "default";
 
 	status = "okay";
+};
+
+&vin0 {
+	status = "okay";
+	pinctrl-0 = <&vin0_pins>;
+	pinctrl-names = "default";
+
+	port {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		vin0ep: endpoint {
+			remote-endpoint = <&dvdec>;
+		};
+	};
 };
