@@ -545,8 +545,11 @@ static int esdhc_of_enable_dma(struct sdhci_host *host)
 	}
 
 	value = sdhci_readl(host, ESDHC_DMA_SYSCTL);
-
-	if (of_dma_is_coherent(dev->of_node))
+	/*
+	 * of_dma_is_coherent() returns false in case of acpi hence
+	 * dev_dma_is_coherent() is used along with it.
+	 */
+	if (of_dma_is_coherent(dev->of_node) ||  dev_dma_is_coherent(dev))
 		value |= ESDHC_DMA_SNOOP;
 	else
 		value &= ~ESDHC_DMA_SNOOP;
