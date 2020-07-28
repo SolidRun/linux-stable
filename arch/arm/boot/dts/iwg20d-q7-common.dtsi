@@ -377,6 +377,10 @@
 	status = "okay";
 };
 
+&tmu1 {
+	status = "okay";
+};
+
 &ssi1 {
 	shared-pin;
 };
