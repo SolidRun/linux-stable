@@ -20,6 +20,7 @@
 #include <linux/dma-mapping.h>
 #include <linux/acpi.h>
 #include <linux/iommu.h>
+#include <linux/notifier.h>
 
 #include "fsl-mc-private.h"
 
@@ -62,6 +63,11 @@ struct fsl_mc_addr_translation_range {
 #define FSL_MC_FAPR	0x28
 #define MC_FAPR_PL	BIT(18)
 #define MC_FAPR_BMT	BIT(17)
+#define FSL_MC_GCR1	0x0
+#define GCR1_P1_STOP	BIT(31)
+
+static struct notifier_block fsl_mc_nb;
+static u32 boot_gcr1;
 
 /**
  * fsl_mc_bus_match - device to driver matching callback
@@ -909,6 +915,19 @@ static int fsl_mc_bus_probe(struct platform_device *pdev)
 	}
 
 	/*
+	 * The MC firmware requires full access to the whole address space plus
+	 * it has no way of dealing with any kind of address translation, so
+	 * request direct mapping for it.
+	 */
+	error = iommu_request_dm_for_dev(&pdev->dev);
+	if (error)
+		dev_warn(&pdev->dev, "iommu_request_dm_for_dev() failed: %d\n",
+			 error);
+
+	/* Resume the firmware */
+	writel(boot_gcr1 & ~GCR1_P1_STOP, mc->fsl_mc_regs + FSL_MC_GCR1);
+
+	/*
 	 * Get physical address of MC portal for the root DPRC:
 	 */
 	plat_res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
@@ -982,6 +1001,12 @@ static int fsl_mc_bus_remove(struct platform_device *pdev)
 	if (!fsl_mc_is_root_dprc(&mc->root_mc_bus_dev->dev))
 		return -EINVAL;
 
+	/*
+	 * Pause back the firmware so that it doesn't trigger faults by the
+	 * time SMMU gets brought down.
+	 */
+	writel(boot_gcr1 | GCR1_P1_STOP, mc->fsl_mc_regs + FSL_MC_GCR1);
+
 	fsl_mc_device_remove(mc->root_mc_bus_dev);
 
 	fsl_destroy_mc_io(mc->root_mc_bus_dev->mc_io);
@@ -1014,6 +1039,38 @@ static struct platform_driver fsl_mc_bus_driver = {
 	.remove = fsl_mc_bus_remove,
 };
 
+static int fsl_mc_bus_notifier(struct notifier_block *nb,
+			        unsigned long action, void *data)
+{
+	struct device *dev = data;
+
+	if (action == BUS_NOTIFY_ADD_DEVICE &&
+	    (of_match_device(fsl_mc_bus_match_table, dev) ||
+	     acpi_match_device(fsl_mc_bus_acpi_match_table, dev))) {
+		struct resource *res;
+		void *fsl_mc_regs;
+
+		res = platform_get_resource(to_platform_device(dev),
+					    IORESOURCE_MEM, 1);
+		fsl_mc_regs = ioremap(res->start, resource_size(res));
+		if (!fsl_mc_regs)
+			return -ENXIO;
+
+		boot_gcr1 = readl(fsl_mc_regs + FSL_MC_GCR1);
+		/*
+		 * If found running, pause MC firmware in order to get a chance
+		 * to setup SMMU for it.
+		 */
+		if (!(boot_gcr1 & GCR1_P1_STOP))
+			writel(boot_gcr1 | GCR1_P1_STOP,
+			       fsl_mc_regs + FSL_MC_GCR1);
+
+		iounmap(fsl_mc_regs);
+	}
+
+	return 0;
+}
+
 static int __init fsl_mc_bus_driver_init(void)
 {
 	int error;
@@ -1037,6 +1094,13 @@ static int __init fsl_mc_bus_driver_init(void)
 	error = fsl_mc_allocator_driver_init();
 	if (error < 0)
 		goto error_cleanup_dprc_driver;
+
+	fsl_mc_nb.notifier_call = fsl_mc_bus_notifier;
+	error = bus_register_notifier(&platform_bus_type, &fsl_mc_nb);
+	if (error) {
+		pr_err("bus_register_notifier() failed: %d\n", error);
+		goto error_cleanup_bus;
+	}
 
 	return 0;
 
