@@ -47,6 +47,10 @@
 	status = "okay";
 };
 
+&cmt1 {
+	status = "okay";
+};
+
 &extal_clk {
 	clock-frequency = <20000000>;
 };
