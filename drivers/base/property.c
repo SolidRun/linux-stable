@@ -16,6 +16,7 @@
 #include <linux/of_irq.h>
 #include <linux/property.h>
 #include <linux/phy.h>
+#include <linux/platform_device.h>
 
 struct fwnode_handle *dev_fwnode(const struct device *dev)
 {
@@ -878,6 +879,43 @@ enum dev_dma_attr device_get_dma_attr(struct device *dev)
 	return fwnode_call_int_op(dev_fwnode(dev), device_get_dma_attr);
 }
 EXPORT_SYMBOL_GPL(device_get_dma_attr);
+
+/**
+ * device_match_fw_node - Check if the device is the parent node.
+ * @dev:		Pointer to the device.
+ * @parent_fwnode	Pointer to the parent's firmware node.
+ *
+ * The function returns true if the device has no parent.
+ *
+ */
+static int device_match_fw_node(struct device *dev, const void *parent_fwnode)
+{
+	return dev->fwnode == parent_fwnode;
+}
+
+/**
+ * dev_dma_is_coherent - Check if the device or any of its parents has
+ * dma support enabled.
+ * @dev:     Pointer to the device.
+ *
+ * The function gets the device pointer and check for device_dma_supported()
+ * on the device pointer passed and then recursively on its parent nodes.
+ */
+
+bool dev_dma_is_coherent(struct device *dev)
+{
+	struct fwnode_handle *parent_fwnode;
+
+	while (dev) {
+		if (device_dma_supported(dev))
+			return true;
+		parent_fwnode = fwnode_get_next_parent(dev->fwnode);
+		dev = bus_find_device(&platform_bus_type, NULL,	parent_fwnode,
+				      device_match_fw_node);
+	}
+	return false;
+}
+EXPORT_SYMBOL_GPL(dev_dma_is_coherent);
 
 /**
  * fwnode_get_phy_mode - Get phy mode for given firmware node

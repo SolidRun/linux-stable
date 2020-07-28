@@ -387,6 +387,8 @@ bool device_dma_supported(struct device *dev);
 
 enum dev_dma_attr device_get_dma_attr(struct device *dev);
 
+bool dev_dma_is_coherent(struct device *dev);
+
 const void *device_get_match_data(const struct device *dev);
 
 int device_get_phy_mode(struct device *dev);
