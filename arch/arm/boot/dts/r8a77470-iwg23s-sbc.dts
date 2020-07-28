@@ -313,6 +313,10 @@
 	status = "okay";
 };
 
+&tmu1 {
+	status = "okay";
+};
+
 &sdhi1 {
 	pinctrl-0 = <&mmc_pins_uhs>;
 	pinctrl-names = "state_uhs";
