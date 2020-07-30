@@ -1883,8 +1883,13 @@
 		};
 
 		gsx: gsx@fd000000 {
+			compatible = "renesas,gsx";
 			reg = <0 0xfd000000 0 0x40000>;
-			/* placeholder */
+			interrupts = <GIC_SPI 119 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 112>;
+			operating-points-v2 = <&gsx_opp0>;
+			power-domains = <&sysc R8A774A3_PD_3DG_B>;
+			resets = <&cpg 112>;
 		};
 
 		pciec0: pcie@fe000000 {
