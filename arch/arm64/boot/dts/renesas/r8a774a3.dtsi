@@ -2403,14 +2403,20 @@
 				port@2 {
 					reg = <2>;
 					du_out_lvds0: endpoint {
-						remote-endpoint = <&lvds0_in>;
+						remote-endpoint =
+							<&lvds0_in>;
 					};
 				};
 			};
 		};
 
 		lvds0: lvds@feb90000 {
+			compatible = "renesas,r8a774a3-lvds";
 			reg = <0 0xfeb90000 0 0x14>;
+			clocks = <&cpg CPG_MOD 727>;
+			power-domains = <&sysc R8A774A3_PD_ALWAYS_ON>;
+			resets = <&cpg 727>;
+			status = "disabled";
 
 			ports {
 				#address-cells = <1>;
@@ -2419,6 +2425,8 @@
 				port@0 {
 					reg = <0>;
 					lvds0_in: endpoint {
+						remote-endpoint =
+							<&du_out_lvds0>;
 					};
 				};
 				port@1 {
@@ -2427,7 +2435,6 @@
 					};
 				};
 			};
-			/* placeholder */
 		};
 
 		prr: chipid@fff00044 {
