@@ -423,13 +423,16 @@ out:
 }
 
 static int dpaa2_pcs_create(struct dpaa2_mac *mac,
-			    struct device_node *dpmac_node, int id)
+			    struct fwnode_handle *dpmac_node, int id)
 {
 	struct mdio_device *mdiodev;
 	struct device_node *node;
 	struct lynx_pcs *lynx;
 
-	node = of_parse_phandle(dpmac_node, "pcs-handle", 0);
+	if (!is_of_node(dpmac_node))
+		return 0;
+
+	node = of_parse_phandle(to_of_node(dpmac_node), "pcs-handle", 0);
 	if (!node) {
 		/* allow old DT files to work */
 		netdev_warn(mac->net_dev, "pcs-handle node not found\n");
