@@ -266,12 +266,6 @@
 	pinctrl-names = "default";
 };
 
-&pci1 {
-	status = "okay";
-	pinctrl-0 = <&usb1_pins>;
-	pinctrl-names = "default";
-};
-
 &pcie_bus_clk {
 	clock-frequency = <100000000>;
 };
