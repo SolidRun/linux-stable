@@ -235,6 +235,7 @@ static int rcar_gen2_phy_power_on(struct phy *p)
 	/* USBHS_UGCTRL_CONNECT bit only exists on RZG1H,M,N,E SoC USBHS_UGSTS reg */
 	if (of_machine_is_compatible("renesas,r8a7743")
 		|| of_machine_is_compatible("renesas,r8a7744")
+		|| of_machine_is_compatible("renesas,r8a7742")
 		|| of_machine_is_compatible("renesas,r8a7745")) {
 		for (i = 0; i < 20; i++) {
 			value = readl(usbhs_base + USBHS_UGSTS);
@@ -275,6 +276,7 @@ static int rcar_gen2_phy_power_off(struct phy *p)
 	/* Power off USBHS PHY */
 	if (of_machine_is_compatible("renesas,r8a7743")
 		|| of_machine_is_compatible("renesas,r8a7744")
+		|| of_machine_is_compatible("renesas,r8a7742")
 		|| of_machine_is_compatible("renesas,r8a7745")) {
 		value = readl(usbhs_base + USBHS_UGCTRL);
 		value &= ~USBHS_UGCTRL_CONNECT;
@@ -396,7 +398,8 @@ static void gpio_id_work(struct work_struct *work)
 			rcar_gen2_phy_switch(channel,
 				USBHS_UGCTRL2_USB0SEL_PCI | USBHS_UGCTRL2_USB2SEL_PCI);
 		else if (of_machine_is_compatible("renesas,r8a7743") ||
-			of_machine_is_compatible("renesas,r8a7744"))
+			of_machine_is_compatible("renesas,r8a7744") ||
+			of_machine_is_compatible("renesas,r8a7742"))
 			rcar_gen2_phy_switch(channel,
 				USBHS_UGCTRL2_USB0SEL_PCI | USBHS_UGCTRL2_USB2SEL_USB30);
 		else if (of_machine_is_compatible("renesas,r8a77470"))
@@ -406,7 +409,8 @@ static void gpio_id_work(struct work_struct *work)
 			rcar_gen2_phy_switch(channel,
 				USBHS_UGCTRL2_USB0SEL_HS_USB | USBHS_UGCTRL2_USB2SEL_PCI);
 		else if (of_machine_is_compatible("renesas,r8a7743") ||
-			of_machine_is_compatible("renesas,r8a7744"))
+			of_machine_is_compatible("renesas,r8a7744") ||
+			of_machine_is_compatible("renesas,r8a7742"))
 			rcar_gen2_phy_switch(channel,
 				USBHS_UGCTRL2_USB0SEL_HS_USB | USBHS_UGCTRL2_USB2SEL_USB30);
 		else if (of_machine_is_compatible("renesas,r8a77470"))
@@ -440,7 +444,8 @@ static void gpio_vbus_work(struct work_struct *work)
 			rcar_gen2_phy_switch(channel,
 				USBHS_UGCTRL2_USB0SEL_HS_USB | USBHS_UGCTRL2_USB2SEL_PCI);
 		else if (of_machine_is_compatible("renesas,r8a7743") ||
-			of_machine_is_compatible("renesas,r8a7744"))
+			of_machine_is_compatible("renesas,r8a7744") ||
+			of_machine_is_compatible("renesas,r8a7742"))
 			rcar_gen2_phy_switch(channel,
 				USBHS_UGCTRL2_USB0SEL_HS_USB | USBHS_UGCTRL2_USB2SEL_USB30);
 		else if (of_machine_is_compatible("renesas,r8a77470"))
@@ -450,7 +455,8 @@ static void gpio_vbus_work(struct work_struct *work)
 			rcar_gen2_phy_switch(channel,
 				USBHS_UGCTRL2_USB0SEL_PCI | USBHS_UGCTRL2_USB2SEL_PCI);
 		else if (of_machine_is_compatible("renesas,r8a7743") ||
-			of_machine_is_compatible("renesas,r8a7744"))
+			of_machine_is_compatible("renesas,r8a7744") ||
+			of_machine_is_compatible("renesas,r8a7742"))
 			rcar_gen2_phy_switch(channel,
 				USBHS_UGCTRL2_USB0SEL_PCI | USBHS_UGCTRL2_USB2SEL_USB30);
 		else if (of_machine_is_compatible("renesas,r8a77470"))
@@ -565,6 +571,7 @@ static int rcar_gen2_usb_set_peripheral(struct usb_otg *otg,
 		/* initialize connection state */
 		if (of_machine_is_compatible("renesas,r8a7743")
 			|| of_machine_is_compatible("renesas,r8a7744")
+			|| of_machine_is_compatible("renesas,r8a7742")
 			|| of_machine_is_compatible("renesas,r8a7745")) {
 			gpio_vbus_irq(channel->irq_vbus, channel);
 		} else if (of_machine_is_compatible("renesas,r8a77470"))
@@ -862,6 +869,7 @@ static int rcar_gen2_phy_probe(struct platform_device *pdev)
 		}
 		if (of_machine_is_compatible("renesas,r8a7743")
 			|| of_machine_is_compatible("renesas,r8a7744")
+			|| of_machine_is_compatible("renesas,r8a7742")
 			|| of_machine_is_compatible("renesas,r8a7745")) {
 			channel->select_mask = select_mask[channel_num];
 			phys_per_channel = PHYS_PER_CHANNEL;
@@ -877,6 +885,7 @@ static int rcar_gen2_phy_probe(struct platform_device *pdev)
 			phy->number = n;
 			if (of_machine_is_compatible("renesas,r8a7743")
 				|| of_machine_is_compatible("renesas,r8a7744")
+				|| of_machine_is_compatible("renesas,r8a7742")
 				|| of_machine_is_compatible("renesas,r8a7745"))
 				phy->select_value = select_value[channel_num][n];
 			else if (of_machine_is_compatible("renesas,r8a77470")) {
