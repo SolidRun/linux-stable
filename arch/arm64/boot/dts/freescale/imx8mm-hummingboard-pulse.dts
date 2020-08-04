@@ -17,7 +17,7 @@
 #include "fsl-imx8mm.dtsi"
 
 / {
-	model = "SolidRun i.MX8MM CuBox-pulse board";
+	model = "SolidRun i.MX8MM HummingBoard Pulse";
 	compatible = "fsl,imx8mm-cbp", "fsl,imx8mm";
 
 	chosen {
