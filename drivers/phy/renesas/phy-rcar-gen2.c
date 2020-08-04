@@ -618,6 +618,10 @@ static const struct of_device_id rcar_gen2_phy_match_table[] = {
 		.data = &rcar_gen2_usb_phy_data,
 	},
 	{
+		.compatible = "renesas,usb-phy-r8a7745",
+		.data = &rcar_gen2_usb_phy_data,
+	},
+	{
 		.compatible = "renesas,rcar-gen2-usb-phy",
 		.data = &rcar_gen2_usb_phy_data,
 	},
