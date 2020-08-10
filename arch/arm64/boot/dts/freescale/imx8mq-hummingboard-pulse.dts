@@ -80,6 +80,8 @@
 		abracon,tc-diode = "schottky";
 		abracon,tc-resistor = <3>;
 	};
+
+	/* add i2c devices on mikrobus header here */
 };
 
 &uart2 { /* J35 header */
@@ -90,12 +92,13 @@
 	status = "okay";
 };
 
-&uart3 { /* Mikrobus */
+/* mikrobus uart */
+&uart3 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_uart3>;
 	assigned-clocks = <&clk IMX8MQ_CLK_UART3>;
 	assigned-clock-parents = <&clk IMX8MQ_SYS1_PLL_80M>;
-	uart-has-rtscts;
+	// uart-has-rtscts; /* uncomment to enable rts+cts */
 	status = "okay";
 };
 
@@ -137,18 +140,14 @@
 
 	pinctrl_hog: hoggrp {
 		fsl,pins = <
-			/* MikroBus Analog */
-			MX8MQ_IOMUXC_NAND_DATA05_GPIO3_IO11		0x41
-			/* MikroBus Reset */
-			MX8MQ_IOMUXC_SAI2_RXD0_GPIO4_IO23		0x41
+			MX8MQ_IOMUXC_NAND_DATA05_GPIO3_IO11		0x41 /* mikrobus AN (NOT IN SCHEMATICS)*/
+			MX8MQ_IOMUXC_SAI2_RXD0_GPIO4_IO23		0x41 /* mikrobus RST */
 			/*
 			 * The following 2 pins need to be commented out and
 			 * reconfigured to enable RTS/CTS on UART3
 			 */
-			/* MikroBus PWM */
-			MX8MQ_IOMUXC_ECSPI1_MISO_GPIO5_IO8		0x41
-			/* MikroBus INT */
-			MX8MQ_IOMUXC_ECSPI1_SS0_GPIO5_IO9		0x41
+			MX8MQ_IOMUXC_ECSPI1_MISO_GPIO5_IO8 		0x41 /* mikrobus PWM (just a gpio) */
+			MX8MQ_IOMUXC_ECSPI1_SS0_GPIO5_IO9		0x41 /* mikrobus INT */
 		>;
 	};
 
@@ -178,7 +177,7 @@
 			MX8MQ_IOMUXC_UART3_TXD_UART3_DCE_TX		0x49
 			MX8MQ_IOMUXC_UART3_RXD_UART3_DCE_RX		0x49
 			/*
-			 * These pins are by default GPIO on the Mikro Bus
+			 * These pins are by default PWM and INT on the Mikro Bus
 			 * Header. To use RTS/CTS on UART3 comment them out
 			 * of the hoggrp and enable them here
 			 */
@@ -246,6 +245,15 @@
 			MX8MQ_IOMUXC_NAND_RE_B_GPIO3_IO15		0x03
 		>;
 	};
+
+	pinctrl_ecspi2: ecspi2grp {
+		fsl,pins = <
+			MX8MQ_IOMUXC_ECSPI2_SS0_GPIO5_IO13 0x19 /* CS: spi chip-select (gpio-mode) */
+			MX8MQ_IOMUXC_ECSPI2_SCLK_ECSPI2_SCLK 0x19 /* SCK: spi clock */
+			MX8MQ_IOMUXC_ECSPI2_MISO_ECSPI2_MISO 0x19 /* MISO: spi master-in-slave-out */
+			MX8MQ_IOMUXC_ECSPI2_MOSI_ECSPI2_MOSI 0x19 /* MOSI: spi master-out-slave-in */
+		>;
+	};
 };
 
 &gpu3d {
@@ -254,4 +262,11 @@
 
 &vpu {
 	status = "okay";
+};
+
+/* mikrobus spi */
+&ecspi2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_ecspi2>;
+	cs-gpios = <&gpio5 13 GPIO_ACTIVE_HIGH>;
 };
