@@ -422,7 +422,16 @@
 	bus-width = <4>;
 	vmmc-supply = <&reg_usdhc1_vmmc>;
 	non-removable;
-	status = "disabled";
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	brcmf: brcmf@1 {
+		reg = <1>;
+		compatible = "brcm,bcm4329-fmac";
+		interrupts = <1 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "host-wake";
+	};
 };
 
 /* microSD */
