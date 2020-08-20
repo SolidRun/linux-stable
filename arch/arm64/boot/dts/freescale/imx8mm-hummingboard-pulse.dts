@@ -892,6 +892,13 @@
         non-removable;
 	reset-gpio = <&gpio2 10 GPIO_ACTIVE_LOW>;
         status = "okay";
+        brcmf: brcmf@1 {
+                reg = <1>;
+                compatible = "brcm,bcm4329-fmac";
+                interrupts = <1 IRQ_TYPE_LEVEL_HIGH>;
+                interrupt-names = "host-wake";
+        };
+
 };
 
 &usdhc2 {
