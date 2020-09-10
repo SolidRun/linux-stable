@@ -48,42 +48,6 @@
 	pinctrl-0 = <&pinctrl_i2c2>;
 	clock-frequency = <100000>;
 	status = "okay";
-
-	typec_ptn5100: usb-typec@50 {
-		compatible = "nxp,ptn5110";
-		reg = <0x50>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_typec>;
-		interrupt-parent = <&gpio1>;
-		interrupts = <6 IRQ_TYPE_LEVEL_LOW>;
-
-		connector {
-			compatible = "usb-c-connector";
-			label = "USB-C";
-			data-role = "dual";
-			power-role = "dual";
-			try-power-role = "sink";
-			source-pdos = <PDO_FIXED(5000, 2000,
-						 PDO_FIXED_USB_COMM |
-						 PDO_FIXED_SUSPEND |
-						 PDO_FIXED_EXTPOWER)>;
-			sink-pdos = <PDO_FIXED(5000, 2000,
-					       PDO_FIXED_USB_COMM |
-					       PDO_FIXED_SUSPEND |
-					       PDO_FIXED_EXTPOWER)
-				     PDO_FIXED(9000, 2000,
-					       PDO_FIXED_USB_COMM |
-					       PDO_FIXED_SUSPEND |
-					       PDO_FIXED_EXTPOWER)>;
-			op-sink-microwatt = <9000000>;
-
-			port {
-				typec1_dr_sw: endpoint {
-					remote-endpoint = <&usb1_drd_sw>;
-				};
-			};
-		};
-	};
 };
 
 &i2c3 {
@@ -139,14 +103,8 @@
 };
 
 &usb_dwc3_0 {
-	dr_mode = "otg";
+	dr_mode = "host";
 	status = "okay";
-
-	port {
-		usb1_drd_sw: endpoint {
-			remote-endpoint = <&typec1_dr_sw>;
-		};
-	};
 };
 
 &usb_dwc3_1 {
@@ -176,6 +134,8 @@
 			 */
 			MX8MQ_IOMUXC_ECSPI1_MISO_GPIO5_IO8 		0x41 /* mikrobus PWM (just a gpio) */
 			MX8MQ_IOMUXC_ECSPI1_SS0_GPIO5_IO9		0x41 /* mikrobus INT */
+			MX8MQ_IOMUXC_GPIO1_IO06_GPIO1_IO6		0x03 /* usb power enable */
+			MX8MQ_IOMUXC_NAND_RE_B_GPIO3_IO15		0x03 /* usb power enable */
 		>;
 	};
 
@@ -196,13 +156,6 @@
 	pinctrl_ir_recv: ir_recv {
 		fsl,pins = <
 			MX8MQ_IOMUXC_GPIO1_IO12_GPIO1_IO12		0x4f
-		>;
-	};
-
-	pinctrl_typec: typecgrp {
-		fsl,pins = <
-			MX8MQ_IOMUXC_NAND_RE_B_GPIO3_IO15	0x16
-			MX8MQ_IOMUXC_GPIO1_IO06_GPIO1_IO6	0x17059
 		>;
 	};
 
