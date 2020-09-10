@@ -1,0 +1,45 @@
+// SPDX-License-Identifier: (GPL-2.0 OR MIT)
+/*
+ * Copyright (C) 2020 Josua Mayer <josua@solid-run.com>
+ */
+
+/dts-v1/;
+
+#include "imx8mq-hummingboard-pulse.dts"
+
+/ {
+	model = "SolidRun i.MX8MQ HummingBoard Pulse (no wifi)";
+
+	vcc_m2_mpcie: vcc-m2-mpcie {
+		compatible = "regulator-fixed";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_vcc_m2_mpcie>;
+		regulator-name = "vcc_m2_mpcie";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		gpio = <&gpio1 12 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+		regulator-always-on;
+	};
+};
+
+&iomuxc {
+	pinctrl_vcc_m2_mpcie: vccm2mpcie {
+		fsl,pins = <
+			MX8MQ_IOMUXC_GPIO1_IO12_GPIO1_IO12		0x03
+		>;
+	};
+};
+
+&pcie0 {
+	disable-gpio = <&gpio3 12 GPIO_ACTIVE_LOW>;
+	reset-gpio = <&gpio4 29 GPIO_ACTIVE_LOW>;
+};
+
+&pinctrl_pcie0 {
+	fsl,pins = <
+		MX8MQ_IOMUXC_I2C4_SCL_PCIE1_CLKREQ_B	0x74
+		MX8MQ_IOMUXC_NAND_DATA06_GPIO3_IO12	0x16
+		MX8MQ_IOMUXC_SAI3_RXC_GPIO4_IO29	0x16
+	>;
+};
