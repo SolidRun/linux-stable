@@ -39,3 +39,11 @@
 &sdhi3 {
 	mmc-hs400-1_8v;
 };
+
+&vspb {
+	status = "okay";
+};
+
+&vspi0 {
+	status = "okay";
+};
