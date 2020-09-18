@@ -514,7 +514,7 @@ static int gpio_rcar_probe(struct platform_device *pdev)
 
 	p->irq_parent = irq->start;
 	if (devm_request_irq(dev, irq->start, gpio_rcar_irq_handler,
-			     IRQF_SHARED, name, p)) {
+			     IRQF_SHARED | IRQF_NO_THREAD, name, p)) {
 		dev_err(dev, "failed to request IRQ\n");
 		ret = -ENOENT;
 		goto err1;
