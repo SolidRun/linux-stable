@@ -1017,6 +1017,7 @@
 	};
 
 	sai2: sai@308b0000 {
+		#sound-dai-cells = <0>;
 		compatible = "fsl,imx8mq-sai",
 			     "fsl,imx6sx-sai";
 		reg = <0x0 0x308b0000 0x0 0x10000>;
