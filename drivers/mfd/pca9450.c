@@ -234,6 +234,13 @@ static int pca9450_i2c_probe(struct i2c_client *i2c,
 			__func__);
 		goto err;
 	}
+
+	ret = pca9450_reg_write(pca9450, PCA9450_CONFIG2, 11);
+	if (ret < 0) {
+                dev_err(pca9450->dev, "%s(): write PCA9450_CONFIG2 failed!\n",
+                        __func__);
+                goto err;
+        }
 	dev_info(pca9450->dev, "Device ID=0x%X\n", ret);
 
 	pca9450_irq_init(pca9450, of_pmic_plat_data);
@@ -292,6 +299,7 @@ static int __init pca9450_i2c_init(void)
 }
 /* init early so consumer devices can complete system boot */
 subsys_initcall(pca9450_i2c_init);
+
 
 static void __exit pca9450_i2c_exit(void)
 {
