@@ -203,7 +203,7 @@
 
 &pfc {
 	avb_pins: avb {
-		groups = "avb_mdio", "avb_gmii_tx_rx";
+		groups = "avb_mdio", "avb_gmii_tx_rx", "avb_phy_int";
 		function = "avb";
 	};
 
