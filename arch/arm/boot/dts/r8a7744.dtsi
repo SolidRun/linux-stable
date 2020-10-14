@@ -752,6 +752,18 @@
 			dma-channels = <15>;
 		};
 
+		ether: ethernet@ee700000 {
+			compatible = "renesas,ether-r8a7744";
+			reg = <0 0xee700000 0 0x400>;
+			interrupts = <0 162 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 813>;
+			power-domains = <&sysc R8A7744_PD_ALWAYS_ON>;
+			phy-mode = "rmii";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "disabled";
+		};
+
 		avb: ethernet@e6800000 {
 			compatible = "renesas,etheravb-r8a7744",
 				     "renesas,etheravb-rcar-gen2";
