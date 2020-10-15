@@ -390,6 +390,10 @@
 
 &usbphy {
 	status = "okay";
+	renesas,id-gpio = <&gpio4 6 GPIO_ACTIVE_LOW>;
+	renesas,vbus-gpio = <&gpio5 25 GPIO_ACTIVE_LOW>;
+	renesas,vbus-pwr-gpio = <&gpio5 24 GPIO_ACTIVE_LOW>;
+	renesas,wakeup;
 };
 
 &vin1 {
