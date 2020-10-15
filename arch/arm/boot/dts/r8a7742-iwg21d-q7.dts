@@ -233,8 +233,17 @@
 		pwms = <&tpu 1 5000000 GPIO_ACTIVE_HIGH>;
 		brightness-levels = <0 4 8 16 32 64 128 255>;
 		default-brightness-level = <7>;
+		power-supply = <&vcc_fan>;
 		pinctrl-0 = <&fan_pins>;
 		pinctrl-names = "default";
+	};
+
+	vcc_fan: regulator@6 {
+		compatible = "regulator-fixed";
+		regulator-name = "fan vcc";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-always-on;
 	};
 };
 
