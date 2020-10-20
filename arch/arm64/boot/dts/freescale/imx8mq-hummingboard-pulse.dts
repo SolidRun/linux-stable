@@ -40,42 +40,6 @@
 	pinctrl-0 = <&pinctrl_i2c2>;
 	clock-frequency = <100000>;
 	status = "okay";
-
-	typec_ptn5100: usb-typec@50 {
-		compatible = "nxp,ptn5110";
-		reg = <0x50>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_typec>;
-		interrupt-parent = <&gpio1>;
-		interrupts = <6 IRQ_TYPE_LEVEL_LOW>;
-
-		connector {
-			compatible = "usb-c-connector";
-			label = "USB-C";
-			data-role = "dual";
-			power-role = "dual";
-			try-power-role = "sink";
-			source-pdos = <PDO_FIXED(5000, 2000,
-						 PDO_FIXED_USB_COMM |
-						 PDO_FIXED_SUSPEND |
-						 PDO_FIXED_EXTPOWER)>;
-			sink-pdos = <PDO_FIXED(5000, 2000,
-					       PDO_FIXED_USB_COMM |
-					       PDO_FIXED_SUSPEND |
-					       PDO_FIXED_EXTPOWER)
-				     PDO_FIXED(9000, 2000,
-					       PDO_FIXED_USB_COMM |
-					       PDO_FIXED_SUSPEND |
-					       PDO_FIXED_EXTPOWER)>;
-			op-sink-microwatt = <9000000>;
-
-			port {
-				typec1_dr_sw: endpoint {
-					remote-endpoint = <&usb1_drd_sw>;
-				};
-			};
-		};
-	};
 };
 
 &i2c3 {
@@ -128,14 +92,8 @@
 };
 
 &usb_dwc3_0 {
-	dr_mode = "otg";
+	dr_mode = "host";
 	status = "okay";
-
-	port {
-		usb1_drd_sw: endpoint {
-			remote-endpoint = <&typec1_dr_sw>;
-		};
-	};
 };
 
 &usb_dwc3_1 {
@@ -183,13 +141,6 @@
 		fsl,pins = <
 			MX8MQ_IOMUXC_I2C3_SCL_I2C3_SCL		0x4000007f
 			MX8MQ_IOMUXC_I2C3_SDA_I2C3_SDA		0x4000007f
-		>;
-	};
-
-	pinctrl_typec: typecgrp {
-		fsl,pins = <
-			MX8MQ_IOMUXC_NAND_RE_B_GPIO3_IO15	0x16
-			MX8MQ_IOMUXC_GPIO1_IO06_GPIO1_IO6	0x17059
 		>;
 	};
 
