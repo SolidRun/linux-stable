@@ -298,6 +298,7 @@
 			bus-width = <8>;
 			data-shift = <8>;
 			bus-type = <6>;
+			ycbcr_8b_g_enable;
 		};
 	};
 };
