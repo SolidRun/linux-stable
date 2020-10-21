@@ -54,6 +54,17 @@
 		pinctrl-0 = <&pinctrl_usb1_vbus>;
 	};
 
+	micro_hdmi: micro-hdmi {
+		compatible = "hdmi-connector";
+		type = "d";
+
+		port@0 {
+			micro_hdmi_in: endpoint {
+				remote-endpoint = <&adv_bridge_out>;
+			};
+		};
+	};
+
 	sound-wm8904 {
 		compatible = "simple-audio-card";
 		simple-audio-card,name = "wm8904-audio";
@@ -130,6 +141,37 @@
 		reg = <0x69>;
 		abracon,tc-diode = "schottky";
 		abracon,tc-resistor = <3>;
+	};
+
+	adv_bridge: adv7535@39 {
+		compatible = "adi,adv7535";
+		reg = <0x39>;
+		adi,addr-cec = <0x3c>;
+		adi,dsi-lanes = <4>;
+		adi,addr-edid = <0x3b>;
+		pinctrl-0 = <&pinctrl_i2c3_dsi_ts_int>;
+		interrupt-parent = <&gpio5>;
+		interrupts = <7 IRQ_TYPE_LEVEL_LOW>;
+		status = "okay";
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+				adv_bridge_in: endpoint {
+					remote-endpoint = <&mipi_dsi_out>;
+				};
+			};
+
+			port@1 {
+				reg = <1>;
+				adv_bridge_out: endpoint {
+					remote-endpoint = <&micro_hdmi_in>;
+				};
+			};
+		};
 	};
 
 	/* add i2c devices on mikrobus header here */
@@ -213,6 +255,12 @@
 		fsl,pins = <
 			MX8MQ_IOMUXC_I2C3_SCL_I2C3_SCL		0x4000007f
 			MX8MQ_IOMUXC_I2C3_SDA_I2C3_SDA		0x4000007f
+		>;
+	};
+
+	pinctrl_i2c3_dsi_ts_int: i2c3dsitsintgrp {
+		fsl,pins = <
+			MX8MQ_IOMUXC_ECSPI1_MOSI_GPIO5_IO7		0x19
 		>;
 	};
 
@@ -373,6 +421,56 @@
 	port@1 {
 		hdmi_in: endpoint {
 			remote-endpoint = <&dcss_out>;
+		};
+	};
+};
+
+&lcdif {
+	status = "okay";
+	//max-memory-bandwidth = <187500000>; /* 1.5Gbps in Bps, according to Reference Manual */
+	assigned-clocks = <&clk IMX8MQ_CLK_LCDIF_PIXEL>,
+			  <&clk IMX8MQ_VIDEO_PLL1_BYPASS>,
+			  <&clk IMX8MQ_VIDEO_PLL1_REF_SEL>,
+			  <&clk IMX8MQ_VIDEO_PLL1>;
+	assigned-clock-parents = <&clk IMX8MQ_VIDEO_PLL1_OUT>,
+				 <&clk IMX8MQ_VIDEO_PLL1>,
+				 <&clk IMX8MQ_CLK_27M>;
+	assigned-clock-rate = <126000000>, <0>, <0>, <1134000000>;
+
+	port@0 {
+		lcdif_out: endpoint {
+			remote-endpoint = <&mipi_dsi_in>;
+		};
+	};
+};
+
+&irqsteer {
+	status = "okay";
+};
+
+&dphy {
+	status = "okay";
+};
+
+&mipi_dsi {
+	status = "okay";
+
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@0 {
+			reg = <0>;
+			mipi_dsi_in: endpoint {
+				remote-endpoint = <&lcdif_out>;
+			};
+		};
+
+		port@1 {
+			reg = <1>;
+			mipi_dsi_out: endpoint {
+				remote-endpoint = <&adv_bridge_in>;
+			};
 		};
 	};
 };
