@@ -3086,7 +3086,7 @@ static const unsigned int scifa2_ctrl_mux[] = {
 };
 static const unsigned int scifa2_data_b_pins[] = {
 	/* RXD, TXD */
-	RCAR_GP_PIN(5, 13), RCAR_GP_PIN(5, 16),
+	RCAR_GP_PIN(5, 17), RCAR_GP_PIN(5, 16),
 };
 static const unsigned int scifa2_data_b_mux[] = {
 	SCIFA2_RXD_B_MARK, SCIFA2_TXD_B_MARK,
