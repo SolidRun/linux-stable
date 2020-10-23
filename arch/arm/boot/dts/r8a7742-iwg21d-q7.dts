@@ -462,6 +462,10 @@
 	status = "okay";
 };
 
+&tmu1 {
+	status = "okay";
+};
+
 &sdhi2 {
 	pinctrl-0 = <&sdhi2_pins>;
 	pinctrl-1 = <&sdhi2_pins_uhs>;
