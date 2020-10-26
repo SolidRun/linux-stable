@@ -137,6 +137,31 @@
 		function = "i2c3";
 	};
 
+	pwm0_pins: pwm0 {
+		groups = "pwm0";
+		function = "pwm0";
+	};
+
+	pwm3_pins: pwm3 {
+		groups = "pwm3";
+		function = "pwm3";
+	};
+
+	pwm4_pins: pwm4 {
+		groups = "pwm4";
+		function = "pwm4";
+	};
+
+	pwm5_pins: pwm5 {
+		groups = "pwm5";
+		function = "pwm5";
+	};
+
+	pwm6_pins: pwm6 {
+		groups = "pwm6";
+		function = "pwm6";
+	};
+
 	scif0_pins: scif0 {
 		groups = "scif0_data";
 		function = "scif0";
@@ -171,6 +196,41 @@
 		groups = "vin3_data8", "vin3_clk", "vin3_sync";
 		function = "vin3";
 	};
+};
+
+&pwm0 {
+	pinctrl-0 = <&pwm0_pins>;
+	pinctrl-names = "default";
+
+	status = "okay";
+};
+
+&pwm3 {
+	pinctrl-0 = <&pwm3_pins>;
+	pinctrl-names = "default";
+
+	status = "okay";
+};
+
+&pwm4 {
+	pinctrl-0 = <&pwm4_pins>;
+	pinctrl-names = "default";
+
+	status = "okay";
+};
+
+&pwm5 {
+	pinctrl-0 = <&pwm5_pins>;
+	pinctrl-names = "default";
+
+	status = "okay";
+};
+
+&pwm6 {
+	pinctrl-0 = <&pwm6_pins>;
+	pinctrl-names = "default";
+
+	status = "okay";
 };
 
 &scif0 {
