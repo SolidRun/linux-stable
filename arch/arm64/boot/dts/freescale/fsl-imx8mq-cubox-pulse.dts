@@ -1,0 +1,13 @@
+// SPDX-License-Identifier: (GPL-2.0 OR MIT)
+//
+// Device Tree file for i.MX8MQ Cubox Pulse
+//
+// Copyright 2020 Josua Mayer <josua@solid-run.com>
+
+/dts-v1/;
+
+#include "imx8mq-cubox-pulse.dts"
+
+/ {
+	model = "SolidRun i.MX8MQ CuBox Pulse";
+};
