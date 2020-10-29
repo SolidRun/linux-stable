@@ -2,6 +2,9 @@
 ch7006-y := ch7006_drv.o ch7006_mode.o
 obj-$(CONFIG_DRM_I2C_CH7006) += ch7006.o
 
+ch7036-y := ch7036_drv.o
+obj-$(CONFIG_DRM_I2C_CH7036) += ch7036.o
+
 sil164-y := sil164_drv.o
 obj-$(CONFIG_DRM_I2C_SIL164) += sil164.o
 
