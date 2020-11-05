@@ -161,6 +161,14 @@
 	};
 };
 
+&gpio4 {
+	touch-interrupt {
+		gpio-hog;
+		gpios = <4 GPIO_ACTIVE_LOW>;
+		input;
+	};
+};
+
 &hscif1 {
 	pinctrl-0 = <&hscif1_pins>;
 	pinctrl-names = "default";
