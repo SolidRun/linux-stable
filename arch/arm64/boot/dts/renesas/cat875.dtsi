@@ -29,10 +29,14 @@
 	};
 };
 
-&can0 {
-	pinctrl-0 = <&can0_pins>;
+&canfd {
+	pinctrl-0 = <&canfd_pins>;
 	pinctrl-names = "default";
 	status = "okay";
+
+	channel0 {
+		status = "okay";
+	};
 };
 
 &can1 {
@@ -53,9 +57,11 @@
 		};
 	};
 
-	can0_pins: can0 {
-		groups = "can0_data";
-		function = "can0";
+	canfd_pins: canfd {
+		channel0 {
+			groups = "canfd0_data";
+			function = "canfd0";
+		};
 	};
 
 	can1_pins: can1 {
