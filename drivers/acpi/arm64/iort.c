@@ -12,6 +12,7 @@
 
 #include <linux/acpi_iort.h>
 #include <linux/bitfield.h>
+#include <linux/dma-iommu.h>
 #include <linux/iommu.h>
 #include <linux/kernel.h>
 #include <linux/list.h>
@@ -844,6 +845,63 @@ static inline int iort_add_device_replay(struct device *dev)
 }
 
 /**
+ * iort_iommu_get_rmrs - Helper to retrieve RMR info associated with IOMMU
+ * @iommu: fwnode for the IOMMU
+ * @head: RMR list head to be populated
+ *
+ * Returns: 0 on success, <0 failure
+ */
+int iort_iommu_get_rmrs(struct fwnode_handle *iommu_fwnode,
+			struct list_head *head)
+{
+	struct iort_rmr_entry *e;
+	struct acpi_iort_node *iommu;
+
+	iommu = iort_get_iort_node(iommu_fwnode);
+	if (!iommu)
+		return 0;
+
+	list_for_each_entry(e, &iort_rmr_list, list) {
+		struct iort_rmr_id *rmr_ids = e->rmr_ids;
+		struct acpi_iort_rmr_desc *rmr_desc;
+		struct iommu_rmr *rmr;
+		u32 *ids, num_ids = 0;
+		int i, j = 0;
+
+		for (i = 0; i < e->rmr_ids_num; i++) {
+			if (rmr_ids[i].smmu == iommu)
+				num_ids++;
+		}
+
+		if (!num_ids)
+			continue;
+
+		ids = kmalloc_array(num_ids, sizeof(*ids), GFP_KERNEL);
+		if (!ids)
+			return -ENOMEM;
+
+		for (i = 0; i < e->rmr_ids_num; i++) {
+			if (rmr_ids[i].smmu == iommu)
+				ids[j++] = rmr_ids[i].sid;
+		}
+
+		rmr_desc = e->rmr_desc;
+		rmr = iommu_dma_alloc_rmr(rmr_desc->base_address,
+					  rmr_desc->length,
+					  ids, num_ids);
+		if (!rmr) {
+			kfree(ids);
+			return -ENOMEM;
+		}
+
+		list_add_tail(&rmr->list, head);
+		kfree(ids);
+	}
+
+	return 0;
+}
+
+/**
  * iort_iommu_msi_get_resv_regions - Reserved region driver helper
  * @dev: Device from iommu_get_resv_regions()
  * @head: Reserved region list from iommu_get_resv_regions()
@@ -1113,6 +1171,8 @@ int iort_iommu_msi_get_resv_regions(struct device *dev, struct list_head *head)
 const struct iommu_ops *iort_iommu_configure_id(struct device *dev,
 						const u32 *input_id)
 { return NULL; }
+int iort_iommu_get_rmrs(struct fwnode_handle *fwnode, struct list_head *head)
+{ return 0; }
 #endif
 
 static int nc_dma_get_range(struct device *dev, u64 *size)
