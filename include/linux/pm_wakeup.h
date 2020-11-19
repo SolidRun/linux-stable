@@ -176,6 +176,11 @@ static inline bool device_wakeup_path(struct device *dev)
 	return false;
 }
 
+static inline bool device_wakeup_path(struct device *dev)
+{
+	return false;
+}
+
 static inline void device_set_wakeup_path(struct device *dev) {}
 
 static inline void __pm_stay_awake(struct wakeup_source *ws) {}
