@@ -40,6 +40,25 @@ struct iort_fwnode {
 static LIST_HEAD(iort_fwnode_list);
 static DEFINE_SPINLOCK(iort_fwnode_lock);
 
+struct iort_rmr_id {
+	u32  sid;
+	struct acpi_iort_node *smmu;
+};
+
+/*
+ * One entry for IORT RMR.
+ */
+struct iort_rmr_entry {
+	struct list_head list;
+
+	unsigned int rmr_ids_num;
+	struct iort_rmr_id *rmr_ids;
+
+	struct acpi_iort_rmr_desc *rmr_desc;
+};
+
+static LIST_HEAD(iort_rmr_list);         /* list of RMR regions from ACPI */
+
 /**
  * iort_set_fwnode() - Create iort_fwnode and use it to register
  *		       iommu data in the iort_fwnode_list
@@ -393,7 +412,8 @@ static struct acpi_iort_node *iort_node_get_id(struct acpi_iort_node *node,
 		if (node->type == ACPI_IORT_NODE_NAMED_COMPONENT ||
 		    node->type == ACPI_IORT_NODE_PCI_ROOT_COMPLEX ||
 		    node->type == ACPI_IORT_NODE_SMMU_V3 ||
-		    node->type == ACPI_IORT_NODE_PMCG) {
+		    node->type == ACPI_IORT_NODE_PMCG ||
+		    node->type == ACPI_IORT_NODE_RMR) {
 			*id_out = map->output_base;
 			return parent;
 		}
@@ -1659,6 +1679,103 @@ static void __init iort_enable_acs(struct acpi_iort_node *iort_node)
 #else
 static inline void iort_enable_acs(struct acpi_iort_node *iort_node) { }
 #endif
+static int iort_rmr_desc_valid(struct acpi_iort_rmr_desc *desc)
+{
+	struct iort_rmr_entry *e;
+	u64 end, start = desc->base_address, length = desc->length;
+
+	if (!IS_ALIGNED(start, SZ_64K) || !IS_ALIGNED(length, SZ_64K))
+		return -EINVAL;
+
+	end = start + length - 1;
+
+	/* Check for address overlap */
+	list_for_each_entry(e, &iort_rmr_list, list) {
+		u64 e_start = e->rmr_desc->base_address;
+		u64 e_end = e_start + e->rmr_desc->length - 1;
+
+		if (start <= e_end && end >= e_start)
+			return -EINVAL;
+	}
+
+	return 0;
+}
+
+static int __init iort_parse_rmr(struct acpi_iort_node *iort_node)
+{
+	struct iort_rmr_id *rmr_ids, *ids;
+	struct iort_rmr_entry *e;
+	struct acpi_iort_rmr *rmr;
+	struct acpi_iort_rmr_desc *rmr_desc;
+	u32 map_count = iort_node->mapping_count;
+	int i, ret = 0, desc_count = 0;
+
+	if (iort_node->type != ACPI_IORT_NODE_RMR)
+		return 0;
+
+	if (!iort_node->mapping_offset || !map_count) {
+		pr_err(FW_BUG "Invalid ID mapping, skipping RMR node %p\n",
+		       iort_node);
+		return -EINVAL;
+	}
+
+	rmr_ids = kmalloc(sizeof(*rmr_ids) * map_count, GFP_KERNEL);
+	if (!rmr_ids)
+		return -ENOMEM;
+
+	/* Retrieve associated smmu and stream id */
+	ids = rmr_ids;
+	for (i = 0; i < map_count; i++, ids++) {
+		ids->smmu = iort_node_get_id(iort_node, &ids->sid, i);
+		if (!ids->smmu) {
+			pr_err(FW_BUG "Invalid SMMU reference, skipping RMR node %p\n",
+			       iort_node);
+			ret = -EINVAL;
+			goto out;
+		}
+	}
+
+	/* Retrieve RMR data */
+	rmr = (struct acpi_iort_rmr *)iort_node->node_data;
+	if (!rmr->rmr_offset || !rmr->rmr_count) {
+		pr_err(FW_BUG "Invalid RMR descriptor array, skipping RMR node %p\n",
+		       iort_node);
+		ret = -EINVAL;
+		goto out;
+	}
+
+	rmr_desc = ACPI_ADD_PTR(struct acpi_iort_rmr_desc, iort_node,
+				rmr->rmr_offset);
+
+	for (i = 0; i < rmr->rmr_count; i++, rmr_desc++) {
+		ret = iort_rmr_desc_valid(rmr_desc);
+		if (ret) {
+			pr_err(FW_BUG "Invalid RMR descriptor[%d] for node %p, skipping...\n",
+			       i, iort_node);
+			goto out;
+		}
+
+		e = kmalloc(sizeof(*e), GFP_KERNEL);
+		if (!e) {
+			ret = -ENOMEM;
+			goto out;
+		}
+
+		e->rmr_ids_num = map_count;
+		e->rmr_ids = rmr_ids;
+		e->rmr_desc = rmr_desc;
+
+		list_add_tail(&e->list, &iort_rmr_list);
+		desc_count++;
+	}
+
+	return 0;
+
+out:
+	if (!desc_count)
+		kfree(rmr_ids);
+	return ret;
+}
 
 static void __init iort_init_platform_devices(void)
 {
@@ -1687,6 +1804,9 @@ static void __init iort_init_platform_devices(void)
 		}
 
 		iort_enable_acs(iort_node);
+
+		if (iort_table->revision == 1)
+			iort_parse_rmr(iort_node);
 
 		ops = iort_get_dev_cfg(iort_node);
 		if (ops) {
