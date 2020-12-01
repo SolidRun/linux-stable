@@ -10,6 +10,10 @@
 #include "hihope-common.dtsi"
 
 / {
+	aliases {
+		spi0 = &msiof0;
+	};
+
 	leds {
 		compatible = "gpio-leds";
 
@@ -61,6 +65,12 @@
 		groups = "audio_clk_a_a";
 		function = "audio_clk";
 	};
+
+	msiof0_pins: spi0 {
+		groups = "msiof0_clk", "msiof0_sync",
+			 "msiof0_rxd", "msiof0_txd";
+		function = "msiof0";
+	};
 };
 
 &rcar_sound {
@@ -83,4 +93,11 @@
 			playback = <&ssi2>;
 		};
 	};
+};
+
+&msiof0 {
+	pinctrl-0 = <&msiof0_pins>;
+	pinctrl-names = "default";
+
+	status = "okay";
 };
