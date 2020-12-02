@@ -325,6 +325,27 @@
 		clock-frequency = <0>;
 	};
 
+	gsx_opp0: gsx_opp_table0 {
+		compatible = "operating-points-v2";
+
+		opp-200000000 {
+			opp-hz = /bits/ 64 <200000000>;
+			opp-microvolt = <820000>;
+		};
+		opp-300000000 {
+			opp-hz = /bits/ 64 <300000000>;
+			opp-microvolt = <820000>;
+		};
+		opp-400000000 {
+			opp-hz = /bits/ 64 <400000000>;
+			opp-microvolt = <820000>;
+		};
+		opp-600000000 {
+			opp-hz = /bits/ 64 <600000000>;
+			opp-microvolt = <820000>;
+		};
+	};
+
 	soc {
 		compatible = "simple-bus";
 		interrupt-parent = <&gic>;
@@ -2435,6 +2456,16 @@
 			clock-names = "clk";
 			power-domains = <&sysc R8A774E1_PD_ALWAYS_ON>;
 			resets = <&cpg 408>;
+		};
+
+		gsx: gsx@fd000000 {
+			compatible = "renesas,gsx";
+			reg = <0 0xfd000000 0 0x40000>;
+			interrupts = <GIC_SPI 119 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 112>;
+			operating-points-v2 = <&gsx_opp0>;
+			power-domains = <&sysc R8A774E1_PD_3DG_E>;
+			resets = <&cpg 112>;
 		};
 
 		pciec0: pcie@fe000000 {
