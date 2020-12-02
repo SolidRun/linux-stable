@@ -12,7 +12,8 @@ following device-specific properties.
 Required properties:
 
 - compatible : Shall contain one or more of
-  - "renesas,r8a774a1-hdmi" for R8A774A1 (RZ/G2M) compatible HDMI TX
+  - "renesas,r8a774a1-hdmi" for R8A774A1 (RZ/G2M v1.3) compatible HDMI TX
+  - "renesas,r8a774a3-hdmi" for R8A774A3 (RZ/G2M v3.0) compatible HDMI TX
   - "renesas,r8a774b1-hdmi" for R8A774B1 (RZ/G2N) compatible HDMI TX
   - "renesas,r8a774e1-hdmi" for R8A774E1 (RZ/G2H) compatible HDMI TX
   - "renesas,r8a7795-hdmi" for R8A7795 (R-Car H3) compatible HDMI TX
