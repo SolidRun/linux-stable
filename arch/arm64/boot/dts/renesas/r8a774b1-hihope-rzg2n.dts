@@ -36,7 +36,7 @@
 		};
 
 		/* global autoconfigured region for contiguous allocations */
-		linux,cma@58000000 {
+		global_cma: linux,cma@58000000 {
 			compatible = "shared-dma-pool";
 			reusable;
 			reg = <0x00000000 0x58000000 0x0 0x20000000>;
@@ -82,4 +82,24 @@
 
 &vspi0 {
 	status = "okay";
+};
+
+&xhci0 {
+	memory-region = <&global_cma>;
+};
+
+&ehci0 {
+	memory-region = <&global_cma>;
+};
+
+&ohci0 {
+	memory-region = <&global_cma>;
+};
+
+&ehci1 {
+	memory-region = <&global_cma>;
+};
+
+&ohci1 {
+	memory-region = <&global_cma>;
 };
