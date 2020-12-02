@@ -2206,13 +2206,15 @@
 		};
 
 		fdp0: fdpm@fe940000 {
+			compatible = "renesas,fdpm";
 			reg = <0 0xfe940000 0 0x2400>, <0 0xfe950000 0 0x200>;
-			/* placeholder */
-		};
-
-		fcpf0: fcp@fe950000 {
-			reg = <0 0xfe950000 0 0x200>;
-			/* placeholder */
+			interrupts = <GIC_SPI 262 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 119>, <&cpg CPG_MOD 615>;
+			clock-names = "fdp", "fcp";
+			power-domains = <&sysc R8A774A3_PD_A3VC>;
+			resets = <&cpg 119>, <&cpg 615>;
+			reset-names = "fdp", "fcp";
+			renesas,#ch = <0>;
 		};
 
 		fcpvb0: fcp@fe96f000 {
