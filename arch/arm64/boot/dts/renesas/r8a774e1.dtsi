@@ -500,6 +500,11 @@
 			reg = <0 0xe6060000 0 0x50c>;
 		};
 
+		qos@e67e0000 {
+			compatible = "renesas,qos";
+			reg = <0 0xe67e0000 0 0x10090>;
+		};
+
 		cmt0: timer@e60f0000 {
 			compatible = "renesas,r8a774e1-cmt0",
 				     "renesas,rcar-gen3-cmt0";
