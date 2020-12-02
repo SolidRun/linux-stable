@@ -621,6 +621,26 @@
 			resets = <&cpg 407>;
 		};
 
+		mfis_ecc: mfis@e6260000 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			compatible = "renesas,mfis-ecc-r8a774e1";
+			reg = <0 0xe6260000 0 0x1000>;
+			interrupts =	<GIC_SPI 409 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 410 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 411 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 412 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 413 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 414 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 415 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 307 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 295 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 300 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 31 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 221 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 446 IRQ_TYPE_LEVEL_HIGH>;
+		};
+
 		tmu0: timer@e61e0000 {
 			compatible = "renesas,tmu-r8a774e1", "renesas,tmu";
 			reg = <0 0xe61e0000 0 0x30>;
