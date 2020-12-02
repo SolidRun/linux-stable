@@ -72,21 +72,9 @@
 		groups = "audio_clk_a_a", "audio_clk_b_a", "audio_clkout_a";
 		function = "audio_clk";
 	};
-
-	sound_pins: sound {
-		groups = "ssi01239_ctrl", "ssi0_data", "ssi1_data_a";
-		function = "ssi";
-	};
 };
 
 &rcar_sound {
-	pinctrl-0 = <&sound_pins &sound_clk_pins>;
-	pinctrl-names = "default";
-	status = "okay";
-
-	/* Single DAI */
-	#sound-dai-cells = <0>;
-
 	/* audio_clkout0/1/2/3 */
 	#clock-cells = <1>;
 	clock-frequency = <12288000 11289600>;
@@ -109,16 +97,4 @@
 		 <&audio_clk_a>, <&cs2000>,
 		 <&audio_clk_c>,
 		 <&cpg CPG_CORE CPG_AUDIO_CLK_I>;
-
-	rsnd_port: port {
-		rsnd_endpoint: endpoint {
-			remote-endpoint = <&dw_hdmi0_snd_in>;
-
-			dai-format = "i2s";
-			bitclock-master = <&rsnd_endpoint>;
-			frame-master = <&rsnd_endpoint>;
-
-			playback = <&ssi2>;
-		};
-	};
 };
