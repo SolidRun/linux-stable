@@ -2763,7 +2763,7 @@
 
 			trips {
 				sensor1_crit: sensor1-crit {
-					temperature = <120000>;
+					temperature = <110000>;
 					hysteresis = <1000>;
 					type = "critical";
 				};
@@ -2778,7 +2778,7 @@
 
 			trips {
 				sensor2_crit: sensor2-crit {
-					temperature = <120000>;
+					temperature = <110000>;
 					hysteresis = <1000>;
 					type = "critical";
 				};
@@ -2813,7 +2813,7 @@
 				};
 
 				sensor3_crit: sensor3-crit {
-					temperature = <120000>;
+					temperature = <110000>;
 					hysteresis = <1000>;
 					type = "critical";
 				};
