@@ -60,3 +60,23 @@
 		compatible = "renesas,mmngrbuf";
 	};
 };
+
+&xhci0 {
+	memory-region = <&global_cma>;
+};
+
+&ehci0 {
+	memory-region = <&global_cma>;
+};
+
+&ohci0 {
+	memory-region = <&global_cma>;
+};
+
+&ehci1 {
+	memory-region = <&global_cma>;
+};
+
+&ohci1 {
+	memory-region = <&global_cma>;
+};
