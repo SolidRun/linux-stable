@@ -72,6 +72,14 @@
 		      "dclkin.0", "dclkin.1", "dclkin.2";
 };
 
+&vspb {
+	status = "okay";
+};
+
+&vspi0 {
+	status = "okay";
+};
+
 &xhci0 {
 	memory-region = <&global_cma>;
 };
