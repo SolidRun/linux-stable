@@ -500,6 +500,7 @@ config SOC_IMX6
 	select HAVE_IMX_SRC
 	select MFD_SYSCON
 	select PL310_ERRATA_769419 if CACHE_L2X0
+	select HAVE_IMX_BUSFREQ
 
 config SOC_IMX6Q
 	bool "i.MX6 Quad/DualLite support"
