@@ -1,0 +1,232 @@
+/*
+ * Device Tree file for SolidRun HummingBoard2
+ * Copyright (C) 2015 Rabeeh Khoury <rabeeh@solid-run.com>
+ * Based on work by Russell King
+ *
+ * This file is dual-licensed: you can use it either under the terms
+ * of the GPL or the X11 license, at your option. Note that this dual
+ * licensing only applies to this file, and not this project as a
+ * whole.
+ *
+ *  a) This file is free software; you can redistribute it and/or
+ *     modify it under the terms of the GNU General Public License as
+ *     published by the Free Software Foundation; either version 2 of the
+ *     License.
+ *
+ *     This file is distributed in the hope that it will be useful
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU General Public License for more details.
+ *
+ * Or, alternatively
+ *
+ *  b) Permission is hereby granted, free of charge, to any person
+ *     obtaining a copy of this software and associated documentation
+ *     files (the "Software"), to deal in the Software without
+ *     restriction, including without limitation the rights to use
+ *     copy, modify, merge, publish, distribute, sublicense, and/or
+ *     sell copies of the Software, and to permit persons to whom the
+ *     Software is furnished to do so, subject to the following
+ *     conditions:
+ *
+ *     The above copyright notice and this permission notice shall be
+ *     included in all copies or substantial portions of the Software.
+ *
+ *     THE SOFTWARE IS PROVIDED , WITHOUT WARRANTY OF ANY KIND
+ *     EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ *     OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ *     NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ *     HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY
+ *     WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ *     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ *     OTHER DEALINGS IN THE SOFTWARE.
+ */
+/*
+&gpio1 {
+	rs485a_invr {
+		gpio-hog;
+		gpios = <0 GPIO_ACTIVE_LOW>;
+		output-low;
+		line-name "rs485a-invr";
+	};
+
+	rs485a_invd {
+		gpio-hog;
+		gpios = <1 GPIO_ACTIVE_LOW>;
+		output-low;
+		line-name "rs485a-invd";
+	};
+
+	rs485a_vsel {
+		gpio-hog;
+		gpios = <3 GPIO_ACTIVE_LOW>;
+		line-name "rs485a-vsel";
+	};
+
+	rs485b_invr {
+		gpio-hog;
+		gpios = <7 GPIO_ACTIVE_LOW>;
+		output-low;
+		line-name "rs485b-invr";
+	};
+};
+
+&gpio2 {
+	rs485b_invd {
+		gpio-hog;
+		gpios = <8 GPIO_ACTIVE_LOW>;
+		output-low;
+		line-name "rs485b-invd";
+	};
+
+	rs485b_vsel {
+		gpio-hog;
+		gpios = <9 GPIO_ACTIVE_LOW>;
+		output-low;
+		line-name "rs486b-vsel";
+	};
+};
+*/
+
+&gpio3 {
+	ublox_3v3_en {
+		gpio-hog;
+		gpios = <16 GPIO_ACTIVE_LOW>;
+		output-low;
+		line-name = "ublox-3v3-en";
+	};
+
+	ublox_reset {
+		gpio-hog;
+		gpios = <15 GPIO_ACTIVE_LOW>;
+		output-low;
+		line-name = "ublox-reset";
+	};
+};
+
+&i2c3 {
+	expander1: gpio-expander@21 {
+		compatible = "ti,tca6408";
+		gpio-controller;
+		#gpio-cells = <2>;
+		reg = <0x21>;
+	};
+};
+
+&iomuxc {
+	solidsense {
+		pinctrl_solidsense_uart2: solidsense-uart2 {
+			fsl,pins = <
+				MX6QDL_PAD_SD4_DAT7__UART2_TX_DATA 0x1b0b0
+				MX6QDL_PAD_SD4_DAT4__UART2_RX_DATA 0x1b0b0
+			>;
+		};
+
+		pinctrl_solidsense_uart2_rtscts: solidsense-uart2-rtscts {
+			fsl,pins = <
+				MX6QDL_PAD_SD4_DAT5__UART2_RTS_B 0x1b0b0
+				MX6QDL_PAD_SD4_DAT6__UART2_CTS_B 0x1b0b0
+			>;
+		};
+
+		pinctrl_solidsense_uart3: solidsense-uart3 {
+			fsl,pins = <
+				MX6QDL_PAD_EIM_D24__UART3_TX_DATA 0x1b0b0
+				MX6QDL_PAD_EIM_D25__UART3_RX_DATA 0x1b0b0
+			>;
+		};
+
+		pinctrl_solidsense_uart3_rtscts: solidsense-uart3-rtscts {
+			fsl,pins = <
+				MX6QDL_PAD_EIM_D31__UART3_RTS_B 0x1b0b0
+				MX6QDL_PAD_EIM_D30__UART3_CTS_B 0x1b0b0
+			>;
+		};
+
+		pinctrl_solidsense_uart4: solidsense-uart4 {
+			fsl,pins = <
+				MX6QDL_PAD_KEY_COL0__UART4_TX_DATA 0x1b0b0
+				MX6QDL_PAD_KEY_ROW0__UART4_RX_DATA 0x1b0b0
+			>;
+		};
+
+		pinctrl_solidsense_uart4_gpio: solidsense-uart4-gpio {
+			fsl,pins = <
+				MX6QDL_PAD_EIM_D27__GPIO3_IO27 0x400130b1  /* Ublox addon SWDCLK */
+				MX6QDL_PAD_EIM_D26__GPIO3_IO26 0x400130b1  /* Ublox addon SWDIO */
+				MX6QDL_PAD_EIM_D23__GPIO3_IO23 0x400130b1  /* Ublox addon UART_WAKE */
+			>;
+		};
+
+		pinctrl_solidsense_ublox_reset: solidsense-ublox-reset {
+			fsl,pins = <
+				MX6QDL_PAD_EIM_DA15__GPIO3_IO15 0x400130b1 /* Ublox addon RESET */
+			>;
+		};
+
+		pinctrl_solidsense_ublox_power_enable: solidsense-ublox-power-enable {
+			fsl,pins = <
+				MX6QDL_PAD_EIM_D16__GPIO3_IO16 0x400130b1  /* Ublox addon PWR_EN */
+			>;
+		};
+
+		pinctrl_solidsense_flexcan1: solidsense-flexcan1 {
+			fsl,pins = <
+				MX6QDL_PAD_KEY_COL2__FLEXCAN1_TX 0x1b0b0
+				MX6QDL_PAD_KEY_ROW2__FLEXCAN1_RX 0x1b0b0
+			>;
+		};
+	};
+};
+
+&uart2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_solidsense_uart2 &pinctrl_solidsense_uart2_rtscts>;
+/*
+	uart-has-rtscts;
+	fsl,dce;
+	linux,rs485-enabled-at-boot-time;
+	rs485-rts-delay = <0 200>;
+*/
+	status = "okay";
+};
+
+&uart3 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_solidsense_uart3 &pinctrl_solidsense_uart3_rtscts>;
+/*
+	uart-has-rtscts;
+	fsl,dce;
+	linux,rs485-enabled-at-boot-time;
+	rs485-rts-delay = <0 200>;
+*/
+	status = "okay";
+};
+
+&uart4 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_solidsense_uart4 &pinctrl_solidsense_ublox_power_enable>;
+	status = "okay";
+	enable-gpios = <&gpio3 16 GPIO_ACTIVE_HIGH &gpio3 15 GPIO_ACTIVE_HIGH>;
+
+	bluetooth {
+		status = "disabled";
+	};
+};
+
+&ecspi2 {
+	num-cs = <2>;
+	status = "okay";
+
+	spidev0: spi@0 {
+		compatible = "analog,mp-ind-eth";
+		reg = <0>;
+		spi-max-frequency = <200000000>;
+	};
+
+	spidev1: spi@1 {
+		compatible = "analog,ad74413r";
+		reg = <1>;
+		spi-max-frequency = <200000000>;
+	};
+};

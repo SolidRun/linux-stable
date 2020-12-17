@@ -450,6 +450,7 @@ dtb-$(CONFIG_SOC_IMX6Q) += \
 	imx6dl-sabresd-pcie.dtb \
 	imx6dl-sabresd-pcie-ep.dtb \
 	imx6dl-savageboard.dtb \
+	imx6dl-solidsense-in6-emmc-som-v15.dtb \
 	imx6dl-ts4900.dtb \
 	imx6dl-ts7970.dtb \
 	imx6dl-tx6dl-comtft.dtb \
@@ -543,6 +544,7 @@ dtb-$(CONFIG_SOC_IMX6Q) += \
 	imx6q-sabresd-pcie-ep.dtb \
 	imx6q-savageboard.dtb \
 	imx6q-sbc6x.dtb \
+	imx6q-solidsense-in6-emmc-som-v15.dtb \
 	imx6q-tbs2910.dtb \
 	imx6q-ts4900.dtb \
 	imx6q-ts7970.dtb \
