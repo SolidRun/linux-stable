@@ -1584,6 +1584,48 @@ static int arm_smmu_of_xlate(struct device *dev, struct of_phandle_args *args)
 	return iommu_fwspec_add_ids(dev, &fwid, 1);
 }
 
+static bool arm_smmu_dev_has_rmr(struct arm_smmu_master_cfg *cfg,
+				 struct iommu_fwspec *fwspec,
+				 struct iommu_rmr *e)
+{
+	struct arm_smmu_device *smmu = cfg->smmu;
+	struct arm_smmu_smr *smrs = smmu->smrs;
+	int i, idx, j;
+
+	for_each_cfg_sme(cfg, fwspec, i, idx) {
+		for (j = 0; j < e->num_ids; j++) {
+			if (e->ids[j] == smrs[idx].id)
+				return true;
+		}
+	}
+
+	return false;
+}
+
+static void arm_smmu_rmr_get_resv_regions(struct device *dev,
+					  struct list_head *head)
+{
+	struct arm_smmu_master_cfg *cfg = dev_iommu_priv_get(dev);
+	struct iommu_fwspec *fwspec = dev_iommu_fwspec_get(dev);
+	struct arm_smmu_device *smmu = cfg->smmu;
+	struct iommu_rmr *rmr;
+
+	list_for_each_entry(rmr, &smmu->rmr_list, list) {
+		struct iommu_resv_region *region;
+		int prot = IOMMU_READ | IOMMU_WRITE | IOMMU_NOEXEC | IOMMU_MMIO;
+
+		if (!arm_smmu_dev_has_rmr(cfg, fwspec, rmr))
+			continue;
+		region = iommu_alloc_resv_region(rmr->base_address,
+						 rmr->length, prot,
+						 IOMMU_RESV_DIRECT);
+		if (!region)
+			return;
+
+		list_add_tail(&region->list, head);
+	}
+}
+
 static void arm_smmu_get_resv_regions(struct device *dev,
 				      struct list_head *head)
 {
@@ -1598,6 +1640,7 @@ static void arm_smmu_get_resv_regions(struct device *dev,
 	list_add_tail(&region->list, head);
 
 	iommu_dma_get_resv_regions(dev, head);
+	arm_smmu_rmr_get_resv_regions(dev, head);
 }
 
 static int arm_smmu_def_domain_type(struct device *dev)
