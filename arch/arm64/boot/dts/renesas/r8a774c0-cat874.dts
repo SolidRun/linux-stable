@@ -18,6 +18,17 @@
 			label = "LED2";
 		};
 	};
+
+	vbus0_usb2: regulator-vbus0-usb2 {
+		compatible = "regulator-fixed";
+
+		regulator-name = "USB20_VBUS_CN";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+
+		gpio = <&gpio6 5 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+	};
 };
 
 &sdhi1 {
@@ -52,10 +63,27 @@
 		function = "sdhi3";
 		power-source = <1800>;
 	};
+
+	usb0_pins: usb {
+		groups = "usb0_b", "usb0_id";
+		function = "usb0";
+	};
 };
 
 &hscif2 {
 	bluetooth {
 		enable-gpios = <&gpio0 17 GPIO_ACTIVE_HIGH>;
 	};
+};
+
+&usb2_phy0 {
+	pinctrl-0 = <&usb0_pins>;
+	pinctrl-names = "default";
+	vbus-supply = <&vbus0_usb2>;
+	status = "okay";
+};
+
+&hsusb {
+	dr_mode = "otg";
+	status = "okay";
 };
