@@ -75,17 +75,6 @@
 		regulator-always-on;
 	};
 
-	reg_usdhc1_wlen: regulator-usdhc1-wl-en {
-			compatible = "regulator-fixed";
-			regulator-name = "WLAN_EN";
-			regulator-min-microvolt = <3300000>;
-			regulator-max-microvolt = <3300000>;
-			gpio = <&gpio2 11 GPIO_ACTIVE_HIGH>;
-			off-on-delay = <20000>;
-			startup-delay-us = <100>;
-			enable-active-high;
-	};
-
 	reg_usdhc2_vmmc: regulator-usdhc2 {
 		compatible = "regulator-fixed";
 		regulator-name = "VSD_3V3";
@@ -170,6 +159,11 @@
 				     90 91 92 93 94 95 96 97 98 99
 				    100>;
 		default-brightness-level = <80>;
+	};
+
+	wifi_pwrseq: wifi-pwrseq {
+		compatible = "mmc-pwrseq-simple";
+		reset-gpios = <&gpio2 11 GPIO_ACTIVE_LOW>;
 	};
 };
 
@@ -684,7 +678,7 @@
 	pinctrl-2 = <&pinctrl_usdhc1_200mhz>, <&pinctrl_usdhc1_wifi>;
 	bus-width = <4>;
 	non-removable;
-	vmmc-supply = <&reg_usdhc1_wlen>;
+	mmc-pwrseq = <&wifi_pwrseq>;
 	cap-power-off-card;
 	status = "okay";
 	brcmf: brcmf@1 {
