@@ -123,6 +123,14 @@
 		>;
 	};
 
+	pinctrl_uart1_bt: uart1btgrp {
+		fsl,pins = <
+			MX8MM_IOMUXC_SD1_DATA4_GPIO2_IO6	0x41	/* bt-en */
+			MX8MM_IOMUXC_SD1_DATA6_GPIO2_IO8	0x111	/* bt-wake-host*/ 
+			MX8MM_IOMUXC_SD1_DATA5_GPIO2_IO7	0x41	/* bt-wake-device*/ 
+		>;
+	};
+
 	pinctrl_uart1: uart1grp {
 		fsl,pins = <
 			MX8MM_IOMUXC_UART1_RXD_UART1_DCE_RX	0x140
@@ -390,13 +398,22 @@
 };
 
 /* bluetooth */
-&uart1 { 
+&uart1 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_uart1>;
 	assigned-clocks = <&clk IMX8MM_CLK_UART1>;
 	assigned-clock-parents = <&clk IMX8MM_SYS_PLL1_80M>;
 	fsl,uart-has-rtscts;
 	status = "okay";
+
+	bluetooth {
+		compatible = "brcm,bcm4330-bt";
+		device-wakeup-gpios = <&gpio2 7 GPIO_ACTIVE_HIGH>;
+		host-wakeup-gpios = <&gpio2 8 GPIO_ACTIVE_HIGH>;
+		shutdown-gpios = <&gpio2 6 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_uart1_bt>;
+	};
 };
 
 /* console */
