@@ -75,7 +75,7 @@
 		regulator-always-on;
 	};
 
-	reg_sd1_vmmc: sd1_regulator {
+	reg_usdhc1_wlen: regulator-usdhc1-wl-en {
 			compatible = "regulator-fixed";
 			regulator-name = "WLAN_EN";
 			regulator-min-microvolt = <3300000>;
@@ -670,18 +670,19 @@
 	#address-cells = <1>;
 	#size-cells = <0>;
 	pinctrl-names = "default", "state_100mhz", "state_200mhz";
-	pinctrl-0 = <&pinctrl_usdhc1>, <&pinctrl_usdhc1_gpio>;
-	pinctrl-1 = <&pinctrl_usdhc1_100mhz>, <&pinctrl_usdhc1_gpio>;
-	pinctrl-2 = <&pinctrl_usdhc1_200mhz>, <&pinctrl_usdhc1_gpio>;
+	pinctrl-0 = <&pinctrl_usdhc1>, <&pinctrl_usdhc1_wifi>;
+	pinctrl-1 = <&pinctrl_usdhc1_100mhz>, <&pinctrl_usdhc1_wifi>;
+	pinctrl-2 = <&pinctrl_usdhc1_200mhz>, <&pinctrl_usdhc1_wifi>;
 	bus-width = <4>;
 	non-removable;
-	vmmc-supply = <&reg_sd1_vmmc>;
-	reset-gpio = <&gpio2 11 GPIO_ACTIVE_LOW>;
+	vmmc-supply = <&reg_usdhc1_wlen>;
+	cap-power-off-card;
 	status = "okay";
 	brcmf: brcmf@1 {
 		reg = <0x1>;
 		compatible = "brcm,bcm4329-fmac";
-		interrupts = <1 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-parent = <&gpio2>;
+		interrupts = <9 IRQ_TYPE_LEVEL_HIGH>;
 		interrupt-names = "host-wake";
 	};
 };
@@ -969,12 +970,11 @@
 			MX8MP_IOMUXC_GPIO1_IO14__GPIO1_IO14	0x19
 		>;
 	};
-	
-	pinctrl_usdhc1_gpio: usdhc1grp-gpio {
+
+	pinctrl_usdhc1_wifi: usdhc1wifigrp {
 		fsl,pins = <
-			MX8MP_IOMUXC_SD1_STROBE__GPIO2_IO11	0x41 /* WL_REG_ON*/
-			MX8MP_IOMUXC_SD1_RESET_B__GPIO2_IO10	0x41/* BT_REG_ON*/
-			/*MX8MP_IOMUXC_SD1_DATA5__GPIO2_IO07	0x41*//*BT_DEV_WAKE*/ 
+			MX8MP_IOMUXC_SD1_STROBE__GPIO2_IO11	0x41	/* wl-en */
+			MX8MP_IOMUXC_SD1_DATA7__GPIO2_IO09	0x141	/* wl-wake-host */
 		>;
 	};
 
