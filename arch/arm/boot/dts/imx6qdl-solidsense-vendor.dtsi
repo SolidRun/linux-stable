@@ -55,11 +55,7 @@
 	};
 
 	ir_recv: ir-receiver {
-		compatible = "gpio-ir-receiver";
-		gpios = <&gpio7 9 1>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_solidsense_gpio7_9>;
-		linux,rc-map-name = "rc-rc6-mce";
+		status = "disabled";
 	};
 
 	mxcfb1: fb@0 {

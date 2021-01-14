@@ -89,7 +89,6 @@
 */
 
 &gpio3 {
-/*
 	ublox_3v3_en {
 		gpio-hog;
 		gpios = <16 GPIO_ACTIVE_LOW>;
@@ -103,7 +102,6 @@
 		output-low;
 		line-name = "ublox-reset";
 	};
-*/
 };
 
 &i2c3 {
@@ -152,14 +150,11 @@
 			>;
 		};
 
-		pinctrl_solidsense_uart4_rtscts: solidsense-uart4-rtscts {
+		pinctrl_solidsense_uart4_gpio: solidsense-uart4-gpio {
 			fsl,pins = <
-/*
-				MX6QDL_PAD_EIM_A17__GPIO2_IO21 0x1b0b0
-				MX6QDL_PAD_EIM_A16__GPIO2_IO22 0x1b0b0
-*/
-				MX6QDL_PAD_EIM_A17__UART_CTS_B 0x1b0b0
-				MX6QDL_PAD_EIM_A16__UART_RTS_B 0x1b0b0
+				MX6QDL_PAD_EIM_D27__GPIO3_IO27 0x400130b1  /* Ublox addon SWDCLK */
+				MX6QDL_PAD_EIM_D26__GPIO3_IO26 0x400130b1  /* Ublox addon SWDIO */
+				MX6QDL_PAD_EIM_D23__GPIO3_IO23 0x400130b1  /* Ublox addon UART_WAKE */
 			>;
 		};
 
@@ -210,10 +205,9 @@
 
 &uart4 {
 	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_solidsense_uart4 &pinctrl_solidsense_uart4_rtscts>;
-	fsl,dte-mode;
-	uart-has-rtscts;
+	pinctrl-0 = <&pinctrl_solidsense_uart4 &pinctrl_solidsense_ublox_power_enable>;
 	status = "okay";
+	enable-gpios = <&gpio3 16 GPIO_ACTIVE_HIGH &gpio3 15 GPIO_ACTIVE_HIGH>;
 
 	bluetooth {
 		status = "disabled";
@@ -223,7 +217,10 @@
 &ecspi2 {
 	num-cs = <2>;
 	status = "okay";
-	cs-gpios = <&gpio2 10 0>, <0>;
+	cs-gpios = <
+		&gpio2 10 0
+		&gpio2 27 0
+	>;
 
 	spidev0: spi@0 {
 		compatible = "analog,mp-ind-eth";

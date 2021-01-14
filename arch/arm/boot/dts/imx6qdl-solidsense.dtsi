@@ -51,11 +51,7 @@
 	};
 
 	ir_recv: ir-receiver {
-		compatible = "gpio-ir-receiver";
-		gpios = <&gpio7 9 GPIO_ACTIVE_LOW>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_solidsense_gpio7_9>;
-		linux,rc-map-name = "rc-rc6-mce";
+		status = "disabled";
 	};
 
 	v_3v2: regulator-v-3v2 {
@@ -310,8 +306,6 @@
 				MX6QDL_PAD_EIM_EB1__GPIO2_IO29 0x400130b1
 				/* DISP1_DATA11 */
 				MX6QDL_PAD_EIM_EB0__GPIO2_IO28 0x400130b1
-				/* DISP1_DATA12 */
-				MX6QDL_PAD_EIM_A17__GPIO2_IO21 0x400130b1
 				/* DISP1_DATA13 */
 				MX6QDL_PAD_EIM_A18__GPIO2_IO20 0x400130b1
 				/* DISP1_DATA14 */
@@ -334,8 +328,6 @@
 				MX6QDL_PAD_EIM_D26__GPIO3_IO26 0x400130b1
 				/* DISP1_DATA23 */
 				MX6QDL_PAD_EIM_D27__GPIO3_IO27 0x400130b1
-				/* DI1_DISP_CLK */
-				MX6QDL_PAD_EIM_A16__GPIO2_IO22 0x400130b1
 				/* SPDIF_IN */
 				MX6QDL_PAD_ENET_RX_ER__GPIO1_IO24 0x400130b1
 				/* SPDIF_OUT */
@@ -358,12 +350,6 @@
 		pinctrl_solidsense_gpio5_13: solidsense-gpio5_13 {
 			fsl,pins = <
 				MX6QDL_PAD_DISP0_DAT19__GPIO5_IO13 0x80000000
-			>;
-		};
-
-		pinctrl_solidsense_gpio7_9: solidsense-gpio7_9 {
-			fsl,pins = <
-				MX6QDL_PAD_SD4_CMD__GPIO7_IO09 0x80000000
 			>;
 		};
 
