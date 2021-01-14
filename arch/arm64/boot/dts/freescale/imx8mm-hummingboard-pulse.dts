@@ -32,17 +32,6 @@
 		clock-frequency = <100000000>;
 	};
 
-	reg_usdhc1_wlen: regulator-usdhc1-wl-en {
-		compatible = "regulator-fixed";
-		regulator-name = "WLAN_EN";
-		regulator-min-microvolt = <3300000>;
-		regulator-max-microvolt = <3300000>;
-		gpio = <&gpio2 10 GPIO_ACTIVE_HIGH>;
-		startup-delay-us = <100>;
-		off-on-delay = <20000>;
-		enable-active-high;
-	};
-
 	reg_usdhc2_vmmc: regulator-usdhc2-vmmc {
 		compatible = "regulator-fixed";
 		pinctrl-names = "default";
@@ -114,6 +103,11 @@
 			sound-dai = <&wm8904>;
 		};
 	};
+
+	wifi_pwrseq: wifi-pwrseq {
+		compatible = "mmc-pwrseq-simple";
+		reset-gpios = <&gpio2 10 GPIO_ACTIVE_LOW>;
+	};
 };
 
 &iomuxc {
@@ -126,7 +120,7 @@
 	pinctrl_uart1_bt: uart1btgrp {
 		fsl,pins = <
 			MX8MM_IOMUXC_SD1_DATA4_GPIO2_IO6	0x41	/* bt-en */
-			MX8MM_IOMUXC_SD1_DATA6_GPIO2_IO8	0x111	/* bt-wake-host*/ 
+			MX8MM_IOMUXC_SD1_DATA6_GPIO2_IO8	0x41	/* bt-wake-host*/ 
 			MX8MM_IOMUXC_SD1_DATA5_GPIO2_IO7	0x41	/* bt-wake-device*/ 
 		>;
 	};
@@ -439,7 +433,7 @@
 	pinctrl-1 = <&pinctrl_usdhc1_100mhz>, <&pinctrl_usdhc1_wifi>;
 	pinctrl-2 = <&pinctrl_usdhc1_200mhz>, <&pinctrl_usdhc1_wifi>;
 	bus-width = <4>;
-	vmmc-supply = <&reg_usdhc1_wlen>;
+	mmc-pwrseq = <&wifi_pwrseq>;
 	cap-power-off-card;
 	non-removable;
 	status = "okay";
