@@ -10,7 +10,7 @@
 
 / {
 	model = "SolidRun i.MX8MP HummingBoard Pulse";
-	compatible = "fsl,imx8mp-solidrun", "fsl,imx8mp";
+	compatible = "solidrun,hummingboard-pulse", "fsl,imx8mp";
 
 	reserved-memory {
 		#address-cells = <2>;
