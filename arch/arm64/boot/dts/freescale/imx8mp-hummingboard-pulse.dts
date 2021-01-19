@@ -1147,7 +1147,7 @@
 &vpu_vc8000e {
 	status = "okay";
 };
-/*
+
 &gpu_3d {
 	status = "okay";
 };
@@ -1164,7 +1164,7 @@
 	status = "okay";
 };
 
-
+/*
 &cameradev {
 	status = "okay";
 };
