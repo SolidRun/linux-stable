@@ -131,15 +131,29 @@
 	};
 
 	sound-wm8904 {
-		compatible = "fsl,imx-audio-wm8904";
-		model = "wm8904-audio";
-		audio-cpu = <&sai3>;
-		audio-codec = <&wm8904>;
-		audio-routing =
-			"Line Out Jack Left", "HPOUTL",
-			"Line In Jack Right", "HPOUTR",
-			"Micbias", "MICBIAS",
-			"Mic in", "IN2R";
+		compatible = "simple-audio-card";
+		simple-audio-card,name = "wm8904-audio";
+		simple-audio-card,format = "i2s";
+		simple-audio-card,frame-master = <&sound_wm8904_cpu>;
+		simple-audio-card,bitclock-master = <&sound_wm8904_cpu>;
+		simple-audio-card,widgets =
+			"Headphone", "Headphone Jack",
+			"Microphone", "Headphone Jack";
+		simple-audio-card,routing =
+			"Headphone Jack", "HPOUTL",
+			"Headphone Jack", "HPOUTR",
+			"Headphone Jack", "MICBIAS",
+			"IN2R", "Headphone Jack";
+
+		sound_wm8904_cpu: simple-audio-card,cpu {
+			sound-dai = <&sai3>;
+			dai-tdm-slot-num = <2>;
+			dai-tdm-slot-width = <16>;
+		};
+
+		sound_wm8904_codec: simple-audio-card,codec {
+			sound-dai = <&wm8904>;
+		};
 	};
 
 	lvds_backlight: lvds_backlight {
@@ -395,11 +409,12 @@
 		};
 	};*/
 
-	wm8904: wm8904@1a {
-		compatible = "wlf,wm8904";
+	wm8904: codec@1a {
+		#sound-dai-cells = <0>;
+		compatible = "cirrus,wm8904", "wlf,wm8904";
+		reg = <0x1a>;
 		clocks = <&clk IMX8MP_CLK_SAI3>;
 		clock-names = "mclk";
-		reg = <0x1a>;
 		status = "okay";
 	};
 };
@@ -586,17 +601,14 @@
 	status = "okay";
 };
 
+/* linked to wm8904 codec */ 
 &sai3 {
+	#sound-dai-cells = <0>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_sai3>;
 	assigned-clocks = <&clk IMX8MP_CLK_SAI3>;
 	assigned-clock-parents = <&clk IMX8MP_AUDIO_PLL1_OUT>;
-	assigned-clock-rates = <12288000>;
-	clocks = <&audiomix_clk IMX8MP_CLK_AUDIOMIX_SAI3_IPG>, <&clk IMX8MP_CLK_DUMMY>,
-		 <&audiomix_clk IMX8MP_CLK_AUDIOMIX_SAI3_MCLK1>, <&clk IMX8MP_CLK_DUMMY>,
-		 <&clk IMX8MP_CLK_DUMMY>;
-	clock-names = "bus", "mclk0", "mclk1", "mclk2", "mclk3";
-	fsl,sai-mclk-direction-output;
+	assigned-clock-rates = <24576000>;
 	status = "okay";
 };
 
