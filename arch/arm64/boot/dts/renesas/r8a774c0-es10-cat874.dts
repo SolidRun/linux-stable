@@ -79,22 +79,6 @@
 	clock-frequency = <22579200>;
 };
 
-&sound {
-	simple-audio-card,dai-link@1 {
-		reg = <1>;
-		format = "i2s";
-		cpu {
-			sound-dai = <&rcar_sound 1>;
-			bitclock-master;
-			frame-master;
-		};
-
-		codec {
-			sound-dai = <&tda19988>;
-		};
-	};
-};
-
 &du {
 	ports {
 		port@0 {
