@@ -87,6 +87,19 @@
 	};
 };
 
+&gpio0 {
+	/* disable hogging GP0_18 to output LOW */
+	/delete-node/ qspi_en;
+
+	/* hog GP0_18 to output HIGH  to enable VIN2 */
+	qspi_en {
+		gpio-hog;
+		gpios = <18 GPIO_ACTIVE_HIGH>;
+		output-high;
+		line-name = "VIN2_EN";
+	};
+};
+
 &hscif0 {
 	pinctrl-0 = <&hscif0_pins>;
 	pinctrl-names = "default";
@@ -231,6 +244,11 @@
 	pinctrl-names = "default";
 
 	status = "okay";
+};
+
+&qspi {
+	/* Pins shared with VIN2, keep status disabled */
+	status = "disabled";
 };
 
 &scif0 {
