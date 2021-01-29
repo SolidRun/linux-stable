@@ -911,7 +911,7 @@ config ATLAS7_WATCHDOG
 	  module will be called atlas7_wdt.
 
 config RENESAS_WDT
-	tristate "Renesas WDT Watchdog"
+	bool "Renesas WDT Watchdog"
 	depends on ARCH_RENESAS || COMPILE_TEST
 	select WATCHDOG_CORE
 	help
