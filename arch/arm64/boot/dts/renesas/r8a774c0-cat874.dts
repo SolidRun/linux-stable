@@ -40,6 +40,14 @@
 			};
 		};
 	};
+
+	sound_card: sound {
+		compatible = "audio-graph-card";
+
+		label = "rcar-sound";
+
+		dais = <&rsnd_port0>;	/* HDMI Audio */
+	};
 };
 
 &sdhi1 {
@@ -83,6 +91,16 @@
 	usb30_pins: usb30 {
 		groups = "usb30";
 		function = "usb30";
+	};
+
+	sound_clk_pins: sound_clk {
+		groups = "audio_clkout1_a", "audio_clk_a";
+		function = "audio_clk";
+	};
+
+	sound_pins: sound {
+		groups = "ssi01239_ctrl", "ssi0_data";
+		function = "ssi";
 	};
 };
 
@@ -158,6 +176,46 @@
 				adv7513_out: endpoint {
 					remote-endpoint = <&hdmi_con_out>;
 				};
+			};
+
+			port@2 {
+				reg = <2>;
+
+				adv751x_hdmi_snd: endpoint {
+					remote-endpoint = <&rsnd_endpoint>;
+				};
+			};
+		};
+	};
+};
+
+&audio_clk_a {
+	clock-frequency = <22579200>;
+};
+
+&rcar_sound {
+	pinctrl-0 = <&sound_clk_pins &sound_pins>;
+	pinctrl-names = "default";
+
+	status = "okay";
+
+	/* Single DAI */
+	#sound-dai-cells = <0>;
+
+	/* audio_clkout0/1/2/3 */
+	#clock-cells = <1>;
+	clock-frequency = <11289600>;
+
+	ports {
+		rsnd_port0: port@0 {
+			rsnd_endpoint: endpoint {
+				remote-endpoint = <&adv751x_hdmi_snd>;
+
+				dai-format = "i2s";
+				bitclock-master = <&rsnd_endpoint>;
+				frame-master = <&rsnd_endpoint>;
+
+				playback = <&ssi0 &src0 &dvc0>;
 			};
 		};
 	};
