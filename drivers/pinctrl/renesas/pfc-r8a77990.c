@@ -2810,6 +2810,23 @@ static const unsigned int pwm6_b_mux[] = {
 	PWM6_B_MARK,
 };
 
+/* - TPU -------------------------------------------------------------------- */
+static const unsigned int tpu0_to0_pins[] = {
+	/* TPU0TO0 */
+	RCAR_GP_PIN(6, 13),
+};
+static const unsigned int tpu0_to0_mux[] = {
+	TPU0TO0_MARK,
+};
+
+static const unsigned int tpu0_to1_pins[] = {
+	/* TPU0TO1 */
+	RCAR_GP_PIN(6, 14),
+};
+static const unsigned int tpu0_to1_mux[] = {
+	TPU0TO1_MARK,
+};
+
 /* - QSPI0 ------------------------------------------------------------------ */
 static const unsigned int qspi0_ctrl_pins[] = {
 	/* QSPI0_SPCLK, QSPI0_SSL */
@@ -3813,7 +3830,7 @@ static const unsigned int vin5_clk_b_mux[] = {
 };
 
 static const struct {
-	struct sh_pfc_pin_group common[253];
+	struct sh_pfc_pin_group common[255];
 #ifdef CONFIG_PINCTRL_PFC_R8A77990
 	struct sh_pfc_pin_group automotive[21];
 #endif
@@ -3961,6 +3978,8 @@ static const struct {
 		SH_PFC_PIN_GROUP(pwm5_b),
 		SH_PFC_PIN_GROUP(pwm6_a),
 		SH_PFC_PIN_GROUP(pwm6_b),
+		SH_PFC_PIN_GROUP(tpu0_to0),
+		SH_PFC_PIN_GROUP(tpu0_to1),
 		SH_PFC_PIN_GROUP(qspi0_ctrl),
 		SH_PFC_PIN_GROUP(qspi0_data2),
 		SH_PFC_PIN_GROUP(qspi0_data4),
@@ -4370,6 +4389,11 @@ static const char * const pwm6_groups[] = {
 	"pwm6_b",
 };
 
+static const char * const tpu0_groups[] = {
+	"tpu0_to0",
+	"tpu0_to1",
+};
+
 static const char * const qspi0_groups[] = {
 	"qspi0_ctrl",
 	"qspi0_data2",
@@ -4536,7 +4560,7 @@ static const char * const vin5_groups[] = {
 };
 
 static const struct {
-	struct sh_pfc_function common[49];
+	struct sh_pfc_function common[50];
 #ifdef CONFIG_PINCTRL_PFC_R8A77990
 	struct sh_pfc_function automotive[4];
 #endif
@@ -4573,6 +4597,7 @@ static const struct {
 		SH_PFC_FUNCTION(pwm4),
 		SH_PFC_FUNCTION(pwm5),
 		SH_PFC_FUNCTION(pwm6),
+		SH_PFC_FUNCTION(tpu0),
 		SH_PFC_FUNCTION(qspi0),
 		SH_PFC_FUNCTION(qspi1),
 		SH_PFC_FUNCTION(scif0),
