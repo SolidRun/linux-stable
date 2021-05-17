@@ -50,7 +50,6 @@
 #include "imx6qdl-solidsense.dtsi"
 #include "imx6qdl-solidsense-emmc.dtsi"
 #include "imx6qdl-solidsense-vendor.dtsi"
-#include "imx6qdl-solidsense-in6-addon-a.dtsi"
 
 / {
 	model = "SolidRun SolidSense IN6 Dual/Quad (1.5som+emmc)";

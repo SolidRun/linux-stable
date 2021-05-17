@@ -43,22 +43,23 @@
  */
 /dts-v1/;
 
-#include "imx6dl.dtsi"
+#include "imx6q.dtsi"
 #include "imx6qdl-sr-som.dtsi"
 #include "imx6qdl-sr-som-emmc.dtsi"
 #include "imx6qdl-sr-som-ti.dtsi"
 #include "imx6qdl-solidsense.dtsi"
 #include "imx6qdl-solidsense-emmc.dtsi"
 #include "imx6qdl-solidsense-vendor.dtsi"
+#include "imx6qdl-solidsense-in6-addon-b.dtsi"
 
 / {
-	model = "SolidRun SolidSense IN6 Solo/DualLite (1.5som+emmc)";
-	compatible = "solidrun,solidsense_in6/dl", "fsl,imx6dl";
+	model = "SolidRun SolidSense IN6 Dual/Quad (1.5som+emmc)";
+	compatible = "solidrun,solidsense_in6/q", "fsl,imx6q";
 
 	aliases {
 		serial0 = "/soc/aips-bus@2000000/spba-bus@2000000/serial@2020000";
 		serial1 = "/soc/aips-bus@2100000/serial@21f4000"; /* UART5 - Ublox on mainboard */
-		serial2 = "/soc/aips-bus@2100000/serial@21f0000"; /* UART4 - Ti BT or Ublox on addon board */
+		serial2 = "/soc/aips-bus@2100000/serial@21f0000"; /* UART4 - Ti BT or UBlox on addon board */
 		serial3 = "/soc/aips-bus@2100000/serial@21e8000"; /* UART2 - RS485 A on addon board */
 		serial4 = "/soc/aips-bus@2100000/serial@21ec000"; /* UART3 - RS485 B on addon board */
 	};

@@ -212,7 +212,7 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_solidsense_gpio5_13>;
 		interrupt-parent = <&gpio5>;
-		interrupts = <5 13>;
+		interrupts = <217>;
 	};
 
 	adxl345@1d {
@@ -294,8 +294,6 @@
 				MX6QDL_PAD_EIM_DA13__GPIO3_IO13 0x400130b1
 				/* DI1_D1_CS */
 				MX6QDL_PAD_EIM_DA14__GPIO3_IO14 0x400130b1
-				/* DI1_PIN01 */
-				MX6QDL_PAD_EIM_DA15__GPIO3_IO15 0x400130b1
 				/* DI1_PIN03 */
 				MX6QDL_PAD_EIM_DA12__GPIO3_IO12 0x400130b1
 				/* DISP1_DATA08 */
@@ -562,11 +560,13 @@
 	status = "okay";
 };
 
+/*
 &can1 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_solidsense_flexcan1>;
 	status = "okay";
 };
+*/
 
 &vcc_3v3 {
 	vin-supply = <&v_3v2>;
