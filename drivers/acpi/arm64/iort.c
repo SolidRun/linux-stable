@@ -12,6 +12,7 @@
 
 #include <linux/acpi_iort.h>
 #include <linux/bitfield.h>
+#include <linux/dma-iommu.h>
 #include <linux/iommu.h>
 #include <linux/kernel.h>
 #include <linux/list.h>
@@ -821,6 +822,56 @@ static struct acpi_iort_node *iort_get_msi_resv_iommu(struct device *dev)
 }
 
 /**
+ * iort_iommu_get_rmrs - Helper to retrieve RMR info associated with IOMMU
+ * @iommu: fwnode for the IOMMU
+ * @head: RMR list head to be populated
+ *
+ * Returns: 0 on success, <0 failure
+ */
+int iort_iommu_get_rmrs(struct fwnode_handle *iommu_fwnode,
+			struct list_head *head)
+{
+	struct iort_rmr_entry *e;
+	struct acpi_iort_node *iommu;
+	int rmrs = 0;
+
+	iommu = iort_get_iort_node(iommu_fwnode);
+	if (!iommu || list_empty(&iort_rmr_list))
+		return -ENODEV;
+
+	list_for_each_entry(e, &iort_rmr_list, list) {
+		int prot = IOMMU_READ | IOMMU_WRITE;
+		struct iommu_resv_region *region;
+		enum iommu_resv_type type;
+		struct acpi_iort_rmr_desc *rmr_desc;
+
+		if (e->smmu != iommu)
+			continue;
+
+		rmr_desc = e->rmr_desc;
+		if (e->flags & IOMMU_RMR_REMAP_PERMITTED) {
+			type = IOMMU_RESV_DIRECT_RELAXABLE;
+			prot |= IOMMU_CACHE;
+		} else {
+			type = IOMMU_RESV_DIRECT;
+			prot |= IOMMU_MMIO;
+		}
+
+		region = iommu_alloc_resv_region(rmr_desc->base_address,
+						 rmr_desc->length,
+						 prot, type);
+		if (region) {
+			region->fw_data.rmr.flags = e->flags;
+			region->fw_data.rmr.sid = e->sid;
+			list_add_tail(&region->list, head);
+			rmrs++;
+		}
+	}
+
+	return (rmrs == 0) ? -ENODEV : 0;
+}
+
+/**
  * iort_iommu_msi_get_resv_regions - Reserved region driver helper
  * @dev: Device from iommu_get_resv_regions()
  * @head: Reserved region list from iommu_get_resv_regions()
@@ -1051,6 +1102,8 @@ int iort_iommu_configure_id(struct device *dev, const u32 *id_in)
 int iort_iommu_msi_get_resv_regions(struct device *dev, struct list_head *head)
 { return 0; }
 int iort_iommu_configure_id(struct device *dev, const u32 *input_id)
+{ return -ENODEV; }
+int iort_iommu_get_rmrs(struct fwnode_handle *fwnode, struct list_head *head)
 { return -ENODEV; }
 #endif
 
