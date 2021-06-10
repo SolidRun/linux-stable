@@ -8,4 +8,24 @@
 / {
         model = "SolidRun i.MX8MP CuBox Pulse";
         compatible = "solidrun,cubox-pulse", "fsl,imx8mp";
+
+	reg_usb2_host_vbus: regulator-usb2-vbus {
+		compatible = "regulator-fixed";
+		regulator-name = "usb2_host_vbus";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_usb2_vbus>;
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		gpio = <&gpio1 7 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+		regulator-always-on;
+	};
+
+
+	pinctrl_usb2_vbus: usb2grp {
+		fsl,pins = <
+			MX8MP_IOMUXC_GPIO1_IO07__GPIO1_IO07	0x19
+		>;
+	};
+
 };
