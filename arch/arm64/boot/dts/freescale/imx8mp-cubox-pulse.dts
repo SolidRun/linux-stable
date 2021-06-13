@@ -1,0 +1,11 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright 2021 Josua Mayer
+ */
+
+#include "imx8mp-hummingboard-pulse.dts"
+
+/ {
+        model = "SolidRun i.MX8MP CuBox Pulse";
+        compatible = "solidrun,cubox-pulse", "fsl,imx8mp";
+};
