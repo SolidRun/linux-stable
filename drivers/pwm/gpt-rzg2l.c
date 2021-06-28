@@ -55,9 +55,11 @@
 #define TRIANGLE_WAVE_MODE3	(0x06<<16)
 #define GTCR_MODE_MASK		(0x7<<16)
 #define GTCR_PRESCALE_MASK	(0x7<<24)
+#define GTIOR_CHANNEL_B_OUTPUT_MASK	(0x01FF<<16)
 #define GTIOB_OUTPUT_HIGH_END_LOW_COMPARE	(0x119<<16)
 /* GTIOR.GTIOB = 11001 */
 /* GTIOR.OBE = 1 */
+#define GTIOR_CHANNEL_A_OUTPUT_MASK	0x01FF
 #define GTIOA_OUTPUT_HIGH_END_LOW_COMPARE	0x119
 #define GTCR_CST	0x00000001
 #define UP_COUNTING	3
@@ -78,11 +80,127 @@
 #define TCFA	(1<<0)
 #define TCFPO	(1<<6)
 #define GTINTPROV	(0x01<<6)
+#define GTINTAD_GTINTPR_MASK	(3<<6)
 #define CCRSWT	(1<<22)
 #define GTCCRB_BUFFER_SINGLE	(0x01<<18)
 #define GTCCRB_BUFFER_DOUBLE	(1<<19)
 #define GTCCRA_BUFFER_SINGLE	(0x01<<16)
 #define GTCCRA_BUFFER_DOUBLE	(1<<17)
+#define GTCCRA_BUFFER_MASK	(3<<16)
+#define GTCCRB_BUFFER_MASK	(3<<18)
+
+enum {
+	CHANNEL_A,
+	CHANNEL_B,
+	BOTH_AB,
+	NR_CHANNEL,
+};
+
+struct reg {
+	u32 value, mask, offset;
+};
+
+struct set_params {
+	struct reg phase;
+	struct reg duty;
+	struct reg noise_filter;
+	struct reg input_source;
+	struct reg input_flag;
+};
+
+/* Parameters which we must set manually via sysfs or not use
+ * is 0 in default
+ */
+static const struct set_params channel_set[NR_CHANNEL] = {
+	/* Setting for channel A mode */
+	[CHANNEL_A] = {
+		.phase = {
+			GTIOA_OUTPUT_HIGH_END_LOW_COMPARE,
+			GTIOR_CHANNEL_A_OUTPUT_MASK,
+			GTIOR,
+		},
+		.duty = {
+			0,
+			0,
+			GTCCRA,
+		},
+		.noise_filter = {
+			NOISE_FILT_AEN|NOISE_FILT_A_P0_64,
+			0,
+			GTIOR,
+		},
+		.input_source = {
+			INPUT_CAP_GTIOA_RISING_EDGE,
+			0,
+			GTICASR,
+		},
+		.input_flag = {
+			GTINTA,
+			0,
+			GTINTAD,
+		},
+	},
+
+	/* Setting for channel B mode */
+	[CHANNEL_B] = {
+		.phase = {
+			GTIOB_OUTPUT_HIGH_END_LOW_COMPARE,
+			GTIOR_CHANNEL_B_OUTPUT_MASK,
+			GTIOR,
+		},
+		.duty = {
+			0,
+			0,
+			GTCCRB,
+		},
+		.noise_filter = {
+			NOISE_FILT_BEN|NOISE_FILT_B_P0_64,
+			0,
+			GTIOR,
+		},
+		.input_source = {
+			INPUT_CAP_GTIOB_RISING_EDGE,
+			0,
+			GTICBSR,
+		},
+		.input_flag = {
+			GTINTB,
+			0,
+			GTINTAD,
+		},
+	},
+
+	/* Setting for both AB mode */
+	[BOTH_AB] = {
+		.phase = {
+			GTIOA_OUTPUT_HIGH_END_LOW_COMPARE
+			|GTIOB_OUTPUT_HIGH_END_LOW_COMPARE,
+			GTIOR_CHANNEL_A_OUTPUT_MASK
+			|GTIOR_CHANNEL_B_OUTPUT_MASK,
+			GTIOR,
+		},
+		.duty = {
+			0,
+			0,
+			0,
+		},
+		.noise_filter = {
+			0,
+			0,
+			0,
+		},
+		.input_source = {
+			0,
+			0,
+			0,
+		},
+		.input_flag = {
+			0,
+			0,
+			0,
+		},
+	},
+};
 
 struct rzg2l_gpt_chip {
 	struct	pwm_chip chip;
@@ -94,10 +212,11 @@ struct rzg2l_gpt_chip {
 	struct mutex mutex;
 	u64 snapshot[3];
 	unsigned int index;
-	unsigned int overflow_count, buffer_mode_count;
-	unsigned long buffer[3];
+	unsigned int overflow_count, buffer_mode_count_A, buffer_mode_count_B;
+	unsigned long bufferA[3];
+	unsigned long bufferB[3];
 	unsigned int period_ns;
-	const char *channel;
+	int channel;
 };
 
 static inline struct rzg2l_gpt_chip *to_rzg2l_gpt_chip(struct pwm_chip *chip)
@@ -263,6 +382,11 @@ static int rzg2l_gpt_config(struct pwm_chip *chip, struct pwm_device *pwm,
 		return -EINVAL;
 	}
 
+	if ((duty_ns > 0) && (pc->channel == BOTH_AB)) {
+		dev_err(chip->dev, "In both channel A and B mode please set duty cycle via buff\n");
+		return -EINVAL;
+	}
+
 	prescale = rzg2l_calculate_prescale(pc, period_ns);
 	if (prescale < 0)
 		return -EINVAL;
@@ -284,17 +408,12 @@ static int rzg2l_gpt_config(struct pwm_chip *chip, struct pwm_device *pwm,
 	/* Set period */
 	rzg2l_gpt_write(pc, pv, GTPR);
 
-	if (!strcmp(pc->channel, "channel_B")) {
-		/* Set duty */
-		rzg2l_gpt_write(pc, dc, GTCCRB);
-		/* Enable pin output */
-		rzg2l_gpt_write(pc, GTIOB_OUTPUT_HIGH_END_LOW_COMPARE, GTIOR);
-	} else {
-		/* Set duty */
-		rzg2l_gpt_write(pc, dc, GTCCRA);
-		/* Enable pin output */
-		rzg2l_gpt_write(pc, GTIOA_OUTPUT_HIGH_END_LOW_COMPARE, GTIOR);
-	}
+	/* Enable pin output */
+	rzg2l_gpt_write_mask(pc, channel_set[pc->channel].phase.value,
+				channel_set[pc->channel].phase.mask, GTIOR);
+
+	/* Set duty cycle */
+	rzg2l_gpt_write(pc, dc, channel_set[pc->channel].duty.offset);
 
 	/* Set initial value for counter */
 	rzg2l_gpt_write(pc, 0, GTCNT); // reset counter value
@@ -353,21 +472,21 @@ rzg2l_gpt_capture(struct pwm_chip *chip, struct pwm_device *pwm,
 	/* Set initial value in GTCNT */
 	rzg2l_gpt_write(pc, 0, GTCNT);
 	/* Set input pin as capture mode */
-	if (!strcmp(pc->channel, "channel_B")) {
-		//Using noise filter with P0/64 clock
-		rzg2l_gpt_write(pc, NOISE_FILT_BEN|NOISE_FILT_B_P0_64, GTIOR);
-		/* Select input capture source in GTICASR and GTICBSR */
-		rzg2l_gpt_write(pc, INPUT_CAP_GTIOB_RISING_EDGE, GTICBSR);
-		/* Enable input capture and overflow interrupt*/
-		rzg2l_gpt_write(pc, GTINTB|GTINTPROV, GTINTAD);
+	if (pc->channel == BOTH_AB) {
+		dev_err(chip->dev, "Input capture function not available on both A B channel mode\n");
+		goto out;
 	} else {
-		//Using noise filter with P0/64 clock
-		rzg2l_gpt_write(pc, NOISE_FILT_AEN|NOISE_FILT_A_P0_64, GTIOR);
+		/* Using noise filter with P0/64 clock */
+		rzg2l_gpt_write(pc, channel_set[pc->channel].noise_filter.value,
+				GTIOR);
 		/* Select input capture source in GTICASR and GTICBSR */
-		rzg2l_gpt_write(pc, INPUT_CAP_GTIOA_RISING_EDGE, GTICASR);
+		rzg2l_gpt_write(pc, channel_set[pc->channel].input_source.value,
+				channel_set[pc->channel].input_source.offset);
 		/* Enable input capture and overflow interrupt*/
-		rzg2l_gpt_write(pc, GTINTA|GTINTPROV, GTINTAD);
+		rzg2l_gpt_write(pc, channel_set[pc->channel].input_flag.value
+					|GTINTPROV, GTINTAD);
 	}
+
 	/* Start count operation set GTCR.CST to 1 to start count operation*/
 	rzg2l_gpt_write_mask(pc, 1, GTCR_CST, GTCR);
 
@@ -400,13 +519,9 @@ rzg2l_gpt_capture(struct pwm_chip *chip, struct pwm_device *pwm,
 	}
 
 out:
-	if (!strcmp(pc->channel, "channel_B")) {
-		/* Disable capture operation */
-		rzg2l_gpt_write(pc, 0, GTICBSR);
-	} else {
-		/* Disable capture operation */
-		rzg2l_gpt_write(pc, 0, GTICASR);
-	}
+	/* Disable capture operation */
+	rzg2l_gpt_write(pc, 0, channel_set[pc->channel].input_source.offset);
+
 	/* Disable interrupt */
 	rzg2l_gpt_write(pc, 0, GTINTAD);
 
@@ -441,44 +556,41 @@ static irqreturn_t gpt_gtciv_interrupt(int irq, void *data)
 	irq_flags = rzg2l_gpt_read(pc, GTST);
 	if (irq_flags & TCFPO) {
 		pc->overflow_count++;
-		pc->buffer_mode_count--;
+		pc->buffer_mode_count_A--;
+		pc->buffer_mode_count_B--;
 
-		if (!strcmp(pc->channel, "channel_B")) {
-			tmp = rzg2l_gpt_read(pc, GTBER);
-			if (tmp & GTCCRB_BUFFER_SINGLE) {
-				rzg2l_gpt_write(pc,
-					pc->buffer[pc->buffer_mode_count],
-					GTCCRE);
-				if (pc->buffer_mode_count == 0)
-					pc->buffer_mode_count = 2;
-			}
+		tmp = rzg2l_gpt_read(pc, GTBER);
 
-			tmp = rzg2l_gpt_read(pc, GTBER);
-			if (tmp & GTCCRB_BUFFER_DOUBLE) {
-				rzg2l_gpt_write(pc,
-					pc->buffer[pc->buffer_mode_count],
-					GTCCRF);
-				if (pc->buffer_mode_count == 0)
-					pc->buffer_mode_count = 3;
-			}
-		} else {
-			tmp = rzg2l_gpt_read(pc, GTBER);
-			if (tmp & GTCCRA_BUFFER_SINGLE) {
-				rzg2l_gpt_write(pc,
-					pc->buffer[pc->buffer_mode_count],
-					GTCCRC);
-				if (pc->buffer_mode_count == 0)
-					pc->buffer_mode_count = 2;
-			}
+		if (tmp & GTCCRB_BUFFER_SINGLE) {
+			rzg2l_gpt_write(pc,
+				pc->bufferB[pc->buffer_mode_count_B],
+				GTCCRE);
+			if (pc->buffer_mode_count_B == 0)
+				pc->buffer_mode_count_B = 2;
+		}
 
-			tmp = rzg2l_gpt_read(pc, GTBER);
-			if (tmp & GTCCRA_BUFFER_DOUBLE) {
-				rzg2l_gpt_write(pc,
-					pc->buffer[pc->buffer_mode_count],
-					GTCCRD);
-				if (pc->buffer_mode_count == 0)
-					pc->buffer_mode_count = 3;
-			}
+		if (tmp & GTCCRB_BUFFER_DOUBLE) {
+			rzg2l_gpt_write(pc,
+				pc->bufferB[pc->buffer_mode_count_B],
+				GTCCRF);
+			if (pc->buffer_mode_count_B == 0)
+				pc->buffer_mode_count_B = 3;
+		}
+
+		if (tmp & GTCCRA_BUFFER_SINGLE) {
+			rzg2l_gpt_write(pc,
+				pc->bufferA[pc->buffer_mode_count_A],
+				GTCCRC);
+			if (pc->buffer_mode_count_A == 0)
+				pc->buffer_mode_count_A = 2;
+		}
+
+		if (tmp & GTCCRA_BUFFER_DOUBLE) {
+			rzg2l_gpt_write(pc,
+				pc->bufferA[pc->buffer_mode_count_A],
+				GTCCRD);
+			if (pc->buffer_mode_count_A == 0)
+				pc->buffer_mode_count_A = 3;
 		}
 
 		irq_flags &= ~TCFPO;
@@ -587,44 +699,49 @@ static irqreturn_t gpt_gtcib_interrupt(int irq, void *data)
 	return ret;
 }
 
-static ssize_t buff0_store(struct device *dev, struct device_attribute *attr,
+static ssize_t buffA0_store(struct device *dev, struct device_attribute *attr,
 				const char *buf, size_t count)
 {
 	struct platform_device *pdev = to_platform_device(dev);
 	struct rzg2l_gpt_chip *pc = platform_get_drvdata(pdev);
-	unsigned int val;
-	int ret;
+	int val, ret;
 	unsigned long prescale;
+
+	if (pc->channel == CHANNEL_B) {
+		dev_err(pc->chip.dev, "Can not set channel A in channel B mode\n");
+		return -EINVAL;
+	}
 
 	ret = kstrtouint(buf, 0, &val);
 	if (ret)
 		return ret;
 
-	if (pc->period_ns < val)
+	if (val <= 0) {
+		dev_err(pc->chip.dev, "Duty cycle must greater than 0\n");
 		return -EINVAL;
+	}
+
+	if (pc->period_ns < val) {
+		dev_err(pc->chip.dev, "Duty cycle greater than period\n");
+		return -EINVAL;
+	}
 
 	mutex_lock(&pc->mutex);
 
 	prescale = rzg2l_gpt_read(pc, GTCR) >> 24;
-	pc->buffer[0] = rzg2l_time_to_tick_number(pc, val, prescale);
-	if (pc->buffer[0] == 0) {
-		ret = -EINVAL;
-		goto out;
-	}
+	pc->bufferA[0] = rzg2l_time_to_tick_number(pc, val, prescale);
 
-	/*Set compare match value in GTCCRA in GTCCRB*/
-	if (!strcmp(pc->channel, "channel_B"))
-		rzg2l_gpt_write(pc, pc->buffer[0], GTCCRB);
-	else
-		rzg2l_gpt_write(pc, pc->buffer[0], GTCCRA);
+	/*Set compare match value in GTCCRA*/
+	rzg2l_gpt_write(pc, pc->bufferA[0], GTCCRA);
+	/* Set no buffer operation */
+	rzg2l_gpt_write_mask(pc, 0, GTCCRA_BUFFER_MASK, GTBER);
 
-out:
 	mutex_unlock(&pc->mutex);
 
 	return ret ? : count;
 }
 
-static ssize_t buff0_show(struct device *dev, struct device_attribute *attr,
+static ssize_t buffA0_show(struct device *dev, struct device_attribute *attr,
 				char *buf)
 {
 	struct platform_device *pdev = to_platform_device(dev);
@@ -633,60 +750,117 @@ static ssize_t buff0_show(struct device *dev, struct device_attribute *attr,
 	unsigned long long time_ns;
 
 	prescale = rzg2l_gpt_read(pc, GTCR) >> 24;
-	time_ns = rzg2l_tick_number_to_time(pc, pc->buffer[0], prescale);
+	time_ns = rzg2l_tick_number_to_time(pc, pc->bufferA[0], prescale);
 
 	return sprintf(buf, "%llu\n", time_ns);
 }
 
-static ssize_t buff1_store(struct device *dev, struct device_attribute *attr,
+static ssize_t buffB0_store(struct device *dev, struct device_attribute *attr,
 				const char *buf, size_t count)
 {
 	struct platform_device *pdev = to_platform_device(dev);
 	struct rzg2l_gpt_chip *pc = platform_get_drvdata(pdev);
-	unsigned int val;
-	int ret;
+	int val, ret;
 	unsigned long prescale;
 
-	ret = kstrtouint(buf, 0, &val);
+	if (pc->channel == CHANNEL_A) {
+		dev_err(pc->chip.dev, "Can not set channel B in channel A mode\n");
+		return -EINVAL;
+	}
+
+	ret = kstrtoint(buf, 0, &val);
 	if (ret)
 		return ret;
 
-	if (pc->period_ns < val)
+	if (val <= 0) {
+		dev_err(pc->chip.dev, "Duty cycle must greater than 0\n");
 		return -EINVAL;
+	}
+
+	if (pc->period_ns < val) {
+		dev_err(pc->chip.dev, "Duty cycle greater than period\n");
+		return -EINVAL;
+	}
 
 	mutex_lock(&pc->mutex);
 
 	prescale = rzg2l_gpt_read(pc, GTCR) >> 24;
-	pc->buffer[1] = rzg2l_time_to_tick_number(pc, val, prescale);
-	if (pc->buffer[1] == 0) {
-		ret = -EINVAL;
-		goto out;
+	pc->bufferB[0] = rzg2l_time_to_tick_number(pc, val, prescale);
+
+	/*Set compare match value in GTCCRB*/
+	rzg2l_gpt_write(pc, pc->bufferB[0], GTCCRB);
+	/* Set no buffer operation */
+	rzg2l_gpt_write_mask(pc, 0, GTCCRB_BUFFER_MASK, GTBER);
+
+	mutex_unlock(&pc->mutex);
+
+	return ret ? : count;
+}
+
+static ssize_t buffB0_show(struct device *dev, struct device_attribute *attr,
+				char *buf)
+{
+	struct platform_device *pdev = to_platform_device(dev);
+	struct rzg2l_gpt_chip *pc = platform_get_drvdata(pdev);
+	unsigned long prescale;
+	unsigned long long time_ns;
+
+	prescale = rzg2l_gpt_read(pc, GTCR) >> 24;
+	time_ns = rzg2l_tick_number_to_time(pc, pc->bufferB[0], prescale);
+
+	return sprintf(buf, "%llu\n", time_ns);
+}
+
+static ssize_t buffA1_store(struct device *dev, struct device_attribute *attr,
+				const char *buf, size_t count)
+{
+	struct platform_device *pdev = to_platform_device(dev);
+	struct rzg2l_gpt_chip *pc = platform_get_drvdata(pdev);
+	int val, ret;
+	unsigned long prescale;
+
+	if (pc->channel == CHANNEL_B) {
+		dev_err(pc->chip.dev, "Can not set channel A in channel B mode\n");
+		return -EINVAL;
 	}
 
-	pc->buffer_mode_count = 2;
+	ret = kstrtoint(buf, 0, &val);
+	if (ret)
+		return ret;
 
-	if (!strcmp(pc->channel, "channel_B")) {
-		/*Set buffer operation with CCRA CCRB in GTBER*/
-		rzg2l_gpt_write(pc, GTCCRB_BUFFER_SINGLE, GTBER);
-		/* Set buffer value for B in GTCCRE(single), GTCCRF(double)*/
-		rzg2l_gpt_write(pc, pc->buffer[1], GTCCRE);
-	} else {
-		/*Set buffer operation with CCRA CCRB in GTBER*/
-		rzg2l_gpt_write(pc, GTCCRA_BUFFER_SINGLE, GTBER);
-		/* Set buffer value for A in GTCCRC(single), GTCCRD(double)*/
-		rzg2l_gpt_write(pc, pc->buffer[1], GTCCRC);
+	if (val <= 0) {
+		dev_err(pc->chip.dev, "Duty cycle must greater than 0\n");
+		return -EINVAL;
 	}
+
+	if (pc->period_ns < val) {
+		dev_err(pc->chip.dev, "Duty cycle greater than period\n");
+		return -EINVAL;
+	}
+
+	mutex_lock(&pc->mutex);
+
+	prescale = rzg2l_gpt_read(pc, GTCR) >> 24;
+	pc->bufferA[1] = rzg2l_time_to_tick_number(pc, val, prescale);
+
+	pc->buffer_mode_count_A = 2;
+
+	/*Set buffer operation with CCRA in GTBER*/
+	rzg2l_gpt_write_mask(pc, GTCCRA_BUFFER_SINGLE,
+				GTCCRA_BUFFER_MASK, GTBER);
+
+	/* Set buffer value for A in GTCCRC(single), GTCCRD(double)*/
+	rzg2l_gpt_write(pc, pc->bufferA[1], GTCCRC);
 
 	/* Enable overflow interrupt*/
-	rzg2l_gpt_write(pc, GTINTPROV, GTINTAD);
+	rzg2l_gpt_write_mask(pc, GTINTPROV, GTINTAD_GTINTPR_MASK, GTINTAD);
 
-out:
 	mutex_unlock(&pc->mutex);
 
 	return ret ? : count;
 }
 
-static ssize_t buff1_show(struct device *dev, struct device_attribute *attr,
+static ssize_t buffA1_show(struct device *dev, struct device_attribute *attr,
 				char *buf)
 {
 	struct platform_device *pdev = to_platform_device(dev);
@@ -695,60 +869,124 @@ static ssize_t buff1_show(struct device *dev, struct device_attribute *attr,
 	unsigned long long time_ns;
 
 	prescale = rzg2l_gpt_read(pc, GTCR) >> 24;
-	time_ns = rzg2l_tick_number_to_time(pc, pc->buffer[1], prescale);
+	time_ns = rzg2l_tick_number_to_time(pc, pc->bufferA[1], prescale);
 
 	return sprintf(buf, "%llu\n", time_ns);
 }
 
-static ssize_t buff2_store(struct device *dev, struct device_attribute *attr,
+static ssize_t buffB1_store(struct device *dev, struct device_attribute *attr,
 				const char *buf, size_t count)
 {
 	struct platform_device *pdev = to_platform_device(dev);
 	struct rzg2l_gpt_chip *pc = platform_get_drvdata(pdev);
-	unsigned int val;
-	int ret;
+	int val, ret;
 	unsigned long prescale;
+
+	if (pc->channel == CHANNEL_A) {
+		dev_err(pc->chip.dev, "Can not set channel B in channel A mode\n");
+		return -EINVAL;
+	}
+
+	ret = kstrtoint(buf, 0, &val);
+	if (ret)
+		return ret;
+
+	if (val <= 0) {
+		dev_err(pc->chip.dev, "Duty cycle must greater than 0\n");
+		return -EINVAL;
+	}
+
+	if (pc->period_ns < val) {
+		dev_err(pc->chip.dev, "Duty cycle greater than period\n");
+		return -EINVAL;
+	}
+
+	mutex_lock(&pc->mutex);
+
+	prescale = rzg2l_gpt_read(pc, GTCR) >> 24;
+	pc->bufferB[1] = rzg2l_time_to_tick_number(pc, val, prescale);
+
+	pc->buffer_mode_count_B = 2;
+
+	/*Set buffer operation with CCRB in GTBER*/
+	rzg2l_gpt_write_mask(pc, GTCCRB_BUFFER_SINGLE,
+				GTCCRB_BUFFER_MASK, GTBER);
+
+	/* Set buffer value for B in GTCCRE(single), GTCCRF(double)*/
+	rzg2l_gpt_write(pc, pc->bufferB[1], GTCCRE);
+
+	/* Enable overflow interrupt*/
+	rzg2l_gpt_write_mask(pc, GTINTPROV, GTINTAD_GTINTPR_MASK, GTINTAD);
+
+	mutex_unlock(&pc->mutex);
+
+	return ret ? : count;
+}
+
+static ssize_t buffB1_show(struct device *dev, struct device_attribute *attr,
+				char *buf)
+{
+	struct platform_device *pdev = to_platform_device(dev);
+	struct rzg2l_gpt_chip *pc = platform_get_drvdata(pdev);
+	unsigned long prescale;
+	unsigned long long time_ns;
+
+	prescale = rzg2l_gpt_read(pc, GTCR) >> 24;
+	time_ns = rzg2l_tick_number_to_time(pc, pc->bufferB[1], prescale);
+
+	return sprintf(buf, "%llu\n", time_ns);
+}
+
+static ssize_t buffA2_store(struct device *dev, struct device_attribute *attr,
+				const char *buf, size_t count)
+{
+	struct platform_device *pdev = to_platform_device(dev);
+	struct rzg2l_gpt_chip *pc = platform_get_drvdata(pdev);
+	int val, ret;
+	unsigned long prescale;
+
+	if (pc->channel == CHANNEL_B) {
+		dev_err(pc->chip.dev, "Can not set channel A in channel B mode\n");
+		return -EINVAL;
+	}
 
 	ret = kstrtouint(buf, 0, &val);
 	if (ret)
 		return ret;
 
-	if (pc->period_ns < val)
+	if (val <= 0) {
+		dev_err(pc->chip.dev, "Duty cycle must greater than 0\n");
 		return -EINVAL;
+	}
+
+	if (pc->period_ns < val) {
+		dev_err(pc->chip.dev, "Duty cycle greater than period\n");
+		return -EINVAL;
+	}
 
 	mutex_lock(&pc->mutex);
 
 	prescale = rzg2l_gpt_read(pc, GTCR) >> 24;
-	pc->buffer[2] = rzg2l_time_to_tick_number(pc, val, prescale);
-	if (pc->buffer[2] == 0) {
-		ret = -EINVAL;
-		goto out;
-	}
+	pc->bufferA[2] = rzg2l_time_to_tick_number(pc, val, prescale);
 
-	pc->buffer_mode_count = 3;
+	pc->buffer_mode_count_A = 3;
 
-	if (!strcmp(pc->channel, "channel_B")) {
-		/*Set buffer operation with CCRA CCRB in GTBER*/
-		rzg2l_gpt_write(pc, GTCCRB_BUFFER_DOUBLE, GTBER);
-		/* Set buffer value for B in GTCCRE(single), GTCCRF(double)*/
-		rzg2l_gpt_write(pc, pc->buffer[2], GTCCRF);
-	} else {
-		/*Set buffer operation with CCRA CCRB in GTBER*/
-		rzg2l_gpt_write(pc, GTCCRA_BUFFER_DOUBLE, GTBER);
-		/* Set buffer value for B in GTCCRC(single), GTCCRD(double)*/
-		rzg2l_gpt_write(pc, pc->buffer[2], GTCCRD);
-	}
+	/*Set buffer operation with CCRA in GTBER*/
+	rzg2l_gpt_write_mask(pc, GTCCRA_BUFFER_DOUBLE,
+				GTCCRA_BUFFER_MASK, GTBER);
+
+	/* Set buffer value for A in GTCCRC(single), GTCCRD(double)*/
+	rzg2l_gpt_write(pc, pc->bufferA[2], GTCCRD);
 
 	/* Enable overflow interrupt*/
-	rzg2l_gpt_write(pc, GTINTPROV, GTINTAD);
+	rzg2l_gpt_write_mask(pc, GTINTPROV, GTINTAD_GTINTPR_MASK, GTINTAD);
 
-out:
 	mutex_unlock(&pc->mutex);
 
 	return ret ? : count;
 }
 
-static ssize_t buff2_show(struct device *dev, struct device_attribute *attr,
+static ssize_t buffA2_show(struct device *dev, struct device_attribute *attr,
 				char *buf)
 {
 	struct platform_device *pdev = to_platform_device(dev);
@@ -757,19 +995,88 @@ static ssize_t buff2_show(struct device *dev, struct device_attribute *attr,
 	unsigned long long time_ns;
 
 	prescale = rzg2l_gpt_read(pc, GTCR) >> 24;
-	time_ns = rzg2l_tick_number_to_time(pc, pc->buffer[2], prescale);
+	time_ns = rzg2l_tick_number_to_time(pc, pc->bufferA[2], prescale);
 
 	return sprintf(buf, "%llu\n", time_ns);
 }
 
-static DEVICE_ATTR_RW(buff0);
-static DEVICE_ATTR_RW(buff1);
-static DEVICE_ATTR_RW(buff2);
+static ssize_t buffB2_store(struct device *dev, struct device_attribute *attr,
+				const char *buf, size_t count)
+{
+	struct platform_device *pdev = to_platform_device(dev);
+	struct rzg2l_gpt_chip *pc = platform_get_drvdata(pdev);
+	int val, ret;
+	unsigned long prescale;
+
+	if (pc->channel == CHANNEL_A) {
+		dev_err(pc->chip.dev, "Can not set channel B in channel A mode\n");
+		return -EINVAL;
+	}
+
+	ret = kstrtoint(buf, 0, &val);
+	if (ret)
+		return ret;
+
+	if (val <= 0) {
+		dev_err(pc->chip.dev, "Duty cycle must greater than 0\n");
+		return -EINVAL;
+	}
+
+	if (pc->period_ns < val) {
+		dev_err(pc->chip.dev, "Duty cycle greater than period\n");
+		return -EINVAL;
+	}
+
+	mutex_lock(&pc->mutex);
+
+	prescale = rzg2l_gpt_read(pc, GTCR) >> 24;
+	pc->bufferB[2] = rzg2l_time_to_tick_number(pc, val, prescale);
+
+	pc->buffer_mode_count_B = 3;
+
+	/*Set buffer operation with CCRB in GTBER*/
+	rzg2l_gpt_write_mask(pc, GTCCRB_BUFFER_DOUBLE,
+				GTCCRB_BUFFER_MASK, GTBER);
+
+	/* Set buffer value for B in GTCCRE(single), GTCCRF(double)*/
+	rzg2l_gpt_write(pc, pc->bufferB[2], GTCCRF);
+
+	/* Enable overflow interrupt*/
+	rzg2l_gpt_write_mask(pc, GTINTPROV, GTINTAD_GTINTPR_MASK, GTINTAD);
+
+	mutex_unlock(&pc->mutex);
+
+	return ret ? : count;
+}
+
+static ssize_t buffB2_show(struct device *dev, struct device_attribute *attr,
+				char *buf)
+{
+	struct platform_device *pdev = to_platform_device(dev);
+	struct rzg2l_gpt_chip *pc = platform_get_drvdata(pdev);
+	unsigned long prescale;
+	unsigned long long time_ns;
+
+	prescale = rzg2l_gpt_read(pc, GTCR) >> 24;
+	time_ns = rzg2l_tick_number_to_time(pc, pc->bufferB[2], prescale);
+
+	return sprintf(buf, "%llu\n", time_ns);
+}
+
+static DEVICE_ATTR_RW(buffA0);
+static DEVICE_ATTR_RW(buffA1);
+static DEVICE_ATTR_RW(buffA2);
+static DEVICE_ATTR_RW(buffB0);
+static DEVICE_ATTR_RW(buffB1);
+static DEVICE_ATTR_RW(buffB2);
 
 static struct attribute *buffer_attrs[] = {
-	&dev_attr_buff0.attr,
-	&dev_attr_buff1.attr,
-	&dev_attr_buff2.attr,
+	&dev_attr_buffA0.attr,
+	&dev_attr_buffA1.attr,
+	&dev_attr_buffA2.attr,
+	&dev_attr_buffB0.attr,
+	&dev_attr_buffB1.attr,
+	&dev_attr_buffB2.attr,
 	NULL,
 };
 
@@ -781,8 +1088,8 @@ static int rzg2l_gpt_probe(struct platform_device *pdev)
 {
 	struct rzg2l_gpt_chip *rzg2l_gpt;
 	struct resource *res;
-	int ret;
-	int irq = 0;
+	int ret, irq = 0;
+	const char *read_string;
 
 	rzg2l_gpt = devm_kzalloc(&pdev->dev, sizeof(*rzg2l_gpt), GFP_KERNEL);
 	if (rzg2l_gpt == NULL)
@@ -846,14 +1153,19 @@ static int rzg2l_gpt_probe(struct platform_device *pdev)
 	}
 
 	ret = of_property_read_string(pdev->dev.of_node, "channel",
-					&rzg2l_gpt->channel);
+					&read_string);
 	if (ret < 0) {
 		dev_err(&pdev->dev, "Not define GPT channel\n");
 		return ret;
 	}
 
-	if (strcmp(rzg2l_gpt->channel, "channel_A")
-	    && strcmp(rzg2l_gpt->channel, "channel_B")) {
+	if (!strcmp(read_string, "channel_A")) {
+		rzg2l_gpt->channel = CHANNEL_A;
+	} else if (!strcmp(read_string, "channel_B")) {
+		rzg2l_gpt->channel = CHANNEL_B;
+	} else if (!strcmp(read_string, "both_AB")) {
+		rzg2l_gpt->channel = BOTH_AB;
+	} else {
 		dev_err(&pdev->dev, "Failed to get GPT channel\n");
 		return -ENODEV;
 	}
