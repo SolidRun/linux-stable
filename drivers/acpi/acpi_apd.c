@@ -46,12 +46,21 @@ struct apd_private_data {
 static int acpi_apd_setup(struct apd_private_data *pdata)
 {
 	const struct apd_device_desc *dev_desc = pdata->dev_desc;
+	struct acpi_device *adev = pdata->adev;
+	const union acpi_object *obj;
+	unsigned int fixed_clk_rate;
 	struct clk *clk;
 
-	if (dev_desc->fixed_clk_rate) {
+	if (!acpi_dev_get_property(adev, "uefi-clock-frequency", ACPI_TYPE_INTEGER, &obj)) {
+		fixed_clk_rate = obj->integer.value;
+	} else if (dev_desc->fixed_clk_rate) {
+		fixed_clk_rate = dev_desc->fixed_clk_rate;
+	}
+
+	if (fixed_clk_rate) {
 		clk = clk_register_fixed_rate(&pdata->adev->dev,
 					dev_name(&pdata->adev->dev),
-					NULL, 0, dev_desc->fixed_clk_rate);
+					NULL, 0, fixed_clk_rate);
 		clk_register_clkdev(clk, NULL, dev_name(&pdata->adev->dev));
 		pdata->clk = clk;
 	}
