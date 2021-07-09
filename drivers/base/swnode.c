@@ -1147,7 +1147,6 @@ int software_node_notify(struct device *dev, unsigned long action)
 
 		if (swnode->managed) {
 			set_secondary_fwnode(dev, NULL);
-			kobject_put(&swnode->kobj);
 		}
 		break;
 	default:
