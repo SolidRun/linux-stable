@@ -64,6 +64,7 @@ required:
   - compatible
   - reg
   - interrupts
+  - interrupt-names
   - clocks
   - clock-frequency
   - power-domains
