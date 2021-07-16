@@ -42,12 +42,16 @@ void iommu_dma_free_cpu_cached_iovas(unsigned int cpu,
 
 extern bool iommu_dma_forcedac;
 
+int iommu_dma_get_rmrs(struct fwnode_handle *iommu, struct list_head *list);
+void iommu_dma_put_rmrs(struct fwnode_handle *iommu, struct list_head *list);
+
 #else /* CONFIG_IOMMU_DMA */
 
 struct iommu_domain;
 struct msi_desc;
 struct msi_msg;
 struct device;
+struct fwnode_handle;
 
 static inline void iommu_setup_dma_ops(struct device *dev, u64 dma_base,
 		u64 size)
@@ -85,6 +89,15 @@ static inline void iommu_dma_get_resv_regions(struct device *dev, struct list_he
 
 static inline void iommu_dma_free_cpu_cached_iovas(unsigned int cpu,
 		struct iommu_domain *domain)
+{
+}
+
+static int iommu_dma_get_rmrs(struct fwnode_handle *iommu, struct list_head *list)
+{
+	return -ENODEV;
+}
+
+static void iommu_dma_put_rmrs(struct fwnode_handle *iommu, struct list_head *list)
 {
 }
 
