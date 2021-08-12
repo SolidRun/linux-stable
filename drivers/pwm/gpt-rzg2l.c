@@ -56,11 +56,13 @@
 #define GTCR_MODE_MASK		(0x7<<16)
 #define GTCR_PRESCALE_MASK	(0x7<<24)
 #define GTIOR_CHANNEL_B_OUTPUT_MASK	(0x01FF<<16)
-#define GTIOB_OUTPUT_HIGH_END_LOW_COMPARE	(0x119<<16)
+#define GTIOB_OUTPUT_HIGH_END_TOGGLE_COMPARE	(0x11B<<16)
+#define GTIOB_OUTPUT_LOW_END_TOGGLE_COMPARE	(0x107<<16)
 /* GTIOR.GTIOB = 11001 */
 /* GTIOR.OBE = 1 */
 #define GTIOR_CHANNEL_A_OUTPUT_MASK	0x01FF
-#define GTIOA_OUTPUT_HIGH_END_LOW_COMPARE	0x119
+#define GTIOA_OUTPUT_HIGH_END_TOGGLE_COMPARE	0x11B
+#define GTIOA_OUTPUT_LOW_END_TOGGLE_COMPARE	0x107
 #define GTCR_CST	0x00000001
 #define UP_COUNTING	3
 #define P0_1024		(0x05<<24)
@@ -100,8 +102,13 @@ struct reg {
 	u32 value, mask, offset;
 };
 
+struct polarity_reg {
+	u32 polar[2];
+	u32 mask, offset;
+};
+
 struct set_params {
-	struct reg phase;
+	struct polarity_reg phase;
 	struct reg duty;
 	struct reg noise_filter;
 	struct reg input_source;
@@ -115,7 +122,10 @@ static const struct set_params channel_set[NR_CHANNEL] = {
 	/* Setting for channel A mode */
 	[CHANNEL_A] = {
 		.phase = {
-			GTIOA_OUTPUT_HIGH_END_LOW_COMPARE,
+			.polar = {
+				GTIOA_OUTPUT_HIGH_END_TOGGLE_COMPARE,
+				GTIOA_OUTPUT_LOW_END_TOGGLE_COMPARE,
+			},
 			GTIOR_CHANNEL_A_OUTPUT_MASK,
 			GTIOR,
 		},
@@ -144,7 +154,10 @@ static const struct set_params channel_set[NR_CHANNEL] = {
 	/* Setting for channel B mode */
 	[CHANNEL_B] = {
 		.phase = {
-			GTIOB_OUTPUT_HIGH_END_LOW_COMPARE,
+			.polar = {
+				GTIOB_OUTPUT_HIGH_END_TOGGLE_COMPARE,
+				GTIOB_OUTPUT_LOW_END_TOGGLE_COMPARE,
+			},
 			GTIOR_CHANNEL_B_OUTPUT_MASK,
 			GTIOR,
 		},
@@ -173,8 +186,12 @@ static const struct set_params channel_set[NR_CHANNEL] = {
 	/* Setting for both AB mode */
 	[BOTH_AB] = {
 		.phase = {
-			GTIOA_OUTPUT_HIGH_END_LOW_COMPARE
-			|GTIOB_OUTPUT_HIGH_END_LOW_COMPARE,
+			.polar = {
+				GTIOA_OUTPUT_HIGH_END_TOGGLE_COMPARE
+				|GTIOB_OUTPUT_HIGH_END_TOGGLE_COMPARE,
+				GTIOA_OUTPUT_LOW_END_TOGGLE_COMPARE
+				|GTIOB_OUTPUT_LOW_END_TOGGLE_COMPARE,
+			},
 			GTIOR_CHANNEL_A_OUTPUT_MASK
 			|GTIOR_CHANNEL_B_OUTPUT_MASK,
 			GTIOR,
@@ -215,6 +232,7 @@ struct rzg2l_gpt_chip {
 	unsigned int overflow_count, buffer_mode_count_A, buffer_mode_count_B;
 	unsigned long bufferA[3];
 	unsigned long bufferB[3];
+	enum pwm_polarity channel_polar[NR_CHANNEL];
 	unsigned int period_ns;
 	int channel;
 };
@@ -409,8 +427,9 @@ static int rzg2l_gpt_config(struct pwm_chip *chip, struct pwm_device *pwm,
 	rzg2l_gpt_write(pc, pv, GTPR);
 
 	/* Enable pin output */
-	rzg2l_gpt_write_mask(pc, channel_set[pc->channel].phase.value,
-				channel_set[pc->channel].phase.mask, GTIOR);
+	rzg2l_gpt_write_mask(pc,
+	channel_set[pc->channel].phase.polar[pc->channel_polar[pc->channel]],
+	channel_set[pc->channel].phase.mask, GTIOR);
 
 	/* Set duty cycle */
 	rzg2l_gpt_write(pc, dc, channel_set[pc->channel].duty.offset);
@@ -533,11 +552,31 @@ out:
 	return ret;
 }
 
+static int rzg2l_gpt_set_polarity(struct pwm_chip *chip, struct pwm_device *pwm,
+	enum pwm_polarity polarity)
+{
+	struct rzg2l_gpt_chip *pc = to_rzg2l_gpt_chip(chip);
+
+	if (pc->channel != BOTH_AB) {
+		pc->channel_polar[pc->channel] = polarity;
+
+		rzg2l_gpt_write_mask(pc,
+	channel_set[pc->channel].phase.polar[pc->channel_polar[pc->channel]],
+		channel_set[pc->channel].phase.mask, GTIOR);
+	} else {
+		dev_err(chip->dev, "Set polarity via polarityA or polarityB\n");
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
 static const struct pwm_ops rzg2l_gpt_ops = {
 	.request = rzg2l_gpt_request,
 	.free = rzg2l_gpt_free,
 	.capture = rzg2l_gpt_capture,
 	.config = rzg2l_gpt_config,
+	.set_polarity = rzg2l_gpt_set_polarity,
 	.enable = rzg2l_gpt_enable,
 	.disable = rzg2l_gpt_disable,
 	.owner = THIS_MODULE,
@@ -1063,12 +1102,116 @@ static ssize_t buffB2_show(struct device *dev, struct device_attribute *attr,
 	return sprintf(buf, "%llu\n", time_ns);
 }
 
+static ssize_t polarityA_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	struct platform_device *pdev = to_platform_device(dev);
+	struct rzg2l_gpt_chip *pc = platform_get_drvdata(pdev);
+	int ret;
+
+	if (pc->channel != BOTH_AB) {
+		dev_err(pc->chip.dev, "Only use in both AB mode\n");
+		return -EINVAL;
+	}
+
+	mutex_lock(&pc->mutex);
+
+	if (sysfs_streq(buf, "normal")) {
+		pc->channel_polar[CHANNEL_A] = PWM_POLARITY_NORMAL;
+	} else if (sysfs_streq(buf, "inversed")) {
+		pc->channel_polar[CHANNEL_A] = PWM_POLARITY_INVERSED;
+	} else {
+		dev_err(pc->chip.dev, "Invalid value\n");
+		ret = -EINVAL;
+	}
+
+	rzg2l_gpt_write_mask(pc,
+	channel_set[CHANNEL_A].phase.polar[pc->channel_polar[CHANNEL_A]],
+	channel_set[CHANNEL_A].phase.mask, GTIOR);
+
+	mutex_unlock(&pc->mutex);
+
+	return count;
+}
+
+static ssize_t polarityA_show(struct device *dev, struct device_attribute *attr,
+				char *buf)
+{
+	struct platform_device *pdev = to_platform_device(dev);
+	struct rzg2l_gpt_chip *pc = platform_get_drvdata(pdev);
+	const char *polarity = "unknown";
+
+	switch (pc->channel_polar[CHANNEL_A]) {
+	case PWM_POLARITY_NORMAL:
+		polarity = "normal";
+		break;
+	case PWM_POLARITY_INVERSED:
+		polarity = "inversed";
+		break;
+	}
+
+	return sprintf(buf, "%s\n", polarity);
+}
+
+static ssize_t polarityB_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	struct platform_device *pdev = to_platform_device(dev);
+	struct rzg2l_gpt_chip *pc = platform_get_drvdata(pdev);
+	int ret;
+
+	if (pc->channel != BOTH_AB) {
+		dev_err(pc->chip.dev, "Only use in both AB mode\n");
+		return -EINVAL;
+	}
+
+	mutex_lock(&pc->mutex);
+
+	if (sysfs_streq(buf, "normal")) {
+		pc->channel_polar[CHANNEL_B] = PWM_POLARITY_NORMAL;
+	} else if (sysfs_streq(buf, "inversed")) {
+		pc->channel_polar[CHANNEL_B] = PWM_POLARITY_INVERSED;
+	} else {
+		dev_err(pc->chip.dev, "Invalid value\n");
+		ret = -EINVAL;
+	}
+
+	rzg2l_gpt_write_mask(pc,
+	channel_set[CHANNEL_B].phase.polar[pc->channel_polar[CHANNEL_B]],
+	channel_set[CHANNEL_B].phase.mask, GTIOR);
+
+	mutex_unlock(&pc->mutex);
+
+	return count;
+}
+
+static ssize_t polarityB_show(struct device *dev, struct device_attribute *attr,
+				char *buf)
+{
+	struct platform_device *pdev = to_platform_device(dev);
+	struct rzg2l_gpt_chip *pc = platform_get_drvdata(pdev);
+	const char *polarity = "unknown";
+
+	switch (pc->channel_polar[CHANNEL_B]) {
+	case PWM_POLARITY_NORMAL:
+		polarity = "normal";
+		break;
+	case PWM_POLARITY_INVERSED:
+		polarity = "inversed";
+		break;
+	}
+
+	return sprintf(buf, "%s\n", polarity);
+}
+
 static DEVICE_ATTR_RW(buffA0);
 static DEVICE_ATTR_RW(buffA1);
 static DEVICE_ATTR_RW(buffA2);
 static DEVICE_ATTR_RW(buffB0);
 static DEVICE_ATTR_RW(buffB1);
 static DEVICE_ATTR_RW(buffB2);
+static DEVICE_ATTR_RW(polarityA);
+static DEVICE_ATTR_RW(polarityB);
 
 static struct attribute *buffer_attrs[] = {
 	&dev_attr_buffA0.attr,
@@ -1077,6 +1220,8 @@ static struct attribute *buffer_attrs[] = {
 	&dev_attr_buffB0.attr,
 	&dev_attr_buffB1.attr,
 	&dev_attr_buffB2.attr,
+	&dev_attr_polarityA.attr,
+	&dev_attr_polarityB.attr,
 	NULL,
 };
 
