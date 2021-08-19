@@ -88,7 +88,6 @@
 };
 */
 
-/*
 &gpio3 {
 	ublox_3v3_en {
 		gpio-hog;
@@ -104,7 +103,6 @@
 		line-name = "ublox-reset";
 	};
 };
-*/
 
 &i2c3 {
 	expander1: gpio-expander@21 {
@@ -176,37 +174,27 @@
 &uart2 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_solidsense_uart2 &pinctrl_solidsense_uart2_rtscts>;
-/*
 	uart-has-rtscts;
-	fsl,dce;
 	linux,rs485-enabled-at-boot-time;
 	rs485-rts-delay = <0 200>;
-*/
 	status = "okay";
 };
 
 &uart3 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_solidsense_uart3 &pinctrl_solidsense_uart3_rtscts>;
-/*
 	uart-has-rtscts;
-	fsl,dce;
 	linux,rs485-enabled-at-boot-time;
 	rs485-rts-delay = <0 200>;
-*/
 	status = "okay";
 };
 
 &uart4 {
 	pinctrl-names = "default";
-/*
-	pinctrl-0 = <&pinctrl_solidsense_uart4 &pinctrl_solidsense_ublox_reset &pinctrl_solidsense_ublox_power_enable>;
-*/
-	pinctrl-0 = <&pinctrl_solidsense_uart4>;
+	pinctrl-0 = <&pinctrl_solidsense_uart4 &pinctrl_solidsense_ublox_power_enable>;
+	fsl,dte-mode;
 	status = "okay";
-/*
 	enable-gpios = <&gpio3 16 GPIO_ACTIVE_HIGH &gpio3 15 GPIO_ACTIVE_HIGH>;
-*/
 
 	bluetooth {
 		status = "disabled";
@@ -222,11 +210,11 @@
 &ecspi2 {
 	num-cs = <1>;
 	status = "okay";
-	cs-gpios = <&gpio2 10 0>, <0>;
+	cs-gpios = <&gpio2 10 0>;
 
-	spidev1: spi@0 {
+	spidev0: spi@0 {
 		compatible = "analog,ad74413r";
-		reg = <1>;
+		reg = <0>;
 		spi-max-frequency = <200000000>;
 	};
 };

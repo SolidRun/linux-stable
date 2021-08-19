@@ -150,14 +150,6 @@
 			>;
 		};
 
-		pinctrl_solidsense_uart4_gpio: solidsense-uart4-gpio {
-			fsl,pins = <
-				MX6QDL_PAD_EIM_D27__GPIO3_IO27 0x400130b1  /* Ublox addon SWDCLK */
-				MX6QDL_PAD_EIM_D26__GPIO3_IO26 0x400130b1  /* Ublox addon SWDIO */
-				MX6QDL_PAD_EIM_D23__GPIO3_IO23 0x400130b1  /* Ublox addon UART_WAKE */
-			>;
-		};
-
 		pinctrl_solidsense_ublox_reset: solidsense-ublox-reset {
 			fsl,pins = <
 				MX6QDL_PAD_EIM_DA15__GPIO3_IO15 0x400130b1 /* Ublox addon RESET */
@@ -182,24 +174,18 @@
 &uart2 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_solidsense_uart2 &pinctrl_solidsense_uart2_rtscts>;
-/*
 	uart-has-rtscts;
-	fsl,dce;
 	linux,rs485-enabled-at-boot-time;
 	rs485-rts-delay = <0 200>;
-*/
 	status = "okay";
 };
 
 &uart3 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_solidsense_uart3 &pinctrl_solidsense_uart3_rtscts>;
-/*
 	uart-has-rtscts;
-	fsl,dce;
 	linux,rs485-enabled-at-boot-time;
 	rs485-rts-delay = <0 200>;
-*/
 	status = "okay";
 };
 
@@ -219,18 +205,18 @@
 	num-cs = <2>;
 	status = "okay";
 	cs-gpios = <
-		&gpio2 10 0
 		&gpio2 27 0
+		&gpio2 10 0
 	>;
 
 	spidev0: spi@0 {
-		compatible = "analog,mp-ind-eth";
+		compatible = "analog,ad74413r";
 		reg = <0>;
 		spi-max-frequency = <200000000>;
 	};
 
 	spidev1: spi@1 {
-		compatible = "analog,ad74413r";
+		compatible = "analog,mp-ind-eth";
 		reg = <1>;
 		spi-max-frequency = <200000000>;
 	};
