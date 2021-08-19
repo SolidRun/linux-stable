@@ -88,22 +88,6 @@
 };
 */
 
-&gpio3 {
-	ublox_3v3_en {
-		gpio-hog;
-		gpios = <16 GPIO_ACTIVE_LOW>;
-		output-low;
-		line-name = "ublox-3v3-en";
-	};
-
-	ublox_reset {
-		gpio-hog;
-		gpios = <15 GPIO_ACTIVE_LOW>;
-		output-low;
-		line-name = "ublox-reset";
-	};
-};
-
 &i2c3 {
 	expander1: gpio-expander@21 {
 		compatible = "ti,tca6408";
@@ -150,18 +134,6 @@
 			>;
 		};
 
-		pinctrl_solidsense_ublox_reset: solidsense-ublox-reset {
-			fsl,pins = <
-				MX6QDL_PAD_EIM_DA15__GPIO3_IO15 0x400130b1 /* Ublox addon RESET */
-			>;
-		};
-
-		pinctrl_solidsense_ublox_power_enable: solidsense-ublox-power-enable {
-			fsl,pins = <
-				MX6QDL_PAD_EIM_D16__GPIO3_IO16 0x400130b1  /* Ublox addon PWR_EN */
-			>;
-		};
-
 		pinctrl_solidsense_flexcan1: solidsense-flexcan1 {
 			fsl,pins = <
 				MX6QDL_PAD_KEY_COL2__FLEXCAN1_TX 0x1b0b0
@@ -191,10 +163,9 @@
 
 &uart4 {
 	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_solidsense_uart4 &pinctrl_solidsense_ublox_power_enable>;
+	pinctrl-0 = <&pinctrl_solidsense_uart4>;
 	fsl,dte-mode;
 	status = "okay";
-	enable-gpios = <&gpio3 16 GPIO_ACTIVE_HIGH &gpio3 15 GPIO_ACTIVE_HIGH>;
 
 	bluetooth {
 		status = "disabled";

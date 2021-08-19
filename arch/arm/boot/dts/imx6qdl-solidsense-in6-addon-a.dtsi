@@ -194,7 +194,7 @@
 	pinctrl-0 = <&pinctrl_solidsense_uart4 &pinctrl_solidsense_ublox_power_enable>;
 	fsl,dte-mode;
 	status = "okay";
-	enable-gpios = <&gpio3 16 GPIO_ACTIVE_HIGH &gpio3 15 GPIO_ACTIVE_HIGH>;
+	enable-gpios = <&gpio3 16 GPIO_ACTIVE_HIGH>;
 
 	bluetooth {
 		status = "disabled";
