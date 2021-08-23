@@ -21,6 +21,8 @@
 #include <linux/reset.h>
 #include <linux/interrupt.h>
 #include <linux/wait.h>
+#include <linux/of_platform.h>
+#include <linux/of_address.h>
 
 #define GTPR_MAX_VALUE	0xFFFFFFFF
 #define GTSTR		0x0004
@@ -90,6 +92,28 @@
 #define GTCCRA_BUFFER_DOUBLE	(1<<17)
 #define GTCCRA_BUFFER_MASK	(3<<16)
 #define GTCCRB_BUFFER_MASK	(3<<18)
+#define GTIOR_CHANNEL_B_OUTPUT_DISABLE_MASK	(3<<25)
+#define GTIOB_OUTPUT_DISABLE	(1 << 25)
+#define GTIOR_CHANNEL_A_OUTPUT_DISABLE_MASK	(3<<9)
+#define GTIOA_OUTPUT_DISABLE	(1 << 9)
+#define GTINTAD_OUTPUT_DISABLE_GRP_MASK		(3 << 24)
+#define GRPA	(0 << 24)
+#define GRPB	(1 << 24)
+#define GRPC	(2 << 24)
+#define GRPD	(3 << 24)
+#define GTINTAD_OUTPUT_DISABLE_POEG_MASK	(3 << 29)
+#define OUTPUT_DISABLE_SAME_LEVEL_HIGH		(1 << 29)
+#define OUTPUT_DISABLE_SAME_LEVEL_LOW		(1 << 30)
+
+#define POEGG		0x0000
+
+#define PIDE		(1 << 4)
+#define EN_NFEN		(1 << 29)
+#define SSF		(1 << 3)
+#define PIDF		(1 << 0)
+#define ST		(1 << 16)
+#define IOCE		(1 << 5)
+#define IOCF		(1 << 1)
 
 enum {
 	CHANNEL_A,
@@ -113,6 +137,7 @@ struct set_params {
 	struct reg noise_filter;
 	struct reg input_source;
 	struct reg input_flag;
+	struct reg output_disable;
 };
 
 /* Parameters which we must set manually via sysfs or not use
@@ -149,6 +174,11 @@ static const struct set_params channel_set[NR_CHANNEL] = {
 			0,
 			GTINTAD,
 		},
+		.output_disable = {
+			GTIOA_OUTPUT_DISABLE,
+			GTIOR_CHANNEL_A_OUTPUT_DISABLE_MASK,
+			GTIOR,
+		},
 	},
 
 	/* Setting for channel B mode */
@@ -180,6 +210,11 @@ static const struct set_params channel_set[NR_CHANNEL] = {
 			GTINTB,
 			0,
 			GTINTAD,
+		},
+		.output_disable = {
+			GTIOB_OUTPUT_DISABLE,
+			GTIOR_CHANNEL_B_OUTPUT_DISABLE_MASK,
+			GTIOR,
 		},
 	},
 
@@ -216,6 +251,13 @@ static const struct set_params channel_set[NR_CHANNEL] = {
 			0,
 			0,
 		},
+		.output_disable = {
+			GTIOA_OUTPUT_DISABLE
+			|GTIOB_OUTPUT_DISABLE,
+			GTIOR_CHANNEL_A_OUTPUT_DISABLE_MASK
+			|GTIOR_CHANNEL_B_OUTPUT_DISABLE_MASK,
+			GTIOR,
+		},
 	},
 };
 
@@ -235,7 +277,14 @@ struct rzg2l_gpt_chip {
 	enum pwm_polarity channel_polar[NR_CHANNEL];
 	unsigned int period_ns;
 	int channel;
+	u32 poeg;
+	struct platform_device *poeg_dev;
 };
+
+#if IS_BUILTIN(CONFIG_POEG_RZG2L)
+extern void rzg2l_poeg_clear_bit_export(struct platform_device *poeg_dev,
+				u32 data, unsigned int offset);
+#endif
 
 static inline struct rzg2l_gpt_chip *to_rzg2l_gpt_chip(struct pwm_chip *chip)
 {
@@ -430,6 +479,25 @@ static int rzg2l_gpt_config(struct pwm_chip *chip, struct pwm_device *pwm,
 	rzg2l_gpt_write_mask(pc,
 	channel_set[pc->channel].phase.polar[pc->channel_polar[pc->channel]],
 	channel_set[pc->channel].phase.mask, GTIOR);
+
+	if (pc->poeg_dev != NULL) {
+		/* Set output disable group */
+		rzg2l_gpt_write_mask(pc, pc->poeg,
+				GTINTAD_OUTPUT_DISABLE_GRP_MASK, GTINTAD);
+		/* Set output disable source */
+		rzg2l_gpt_write_mask(pc,
+				OUTPUT_DISABLE_SAME_LEVEL_HIGH|
+				OUTPUT_DISABLE_SAME_LEVEL_LOW,
+				GTINTAD_OUTPUT_DISABLE_POEG_MASK, GTINTAD);
+		/* Enable pin output disable */
+		rzg2l_gpt_write_mask(pc,
+				channel_set[pc->channel].output_disable.value,
+				channel_set[pc->channel].output_disable.mask,
+				GTIOR);
+		/* Enable overflow interrupt*/
+		rzg2l_gpt_write_mask(pc,
+				GTINTPROV, GTINTAD_GTINTPR_MASK, GTINTAD);
+	}
 
 	/* Set duty cycle */
 	rzg2l_gpt_write(pc, dc, channel_set[pc->channel].duty.offset);
@@ -631,6 +699,16 @@ static irqreturn_t gpt_gtciv_interrupt(int irq, void *data)
 			if (pc->buffer_mode_count_A == 0)
 				pc->buffer_mode_count_A = 3;
 		}
+
+#if IS_BUILTIN(CONFIG_POEG_RZG2L)
+		if (pc->poeg_dev != NULL) {
+			/*Clear input edge flag*/
+			rzg2l_poeg_clear_bit_export(pc->poeg_dev, PIDF, POEGG);
+			/*Clear GPT disable flag*/
+			rzg2l_poeg_clear_bit_export(pc->poeg_dev, IOCF, POEGG);
+
+		}
+#endif
 
 		irq_flags &= ~TCFPO;
 		ret = IRQ_HANDLED;
@@ -1233,6 +1311,7 @@ static int rzg2l_gpt_probe(struct platform_device *pdev)
 {
 	struct rzg2l_gpt_chip *rzg2l_gpt;
 	struct resource *res;
+	struct device_node *poeg_np;
 	int ret, irq = 0;
 	const char *read_string;
 
@@ -1249,6 +1328,29 @@ static int rzg2l_gpt_probe(struct platform_device *pdev)
 	rzg2l_gpt->mmio_base = devm_ioremap_resource(&pdev->dev, res);
 	if (IS_ERR(rzg2l_gpt->mmio_base))
 		return PTR_ERR(rzg2l_gpt->mmio_base);
+
+	poeg_np = of_parse_phandle(pdev->dev.of_node, "poeg", 0);
+	if (poeg_np != NULL) {
+		dev_info(&pdev->dev, "GPT used %s\n", poeg_np->name);
+
+		rzg2l_gpt->poeg_dev = of_find_device_by_node(poeg_np);
+		if (!rzg2l_gpt->poeg_dev) {
+			dev_info(&pdev->dev, "Not found device associate with POEG node\n");
+		} else {
+			if (strcmp(poeg_np->name, "poega") == 0)
+				rzg2l_gpt->poeg = GRPA;
+			else if (strcmp(poeg_np->name, "poegb") == 0)
+				rzg2l_gpt->poeg = GRPB;
+			else if (strcmp(poeg_np->name, "poegc") == 0)
+				rzg2l_gpt->poeg = GRPC;
+			else if (strcmp(poeg_np->name, "poegd") == 0)
+				rzg2l_gpt->poeg = GRPD;
+			else
+				dev_info(&pdev->dev, "Not found valid POEG\n");
+		}
+	} else {
+		dev_info(&pdev->dev, "GPT not use POEG\n");
+	}
 
 	rzg2l_gpt->rstc = devm_reset_control_get(&pdev->dev, NULL);
 	if (IS_ERR(rzg2l_gpt->rstc)) {
