@@ -809,6 +809,16 @@ static struct acpi_iort_node *iort_get_msi_resv_iommu(struct device *dev)
 	return NULL;
 }
 
+void iort_iommu_rmr_update_mem_attr(struct device *dev,
+				    struct iommu_resv_region *rmr)
+{
+	if (device_get_dma_attr(dev) == DEV_DMA_COHERENT)
+		rmr->prot |= IOMMU_CACHE;
+
+	if (efi_mem_type(rmr->start) == EFI_MEMORY_MAPPED_IO)
+		rmr->prot |= IOMMU_MMIO;
+}
+
 /**
  * iort_iommu_get_rmrs() - Helper to retrieve RMR info associated with IOMMU
  * @iommu_fwnode: fwnode for the IOMMU
@@ -1079,6 +1089,9 @@ int iort_iommu_configure_id(struct device *dev, const u32 *input_id)
 { return -ENODEV; }
 int iort_iommu_get_rmrs(struct fwnode_handle *fwnode, struct list_head *head)
 { return -ENODEV; }
+void iort_iommu_rmr_update_mem_attr(struct device *dev,
+				    struct iommu_resv_region *rmr)
+{ }
 #endif
 
 static int nc_dma_get_range(struct device *dev, u64 *size)
@@ -1690,19 +1703,8 @@ static void __init iort_node_get_rmr_info(struct acpi_iort_node *iort_node)
 		}
 		if (rmr->flags & IOMMU_RMR_REMAP_PERMITTED) {
 			type = IOMMU_RESV_DIRECT_RELAXABLE;
-			/*
-			 * Set IOMMU_CACHE as IOMMU_RESV_DIRECT_RELAXABLE is
-			 * normally used for allocated system memory that is
-			 * then used for device specific reserved regions.
-			 */
-			prot |= IOMMU_CACHE;
 		} else {
 			type = IOMMU_RESV_DIRECT;
-			/*
-			 * Set IOMMU_MMIO as IOMMU_RESV_DIRECT is normally used
-			 * for device memory like MSI doorbell.
-			 */
-			prot |= IOMMU_MMIO;
 		}
 
 		region = iommu_alloc_resv_region(addr, size, prot, type);

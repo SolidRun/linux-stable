@@ -243,6 +243,7 @@ static void iommu_dma_get_rmr_resv_regions(struct device *dev,
 		if (!iommu_dma_dev_has_rmr(fwspec, rmr))
 			continue;
 
+		iort_iommu_rmr_update_mem_attr(dev, rmr);
 		/* Remove from iommu RMR list and add to dev resv_regions */
 		list_del_init(&rmr->list);
 		list_add_tail(&rmr->list, list);
