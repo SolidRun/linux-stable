@@ -10,6 +10,7 @@
 #include <linux/acpi.h>
 #include <linux/fwnode.h>
 #include <linux/irqdomain.h>
+#include <linux/iommu.h>
 
 #define IORT_IRQ_MASK(irq)		(irq & 0xffffffffULL)
 #define IORT_IRQ_TRIGGER_MASK(irq)	((irq >> 32) & 0xffffffffULL)
@@ -40,6 +41,8 @@ int iort_iommu_msi_get_resv_regions(struct device *dev, struct list_head *head);
 phys_addr_t acpi_iort_dma_get_max_cpu_address(void);
 int iort_iommu_get_rmrs(struct fwnode_handle *iommu_fwnode,
 			struct list_head *list);
+void iort_iommu_rmr_update_mem_attr(struct device *dev,
+				    struct iommu_resv_region *rmr);
 #else
 static inline void acpi_iort_init(void) { }
 static inline u32 iort_msi_map_id(struct device *dev, u32 id)
@@ -64,6 +67,11 @@ static inline
 int iort_iommu_get_rmrs(struct fwnode_handle *iommu_fwnode,
 			struct list_head *list)
 { return -ENODEV; }
+
+static inline
+void iort_iommu_rmr_update_mem_attr(struct device *dev,
+				    struct iommu_resv_region *rmr)
+{ }
 #endif
 
 #endif /* __ACPI_IORT_H__ */
