@@ -136,12 +136,12 @@ L(copy128):
 	stp	G_l, G_h, [dstend, -64]
 	stp	H_l, H_h, [dstend, -48]
 L(copy96):
+	stp	C_l, C_h, [dstend, -32]
+	stp	D_l, D_h, [dstend, -16]
 	stp	A_l, A_h, [dstin]
 	stp	B_l, B_h, [dstin, 16]
 	stp	E_l, E_h, [dstin, 32]
 	stp	F_l, F_h, [dstin, 48]
-	stp	C_l, C_h, [dstend, -32]
-	stp	D_l, D_h, [dstend, -16]
 	ret
 
 	.p2align 4
@@ -236,10 +236,10 @@ L(copy64_from_start):
 	stp	C_l, C_h, [dstend, -48]
 	ldp	C_l, C_h, [src]
 	stp	D_l, D_h, [dstend, -64]
-	stp	G_l, G_h, [dstin, 48]
-	stp	A_l, A_h, [dstin, 32]
-	stp	B_l, B_h, [dstin, 16]
 	stp	C_l, C_h, [dstin]
+	stp	B_l, B_h, [dstin, 16]
+	stp	A_l, A_h, [dstin, 32]
+	stp	G_l, G_h, [dstin, 48]
 	ret
 
 SYM_FUNC_END_PI(memcpy)
