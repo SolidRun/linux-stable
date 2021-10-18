@@ -293,7 +293,7 @@ static int rzg2l_dt_subnode_to_map(struct pinctrl_dev *pctldev,
 	if (num_pins)
 		nmaps += num_pins;
 
-	maps = krealloc_array(maps, nmaps, sizeof(*maps), GFP_KERNEL);
+	maps = krealloc(maps, nmaps * sizeof(*maps), GFP_KERNEL);
 	if (!maps) {
 		ret = -ENOMEM;
 		goto done;
