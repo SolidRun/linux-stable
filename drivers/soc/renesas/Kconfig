@@ -4,6 +4,14 @@ menuconfig SOC_RENESAS
 	default y if ARCH_RENESAS
 	select SOC_BUS
 
+config RCAR_CPU_TOPOLOGY
+	depends on (ARCH_R8A7795 || ARCH_R8A7796 || \
+		    ARCH_R8A774A1 || ARCH_R8A774E1)
+	bool "R-Car CPU Topology"
+	default y
+	help
+	  This enables the capacity awareness feature for R-Car series.
+
 if SOC_RENESAS
 
 config ARCH_RCAR_GEN1
