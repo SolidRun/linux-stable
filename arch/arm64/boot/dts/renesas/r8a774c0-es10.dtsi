@@ -1,0 +1,12 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Device Tree Source for the RZ/G2E (R8A774C0) ES1.0 SoC
+ *
+ * Copyright (C) 2019 Renesas Electronics Corp.
+ */
+
+#include "r8a774c0.dtsi"
+
+&gsx {
+	power-domains = <&sysc R8A774C0_PD_3DG_A>;
+};
