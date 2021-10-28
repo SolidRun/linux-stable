@@ -81,6 +81,8 @@
 			clocks = <&cpg CPG_CORE R8A774C0_CLK_Z2>;
 			operating-points-v2 = <&cluster1_opp>;
 			cpu-idle-states = <&CPU_SLEEP_1>;
+			cooling-min-level = <0>;
+			cooling-max-level = <2>;
 		};
 
 		a53_1: cpu@1 {
@@ -1961,6 +1963,12 @@
 					temperature = <120000>;
 					hysteresis = <2000>;
 					type = "critical";
+				};
+
+				threshold: trip-point0 {
+					temperature = <90000>;
+					hysteresis = <2000>;
+					type = "passive";
 				};
 
 				target: trip-point1 {
