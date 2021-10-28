@@ -1757,7 +1757,7 @@
 			interrupts = <GIC_SPI 119 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&cpg CPG_MOD 112>;
 			operating-points-v2 = <&gsx_opp_table>;
-			power-domains = <&sysc R8A774C0_PD_3DG_A>;
+			power-domains = <&sysc R8A774C0_PD_3DG_B>;
 			resets = <&cpg 112>;
 		};
 
