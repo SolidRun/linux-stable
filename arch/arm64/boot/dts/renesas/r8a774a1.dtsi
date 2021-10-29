@@ -1130,7 +1130,7 @@
 		};
 
 		ipmmu_vi0: iommu@febd0000 {
-			compatible = "renesas,ipmmu-r8a774a1";
+			compatible = "renesas,ipmmu-mmu-r8a774a1";
 			reg = <0 0xfebd0000 0 0x1000>;
 			renesas,ipmmu-main = <&ipmmu_mm 9>;
 			power-domains = <&sysc R8A774A1_PD_ALWAYS_ON>;
