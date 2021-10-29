@@ -139,6 +139,8 @@
 			operating-points-v2 = <&cluster0_opp>;
 			capacity-dmips-mhz = <1024>;
 			#cooling-cells = <2>;
+			cooling-min-level = <0>;
+			cooling-max-level = <2>;
 		};
 
 		a57_1: cpu@1 {
@@ -196,6 +198,8 @@
 			clocks = <&cpg CPG_CORE R8A774E1_CLK_Z2>;
 			operating-points-v2 = <&cluster1_opp>;
 			capacity-dmips-mhz = <535>;
+			cooling-min-level = <0>;
+			cooling-max-level = <2>;
 		};
 
 		a53_1: cpu@101 {
@@ -3033,6 +3037,12 @@
 			sustainable-power = <6313>;
 
 			trips {
+				threshold: trip-point0 {
+					temperature = <90000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
 				target: trip-point1 {
 					temperature = <100000>;
 					hysteresis = <1000>;
