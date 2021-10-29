@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0
 /*
- * r8a774a1 Clock Pulse Generator / Module Standby and Software Reset
+ * r8a774a1/r8a774a3 Clock Pulse Generator / Module Standby and Software Reset
  *
- * Copyright (C) 2018 Renesas Electronics Corp.
+ * Copyright (C) 2018-2020 Renesas Electronics Corp.
  *
  * Based on r8a7796-cpg-mssr.c
  *
@@ -13,6 +13,7 @@
 #include <linux/init.h>
 #include <linux/kernel.h>
 #include <linux/soc/renesas/rcar-rst.h>
+#include <linux/of.h>
 
 #include <dt-bindings/clock/r8a774a1-cpg-mssr.h>
 
@@ -120,7 +121,7 @@ static const struct cpg_core_clk r8a774a1_core_clks[] __initconst = {
 	DEF_BASE("r",           R8A774A1_CLK_R,     CLK_TYPE_GEN3_R, CLK_RINT),
 };
 
-static const struct mssr_mod_clk r8a774a1_mod_clks[] __initconst = {
+static struct mssr_mod_clk r8a774a1_mod_clks[] __initdata = {
 	DEF_MOD("3dge",			 112,	R8A774A1_CLK_ZG),
 	DEF_MOD("tmu4",			 121,	R8A774A1_CLK_S0D6),
 	DEF_MOD("tmu3",			 122,	R8A774A1_CLK_S3D2),
@@ -250,6 +251,14 @@ static const struct mssr_mod_clk r8a774a1_mod_clks[] __initconst = {
 	DEF_MOD("scu-src0",		1031,	MOD_CLK_ID(1017)),
 };
 
+/*
+ * Fixups for RZ/G2M v3.0 (aka R8A774A3)
+ */
+
+static const unsigned int r8a774a3_mod_nullify[] __initconst = {
+	MOD_CLK_ID(617),	/* FCPCI0 */
+};
+
 static const unsigned int r8a774a1_crit_mod_clks[] __initconst = {
 	MOD_CLK_ID(402),	/* RWDT */
 	MOD_CLK_ID(408),	/* INTC-AP (GIC) */
@@ -320,6 +329,12 @@ static int __init r8a774a1_cpg_mssr_init(struct device *dev)
 		dev_err(dev, "Prohibited setting (cpg_mode=0x%x)\n", cpg_mode);
 		return -EINVAL;
 	}
+
+	if (of_device_is_compatible(dev->of_node, "renesas,r8a774a3-cpg-mssr"))
+		mssr_mod_nullify(r8a774a1_mod_clks,
+				 ARRAY_SIZE(r8a774a1_mod_clks),
+				 r8a774a3_mod_nullify,
+				 ARRAY_SIZE(r8a774a3_mod_nullify));
 
 	return rcar_gen3_cpg_init(cpg_pll_config, CLK_EXTALR, cpg_mode);
 }
