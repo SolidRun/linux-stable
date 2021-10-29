@@ -6,7 +6,7 @@ menuconfig SOC_RENESAS
 
 config RCAR_CPU_TOPOLOGY
 	depends on (ARCH_R8A7795 || ARCH_R8A7796 || \
-		    ARCH_R8A774A1 || ARCH_R8A774E1)
+		    ARCH_R8A774A1 || ARCH_R8A774A3 ||ARCH_R8A774E1)
 	bool "R-Car CPU Topology"
 	default y
 	help
