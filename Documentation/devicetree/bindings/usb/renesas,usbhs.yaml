@@ -40,7 +40,8 @@ properties:
 
       - items:
           - enum:
-              - renesas,usbhs-r8a774a1 # RZ/G2M
+              - renesas,usbhs-r8a774a1 # RZ/G2M v1.3
+              - renesas,usbhs-r8a774a3 # RZ/G2M v3.0
               - renesas,usbhs-r8a774b1 # RZ/G2N
               - renesas,usbhs-r8a774c0 # RZ/G2E
               - renesas,usbhs-r8a774e1 # RZ/G2H
