@@ -114,12 +114,19 @@ properties:
               - iwave,g23s #iWave Systems RZ/G1C Single Board Computer (iW-RainboW-G23S)
           - const: renesas,r8a77470
 
-      - description: RZ/G2M (R8A774A1)
+      - description: RZ/G2M v1.3 (R8A774A1)
         items:
           - enum:
-              - hoperun,hihope-rzg2m # HopeRun HiHope RZ/G2M platform
+              - hoperun,hihope-rzg2m # HopeRun HiHope RZ/G2M v1.3 platform
               - beacon,beacon-rzg2m # Beacon EmbeddedWorks RZ/G2M Kit
           - const: renesas,r8a774a1
+
+      - description: RZ/G2M v3.0 (R8A774A3)
+        items:
+          - enum:
+              - hoperun,hihope-rzg2m # HopeRun HiHope RZ/G2M v3.0 platform
+              - beacon,beacon-rzg2m # Beacon EmbeddedWorks RZ/G2M Kit
+          - const: renesas,r8a774a3
 
       - items:
           - enum:
