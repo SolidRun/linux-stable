@@ -40,6 +40,8 @@
 
 static const unsigned int clk_divs[] = { 1, 4, 16, 32, 64, 128, 1024, 4096 };
 
+static s8 rwdt_overflow = -1;
+
 static bool nowayout = WATCHDOG_NOWAYOUT;
 module_param(nowayout, bool, 0);
 MODULE_PARM_DESC(nowayout, "Watchdog cannot be stopped once started (default="
@@ -135,6 +137,18 @@ static int rwdt_restart(struct watchdog_device *wdev, unsigned long action,
 	return 0;
 }
 
+static int __init rwdt_get_overflow_status(char *str)
+{
+	int ret;
+
+	ret = kstrtos8(str, 0, &rwdt_overflow);
+	if (ret < 0)
+		return ret;
+
+	return 0;
+}
+__setup("wdt_overflow=", rwdt_get_overflow_status);
+
 static const struct watchdog_info rwdt_ident = {
 	.options = WDIOF_MAGICCLOSE | WDIOF_KEEPALIVEPING | WDIOF_SETTIMEOUT |
 		WDIOF_CARDRESET,
@@ -215,7 +229,25 @@ static int rwdt_probe(struct platform_device *pdev)
 	pm_runtime_get_sync(dev);
 	priv->clk_rate = clk_get_rate(clk);
 	csra = readb_relaxed(priv->base + RWTCSRA);
-	priv->wdev.bootstatus = csra & RWTCSRA_WOVF ? WDIOF_CARDRESET : 0;
+
+	/*
+	 * Correct the value of wdev.bootstatus based on the
+	 * value of wdt_overflow variable passed from U-boot
+	 * to Kernel.
+	 */
+
+	switch (rwdt_overflow) {
+	case 0:
+	case 1:
+		priv->wdev.bootstatus = (rwdt_overflow) ?
+					WDIOF_CARDRESET : 0;
+		break;
+	default:
+		priv->wdev.bootstatus = (readb_relaxed(priv->base + RWTCSRA) &
+					RWTCSRA_WOVF) ? WDIOF_CARDRESET : 0;
+		break;
+	}
+
 	pm_runtime_put(dev);
 
 	if (!priv->clk_rate) {
