@@ -2955,6 +2955,12 @@
 				};
 			};
 			trips {
+				threshold: trip-point0 {
+					temperature = <90000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
 				target: trip-point1 {
 					temperature = <100000>;
 					hysteresis = <1000>;
