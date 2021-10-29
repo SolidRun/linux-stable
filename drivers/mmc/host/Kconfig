@@ -736,6 +736,16 @@ config MMC_SDHI_INTERNAL_DMAC
 	  found in arm64 based SoCs. This controller is also found in
 	  some RZ family SoCs.
 
+config MMC_SDHI_PIO
+	bool "Renesas SDHI PIO transfer mode setting"
+	depends on MMC_SDHI
+	help
+	 This setting switches the transfer mode of the PIO and DMA.
+
+	 Select Yes or No according to the following.
+	 When switching the transfer mode from DMA to PIO, say Y here.
+	 When switching the transfer mode from PIO to DMA, say N here.
+
 config MMC_UNIPHIER
 	tristate "UniPhier SD/eMMC Host Controller support"
 	depends on ARCH_UNIPHIER || COMPILE_TEST
