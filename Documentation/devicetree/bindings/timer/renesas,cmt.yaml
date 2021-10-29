@@ -68,7 +68,8 @@ properties:
 
       - items:
           - enum:
-              - renesas,r8a774a1-cmt0     # 32-bit CMT0 on RZ/G2M
+              - renesas,r8a774a1-cmt0     # 32-bit CMT0 on RZ/G2M v1.3
+              - renesas,r8a774a3-cmt0     # 32-bit CMT0 on RZ/G2M v3.0
               - renesas,r8a774b1-cmt0     # 32-bit CMT0 on RZ/G2N
               - renesas,r8a774c0-cmt0     # 32-bit CMT0 on RZ/G2E
               - renesas,r8a774e1-cmt0     # 32-bit CMT0 on RZ/G2H
@@ -83,7 +84,8 @@ properties:
 
       - items:
           - enum:
-              - renesas,r8a774a1-cmt1     # 48-bit CMT on RZ/G2M
+              - renesas,r8a774a1-cmt1     # 48-bit CMT on RZ/G2M v1.3
+              - renesas,r8a774a3-cmt1     # 48-bit CMT on RZ/G2M v3.0
               - renesas,r8a774b1-cmt1     # 48-bit CMT on RZ/G2N
               - renesas,r8a774c0-cmt1     # 48-bit CMT on RZ/G2E
               - renesas,r8a774e1-cmt1     # 48-bit CMT on RZ/G2H
