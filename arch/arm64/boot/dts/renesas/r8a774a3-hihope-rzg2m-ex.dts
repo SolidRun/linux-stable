@@ -15,3 +15,8 @@
 	compatible = "hoperun,hihope-rzg2-ex", "hoperun,hihope-rzg2m",
 		     "renesas,r8a774a3";
 };
+
+/* SW43 should be OFF, if in ON state SATA port will be activated */
+&pciec1 {
+	status = "okay";
+};
