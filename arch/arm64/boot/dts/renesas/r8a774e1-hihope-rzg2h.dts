@@ -50,6 +50,22 @@
 		      "dclkin.0", "dclkin.1", "dclkin.3";
 };
 
+&vspbc {
+	status = "okay";
+};
+
+&vspbd {
+	status = "okay";
+};
+
+&vspi0 {
+	status = "okay";
+};
+
+&vspi1 {
+	status = "okay";
+};
+
 &sdhi3 {
 	mmc-hs400-1_8v;
 };
