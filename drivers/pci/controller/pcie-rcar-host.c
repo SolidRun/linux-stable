@@ -56,6 +56,7 @@ struct rcar_pcie_host {
 	struct clk		*bus_clk;
 	struct			rcar_msi msi;
 	int			(*phy_init_fn)(struct rcar_pcie_host *host);
+	struct irq_domain	*intx_domain;
 };
 
 static u32 rcar_read_conf(struct rcar_pcie *pcie, int where)
@@ -475,6 +476,31 @@ static int rcar_pcie_phy_init_gen3(struct rcar_pcie_host *host)
 	return err;
 }
 
+/* INTx Functions */
+
+/**
+ * rcar_pcie_intx_map - Set the handler for the INTx and mark IRQ as valid
+ * @domain: IRQ domain
+ * @irq: Virtual IRQ number
+ * @hwirq: HW interrupt number
+ *
+ * Return: Always returns 0.
+ */
+
+static int rcar_pcie_intx_map(struct irq_domain *domain, unsigned int irq,
+			      irq_hw_number_t hwirq)
+{
+	irq_set_chip_and_handler(irq, &dummy_irq_chip, handle_simple_irq);
+	irq_set_chip_data(irq, domain->host_data);
+
+	return 0;
+}
+
+/* INTx IRQ Domain operations */
+static const struct irq_domain_ops intx_domain_ops = {
+	.map = rcar_pcie_intx_map,
+};
+
 static int rcar_msi_alloc(struct rcar_msi *chip)
 {
 	int msi;
@@ -521,9 +547,28 @@ static irqreturn_t rcar_pcie_msi_irq(int irq, void *data)
 
 	reg = rcar_pci_read_reg(pcie, PCIEMSIFR);
 
-	/* MSI & INTx share an interrupt - we only handle MSI here */
+	/* MSI & INTx share an interrupt */
 	if (!reg)
-		return IRQ_NONE;
+	{
+		unsigned int intx_irq, index_intx;
+		unsigned long reg_intx;
+
+		reg_intx = rcar_pci_read_reg(pcie, PCIEINTXR);
+		index_intx = find_first_bit(&reg_intx, 4);
+
+		if(!reg_intx)
+			return IRQ_NONE;
+
+		intx_irq = irq_find_mapping(host->intx_domain, index_intx);
+		if (intx_irq) {
+			generic_handle_irq(intx_irq);
+		} else {
+			/* Unknown INTx, just clear it */
+			dev_dbg(dev, "unexpected INTx\n");
+		}
+
+		return IRQ_HANDLED;
+	}
 
 	while (reg) {
 		unsigned int index = find_first_bit(&reg, 32);
@@ -704,6 +749,17 @@ static int rcar_pcie_enable_msi(struct rcar_pcie_host *host)
 
 	mutex_init(&msi->lock);
 
+	host->intx_domain = irq_domain_add_linear(dev->of_node, PCI_NUM_INTX,
+						  &intx_domain_ops,
+						  pcie);
+
+	if (!host->intx_domain) {
+		dev_err(dev, "failed to create INTx IRQ domain\n");
+	}
+
+	for (i = 0; i < PCI_NUM_INTX; i++)
+		irq_create_mapping(host->intx_domain, i);
+
 	msi->chip.dev = dev;
 	msi->chip.setup_irq = rcar_msi_setup_irq;
 	msi->chip.setup_irqs = rcar_msi_setup_irqs;
@@ -721,7 +777,7 @@ static int rcar_pcie_enable_msi(struct rcar_pcie_host *host)
 
 	/* Two irqs are for MSI, but they are also used for non-MSI irqs */
 	err = devm_request_irq(dev, msi->irq1, rcar_pcie_msi_irq,
-			       IRQF_SHARED | IRQF_NO_THREAD,
+			       IRQF_SHARED | IRQF_NO_THREAD | IRQF_ONESHOT,
 			       rcar_msi_irq_chip.name, host);
 	if (err < 0) {
 		dev_err(dev, "failed to request IRQ: %d\n", err);
@@ -729,7 +785,7 @@ static int rcar_pcie_enable_msi(struct rcar_pcie_host *host)
 	}
 
 	err = devm_request_irq(dev, msi->irq2, rcar_pcie_msi_irq,
-			       IRQF_SHARED | IRQF_NO_THREAD,
+			       IRQF_SHARED | IRQF_NO_THREAD | IRQF_ONESHOT,
 			       rcar_msi_irq_chip.name, host);
 	if (err < 0) {
 		dev_err(dev, "failed to request IRQ: %d\n", err);
