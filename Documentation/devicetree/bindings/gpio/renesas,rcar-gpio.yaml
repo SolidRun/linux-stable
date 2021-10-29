@@ -34,7 +34,8 @@ properties:
 
       - items:
           - enum:
-              - renesas,gpio-r8a774a1     # RZ/G2M
+              - renesas,gpio-r8a774a1     # RZ/G2M v1.3
+              - renesas,gpio-r8a774a3     # RZ/G2M v3.0
               - renesas,gpio-r8a774b1     # RZ/G2N
               - renesas,gpio-r8a774c0     # RZ/G2E
               - renesas,gpio-r8a774e1     # RZ/G2H
