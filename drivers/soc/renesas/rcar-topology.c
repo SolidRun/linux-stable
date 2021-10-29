@@ -39,6 +39,7 @@ static int __init rcar_topology_init(void)
 	if (of_machine_is_compatible("renesas,r8a7795") ||
 	    of_machine_is_compatible("renesas,r8a7796") ||
 	    of_machine_is_compatible("renesas,r8a774a1") ||
+	    of_machine_is_compatible("renesas,r8a774a3") ||
 	    of_machine_is_compatible("renesas,r8a774e1"))
 		set_sched_topology(rcar_topology);
 
