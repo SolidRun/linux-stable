@@ -6,6 +6,7 @@
  *
  * Copyright (C) 2008 Magnus Damm
  * Copyright (C) 2009 - 2012 Paul Mundt
+ * Copyright (C) 2019-2020 Renesas Electronics Corp.
  */
 
 #define DRV_NAME "sh-pfc"
@@ -518,6 +519,12 @@ static const struct of_device_id sh_pfc_of_table[] = {
 	{
 		.compatible = "renesas,pfc-r8a774a1",
 		.data = &r8a774a1_pinmux_info,
+	},
+#endif
+#ifdef CONFIG_PINCTRL_PFC_R8A774A3
+	{
+		.compatible = "renesas,pfc-r8a774a3",
+		.data = &r8a774a3_pinmux_info,
 	},
 #endif
 #ifdef CONFIG_PINCTRL_PFC_R8A774B1
