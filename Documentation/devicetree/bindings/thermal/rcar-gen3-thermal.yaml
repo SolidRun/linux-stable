@@ -18,7 +18,8 @@ maintainers:
 properties:
   compatible:
     enum:
-      - renesas,r8a774a1-thermal # RZ/G2M
+      - renesas,r8a774a1-thermal # RZ/G2M v1.3
+      - renesas,r8a774a3-thermal # RZ/G2M v3.0
       - renesas,r8a774b1-thermal # RZ/G2N
       - renesas,r8a774e1-thermal # RZ/G2H
       - renesas,r8a7795-thermal  # R-Car H3
