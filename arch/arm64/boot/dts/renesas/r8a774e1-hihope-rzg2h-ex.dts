@@ -18,3 +18,8 @@
 &sata {
 	status = "okay";
 };
+
+/* Set SW43 = OFF and SW1001[7] = ON for PCIEC1 port to be activated */
+&pciec1 {
+	status = "okay";
+};
