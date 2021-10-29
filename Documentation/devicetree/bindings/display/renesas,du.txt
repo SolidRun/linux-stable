@@ -8,7 +8,8 @@ Required Properties:
     - "renesas,du-r8a7744" for R8A7744 (RZ/G1N) compatible DU
     - "renesas,du-r8a7745" for R8A7745 (RZ/G1E) compatible DU
     - "renesas,du-r8a77470" for R8A77470 (RZ/G1C) compatible DU
-    - "renesas,du-r8a774a1" for R8A774A1 (RZ/G2M) compatible DU
+    - "renesas,du-r8a774a1" for R8A774A1 (RZ/G2M v1.3) compatible DU
+    - "renesas,du-r8a774a3" for R8A774A3 (RZ/G2M v3.0) compatible DU
     - "renesas,du-r8a774b1" for R8A774B1 (RZ/G2N) compatible DU
     - "renesas,du-r8a774c0" for R8A774C0 (RZ/G2E) compatible DU
     - "renesas,du-r8a774e1" for R8A774E1 (RZ/G2H) compatible DU
@@ -76,7 +77,8 @@ corresponding to each DU output.
  R8A7744 (RZ/G1N)       DPAD 0         LVDS 0         -              -
  R8A7745 (RZ/G1E)       DPAD 0         DPAD 1         -              -
  R8A77470 (RZ/G1C)      DPAD 0         DPAD 1         LVDS 0         -
- R8A774A1 (RZ/G2M)      DPAD 0         HDMI 0         LVDS 0         -
+ R8A774A1 (RZ/G2M v1.3) DPAD 0         HDMI 0         LVDS 0         -
+ R8A774A3 (RZ/G2M v3.0) DPAD 0         HDMI 0         LVDS 0         -
  R8A774B1 (RZ/G2N)      DPAD 0         HDMI 0         LVDS 0         -
  R8A774C0 (RZ/G2E)      DPAD 0         LVDS 0         LVDS 1         -
  R8A774E1 (RZ/G2H)      DPAD 0         HDMI 0         LVDS 0         -
