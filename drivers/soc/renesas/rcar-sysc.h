@@ -3,6 +3,8 @@
  * Renesas R-Car System Controller
  *
  * Copyright (C) 2016 Glider bvba
+ * Copyright (C) 2020 Renesas Electronics Corp.
+ *
  */
 #ifndef __SOC_RENESAS_RCAR_SYSC_H__
 #define __SOC_RENESAS_RCAR_SYSC_H__
@@ -54,6 +56,7 @@ extern const struct rcar_sysc_info r8a7743_sysc_info;
 extern const struct rcar_sysc_info r8a7745_sysc_info;
 extern const struct rcar_sysc_info r8a77470_sysc_info;
 extern const struct rcar_sysc_info r8a774a1_sysc_info;
+extern const struct rcar_sysc_info r8a774a3_sysc_info;
 extern const struct rcar_sysc_info r8a774b1_sysc_info;
 extern const struct rcar_sysc_info r8a774c0_sysc_info;
 extern const struct rcar_sysc_info r8a774e1_sysc_info;
