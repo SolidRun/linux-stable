@@ -4,6 +4,8 @@
  *
  * Copyright (C) 2014  Magnus Damm
  * Copyright (C) 2015-2017 Glider bvba
+ * Copyright (C) 2020 Renesas Electronics Corp
+ *
  */
 
 #include <linux/clk/renesas.h>
@@ -289,6 +291,9 @@ static const struct of_device_id rcar_sysc_matches[] __initconst = {
 #endif
 #ifdef CONFIG_SYSC_R8A774A1
 	{ .compatible = "renesas,r8a774a1-sysc", .data = &r8a774a1_sysc_info },
+#endif
+#ifdef CONFIG_SYSC_R8A774A3
+	{ .compatible = "renesas,r8a774a3-sysc", .data = &r8a774a3_sysc_info },
 #endif
 #ifdef CONFIG_SYSC_R8A774B1
 	{ .compatible = "renesas,r8a774b1-sysc", .data = &r8a774b1_sysc_info },

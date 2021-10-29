@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0
 /*
- * Renesas RZ/G2M System Controller
- * Copyright (C) 2018 Renesas Electronics Corp.
+ * Renesas RZ/G2M (v1.3 and v3.0) System Controller
+ * Copyright (C) 2018-2020 Renesas Electronics Corp.
  *
- * Based on Renesas R-Car M3-W System Controller
+ * Based on Renesas R-Car M3-W/W+ System Controller
  * Copyright (C) 2016 Glider bvba
  */
 
@@ -13,7 +13,7 @@
 
 #include "rcar-sysc.h"
 
-static const struct rcar_sysc_area r8a774a1_areas[] __initconst = {
+static struct rcar_sysc_area r8a774a1_areas[] __initdata = {
 	{ "always-on",	    0, 0, R8A774A1_PD_ALWAYS_ON, -1, PD_ALWAYS_ON },
 	{ "ca57-scu",	0x1c0, 0, R8A774A1_PD_CA57_SCU,	R8A774A1_PD_ALWAYS_ON,
 	  PD_SCU },
@@ -38,7 +38,25 @@ static const struct rcar_sysc_area r8a774a1_areas[] __initconst = {
 	{ "3dg-b",	0x100, 1, R8A774A1_PD_3DG_B,	R8A774A1_PD_3DG_A },
 };
 
+#ifdef CONFIG_SYSC_R8A774A1
 const struct rcar_sysc_info r8a774a1_sysc_info __initconst = {
 	.areas = r8a774a1_areas,
 	.num_areas = ARRAY_SIZE(r8a774a1_areas),
 };
+#endif /* CONFIG_SYSC_R8A774A1*/
+
+#ifdef CONFIG_SYSC_R8A774A3
+static int __init r8a774a3_sysc_init(void)
+{
+	rcar_sysc_nullify(r8a774a1_areas, ARRAY_SIZE(r8a774a1_areas),
+			  R8A774A1_PD_A2VC0);
+
+return 0;
+}
+
+const struct rcar_sysc_info r8a774a3_sysc_info __initconst = {
+	.init = r8a774a3_sysc_init,
+	.areas = r8a774a1_areas,
+	.num_areas = ARRAY_SIZE(r8a774a1_areas),
+};
+#endif /* CONFIG_SYSC_R8A774A3 */

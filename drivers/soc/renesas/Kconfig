@@ -288,6 +288,7 @@ config ARCH_R8A774A1
 config ARCH_R8A774A3
 	bool "ARM64 Platform support for RZ/G2M v3.0"
 	select ARCH_RCAR_GEN3
+	select SYSC_R8A774A3
 	help
 	  This enables support for the Renesas RZ/G2M v3.0 SoC.
 
@@ -407,7 +408,11 @@ config SYSC_R8A774E1
 	select SYSC_RCAR
 
 config SYSC_R8A774A1
-	bool "System Controller support for RZ/G2M" if COMPILE_TEST
+	bool "System Controller support for RZ/G2M v1.3" if COMPILE_TEST
+	select SYSC_RCAR
+
+config SYSC_R8A774A3
+	bool "System Controller support for RZ/G2M v3.0" if COMPILE_TEST
 	select SYSC_RCAR
 
 config SYSC_R8A774B1
