@@ -68,7 +68,7 @@ static struct dentry *sbit_file;
 static struct dentry *mbit_file;
 static struct dentry *sig_file;
 static struct task_struct *t;
-static struct siginfo info;
+static struct kernel_siginfo info;
 static void __iomem *base_addr;
 
 static ssize_t read_pid(struct file *file, char __user *buf,
@@ -106,7 +106,7 @@ static ssize_t write_pid(struct file *file, const char __user *buf,
 		return -EINVAL;
 
 	/* send the signal */
-	memset(&info, 0, sizeof(struct siginfo));
+	memset(&info, 0, sizeof(struct kernel_siginfo));
 	info.si_signo = signal_id;
 	/* FIXME: SI_QUEUE is normally used by sigqueue from user space,
 	 * and kernel space should use SI_KERNEL. But if SI_KERNEL is used the
@@ -347,7 +347,7 @@ static int mfis_ecc_probe(struct platform_device *pdev)
 	uint32_t mfierrcntr11;
 
 	mem = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	base_addr = ioremap_nocache(mem->start, resource_size(mem));
+	base_addr = ioremap(mem->start, resource_size(mem));
 	if (IS_ERR(base_addr)) {
 		err = PTR_ERR(base_addr);
 		return err;
@@ -382,7 +382,7 @@ static int mfis_ecc_probe(struct platform_device *pdev)
 		return err;
 	}
 
-	mstp_base_addr = ioremap_nocache(MSTP_BASE, MSTP_SIZE);
+	mstp_base_addr = ioremap(MSTP_BASE, MSTP_SIZE);
 	if (IS_ERR(mstp_base_addr)) {
 		err = PTR_ERR(mstp_base_addr);
 		return err;
