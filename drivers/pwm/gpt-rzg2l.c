@@ -87,7 +87,6 @@
 struct rzg2l_gpt_chip {
 	struct	pwm_chip chip;
 	struct	clk *clk;
-	int	clk_enable;
 	void	__iomem *mmio_base;
 	spinlock_t lock;
 	struct reset_control *rstc;
@@ -125,28 +124,6 @@ static void rzg2l_gpt_write_mask(struct rzg2l_gpt_chip *pc, u32 data, u32 mask,
 static u32 rzg2l_gpt_read(struct rzg2l_gpt_chip *pc, unsigned int offset)
 {
 	return ioread32(pc->mmio_base + offset);
-}
-
-static void rzg2l_timer_count_start(struct rzg2l_gpt_chip *pc)
-{
-	uint32_t tmp = 0;
-
-	/* Timer count start */
-	/* GTCR.CST = 1 */
-	tmp = rzg2l_gpt_read(pc, GTCR);
-	tmp |= GTCR_CST;
-	rzg2l_gpt_write(pc, tmp, GTCR);
-}
-
-static void rzg2l_timer_count_stop(struct rzg2l_gpt_chip *pc)
-{
-	uint32_t tmp = 0;
-
-	/* Timer count stop */
-	/* GTCR.CST = 0 */
-	tmp = rzg2l_gpt_read(pc, GTCR);
-	tmp &= ~GTCR_CST;
-	rzg2l_gpt_write(pc, tmp, GTCR);
 }
 
 static int rzg2l_calculate_prescale(struct rzg2l_gpt_chip *pc,
@@ -264,12 +241,22 @@ rzg2l_tick_number_to_time(struct rzg2l_gpt_chip *pc, u32 tick_number,
 	return time_ns;
 }
 
+static int rzg2l_gpt_request(struct pwm_chip *chip, struct pwm_device *pwm)
+{
+	return pm_runtime_get_sync(chip->dev);
+}
+
+static void rzg2l_gpt_free(struct pwm_chip *chip, struct pwm_device *pwm)
+{
+	pm_runtime_put(chip->dev);
+}
+
 static int rzg2l_gpt_config(struct pwm_chip *chip, struct pwm_device *pwm,
 				int duty_ns, int period_ns)
 {
 	struct rzg2l_gpt_chip *pc = to_rzg2l_gpt_chip(chip);
 	unsigned long pv, dc;
-	int rc, prescale;
+	int prescale;
 
 	if ((duty_ns < 0) || (period_ns < 0)) {
 		dev_err(chip->dev, "Set time negative\n");
@@ -287,14 +274,6 @@ static int rzg2l_gpt_config(struct pwm_chip *chip, struct pwm_device *pwm,
 		dc = pv;
 
 	pc->period_ns = period_ns;
-	/* NOTE: the clock to GPT has to be enabled first
-	 * before writing to the registers
-	 */
-	rc = clk_prepare_enable(pc->clk);
-	if (rc < 0) {
-		dev_err(chip->dev, "Unavailable  clock\n");
-		return rc;
-	}
 
 	/* GPT setting saw-wave up-counting */
 	/* Set operation GPT mode and select count clock */
@@ -322,8 +301,6 @@ static int rzg2l_gpt_config(struct pwm_chip *chip, struct pwm_device *pwm,
 	/* Set no buffer operation */
 	rzg2l_gpt_write(pc, 0, GTBER);
 
-	clk_disable_unprepare(pc->clk);
-
 	return 0;
 }
 
@@ -332,12 +309,8 @@ static int rzg2l_gpt_enable(struct pwm_chip *chip, struct pwm_device *pwm)
 	struct rzg2l_gpt_chip *pc = to_rzg2l_gpt_chip(chip);
 	int rc = 0;
 
-	if (!pc->clk_enable) {
-		rc = clk_prepare_enable(pc->clk);
-		if (!rc)
-			pc->clk_enable++;
-		rzg2l_timer_count_start(pc);
-	}
+	/* Start count */
+	rzg2l_gpt_write_mask(pc, 1, GTCR_CST, GTCR);
 
 	return rc;
 }
@@ -346,28 +319,19 @@ static void rzg2l_gpt_disable(struct pwm_chip *chip, struct pwm_device *pwm)
 {
 	struct rzg2l_gpt_chip *pc = to_rzg2l_gpt_chip(chip);
 
-	if (pc->clk_enable) {
-		rzg2l_timer_count_stop(pc);
-		clk_disable_unprepare(pc->clk);
-		pc->clk_enable--;
-	}
+	/* Stop count */
+	rzg2l_gpt_write_mask(pc, 0, GTCR_CST, GTCR);
 }
 
 static int
 rzg2l_gpt_capture(struct pwm_chip *chip, struct pwm_device *pwm,
 		struct pwm_capture *result, unsigned long timeout)
 {
-	int ret, rc;
+	int ret;
 	unsigned long flags;
 	struct rzg2l_gpt_chip *pc = to_rzg2l_gpt_chip(chip);
 	unsigned int effective_ticks;
 	u64 high, low;
-
-	rc = clk_prepare_enable(pc->clk);
-	if (rc < 0) {
-		dev_err(chip->dev, "Unavailable  clock\n");
-		return rc;
-	}
 
 	spin_lock_irqsave(&pc->lock, flags);
 
@@ -405,7 +369,7 @@ rzg2l_gpt_capture(struct pwm_chip *chip, struct pwm_device *pwm,
 		rzg2l_gpt_write(pc, GTINTA|GTINTPROV, GTINTAD);
 	}
 	/* Start count operation set GTCR.CST to 1 to start count operation*/
-	rzg2l_timer_count_start(pc);
+	rzg2l_gpt_write_mask(pc, 1, GTCR_CST, GTCR);
 
 	spin_unlock_irqrestore(&pc->lock, flags);
 
@@ -446,14 +410,17 @@ out:
 	/* Disable interrupt */
 	rzg2l_gpt_write(pc, 0, GTINTAD);
 
-	spin_unlock_irqrestore(&pc->lock, flags);
+	/* Stop count */
+	rzg2l_gpt_write_mask(pc, 0, GTCR_CST, GTCR);
 
-	clk_disable_unprepare(pc->clk);
+	spin_unlock_irqrestore(&pc->lock, flags);
 
 	return ret;
 }
 
 static const struct pwm_ops rzg2l_gpt_ops = {
+	.request = rzg2l_gpt_request,
+	.free = rzg2l_gpt_free,
 	.capture = rzg2l_gpt_capture,
 	.config = rzg2l_gpt_config,
 	.enable = rzg2l_gpt_enable,
@@ -645,19 +612,11 @@ static ssize_t buff0_store(struct device *dev, struct device_attribute *attr,
 		goto out;
 	}
 
-	ret = clk_prepare_enable(pc->clk);
-	if (ret < 0) {
-		dev_err(pc->chip.dev, "Unavailable  clock\n");
-		goto out;
-	}
-
 	/*Set compare match value in GTCCRA in GTCCRB*/
 	if (!strcmp(pc->channel, "channel_B"))
 		rzg2l_gpt_write(pc, pc->buffer[0], GTCCRB);
 	else
 		rzg2l_gpt_write(pc, pc->buffer[0], GTCCRA);
-
-	clk_disable_unprepare(pc->clk);
 
 out:
 	mutex_unlock(&pc->mutex);
@@ -706,12 +665,6 @@ static ssize_t buff1_store(struct device *dev, struct device_attribute *attr,
 
 	pc->buffer_mode_count = 2;
 
-	ret = clk_prepare_enable(pc->clk);
-	if (ret < 0) {
-		dev_err(pc->chip.dev, "Unavailable  clock\n");
-		goto out;
-	}
-
 	if (!strcmp(pc->channel, "channel_B")) {
 		/*Set buffer operation with CCRA CCRB in GTBER*/
 		rzg2l_gpt_write(pc, GTCCRB_BUFFER_SINGLE, GTBER);
@@ -726,8 +679,6 @@ static ssize_t buff1_store(struct device *dev, struct device_attribute *attr,
 
 	/* Enable overflow interrupt*/
 	rzg2l_gpt_write(pc, GTINTPROV, GTINTAD);
-
-	clk_disable_unprepare(pc->clk);
 
 out:
 	mutex_unlock(&pc->mutex);
@@ -776,12 +727,6 @@ static ssize_t buff2_store(struct device *dev, struct device_attribute *attr,
 
 	pc->buffer_mode_count = 3;
 
-	ret = clk_prepare_enable(pc->clk);
-	if (ret < 0) {
-		dev_err(pc->chip.dev, "Unavailable  clock\n");
-		goto out;
-	}
-
 	if (!strcmp(pc->channel, "channel_B")) {
 		/*Set buffer operation with CCRA CCRB in GTBER*/
 		rzg2l_gpt_write(pc, GTCCRB_BUFFER_DOUBLE, GTBER);
@@ -796,8 +741,6 @@ static ssize_t buff2_store(struct device *dev, struct device_attribute *attr,
 
 	/* Enable overflow interrupt*/
 	rzg2l_gpt_write(pc, GTINTPROV, GTINTAD);
-
-	clk_disable_unprepare(pc->clk);
 
 out:
 	mutex_unlock(&pc->mutex);
@@ -921,7 +864,6 @@ static int rzg2l_gpt_probe(struct platform_device *pdev)
 		return PTR_ERR(rzg2l_gpt->clk);
 	}
 
-	rzg2l_gpt->clk_enable = 0;
 	rzg2l_gpt->chip.dev = &pdev->dev;
 	rzg2l_gpt->chip.ops = &rzg2l_gpt_ops;
 	rzg2l_gpt->chip.base = -1;
@@ -968,12 +910,52 @@ static const struct of_device_id rzg2l_gpt_of_table[] = {
 
 MODULE_DEVICE_TABLE(of, rzg2l_gpt_of_table);
 
+static struct pwm_device *rzg2l_gpt_dev_to_pwm_dev(struct device *dev)
+{
+	struct rzg2l_gpt_chip *rzg2l_gpt = dev_get_drvdata(dev);
+	struct pwm_chip *chip = &rzg2l_gpt->chip;
+
+	return &chip->pwms[0];
+}
+
+static int rzg2l_gpt_suspend(struct device *dev)
+{
+	struct pwm_device *pwm = rzg2l_gpt_dev_to_pwm_dev(dev);
+
+	if (!test_bit(PWMF_REQUESTED, &pwm->flags))
+		return 0;
+
+	pm_runtime_put(dev);
+
+	return 0;
+}
+
+static int rzg2l_gpt_resume(struct device *dev)
+{
+	struct pwm_device *pwm = rzg2l_gpt_dev_to_pwm_dev(dev);
+
+	if (!test_bit(PWMF_REQUESTED, &pwm->flags))
+		return 0;
+
+	pm_runtime_get_sync(dev);
+
+	rzg2l_gpt_config(pwm->chip, pwm, pwm->state.duty_cycle,
+			pwm->state.period);
+	if (pwm_is_enabled(pwm))
+		rzg2l_gpt_enable(pwm->chip, pwm);
+
+	return 0;
+}
+
+static SIMPLE_DEV_PM_OPS(rzg2l_gpt_pm_ops, rzg2l_gpt_suspend, rzg2l_gpt_resume);
+
 static struct platform_driver rzg2l_gpt_driver = {
 	.probe = rzg2l_gpt_probe,
 	.remove = rzg2l_gpt_remove,
 	.driver = {
 		.name = "gpt-rzg2l",
 		.owner = THIS_MODULE,
+		.pm	= &rzg2l_gpt_pm_ops,
 		.of_match_table = of_match_ptr(rzg2l_gpt_of_table),
 	},
 };
