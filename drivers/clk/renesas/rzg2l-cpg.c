@@ -138,6 +138,174 @@ rzg2l_cpg_div_clk_register(const struct cpg_core_clk *core,
 	return clk_hw->clk;
 }
 
+struct cpg_2div_clk {
+	struct clk_hw hw;
+	unsigned int conf_a;
+	const struct clk_div_table *dtable_a;
+	unsigned int conf_b;
+	const struct clk_div_table *dtable_b;
+	void __iomem *base;
+	struct rzg2l_cpg_priv *priv;
+};
+
+#define to_d2clk(_hw)	container_of(_hw, struct cpg_2div_clk, hw)
+
+unsigned int rzg2l_cpg_2div_clk_get_div(unsigned int val,
+			const struct clk_div_table *t,
+			int length)
+{
+	int i;
+
+	for (i = 0; i <= length; i++)
+		if (val == t[i].val)
+			return t[i].div;
+
+	/*return div as 1 if failed*/
+	return 1;
+}
+
+static unsigned long rzg2l_cpg_2div_clk_recalc_rate(struct clk_hw *hw,
+						unsigned long parent_rate)
+{
+	struct cpg_2div_clk *d2clk = to_d2clk(hw);
+	u32 div, div_a, div_b, val, vals;
+
+	val = readl(d2clk->base + GET_REG_OFFSET(d2clk->conf_a));
+	div_a = DIV_RSMASK(val, GET_SHIFT(d2clk->conf_a),
+			(BIT(GET_WIDTH(d2clk->conf_a)) - 1));
+	div_a = rzg2l_cpg_2div_clk_get_div(div_a, d2clk->dtable_a,
+			(BIT(GET_WIDTH(d2clk->conf_a)) - 1));
+
+	vals = readl(d2clk->base + GET_REG_OFFSET(d2clk->conf_b));
+	div_b = DIV_RSMASK(val, GET_SHIFT(d2clk->conf_b),
+			(BIT(GET_WIDTH(d2clk->conf_b)) - 1));
+	div_b = rzg2l_cpg_2div_clk_get_div(div_b, d2clk->dtable_b,
+			(BIT(GET_WIDTH(d2clk->conf_b)) - 1));
+
+	div = div_a * div_b;
+
+	return DIV_ROUND_CLOSEST_ULL((u64)parent_rate, div);
+}
+
+static long rzg2l_cpg_2div_clk_round_rate(struct clk_hw *hw,
+					unsigned long rate,
+					unsigned long *parent_rate)
+{
+	struct cpg_2div_clk *d2clk = to_d2clk(hw);
+	unsigned long best_diff = (unsigned long)-1;
+	unsigned long diff;
+	unsigned int best_div_a, best_div_b, div_a, div_b;
+	int i, j, n_a, n_b;
+
+	n_a = BIT(GET_WIDTH(d2clk->conf_a)) - 1;
+	n_b = BIT(GET_WIDTH(d2clk->conf_b)) - 1;
+	for (i = 0; i <= n_a; i++) {
+		for (j = 0; j <= n_b; j++) {
+			div_a = rzg2l_cpg_2div_clk_get_div(i, d2clk->dtable_a, n_a);
+			div_b = rzg2l_cpg_2div_clk_get_div(j, d2clk->dtable_b, n_b);
+			diff = abs(*parent_rate - (rate * div_a * div_b));
+			if (best_diff > diff) {
+				best_diff = diff;
+				best_div_a = div_a;
+				best_div_b = div_b;
+			}
+		}
+	}
+
+	return DIV_ROUND_CLOSEST_ULL((u64)*parent_rate, best_div_a * best_div_b);
+}
+
+static int rzg2l_cpg_2div_clk_set_rate(struct clk_hw *hw,
+				unsigned long rate,
+				unsigned long parent_rate)
+{
+	struct cpg_2div_clk *d2clk = to_d2clk(hw);
+	struct rzg2l_cpg_priv *priv = d2clk->priv;
+	unsigned long best_diff = (unsigned long)-1;
+	unsigned long diff, flags;
+	unsigned int div_a, div_b, val_a, val_b, n_a, n_b;
+	int i, j;
+
+	n_a = BIT(GET_WIDTH(d2clk->conf_a)) - 1;
+	n_b = BIT(GET_WIDTH(d2clk->conf_b)) - 1;
+	for (i = 0; i <= n_a; i++) {
+		for (j = 0; j <= n_b; j++) {
+			div_a = rzg2l_cpg_2div_clk_get_div(i, d2clk->dtable_a, n_a);
+			div_b = rzg2l_cpg_2div_clk_get_div(j, d2clk->dtable_b, n_b);
+			diff = abs(parent_rate - (rate * div_a * div_b));
+			if (best_diff > diff) {
+				best_diff = diff;
+				val_a = i;
+				val_b = j;
+			}
+		}
+	}
+
+	spin_lock_irqsave(&priv->rmw_lock, flags);
+
+	val_a = (val_a << GET_SHIFT(d2clk->conf_a))
+	    | (0x1 << (GET_SHIFT(d2clk->conf_a) + 16));
+	writel(val_a, d2clk->base + GET_REG_OFFSET(d2clk->conf_a));
+
+	val_b = (val_b << GET_SHIFT(d2clk->conf_b))
+	    | (0x1 << (GET_SHIFT(d2clk->conf_b) + 16));
+	writel(val_b, d2clk->base + GET_REG_OFFSET(d2clk->conf_b));
+
+	spin_unlock_irqrestore(&priv->rmw_lock, flags);
+
+	return 0;
+}
+
+static const struct clk_ops rzg2l_2div_ops = {
+	.recalc_rate = rzg2l_cpg_2div_clk_recalc_rate,
+	.round_rate = rzg2l_cpg_2div_clk_round_rate,
+	.set_rate = rzg2l_cpg_2div_clk_set_rate,
+};
+
+struct clk * __init rzg2l_cpg_2div_clk_register(const struct cpg_core_clk *core,
+						struct clk **clks,
+						void __iomem *base,
+						struct rzg2l_cpg_priv *priv)
+{
+	const struct clk *parent;
+	struct clk_init_data init;
+	struct cpg_2div_clk *d2clk;
+	struct device *dev = priv->dev;
+	struct clk *clk;
+	const char *parent_name;
+
+	parent = clks[core->parent & 0xffff];   /* some types use high bits */
+	if (IS_ERR(parent))
+		return ERR_CAST(parent);
+
+	d2clk = devm_kzalloc(dev, sizeof(*d2clk), GFP_KERNEL);
+	if (!d2clk) {
+		clk = ERR_PTR(-ENOMEM);
+		return NULL;
+	}
+
+	parent_name = __clk_get_name(parent);
+	init.name = core->name;
+	init.ops = &rzg2l_2div_ops;
+	init.flags = 0;
+	init.parent_names = &parent_name;
+	init.num_parents = 1;
+
+	d2clk->hw.init = &init;
+	d2clk->conf_a = core->conf_a;
+	d2clk->conf_b = core->conf_b;
+	d2clk->dtable_a = core->dtable_a;
+	d2clk->dtable_b = core->dtable_b;
+	d2clk->base = base;
+	d2clk->priv = priv;
+
+	clk = clk_register(NULL, &d2clk->hw);
+	if (IS_ERR(clk))
+		kfree(d2clk);
+
+	return clk;
+}
+
 static struct clk * __init
 rzg2l_cpg_mux_clk_register(const struct cpg_core_clk *core,
 			   void __iomem *base,
@@ -421,6 +589,10 @@ rzg2l_cpg_register_core_clk(const struct cpg_core_clk *core,
 	case CLK_TYPE_DIV:
 		clk = rzg2l_cpg_div_clk_register(core, priv->clks,
 						 priv->base, priv);
+		break;
+	case CLK_TYPE_2DIV:
+		clk = rzg2l_cpg_2div_clk_register(core, priv->clks,
+						  priv->base, priv);
 		break;
 	case CLK_TYPE_MUX:
 		clk = rzg2l_cpg_mux_clk_register(core, priv->base, priv);

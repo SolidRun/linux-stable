@@ -65,7 +65,11 @@ struct cpg_core_clk {
 	unsigned int mult;
 	unsigned int type;
 	unsigned int conf;
+	unsigned int conf_a;
+	unsigned int conf_b;
 	const struct clk_div_table *dtable;
+	const struct clk_div_table *dtable_a;
+	const struct clk_div_table *dtable_b;
 	const char * const *parent_names;
 	int flag;
 	int mux_flags;
@@ -80,6 +84,7 @@ enum clk_types {
 
 	/* Clock with divider */
 	CLK_TYPE_DIV,
+	CLK_TYPE_2DIV,
 
 	/* Clock with clock source selector */
 	CLK_TYPE_MUX,
@@ -101,6 +106,10 @@ enum clk_types {
 #define DEF_DIV(_name, _id, _parent, _conf, _dtable, _flag) \
 	DEF_TYPE(_name, _id, CLK_TYPE_DIV, .conf = _conf, \
 		 .parent = _parent, .dtable = _dtable, .flag = _flag)
+#define DEF_2DIV(_name, _id, _parent, _conf_a, _conf_b, _dtable_a, _dtable_b, _flag) \
+	DEF_TYPE(_name, _id, CLK_TYPE_2DIV, .parent = _parent, \
+		.conf_a = _conf_a, .conf_b = _conf_b, \
+		.dtable_a = _dtable_a, .dtable_b = _dtable_b, .flag = _flag)
 #define DEF_MUX(_name, _id, _conf, _parent_names, _num_parents, _flag, \
 		_mux_flags) \
 	DEF_TYPE(_name, _id, CLK_TYPE_MUX, .conf = _conf, \
