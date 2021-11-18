@@ -16,6 +16,7 @@
 #include <linux/of_device.h>
 #include <linux/platform_device.h>
 #include <linux/pm_runtime.h>
+#include <linux/sys_soc.h>
 #include <linux/videodev2.h>
 
 #include <media/rcar-fcp.h>
@@ -785,7 +786,20 @@ static const struct vsp1_device_info vsp1_device_infos[] = {
 		.uif_count = 2,
 		.wpf_count = 2,
 		.num_bru_inputs = 5,
+	}, {
+		.version = VI6_IP_VERSION_MODEL_VSPD_RZG2L,
+		.model = "VSP2-D",
+		.gen = 3,
+		.features = VSP1_HAS_BRS | VSP1_HAS_WPF_VFLIP | VSP1_HAS_EXT_DL,
+		.lif_count = 1,
+		.rpf_count = 2,
+		.wpf_count = 1,
 	},
+};
+
+static const struct soc_device_attribute rzg2l_match[] = {
+	{ .family = "RZ/G2L" },
+	{ /* sentinel*/ }
 };
 
 static int vsp1_probe(struct platform_device *pdev)
@@ -854,7 +868,11 @@ static int vsp1_probe(struct platform_device *pdev)
 	if (ret < 0)
 		goto done;
 
-	vsp1->version = vsp1_read(vsp1, VI6_IP_VERSION);
+	if (soc_device_match(rzg2l_match))
+		vsp1->version = VI6_IP_VERSION_MODEL_VSPD_RZG2L;
+	else
+		vsp1->version = vsp1_read(vsp1, VI6_IP_VERSION);
+
 	vsp1_device_put(vsp1);
 
 	for (i = 0; i < ARRAY_SIZE(vsp1_device_infos); ++i) {
