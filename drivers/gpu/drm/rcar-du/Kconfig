@@ -38,6 +38,15 @@ config DRM_RCAR_LVDS
 	help
 	  Enable support for the R-Car Display Unit embedded LVDS encoders.
 
+config DRM_RZG2L_MIPI_DSI
+	tristate "RZ/G2L MIPI DSI Encoder Support"
+	depends on DRM && DRM_BRIDGE && OF
+	select DRM_PANEL
+	select OF_FLATTREE
+	select DRM_MIPI_DSI
+	help
+	  Enable support for the RZG2L Display Unit embedded MIPI DSI encoders.
+
 config DRM_RCAR_VSP
 	bool "R-Car DU VSP Compositor Support" if ARM
 	default y if ARM64
