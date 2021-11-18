@@ -31,6 +31,7 @@
 #include "rcar_du_regs.h"
 #include "rcar_du_vsp.h"
 #include "rcar_lvds.h"
+#include "rzg2l_mipi_dsi.h"
 
 static u32 rcar_du_crtc_read(struct rcar_du_crtc *rcrtc, u32 reg)
 {
@@ -740,6 +741,13 @@ static void rcar_du_crtc_atomic_enable(struct drm_crtc *crtc,
 		rcar_lvds_clk_enable(bridge, mode->clock * 1000);
 	}
 
+	if (rcar_du_has(rcdu, RCAR_DU_FEATURE_RZG2L) &&
+	   (rstate->outputs == BIT(RCAR_DU_OUTPUT_MIPI_DSI0))) {
+		struct drm_bridge *bridge = rcdu->dsi[rcrtc->index];
+
+		rzg2l_mipi_dsi_clk_enable(bridge);
+	}
+
 	rcar_du_crtc_start(rcrtc);
 
 	/*
@@ -769,6 +777,13 @@ static void rcar_du_crtc_atomic_disable(struct drm_crtc *crtc,
 		 * rcar_du_crtc_atomic_enable().
 		 */
 		rcar_lvds_clk_disable(bridge);
+	}
+
+	if (rcar_du_has(rcdu, RCAR_DU_FEATURE_RZG2L) &&
+	   (rstate->outputs == BIT(RCAR_DU_OUTPUT_MIPI_DSI0))) {
+		struct drm_bridge *bridge = rcdu->dsi[rcrtc->index];
+
+		rzg2l_mipi_dsi_clk_disable(bridge);
 	}
 
 	spin_lock_irq(&crtc->dev->event_lock);
