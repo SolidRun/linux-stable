@@ -55,6 +55,16 @@ static struct mcfg_fixup mcfg_quirks[] = {
 	AL_ECAM("GRAVITON", 0, 6, &al_pcie_ops),
 	AL_ECAM("GRAVITON", 0, 7, &al_pcie_ops),
 
+#define NXP_ECAM(seg) \
+	{ "NXP   ", "LX2160  ", 1, seg, MCFG_BUS_ANY, &ls_pcie_ecam_ops }
+
+	NXP_ECAM(0),
+	NXP_ECAM(1),
+	NXP_ECAM(2),
+	NXP_ECAM(3),
+	NXP_ECAM(4),
+	NXP_ECAM(5),
+
 #define QCOM_ECAM32(seg) \
 	{ "QCOM  ", "QDF2432 ", 1, seg, MCFG_BUS_ANY, &pci_32b_ops }
 
