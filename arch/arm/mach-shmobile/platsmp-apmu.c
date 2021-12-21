@@ -22,6 +22,19 @@
 #include "common.h"
 #include "rcar-gen2.h"
 
+/* only enable the cluster that includes the boot CPU by default */
+static bool enable_multicluster;
+
+static __init int apmu_setup(char *opt)
+{
+	if (!opt)
+		return -EINVAL;
+	if (!strncmp(opt, "multicluster", 12))
+		enable_multicluster = true;
+	return 0;
+}
+early_param("apmu", apmu_setup);
+
 static struct {
 	void __iomem *iomem;
 	int bit;
@@ -213,8 +226,7 @@ static void apmu_parse_dt(void (*fn)(struct resource *res, int cpu, int bit))
 	u32 id;
 
 	for_each_matching_node(np_apmu, apmu_ids) {
-		/* only enable the cluster that includes the boot CPU */
-		bool is_allowed = false;
+		bool is_allowed = enable_multicluster;
 
 		for (bit = 0; bit < CONFIG_NR_CPUS; bit++) {
 			np_cpu = of_parse_phandle(np_apmu, "cpus", bit);
