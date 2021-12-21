@@ -964,10 +964,10 @@ choice
 
 	config DEBUG_RCAR_GEN2_SCIF2
 		bool "Kernel low-level debugging messages via SCIF2 on R8A7794"
-		depends on ARCH_R8A7794
+		depends on ARCH_R8A7794 || ARCH_R8A7745
 		help
 		  Say Y here if you want kernel low-level debugging support
-		  via SCIF2 on Renesas R-Car E2 (R8A7794).
+		  via SCIF2 on Renesas R-Car E2 (R8A7794) or RZ/G1E (R8A7745).
 
 	config DEBUG_RCAR_GEN2_SCIF4
 		bool "Kernel low-level debugging messages via SCIF4 on R8A7745"
