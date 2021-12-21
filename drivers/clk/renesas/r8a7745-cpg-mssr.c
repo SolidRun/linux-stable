@@ -53,7 +53,7 @@ static const struct cpg_core_clk r8a7745_core_clks[] __initconst = {
 	DEF_BASE("qspi", R8A7745_CLK_QSPI, CLK_TYPE_GEN2_QSPI,	CLK_PLL1_DIV2),
 	DEF_BASE("rcan", R8A7745_CLK_RCAN, CLK_TYPE_GEN2_RCAN,	CLK_USB_EXTAL),
 
-	DEF_FIXED("z2",    R8A7745_CLK_Z2,	CLK_PLL0,	    1, 1),
+	DEF_FIXED("z2",    R8A7745_CLK_Z2,	CLK_PLL0,	    3, 1),
 	DEF_FIXED("zg",    R8A7745_CLK_ZG,	CLK_PLL1,	    6, 1),
 	DEF_FIXED("zx",    R8A7745_CLK_ZX,	CLK_PLL1,	    3, 1),
 	DEF_FIXED("zs",    R8A7745_CLK_ZS,	CLK_PLL1,	    6, 1),
