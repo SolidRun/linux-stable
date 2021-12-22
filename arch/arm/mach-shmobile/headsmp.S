@@ -89,6 +89,40 @@ shmobile_boot_size_gen2:
 	.long	. - shmobile_boot_vector_gen2
 #endif /* CONFIG_ARCH_RCAR_GEN2 */
 
+
+#ifdef CONFIG_SMP
+ENTRY(shmobile_invalidate_start)
+	bl	v7_invalidate_l1
+
+	mrc	p15, 0, r0, c0, c0, 0		/* get Main ID */
+	ubfx	r1, r0, #4, #4			/* r1=Lo 4bit of Primary Part */
+	cmp	r1, #0x07
+	bne	1f
+	ubfx	r1, r0, #8, #8			/* r1=Hi 8bit of Primary Part */
+	cmp	r1, #0xC0
+	bne	1f
+	/* CA7 setup */
+	/* CNTVOFF has to be initialized either from non-secure Hypervisor
+	 * mode or secure Monitor mode with SCR.NS==1. If TrustZone is enabled
+	 * then it should be handled by the secure code */
+	cps	0x16
+	mrc	p15, 0, r1, c1, c1, 0		/* get Secure Config */
+	orr	r0, r1, #1
+	mcr	p15, 0, r0, c1, c1, 0		/* Set Non Secure bit */
+	isb
+	mov	r0, #0
+	mcrr	p15, 4, r0, r0, c14		/* CNTVOFF = 0 */
+	isb
+	mcr	p15, 0, r1, c1, c1, 0		/* Set Secure bit */
+	isb
+	cps	0x13
+1:
+
+	b	secondary_startup
+ENDPROC(shmobile_invalidate_start)
+#endif
+
+
 /*
  * Per-CPU SMP boot function/argument selection code based on MPIDR
  */
