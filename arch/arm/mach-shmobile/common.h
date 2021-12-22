@@ -21,6 +21,8 @@ extern void shmobile_smp_scu_prepare_cpus(phys_addr_t scu_base_phys,
 					  unsigned int max_cpus);
 extern void shmobile_smp_scu_cpu_die(unsigned int cpu);
 extern int shmobile_smp_scu_cpu_kill(unsigned int cpu);
+extern bool shmobile_smp_init_fallback_ops(void);
+extern void shmobile_invalidate_start(void);
 extern struct platform_suspend_ops shmobile_suspend_ops;
 
 #ifdef CONFIG_SUSPEND
