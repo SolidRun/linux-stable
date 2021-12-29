@@ -15,6 +15,11 @@
 	aliases {
 		ethernet0 = &avb;
 		serial1 = &scif1;
+		serial2 = &scif2;
+		serial3 = &scif4;
+		serial4 = &scif5;
+		serial5 = &hscif1;
+		serial6 = &hscif2;
 	};
 
 	chosen {
@@ -256,9 +261,34 @@
 		function = "qspi0";
 	};
 
-	scif1_pins: scif1 {
+	scif1_pins: serial1 {
 		groups = "scif1_data_b";
 		function = "scif1";
+	};
+
+	scif2_pins: serial2 {
+		groups = "scif2_data_b";
+		function = "scif2";
+	};
+
+	scif4_pins: serial3 {
+		groups = "scif4_data_b";
+		function = "scif4";
+	};
+
+	scif5_pins: serial4 {
+		groups = "scif5_data_b";
+		function = "scif5";
+	};
+
+	hscif1_pins: serial5 {
+		groups = "hscif1_data", "hscif1_ctrl_a";
+		function = "hscif1";
+	};
+
+	hscif2_pins: serial6 {
+		groups = "hscif2_data", "hscif2_clk", "hscif2_ctrl";
+		function = "hscif2";
 	};
 
 	sdhi2_pins: sd2 {
@@ -335,6 +365,40 @@
 };
 
 &tmu1 {
+	status = "okay";
+};
+
+&scif2 {
+	pinctrl-0 = <&scif2_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&scif4 {
+	pinctrl-0 = <&scif4_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&scif5 {
+	pinctrl-0 = <&scif5_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&hscif1 {
+	pinctrl-0 = <&hscif1_pins>;
+	pinctrl-names = "default";
+
+	uart-has-rtscts;
+	status = "okay";
+};
+
+&hscif2 {
+	pinctrl-0 = <&hscif2_pins>;
+	pinctrl-names = "default";
+
+	uart-has-rtscts;
 	status = "okay";
 };
 
