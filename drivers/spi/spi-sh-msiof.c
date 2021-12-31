@@ -21,6 +21,7 @@
 #include <linux/module.h>
 #include <linux/of.h>
 #include <linux/of_device.h>
+#include <linux/of_gpio.h>
 #include <linux/platform_device.h>
 #include <linux/pm_runtime.h>
 #include <linux/sh_dma.h>
@@ -49,6 +50,7 @@ struct sh_msiof_spi_priv {
 	struct sh_msiof_spi_info *info;
 	struct completion done;
 	struct completion done_txdma;
+	struct completion done_handshake;
 	unsigned int tx_fifo_size;
 	unsigned int rx_fifo_size;
 	unsigned int min_div_pow;
@@ -59,6 +61,8 @@ struct sh_msiof_spi_priv {
 	bool native_cs_inited;
 	bool native_cs_high;
 	bool slave_aborted;
+	int handshake_gpio;
+	bool has_handshake;
 };
 
 #define MAX_SS	3	/* Maximum number of native chip selects */
@@ -191,6 +195,7 @@ struct sh_msiof_spi_priv {
 #define SIIER_RFUDFE		BIT(4)  /* Receive FIFO Underflow Enable */
 #define SIIER_RFOVFE		BIT(3)  /* Receive FIFO Overflow Enable */
 
+#define HANDSHAKE_MATCH		1	/* Active level of GPIO handshaking */
 
 static u32 sh_msiof_read(struct sh_msiof_spi_priv *p, int reg_offs)
 {
@@ -240,6 +245,15 @@ static irqreturn_t sh_msiof_spi_irq(int irq, void *data)
 	sh_msiof_write(p, SIIER, 0);
 	complete(&p->done);
 
+	return IRQ_HANDLED;
+}
+
+static irqreturn_t sh_msiof_handshake_handler(int irq, void  *dev)
+{
+	struct sh_msiof_spi_priv *p = dev;
+
+	if (gpio_get_value(p->handshake_gpio) == HANDSHAKE_MATCH)
+		complete(&p->done_handshake);
 	return IRQ_HANDLED;
 }
 
@@ -617,6 +631,10 @@ static int sh_msiof_spi_start(struct sh_msiof_spi_priv *p, void *rx_buf)
 	if (!ret && !slave)
 		ret = sh_msiof_modify_ctr_wait(p, 0, SICTR_TFSE);
 
+	/* slave asserts handshaking gpio if it is ready */
+	if (!ret && p->has_handshake && slave)
+		gpio_set_value(p->handshake_gpio, HANDSHAKE_MATCH);
+
 	return ret;
 }
 
@@ -634,6 +652,10 @@ static int sh_msiof_spi_stop(struct sh_msiof_spi_priv *p, void *rx_buf)
 		ret = sh_msiof_modify_ctr_wait(p, SICTR_RXE, 0);
 	if (!ret && !slave)
 		ret = sh_msiof_modify_ctr_wait(p, SICTR_TSCKE, 0);
+
+	/* set handshake_gpio to low level after slave resets TXE, RXE */
+	if (!ret && p->has_handshake && slave)
+		gpio_set_value(p->handshake_gpio, !HANDSHAKE_MATCH);
 
 	return ret;
 }
@@ -663,6 +685,20 @@ static int sh_msiof_wait_for_completion(struct sh_msiof_spi_priv *p,
 			return -ETIMEDOUT;
 		}
 	}
+
+	return 0;
+}
+
+static int sh_msiof_master_wait_handshaking(struct sh_msiof_spi_priv *p)
+{
+	bool slave = spi_controller_is_slave(p->ctlr);
+	if (!slave) {
+		if (gpio_get_value(p->handshake_gpio) == HANDSHAKE_MATCH)
+			complete(&p->done_handshake);
+		if (wait_for_completion_interruptible(&p->done_handshake))
+			return -EINTR;
+	} else
+		complete(&p->done_handshake);
 
 	return 0;
 }
@@ -699,6 +735,13 @@ static int sh_msiof_spi_txrx_once(struct sh_msiof_spi_priv *p,
 		tx_fifo(p, tx_buf, words, fifo_shift);
 
 	reinit_completion(&p->done);
+
+	/* handshaking completion procedure */
+	if (p->has_handshake) {
+		reinit_completion(&p->done_handshake);
+		sh_msiof_master_wait_handshaking(p);
+	}
+
 	p->slave_aborted = false;
 
 	ret = sh_msiof_spi_start(p, rx_buf);
@@ -1130,6 +1173,18 @@ static struct sh_msiof_spi_info *sh_msiof_spi_parse_dt(struct device *dev)
 
 	info->num_chipselect = num_cs;
 
+	/* Parse handshake gpio information from devicetree */
+	info->has_handshake = false;
+
+	if (of_get_property(np, "renesas,handshake-gpio", 0)) {
+		info->handshake_gpio = of_get_named_gpio(np,
+					"renesas,handshake-gpio", 0);
+		if (gpio_is_valid(info->handshake_gpio))
+			info->has_handshake = true;
+		else
+			dev_err(dev, "Invalid handshaking gpio\n");
+	}
+
 	return info;
 }
 #else
@@ -1138,6 +1193,47 @@ static struct sh_msiof_spi_info *sh_msiof_spi_parse_dt(struct device *dev)
 	return NULL;
 }
 #endif
+
+static int sh_msiof_setup_handshaking_gpio(struct sh_msiof_spi_priv *p)
+{
+	int ret;
+	bool slave = spi_controller_is_slave(p->ctlr);
+
+	p->handshake_gpio = p->info->handshake_gpio;
+
+	if (gpio_is_valid(p->handshake_gpio))
+		ret = gpio_request(p->handshake_gpio, "msiof-handshake-gpio");
+	if (ret < 0) {
+		dev_err(&p->pdev->dev,
+			"Request gpio for handshaking failed: %d\n", ret);
+		goto handshake_setting_end;
+	}
+
+	if (slave)
+		gpio_direction_output(p->handshake_gpio, !HANDSHAKE_MATCH);
+	else {
+		gpio_direction_input(p->handshake_gpio);
+		ret = devm_request_irq(&p->pdev->dev, gpio_to_irq(p->handshake_gpio),
+				sh_msiof_handshake_handler,
+				IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
+				"msiof-handshake-irq", p);
+		if (ret < 0)
+			dev_err(&p->pdev->dev,
+				"Failed to request interrupt of handshaking gpio: %d\n",
+				 ret);
+	}
+
+handshake_setting_end:
+	if (ret < 0) {
+		p->has_handshake = false;
+		p->info->has_handshake = false;
+	} else {
+		init_completion(&p->done_handshake);
+		ret = 0;
+	}
+
+	return ret;
+}
 
 static struct dma_chan *sh_msiof_request_dma_chan(struct device *dev,
 	enum dma_transfer_direction dir, unsigned int id, dma_addr_t port_addr)
@@ -1352,6 +1448,11 @@ static int sh_msiof_spi_probe(struct platform_device *pdev)
 		p->tx_fifo_size = p->info->tx_fifo_override;
 	if (p->info->rx_fifo_override)
 		p->rx_fifo_size = p->info->rx_fifo_override;
+
+	/* Setup handshaking GPIO */
+	p->has_handshake = p->info->has_handshake;
+	if (p->has_handshake)
+		sh_msiof_setup_handshaking_gpio(p);
 
 	/* init controller code */
 	ctlr->mode_bits = SPI_CPOL | SPI_CPHA | SPI_CS_HIGH;

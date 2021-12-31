@@ -138,6 +138,9 @@ properties:
     maxItems: 1
     default: 64
 
+   renesas,handshake-gpio:
+     description: gpio pin used for handshaking.
+
 required:
   - compatible
   - reg
