@@ -16,6 +16,8 @@ struct sh_msiof_spi_info {
 	unsigned int dma_rx_id;
 	u32 dtdl;
 	u32 syncdl;
+	int handshake_gpio;
+	bool has_handshake;
 };
 
 #endif /* __SPI_SH_MSIOF_H__ */
