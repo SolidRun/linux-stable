@@ -1174,7 +1174,7 @@ static irqreturn_t ravb_interrupt(int irq, void *dev_id)
 			result = IRQ_HANDLED;
 
 		/* Network control and best effort queue RX/TX */
-		if (info->nc_queue) {
+		if (info->nc_queues) {
 			for (q = RAVB_NC; q >= RAVB_BE; q--) {
 				if (ravb_queue_interrupt(ndev, q))
 					result = IRQ_HANDLED;
@@ -1313,7 +1313,7 @@ static int ravb_poll(struct napi_struct *napi, int budget)
 
 	/* Receive error message handling */
 	priv->rx_over_errors =  priv->stats[RAVB_BE].rx_over_errors;
-	if (info->nc_queue)
+	if (info->nc_queues)
 		priv->rx_over_errors += priv->stats[RAVB_NC].rx_over_errors;
 	if (priv->rx_over_errors != ndev->stats.rx_over_errors)
 		ndev->stats.rx_over_errors = priv->rx_over_errors;
@@ -1564,7 +1564,7 @@ static void ravb_get_ethtool_stats(struct net_device *ndev,
 	int i = 0;
 	int q;
 
-	num_rx_q = info->nc_queue ? NUM_RX_QUEUE : 1;
+	num_rx_q = info->nc_queues ? NUM_RX_QUEUE : 1;
 	/* Device-specific stats */
 	for (q = RAVB_BE; q < num_rx_q; q++) {
 		struct net_device_stats *stats = &priv->stats[q];
@@ -1641,7 +1641,7 @@ static int ravb_set_ringparam(struct net_device *ndev,
 
 		/* Free all the skb's in the RX queue and the DMA buffers. */
 		ravb_ring_free(ndev, RAVB_BE);
-		if (info->nc_queue)
+		if (info->nc_queues)
 			ravb_ring_free(ndev, RAVB_NC);
 	}
 
@@ -1761,7 +1761,7 @@ static int ravb_open(struct net_device *ndev)
 	int error;
 
 	napi_enable(&priv->napi[RAVB_BE]);
-	if (info->nc_queue)
+	if (info->nc_queues)
 		napi_enable(&priv->napi[RAVB_NC]);
 
 	if (!info->multi_irqs) {
@@ -1836,7 +1836,7 @@ out_free_irq_emac:
 out_free_irq:
 	free_irq(ndev->irq, ndev);
 out_napi_off:
-	if (info->nc_queue)
+	if (info->nc_queues)
 		napi_disable(&priv->napi[RAVB_NC]);
 	napi_disable(&priv->napi[RAVB_BE]);
 	return error;
@@ -1886,7 +1886,7 @@ static void ravb_tx_timeout_work(struct work_struct *work)
 	}
 
 	ravb_ring_free(ndev, RAVB_BE);
-	if (info->nc_queue)
+	if (info->nc_queues)
 		ravb_ring_free(ndev, RAVB_NC);
 
 	/* Device init */
@@ -2086,7 +2086,7 @@ static struct net_device_stats *ravb_get_stats(struct net_device *ndev)
 	nstats->rx_length_errors = stats0->rx_length_errors;
 	nstats->rx_missed_errors = stats0->rx_missed_errors;
 	nstats->rx_over_errors = stats0->rx_over_errors;
-	if (info->nc_queue) {
+	if (info->nc_queues) {
 		stats1 = &priv->stats[RAVB_NC];
 
 		nstats->rx_packets += stats1->rx_packets;
@@ -2167,13 +2167,13 @@ static int ravb_close(struct net_device *ndev)
 	}
 	free_irq(ndev->irq, ndev);
 
-	if (info->nc_queue)
+	if (info->nc_queues)
 		napi_disable(&priv->napi[RAVB_NC]);
 	napi_disable(&priv->napi[RAVB_BE]);
 
 	/* Free all the skb's in the RX queue and the DMA buffers. */
 	ravb_ring_free(ndev, RAVB_BE);
-	if (info->nc_queue)
+	if (info->nc_queues)
 		ravb_ring_free(ndev, RAVB_NC);
 
 	return 0;
@@ -2413,7 +2413,7 @@ static const struct ravb_hw_info ravb_gen3_hw_info = {
 	.tx_counters = 1,
 	.multi_irqs = 1,
 	.ccc_gac = 1,
-	.nc_queue = 1,
+	.nc_queues = 1,
 	.magic_pkt = 1,
 };
 
@@ -2436,7 +2436,7 @@ static const struct ravb_hw_info ravb_gen2_hw_info = {
 	.rx_max_buf_size = SZ_2K,
 	.aligned_tx = 1,
 	.gptp = 1,
-	.nc_queue = 1,
+	.nc_queues = 1,
 	.magic_pkt = 1,
 };
 
@@ -2616,7 +2616,7 @@ static int ravb_probe(struct platform_device *pdev)
 	priv->pdev = pdev;
 	priv->num_tx_ring[RAVB_BE] = BE_TX_RING_SIZE;
 	priv->num_rx_ring[RAVB_BE] = BE_RX_RING_SIZE;
-	if (info->nc_queue) {
+	if (info->nc_queues) {
 		priv->num_tx_ring[RAVB_NC] = NC_TX_RING_SIZE;
 		priv->num_rx_ring[RAVB_NC] = NC_RX_RING_SIZE;
 	}
@@ -2752,7 +2752,7 @@ static int ravb_probe(struct platform_device *pdev)
 	}
 
 	netif_napi_add(ndev, &priv->napi[RAVB_BE], ravb_poll, 64);
-	if (info->nc_queue)
+	if (info->nc_queues)
 		netif_napi_add(ndev, &priv->napi[RAVB_NC], ravb_poll, 64);
 
 	/* Network device register */
@@ -2771,7 +2771,7 @@ static int ravb_probe(struct platform_device *pdev)
 	return 0;
 
 out_napi_del:
-	if (info->nc_queue)
+	if (info->nc_queues)
 		netif_napi_del(&priv->napi[RAVB_NC]);
 
 	netif_napi_del(&priv->napi[RAVB_BE]);
@@ -2812,7 +2812,7 @@ static int ravb_remove(struct platform_device *pdev)
 	ravb_write(ndev, CCC_OPC_RESET, CCC);
 	pm_runtime_put_sync(&pdev->dev);
 	unregister_netdev(ndev);
-	if (info->nc_queue)
+	if (info->nc_queues)
 		netif_napi_del(&priv->napi[RAVB_NC]);
 	netif_napi_del(&priv->napi[RAVB_BE]);
 	ravb_mdio_release(priv);
@@ -2836,7 +2836,7 @@ static int ravb_wol_setup(struct net_device *ndev)
 
 	/* Only allow ECI interrupts */
 	synchronize_irq(priv->emac_irq);
-	if (info->nc_queue)
+	if (info->nc_queues)
 		napi_disable(&priv->napi[RAVB_NC]);
 	napi_disable(&priv->napi[RAVB_BE]);
 	ravb_write(ndev, ECSIPR_MPDIP, ECSIPR);
@@ -2853,7 +2853,7 @@ static int ravb_wol_restore(struct net_device *ndev)
 	const struct ravb_hw_info *info = priv->info;
 	int ret;
 
-	if (info->nc_queue)
+	if (info->nc_queues)
 		napi_enable(&priv->napi[RAVB_NC]);
 	napi_enable(&priv->napi[RAVB_BE]);
 
