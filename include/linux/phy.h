@@ -320,6 +320,7 @@ enum phy_state {
  */
 struct phy_c45_device_ids {
 	u32 devices_in_package;
+	u32 mmds_present;
 	u32 device_ids[8];
 };
 
@@ -424,7 +425,7 @@ struct phy_device {
 	struct net_device *attached_dev;
 
 	u8 mdix;
-
+	u8 mdix_ctrl;
 	void (*adjust_link)(struct net_device *dev);
 };
 #define to_phy_device(d) container_of(to_mdio_device(d), \
