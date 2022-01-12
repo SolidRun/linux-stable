@@ -186,7 +186,7 @@ static int pps_gpio_probe(struct platform_device *pdev)
 	} else {
 		ret = pps_gpio_setup(pdev);
 		if (ret)
-			return -EINVAL;
+			return ret;
 	}
 
 	/* IRQ setup */
