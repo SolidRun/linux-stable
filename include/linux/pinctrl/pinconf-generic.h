@@ -90,6 +90,8 @@ struct pinctrl_map;
  * 	value on the line. Use argument 1 to indicate high level, argument 0 to
  *	indicate low level. (Please see Documentation/driver-api/pinctl.rst,
  *	section "GPIO mode pitfalls" for a discussion around this parameter.)
+ * @PIN_CONFIG_OUTPUT_IMPEDANCE_OHMS: this will configure the output impedance
+ * 	of the pin with the value passed as argument. The argument is in ohms.
  * @PIN_CONFIG_POWER_SOURCE: if the pin can select between different power
  *	supplies, the argument to this parameter (on a custom format) tells
  *	the driver which alternative power source to use.
@@ -127,6 +129,7 @@ enum pin_config_param {
 	PIN_CONFIG_LOW_POWER_MODE,
 	PIN_CONFIG_OUTPUT_ENABLE,
 	PIN_CONFIG_OUTPUT,
+	PIN_CONFIG_OUTPUT_IMPEDANCE_OHMS,
 	PIN_CONFIG_POWER_SOURCE,
 	PIN_CONFIG_SLEEP_HARDWARE_STATE,
 	PIN_CONFIG_SLEW_RATE,
