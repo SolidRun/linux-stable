@@ -10,6 +10,7 @@
 #include <linux/err.h>
 #include <linux/gpio/consumer.h>
 #include <linux/i2c.h>
+#include <linux/gpio/consumer.h>
 #include <linux/interrupt.h>
 #include <sound/hdmi-codec.h>
 
