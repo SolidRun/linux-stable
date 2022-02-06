@@ -6,6 +6,7 @@
 //
 // Hardware interface for audio DSP on i.MX8ULP
 
+#include <linux/arm-smccc.h>
 #include <linux/clk.h>
 #include <linux/firmware.h>
 #include <linux/of_platform.h>
