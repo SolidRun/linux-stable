@@ -105,8 +105,8 @@ config SND_SOC_FSL_XCVR
 
 config SND_SOC_FSL_DSP
 	tristate "dsp module support"
-	select SND_SOC_COMPRESS
 	select SND_SOC_FSL_DSP_AUDIOMIX
+	select SND_SOC_COMPRESS
 	help
 	  Say Y if you want to add hifi 4 support for the Freescale CPUs.
 	  which is a DSP core for audio processing.
@@ -118,6 +118,12 @@ config SND_SOC_FSL_DSP_AUDIOMIX
 	depends on MFD_IMX_MIX
 	help
 	  Say Y if you want to add Audio MIX helper for DSP
+
+config SND_SOC_FSL_DSP_CPU
+	tristate "SOC CPU DSP helper"
+	select SND_SOC_COMPRESS
+	help
+	  Say Y if you want to add the CPU DAI helper for DSP
 
 config SND_SOC_FSL_ESAI_CLIENT
 	tristate "NXP ESAI CLIENT module support"
@@ -515,7 +521,6 @@ config SND_SOC_IMX_PCM512X
 config SND_SOC_IMX_DSP
 	tristate "SoC Audio support for i.MX boards with DSP port"
 	select SND_SOC_FSL_DSP
-	select SND_SOC_COMPRESS
 	help
 	  SoC Audio support for i.MX boards with DSP audio
 	  Say Y if you want to add support for SoC audio on an i.MX board with
