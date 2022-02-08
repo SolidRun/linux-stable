@@ -226,4 +226,6 @@ enum {
 #define WDOG_B_CFG_COLD_LDO12		0x80
 #define WDOG_B_CFG_COLD			0xC0
 
+#define CFG2_I2C_LT_MASK		0x03
+
 #endif /* __LINUX_REG_PCA9450_H__ */

@@ -716,6 +716,7 @@ static int pca9450_i2c_probe(struct i2c_client *i2c,
 	struct regulator_config config = { };
 	struct pca9450 *pca9450;
 	unsigned int device_id, i;
+	uint8_t i2c_lt_en;
 	int ret;
 
 	if (!i2c->irq) {
@@ -835,6 +836,12 @@ static int pca9450_i2c_probe(struct i2c_client *i2c,
 		dev_err(&i2c->dev, "Failed to get SD_VSEL GPIO\n");
 		return ret;
 	}
+
+	ret = of_property_read_u8(i2c->dev.of_node, "pca,i2c-lt-en", &i2c_lt_en);
+	if (!ret) {
+		regmap_update_bits(pca9450->regmap, PCA9450_REG_CONFIG2,
+					CFG2_I2C_LT_MASK, i2c_lt_en);
+        }
 
 	dev_info(&i2c->dev, "%s probed.\n",
 		type == PCA9450_TYPE_PCA9450A ? "pca9450a" : "pca9450bc");
