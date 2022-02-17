@@ -220,6 +220,40 @@ static void rcar_du_crtc_set_display_timing(struct rcar_du_crtc *rcrtc)
 	u32 dsmr;
 	u32 escr;
 
+	if (rcar_du_has(rcdu, RCAR_DU_FEATURE_RZG2L)) {
+		u32 ditr0, ditr1, ditr2, ditr3, ditr4, ditr5, pbcr0;
+
+		ditr0 = (DU_DITR0_DEMD_HIGH
+		| ((mode->flags & DRM_MODE_FLAG_PVSYNC) ? DU_DITR0_VSPOL : 0)
+		| ((mode->flags & DRM_MODE_FLAG_PHSYNC) ? DU_DITR0_HSPOL : 0));
+
+		ditr1 = DU_DITR1_VSA(mode->vsync_end - mode->vsync_start)
+		      | DU_DITR1_VACTIVE(mode->vdisplay);
+
+		ditr2 = DU_DITR2_VBP(mode->vtotal - mode->vsync_end)
+		      | DU_DITR2_VFP(mode->vsync_start - mode->vdisplay);
+
+		ditr3 = DU_DITR3_HSA(mode->hsync_end - mode->hsync_start)
+		      | DU_DITR3_HACTIVE(mode->hdisplay);
+
+		ditr4 = DU_DITR4_HBP(mode->htotal - mode->hsync_end)
+		      | DU_DITR4_HFP(mode->hsync_start - mode->hdisplay);
+
+		ditr5 = DU_DITR5_VSFT(0) | DU_DITR5_HSFT(0);
+
+		pbcr0 = DU_PBCR0_PB_DEP(0x1F);
+
+		rcar_du_write(rcdu, DU_DITR0, ditr0);
+		rcar_du_write(rcdu, DU_DITR1, ditr1);
+		rcar_du_write(rcdu, DU_DITR2, ditr2);
+		rcar_du_write(rcdu, DU_DITR3, ditr3);
+		rcar_du_write(rcdu, DU_DITR4, ditr4);
+		rcar_du_write(rcdu, DU_DITR5, ditr5);
+		rcar_du_write(rcdu, DU_PBCR0, pbcr0);
+
+		return;
+	}
+
 	if (rcdu->info->dpll_mask & (1 << rcrtc->index)) {
 		unsigned long target = mode_clock;
 		struct dpll_info dpll = { 0 };
@@ -348,6 +382,9 @@ static void rcar_du_crtc_update_planes(struct rcar_du_crtc *rcrtc)
 	unsigned int prio = 0;
 	unsigned int i;
 	u32 dspr = 0;
+
+	if (rcar_du_has(rcdu, RCAR_DU_FEATURE_RZG2L))
+		return;
 
 	for (i = 0; i < rcrtc->group->num_planes; ++i) {
 		struct rcar_du_plane *plane = &rcrtc->group->planes[i];
@@ -528,16 +565,24 @@ static void rcar_du_cmm_setup(struct drm_crtc *crtc)
 
 static void rcar_du_crtc_setup(struct rcar_du_crtc *rcrtc)
 {
-	/* Set display off and background to black */
-	rcar_du_crtc_write(rcrtc, DOOR, DOOR_RGB(0, 0, 0));
-	rcar_du_crtc_write(rcrtc, BPOR, BPOR_RGB(0, 0, 0));
+	struct rcar_du_device *rcdu = rcrtc->group->dev;
 
-	/* Configure display timings and output routing */
-	rcar_du_crtc_set_display_timing(rcrtc);
-	rcar_du_group_set_routing(rcrtc->group);
+	if (!rcar_du_has(rcdu, RCAR_DU_FEATURE_RZG2L)) {
+		/* Set display off and background to black */
+		rcar_du_crtc_write(rcrtc, DOOR, DOOR_RGB(0, 0, 0));
+		rcar_du_crtc_write(rcrtc, BPOR, BPOR_RGB(0, 0, 0));
 
-	/* Start with all planes disabled. */
-	rcar_du_group_write(rcrtc->group, rcrtc->index % 2 ? DS2PR : DS1PR, 0);
+		/* Configure display timings and output routing */
+		rcar_du_crtc_set_display_timing(rcrtc);
+		rcar_du_group_set_routing(rcrtc->group);
+
+		/* Start with all planes disabled. */
+		rcar_du_group_write(rcrtc->group,
+				    rcrtc->index % 2 ? DS2PR : DS1PR, 0);
+	} else {
+		/* Configure display timings and output routing */
+		rcar_du_crtc_set_display_timing(rcrtc);
+	}
 
 	/* Enable the VSP compositor. */
 	if (rcar_du_has(rcrtc->dev, RCAR_DU_FEATURE_VSP1_SOURCE))
@@ -594,17 +639,21 @@ static void rcar_du_crtc_put(struct rcar_du_crtc *rcrtc)
 
 static void rcar_du_crtc_start(struct rcar_du_crtc *rcrtc)
 {
+	struct rcar_du_device *rcdu = rcrtc->group->dev;
 	bool interlaced;
 
-	/*
-	 * Select master sync mode. This enables display operation in master
-	 * sync mode (with the HSYNC and VSYNC signals configured as outputs and
-	 * actively driven).
-	 */
-	interlaced = rcrtc->crtc.mode.flags & DRM_MODE_FLAG_INTERLACE;
-	rcar_du_crtc_dsysr_clr_set(rcrtc, DSYSR_TVM_MASK | DSYSR_SCM_MASK,
-				   (interlaced ? DSYSR_SCM_INT_VIDEO : 0) |
-				   DSYSR_TVM_MASTER);
+	if (!rcar_du_has(rcdu, RCAR_DU_FEATURE_RZG2L)) {
+		/*
+		 * Select master sync mode. This enables display operation in
+		 * master sync mode (with the HSYNC and VSYNC signals configured
+		 * as outputs and actively driven).
+		 */
+		interlaced = rcrtc->crtc.mode.flags & DRM_MODE_FLAG_INTERLACE;
+		rcar_du_crtc_dsysr_clr_set(rcrtc,
+					DSYSR_TVM_MASK | DSYSR_SCM_MASK,
+					(interlaced ? DSYSR_SCM_INT_VIDEO : 0) |
+					DSYSR_TVM_MASTER);
+	}
 
 	rcar_du_group_start_stop(rcrtc->group, true);
 }
@@ -1174,32 +1223,38 @@ static irqreturn_t rcar_du_crtc_irq(int irq, void *arg)
 	irqreturn_t ret = IRQ_NONE;
 	u32 status;
 
-	spin_lock(&rcrtc->vblank_lock);
-
-	status = rcar_du_crtc_read(rcrtc, DSSR);
-	rcar_du_crtc_write(rcrtc, DSRCR, status & DSRCR_MASK);
-
-	if (status & DSSR_VBK) {
-		/*
-		 * Wake up the vblank wait if the counter reaches 0. This must
-		 * be protected by the vblank_lock to avoid races in
-		 * rcar_du_crtc_disable_planes().
-		 */
-		if (rcrtc->vblank_count) {
-			if (--rcrtc->vblank_count == 0)
-				wake_up(&rcrtc->vblank_wait);
-		}
-	}
-
-	spin_unlock(&rcrtc->vblank_lock);
-
-	if (status & DSSR_VBK) {
-		if (rcdu->info->gen < 3) {
-			drm_crtc_handle_vblank(&rcrtc->crtc);
-			rcar_du_crtc_finish_page_flip(rcrtc);
-		}
-
+	if (rcar_du_has(rcdu, RCAR_DU_FEATURE_RZG2L)) {
+		status = rcar_du_crtc_read(rcrtc, DU_MCR0);
+		rcar_du_crtc_write(rcrtc, DU_MCR0, DU_MCR0_PB_CLR & status);
 		ret = IRQ_HANDLED;
+	} else {
+		spin_lock(&rcrtc->vblank_lock);
+
+		status = rcar_du_crtc_read(rcrtc, DSSR);
+		rcar_du_crtc_write(rcrtc, DSRCR, status & DSRCR_MASK);
+
+		if (status & DSSR_VBK) {
+			/*
+			 * Wake up the vblank wait if the counter reaches 0.
+			 * This must be protected by the vblank_lock to avoid
+			 * races in rcar_du_crtc_disable_planes().
+			 */
+			if (rcrtc->vblank_count) {
+				if (--rcrtc->vblank_count == 0)
+					wake_up(&rcrtc->vblank_wait);
+			}
+		}
+
+		spin_unlock(&rcrtc->vblank_lock);
+
+		if (status & DSSR_VBK) {
+			if (rcdu->info->gen < 3) {
+				drm_crtc_handle_vblank(&rcrtc->crtc);
+				rcar_du_crtc_finish_page_flip(rcrtc);
+			}
+
+			ret = IRQ_HANDLED;
+		}
 	}
 
 	return ret;

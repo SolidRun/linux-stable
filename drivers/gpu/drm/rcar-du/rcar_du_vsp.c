@@ -374,9 +374,12 @@ int rcar_du_vsp_init(struct rcar_du_vsp *vsp, struct device_node *np,
 
 	 /*
 	  * The VSP2D (Gen3) has 5 RPFs, but the VSP1D (Gen2) is limited to
-	  * 4 RPFs.
+	  * 4 RPFs and VSP2D (RZ/G2L) has 2 RPFs.
 	  */
-	vsp->num_planes = rcdu->info->gen >= 3 ? 5 : 4;
+	if (rcar_du_has(rcdu, RCAR_DU_FEATURE_RZG2L))
+		vsp->num_planes = 2;
+	else
+		vsp->num_planes = rcdu->info->gen >= 3 ? 5 : 4;
 
 	vsp->planes = devm_kcalloc(rcdu->dev, vsp->num_planes,
 				   sizeof(*vsp->planes), GFP_KERNEL);
