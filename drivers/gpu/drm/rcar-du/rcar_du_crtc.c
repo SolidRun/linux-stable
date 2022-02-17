@@ -460,6 +460,8 @@ static void rcar_du_crtc_set_display_timing(struct rcar_du_crtc *rcrtc)
 			 (resolution_param[index].pl5_downspread << 4));
 		iounmap(cpg_base);
 
+		clk_prepare_enable(rcrtc->rzg2l_clocks.dclk);
+
 		ditr0 = (DU_DITR0_DEMD_HIGH
 		| ((mode->flags & DRM_MODE_FLAG_PVSYNC) ? DU_DITR0_VSPOL : 0)
 		| ((mode->flags & DRM_MODE_FLAG_PHSYNC) ? DU_DITR0_HSPOL : 0));
@@ -831,6 +833,7 @@ static void rcar_du_crtc_setup(struct rcar_du_crtc *rcrtc)
 
 static int rcar_du_crtc_get(struct rcar_du_crtc *rcrtc)
 {
+	struct rcar_du_device *rcdu = rcrtc->group->dev;
 	int ret;
 
 	/*
@@ -840,16 +843,25 @@ static int rcar_du_crtc_get(struct rcar_du_crtc *rcrtc)
 	if (rcrtc->initialized)
 		return 0;
 
-	if (rcrtc->rstc)
+	if (rcar_du_has(rcdu, RCAR_DU_FEATURE_RZG2L)) {
 		reset_control_deassert(rcrtc->rstc);
 
-	ret = clk_prepare_enable(rcrtc->clock);
-	if (ret < 0)
-		return ret;
+		ret = clk_prepare_enable(rcrtc->rzg2l_clocks.aclk);
+		if (ret < 0)
+			return ret;
 
-	ret = clk_prepare_enable(rcrtc->extclock);
-	if (ret < 0)
-		goto error_clock;
+		ret = clk_prepare_enable(rcrtc->rzg2l_clocks.pclk);
+		if (ret < 0)
+			return ret;
+	} else {
+		ret = clk_prepare_enable(rcrtc->clock);
+		if (ret < 0)
+			return ret;
+
+		ret = clk_prepare_enable(rcrtc->extclock);
+		if (ret < 0)
+			goto error_clock;
+	}
 
 	ret = rcar_du_group_get(rcrtc->group);
 	if (ret < 0)
@@ -865,21 +877,24 @@ error_group:
 error_clock:
 	clk_disable_unprepare(rcrtc->clock);
 
-	if (rcrtc->rstc)
-		reset_control_assert(rcrtc->rstc);
-
 	return ret;
 }
 
 static void rcar_du_crtc_put(struct rcar_du_crtc *rcrtc)
 {
+	struct rcar_du_device *rcdu = rcrtc->group->dev;
+
 	rcar_du_group_put(rcrtc->group);
 
-	clk_disable_unprepare(rcrtc->extclock);
-	clk_disable_unprepare(rcrtc->clock);
-
-	if (rcrtc->rstc)
+	if (rcar_du_has(rcdu, RCAR_DU_FEATURE_RZG2L)) {
+		clk_disable_unprepare(rcrtc->rzg2l_clocks.aclk);
+		clk_disable_unprepare(rcrtc->rzg2l_clocks.pclk);
+		clk_disable_unprepare(rcrtc->rzg2l_clocks.dclk);
 		reset_control_assert(rcrtc->rstc);
+	} else {
+		clk_disable_unprepare(rcrtc->extclock);
+		clk_disable_unprepare(rcrtc->clock);
+	}
 
 	rcrtc->initialized = false;
 }
@@ -1530,41 +1545,62 @@ int rcar_du_crtc_create(struct rcar_du_group *rgrp, unsigned int swindex,
 	int irq;
 	int ret;
 
-	/* Get the CRTC clock and the optional external clock. */
-	if (rcar_du_has(rcdu, RCAR_DU_FEATURE_CRTC_IRQ_CLOCK)) {
-		sprintf(clk_name, "du.%u", hwindex);
-		name = clk_name;
-	} else {
-		name = NULL;
-	}
-
-	rcrtc->clock = devm_clk_get(rcdu->dev, name);
-	if (IS_ERR(rcrtc->clock)) {
-		dev_err(rcdu->dev, "no clock for DU channel %u\n", hwindex);
-		return PTR_ERR(rcrtc->clock);
-	}
-
-	sprintf(clk_name, "dclkin.%u", hwindex);
-	clk = devm_clk_get(rcdu->dev, clk_name);
-	if (!IS_ERR(clk)) {
-		rcrtc->extclock = clk;
-	} else if (PTR_ERR(clk) == -EPROBE_DEFER) {
-		return -EPROBE_DEFER;
-	} else if (rcdu->info->dpll_mask & BIT(hwindex)) {
-		/*
-		 * DU channels that have a display PLL can't use the internal
-		 * system clock and thus require an external clock.
-		 */
-		ret = PTR_ERR(clk);
-		dev_err(rcdu->dev, "can't get dclkin.%u: %d\n", hwindex, ret);
-		return ret;
-	}
-
 	if (rcar_du_has(rcdu, RCAR_DU_FEATURE_RZG2L)) {
 		rcrtc->rstc = devm_reset_control_get(rcdu->dev, NULL);
 		if (IS_ERR(rcrtc->rstc)) {
 			dev_err(rcdu->dev, "can't get cpg reset\n");
 			return PTR_ERR(rcrtc->rstc);
+		}
+
+		rcrtc->rzg2l_clocks.aclk = devm_clk_get(rcdu->dev, "aclk");
+		if (IS_ERR(rcrtc->rzg2l_clocks.aclk)) {
+			dev_err(rcdu->dev, "no axi clock for DU\n");
+			return PTR_ERR(rcrtc->rzg2l_clocks.aclk);
+		}
+
+		rcrtc->rzg2l_clocks.pclk = devm_clk_get(rcdu->dev, "pclk");
+		if (IS_ERR(rcrtc->rzg2l_clocks.pclk)) {
+			dev_err(rcdu->dev, "no peripheral clock for DU\n");
+			return PTR_ERR(rcrtc->rzg2l_clocks.pclk);
+		}
+
+		rcrtc->rzg2l_clocks.dclk = devm_clk_get(rcdu->dev, "dclk");
+		if (IS_ERR(rcrtc->rzg2l_clocks.dclk)) {
+			dev_err(rcdu->dev, "no video clock for DU\n");
+			return PTR_ERR(rcrtc->rzg2l_clocks.dclk);
+		}
+	} else {
+		/* Get the CRTC clock and the optional external clock. */
+		if (rcar_du_has(rcdu, RCAR_DU_FEATURE_CRTC_IRQ_CLOCK)) {
+			sprintf(clk_name, "du.%u", hwindex);
+			name = clk_name;
+		} else {
+			name = NULL;
+		}
+
+		rcrtc->clock = devm_clk_get(rcdu->dev, name);
+		if (IS_ERR(rcrtc->clock)) {
+			dev_err(rcdu->dev, "no clock for DU channel %u\n",
+				hwindex);
+			return PTR_ERR(rcrtc->clock);
+		}
+
+		sprintf(clk_name, "dclkin.%u", hwindex);
+		clk = devm_clk_get(rcdu->dev, clk_name);
+		if (!IS_ERR(clk)) {
+			rcrtc->extclock = clk;
+		} else if (PTR_ERR(clk) == -EPROBE_DEFER) {
+			return -EPROBE_DEFER;
+		} else if (rcdu->info->dpll_mask & BIT(hwindex)) {
+			/*
+			 * DU channels that have a display PLL can't use the
+			 * internal system clock and thus require an external
+			 * clock.
+			 */
+			ret = PTR_ERR(clk);
+			dev_err(rcdu->dev, "can't get dclkin.%u: %d\n",
+				hwindex, ret);
+			return ret;
 		}
 	}
 
