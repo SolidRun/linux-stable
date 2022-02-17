@@ -321,8 +321,12 @@ int rcar_du_atomic_check_planes(struct drm_device *dev,
 static void rcar_du_plane_write(struct rcar_du_group *rgrp,
 				unsigned int index, u32 reg, u32 data)
 {
-	rcar_du_write(rgrp->dev, rgrp->mmio_offset + index * PLANE_OFF + reg,
-		      data);
+	struct rcar_du_device *rcdu = rgrp->dev;
+
+	if (!rcar_du_has(rcdu, RCAR_DU_FEATURE_RZG2L))
+		rcar_du_write(rgrp->dev,
+			      rgrp->mmio_offset + index * PLANE_OFF + reg,
+			      data);
 }
 
 static void rcar_du_plane_setup_scanout(struct rcar_du_group *rgrp,
