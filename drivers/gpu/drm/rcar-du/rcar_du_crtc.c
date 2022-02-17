@@ -1346,27 +1346,29 @@ int rcar_du_crtc_create(struct rcar_du_group *rgrp, unsigned int swindex,
 
 	drm_crtc_helper_add(crtc, &crtc_helper_funcs);
 
-	/* Register the interrupt handler. */
-	if (rcar_du_has(rcdu, RCAR_DU_FEATURE_CRTC_IRQ_CLOCK)) {
-		/* The IRQ's are associated with the CRTC (sw)index. */
-		irq = platform_get_irq(pdev, swindex);
-		irqflags = 0;
-	} else {
-		irq = platform_get_irq(pdev, 0);
-		irqflags = IRQF_SHARED;
-	}
+	if (!rcar_du_has(rcdu, RCAR_DU_FEATURE_RZG2L)) {
+		/* Register the interrupt handler. */
+		if (rcar_du_has(rcdu, RCAR_DU_FEATURE_CRTC_IRQ_CLOCK)) {
+			/* The IRQ's are associated with the CRTC (sw)index. */
+			irq = platform_get_irq(pdev, swindex);
+			irqflags = 0;
+		} else {
+			irq = platform_get_irq(pdev, 0);
+			irqflags = IRQF_SHARED;
+		}
 
-	if (irq < 0) {
-		dev_err(rcdu->dev, "no IRQ for CRTC %u\n", swindex);
-		return irq;
-	}
+		if (irq < 0) {
+			dev_err(rcdu->dev, "no IRQ for CRTC %u\n", swindex);
+			return irq;
+		}
 
-	ret = devm_request_irq(rcdu->dev, irq, rcar_du_crtc_irq, irqflags,
-			       dev_name(rcdu->dev), rcrtc);
-	if (ret < 0) {
-		dev_err(rcdu->dev,
-			"failed to register IRQ for CRTC %u\n", swindex);
-		return ret;
+		ret = devm_request_irq(rcdu->dev, irq, rcar_du_crtc_irq, irqflags,
+				       dev_name(rcdu->dev), rcrtc);
+		if (ret < 0) {
+			dev_err(rcdu->dev,
+				"failed to register IRQ for CRTC %u\n", swindex);
+			return ret;
+		}
 	}
 
 	rcar_du_crtc_crc_init(rcrtc);
