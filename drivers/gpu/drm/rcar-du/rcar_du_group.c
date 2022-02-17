@@ -234,10 +234,17 @@ static void __rcar_du_group_start_stop(struct rcar_du_group *rgrp, bool start)
 	if (rcdu->info->channels_mask & BIT(rgrp->index * 2)) {
 		struct rcar_du_crtc *rcrtc = &rgrp->dev->crtcs[rgrp->index * 2];
 
-		if (rcar_du_has(rgrp->dev, RCAR_DU_FEATURE_RZG2L))
-			rcar_du_write(rgrp->dev,
-				      DU_MCR0, start ? DU_MCR0_DI_EN : 0);
-		else
+		if (rcar_du_has(rgrp->dev, RCAR_DU_FEATURE_RZG2L)) {
+			struct rcar_du_crtc_state *rstate =
+					to_rcar_crtc_state(rcrtc->crtc.state);
+
+			if (rstate->outputs == BIT(RCAR_DU_OUTPUT_MIPI_DSI0))
+				rcar_du_write(rgrp->dev, DU_MCR0,
+					      start ? DU_MCR0_DI_EN : 0);
+			else if (rstate->outputs == BIT(RCAR_DU_OUTPUT_DPAD0))
+				rcar_du_write(rgrp->dev, DU_MCR0, start ?
+					(DU_MCR0_DI_EN | DU_MCR0_DPI_OE) : 0);
+		} else
 			rcar_du_crtc_dsysr_clr_set(rcrtc,
 						DSYSR_DRES | DSYSR_DEN,
 						start ? DSYSR_DEN : DSYSR_DRES);
