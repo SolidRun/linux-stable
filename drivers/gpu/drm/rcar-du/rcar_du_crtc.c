@@ -603,6 +603,9 @@ static int rcar_du_crtc_get(struct rcar_du_crtc *rcrtc)
 	if (rcrtc->initialized)
 		return 0;
 
+	if (rcrtc->rstc)
+		reset_control_deassert(rcrtc->rstc);
+
 	ret = clk_prepare_enable(rcrtc->clock);
 	if (ret < 0)
 		return ret;
@@ -624,6 +627,10 @@ error_group:
 	clk_disable_unprepare(rcrtc->extclock);
 error_clock:
 	clk_disable_unprepare(rcrtc->clock);
+
+	if (rcrtc->rstc)
+		reset_control_assert(rcrtc->rstc);
+
 	return ret;
 }
 
@@ -633,6 +640,9 @@ static void rcar_du_crtc_put(struct rcar_du_crtc *rcrtc)
 
 	clk_disable_unprepare(rcrtc->extclock);
 	clk_disable_unprepare(rcrtc->clock);
+
+	if (rcrtc->rstc)
+		reset_control_assert(rcrtc->rstc);
 
 	rcrtc->initialized = false;
 }
@@ -1311,6 +1321,14 @@ int rcar_du_crtc_create(struct rcar_du_group *rgrp, unsigned int swindex,
 		ret = PTR_ERR(clk);
 		dev_err(rcdu->dev, "can't get dclkin.%u: %d\n", hwindex, ret);
 		return ret;
+	}
+
+	if (rcar_du_has(rcdu, RCAR_DU_FEATURE_RZG2L)) {
+		rcrtc->rstc = devm_reset_control_get(rcdu->dev, NULL);
+		if (IS_ERR(rcrtc->rstc)) {
+			dev_err(rcdu->dev, "can't get cpg reset\n");
+			return PTR_ERR(rcrtc->rstc);
+		}
 	}
 
 	init_waitqueue_head(&rcrtc->flip_wait);
