@@ -52,6 +52,11 @@ struct rcar_du_crtc {
 	struct clk *clock;
 	struct clk *extclock;
 	struct reset_control *rstc;
+	struct {
+		struct clk *aclk;
+		struct clk *pclk;
+		struct clk *dclk;
+	} rzg2l_clocks;
 	unsigned int mmio_offset;
 	unsigned int index;
 	bool initialized;
