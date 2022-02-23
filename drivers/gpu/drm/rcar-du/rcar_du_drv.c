@@ -235,6 +235,21 @@ static const struct rcar_du_device_info rcar_du_rzg2l_info = {
 	.num_mipi_dsi = 1,
 };
 
+static const struct rcar_du_device_info rcar_du_rzg2lc_info = {
+	.gen = 3,
+	.features = RCAR_DU_FEATURE_CRTC_IRQ_CLOCK
+		  | RCAR_DU_FEATURE_RZG2L
+		  | RCAR_DU_FEATURE_VSP1_SOURCE,
+	.channels_mask = BIT(0),
+	.routes = {
+		[RCAR_DU_OUTPUT_MIPI_DSI0] = {
+			.possible_crtcs = BIT(0),
+			.port = 0,
+		},
+	},
+	.num_mipi_dsi = 1,
+};
+
 static const struct rcar_du_device_info rcar_du_r8a7779_info = {
 	.gen = 1,
 	.features = RCAR_DU_FEATURE_INTERLACED
@@ -504,6 +519,7 @@ static const struct of_device_id rcar_du_of_table[] = {
 	{ .compatible = "renesas,du-r8a774c0", .data = &rcar_du_r8a774c0_info },
 	{ .compatible = "renesas,du-r8a774e1", .data = &rcar_du_r8a774e1_info },
 	{ .compatible = "renesas,du-rzg2l", .data = &rcar_du_rzg2l_info },
+	{ .compatible = "renesas,du-rzg2lc", .data = &rcar_du_rzg2lc_info },
 	{ .compatible = "renesas,du-r8a7779", .data = &rcar_du_r8a7779_info },
 	{ .compatible = "renesas,du-r8a7790", .data = &rcar_du_r8a7790_info },
 	{ .compatible = "renesas,du-r8a7791", .data = &rcar_du_r8a7791_info },
