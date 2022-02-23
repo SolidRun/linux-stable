@@ -30,3 +30,18 @@
 	/delete-node/ adc@10059000;
 	/delete-node/ ethernet@11c30000;
 };
+
+&du {
+	compatible = "renesas,du-rzg2lc";
+
+	ports {
+		/delete-node/ port@0;
+		/delete-node/ port@1;
+
+		port@0 {
+			du_out_dsi0: endpoint {
+				remote-endpoint = <&dsi0_in>;
+			};
+		};
+	};
+};
