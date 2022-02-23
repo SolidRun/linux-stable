@@ -621,12 +621,22 @@ static void rzg2l_mipi_dsi_enable(struct drm_bridge *bridge)
 	ret = rzg2l_mipi_dsi_start_video(mipi_dsi);
 	if (ret < 0)
 		return;
+
+	if (mipi_dsi->panel) {
+		drm_panel_prepare(mipi_dsi->panel);
+		drm_panel_enable(mipi_dsi->panel);
+	}
 }
 
 static void rzg2l_mipi_dsi_disable(struct drm_bridge *bridge)
 {
 	struct rzg2l_mipi_dsi *mipi_dsi = bridge_to_rzg2l_mipi_dsi(bridge);
 	int ret;
+
+	if (mipi_dsi->panel) {
+		drm_panel_disable(mipi_dsi->panel);
+		drm_panel_unprepare(mipi_dsi->panel);
+	}
 
 	ret = rzg2l_mipi_dsi_stop_video(mipi_dsi);
 	if (ret < 0)
