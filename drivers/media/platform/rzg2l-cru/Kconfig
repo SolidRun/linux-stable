@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: GPL-2.0
+config VIDEO_RZG2L_CRU
+	tristate "RZ/G2L Camera Receiving Unit (CRU) Driver"
+	depends on VIDEO_V4L2 && VIDEO_V4L2_SUBDEV_API && OF && MEDIA_CONTROLLER
+	depends on ARCH_RENESAS || COMPILE_TEST
+	select VIDEOBUF2_DMA_CONTIG
+	select V4L2_FWNODE
+	help
+	  Support for Renesas RZ/G2L Camera Receiving Unit (CRU) driver.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called rzg2l-cru.
+
+config VIDEO_RZG2L_CSI2
+	tristate "RZ/G2L MIPI CSI-2 Receiver"
+	depends on VIDEO_V4L2 && VIDEO_V4L2_SUBDEV_API && OF
+	depends on ARCH_RENESAS || COMPILE_TEST
+	select V4L2_FWNODE
+	help
+	  Support for Renesas RZ/G2L MIPI CSI-2 Receiver driver.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called rzg2l-csi2.
