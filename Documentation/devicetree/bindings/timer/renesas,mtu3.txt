@@ -1,0 +1,72 @@
+* Renesas Multi-Function Timer Pulse Unit 3 (MTU3)
+
+The MTU3 is a multi-purpose, multi-channel timer/counter with configurable
+clock inputs and programmable compare match.
+
+Channels share hardware resources but their counter and compare match value
+are independent. The MTU3 hardware supports nine channels indexed from 0 to 8.
+
+Required Properties:
+
+ - compatible: must be one or more of the following:
+   - "renesas,mtu3" for MTU3 in common Renesas SoC.
+
+ - reg: base address and length of the registers block for the timer module.
+
+ - interrupts: interrupt specifiers for the timer, one for each entry in
+   interrupt-names.
+
+ - interrupt-names: must contain one entry named "tgiXY" where "X" is timer
+   channels and "Y" is the channel's interrupt sources.
+
+ - clocks: a list of phandle + clock-specifier pairs, one for each entry
+   in clock-names.
+
+ - clock-names: must contain "fck" for the functional clock.
+
+Optional properties:
+
+ - pwm_mode1: Assign pwm mode1 for each timer channel with its output pin
+   and expose pwm controller through sysfs. Format is:
+
+   pwm_mode1 = <channel output>, ..;
+
+   Where:
+	- channel is number of timer channels outputing pwm signals in pwm mode 1.
+	  Channels which support pwm mode 1 are 0, 1, 2, 3, 4, 6, 7.
+	- output is number of output pins. output = 0 use MTIOCA, output = 1 use MTIOCC.
+
+ - pwm_complementary: Assign complementary pwm for each timer channel with its output pin
+   and expose pwm controller through sysfs. Format is:
+
+   pwm_complementary = <channel output deadtime>, ..;
+
+   Where:
+	- channel is number of timer channels outputing complementary pwm. Channels which
+	  support complementary pwm are 3, 4, 6, 7.
+	- output is number of output pins. output = 0 exports complementary pwm in
+	  MTIOCA and MTIOCC pins, output = 1 use MTIOCB and MTIOCD.
+	- deadtime is the time when 2 pwm signals have a same level in a cycles. The unit
+	  of deadtime is nanoseconds.
+
+Example 1: Add configuration for MTU3 of R9A07G044L2 (RZ/G2L) SoC.
+
+	mtu3: timer@10001200 {
+		compatible = "renesas,rzg2l-mtu3";
+		reg = <0 0x10001200 0 0xB00>;
+		interrupts =
+			<GIC_SPI 170 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "tgi0a";
+		clocks = <&cpg CPG_MOD R9A07G044L_CLK_MTU>;
+		clock-names = "fck";
+	};
+
+Example 2: Add optional properties for pwm_mode1 and pwm_complementary of MTU3.
+
+	&mtu3 {
+		pinctrl-0 = <&mtu2_pins>, <&mtu3_pins>, <&mtu7_pins>;
+		pinctrl-names = "default";
+		pwm_mode1 = <2 0>;
+		pwm_complementary = <3 1 100000>, <7 0 50000>;
+		status = "okay";
+	};
