@@ -96,6 +96,29 @@
 		};
 	};
 
+	hdmi-receiver {
+		compatible = "ti,ds90cf384a", "lvds-decoder";
+		power-supply = <&vcc_3v3_tft1>;
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+				hdmi_receiver_in: endpoint {
+					remote-endpoint = <&lvds1_out>;
+				};
+			};
+			port@1 {
+				reg = <1>;
+				hdmi_receiver_out: endpoint {
+					remote-endpoint = <&panel_in_hdmi>;
+				};
+			};
+		};
+	};
+
 	panel {
 		compatible = "edt,etm0700g0dh6";
 		backlight = <&lcd_backlight>;
@@ -106,6 +129,29 @@
 				remote-endpoint = <&lvds_receiver_out>;
 			};
 		};
+	};
+
+	panel-hdmi {
+		compatible = "panel-dpi";
+		width-mm = <200>;
+		height-mm = <150>;
+
+		port {
+			panel_in_hdmi: endpoint {
+				remote-endpoint = <&hdmi_receiver_out>;
+			};
+		};
+                panel-timing {
+                        clock-frequency = <65000000>;
+                        hactive = <1024>;
+                        vactive = <768>;
+                        hfront-porch = <24>;
+                        hback-porch = <296>;
+                        hsync-len = <19>;
+                        vfront-porch = <19>;
+                        vback-porch = <32>;
+                        vsync-len = <6>;
+                };
 	};
 
 	reg_1p5v: 1p5v {
@@ -242,6 +288,17 @@
 		port@1 {
 			lvds0_out: endpoint {
 				remote-endpoint = <&lvds_receiver_in>;
+			};
+		};
+	};
+};
+
+&lvds1 {
+	status = "okay";
+	ports {
+		port@1 {
+			lvds1_out: endpoint {
+				remote-endpoint = <&hdmi_receiver_in>;
 			};
 		};
 	};
