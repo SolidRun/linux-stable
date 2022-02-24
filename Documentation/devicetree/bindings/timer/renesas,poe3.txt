@@ -1,0 +1,101 @@
+* Renesas Port Output Enable 3 (POE3)
+
+The POE3 can be used to place output pins for the MTU3a in the high-impedance (Hi-z)
+state in repsponse to various conditions.
+
+Required properties:
+
+ - compatible: must be one or more as the following:
+   - "renesas,poe3"
+   - "renesas,rz-poe3"
+
+ - reg: base address and length of the registers block for the timer module.
+
+ - interrupts: interrupt specifiers for the timer.
+
+ - clocks: a list of phandle + clock-specifier pairs, one for each entry in
+   clock-names.
+
+ - clock-names: must contain "fck" for the functional clock.
+
+ - resets: a list of phandle and reset specifier pairs, one pair for each
+   signal that effects the device, or that the device managers.
+
+Optional properties:
+
+ - poe3_pins_mode: Assign POE3's input pins and their modes for capture input
+   function to decide to place MTU3 output pins in hig-impedance state.
+
+   Format of this setting is:
+   poe3_pins_mode = <pin_index mode>, ..;
+
+   Where:
+	- "pin_index" could be 0/4/8 or 10 representing for POE0#/POE4#/POE8# or POE10#.
+	- "mode" is the value of POExM[1:0] bits described in HW manuals which used to select
+	  conditions to accept a request to place MTU3 outputs in Hi-z state. Value of mode
+	  is from 0 to 3. Details are in below.
+
+	* mode = 0 => request High-impedance if falling edge has occurred on the input pin.
+	* mode = 1 => request High-impedance when the input pin has been sampled continuously
+	  16 times at P0/4 clock pulses and all are low level.
+	* mode = 2 => request High-impedance when the input pin has been sampled continuously
+	  16 times at P0/16 clock pulses and all are low level.
+	* mode = 3 => request High-impedance when the input has been sampled continuously
+	  16 times at P0/128 clock pulses and all are low level.
+
+   Example 1: To set POE0# and POE4# as Hi-z request when falling edge and low level sampled
+   16 times at P0/16 correspondingly. We add this configuration to devicetree.
+
+	poe3_pins_mode = <0 0>, <4 3>;
+
+ - Child nodes which are "mtu3_ch0", "mtu3_ch34", "mtu3_ch67" configure MTU3 outputs which
+   are place under control of POE3 and POE3 inputs as conditions to switch to Hi-z state.
+
+  In each child node we will have below elements.
+  - "mtu3_outputs" is required property to select pins of MTU channels which will be placed
+    in high-impedance state when matching conditions happen. The valid values of this property
+    are described as the below table and example.
+
+	| sub_node | MTU pins under control of POE3 | mtu3_outputs values|
+	|----------------------------------------------------------------|
+	| mtu3_ch0 |		MTIOC0A		    |		0	 |
+	|	   |		MTIOC0B		    |		1	 |
+	|	   |		MTIOC0C		    |		2	 |
+	|	   |		MTIOC0D		    |		3	 |
+	|----------------------------------------------------------------|
+	|mtu3_ch34 |	MTIOC3B and MTIOC3D	    |		0	 |
+	|	   |	MTIOC4A and MTIOC4C	    |		1	 |
+	|	   |	MTIOC4B and MTIOC4D	    |		2	 |
+	|----------------------------------------------------------------|
+	|mtu3_ch67 |	MTIOC6B and MTIOC6D	    |		0	 |
+	|	   |	MTIOC7A and MTIOC7C	    |		1	 |
+	|	   |	MTIOC7B and MTIOC7D	    |		2	 |
+
+  Example 2: To set POE3 control MTIOC3B-MTIOC3D and MTIOC4B-MTIOC4D, we do as this example.
+
+	mtu3_ch34 {
+		mtu3_outputs = <0 2>;
+	};
+
+  - "addition_poe3_inputs" is not an obligatory properties of child nodes, we use it to define
+    addtion POEx# pins beside the default of each MTU channel to add more input capture pins
+    as conditions to place MTU3 pins in Hi-z state when they're matched.
+
+   Example 3: To set MTIOC6B-MTIOC6D, MTIOC7A-MTIOC7C, MTIOC7B-MTIOC7D pairs under control of
+   POE3 with default input capture is POE4# (falling edge detection) and add POE8# (sample 16 times
+   low level at P0/4), POE10# (sample 16 times low level at P0/128).
+
+	&poe3 {
+		pinctrl-0 = <&poe3_pins>;
+		pinctrl-names = "default";
+
+		poe3_pins_mode = <4 0>, <8 1>, <10 3>;
+
+		status = "okay";
+
+		mtu3_ch67 {
+			mtu3_outputs = <0 1 2>;
+			addition_poe3_inputs = <8 10>;
+		};
+
+	};
