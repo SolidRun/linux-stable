@@ -862,4 +862,12 @@ config MAPPING_DIRTY_HELPERS
 config KMAP_LOCAL
 	bool
 
+config RENESAS_MFIS_ECC
+	bool "enable DRAM ECC error interrupt"
+	default n
+	help
+	  This feature enable user to catch interrupt when an error in DRAM
+	  detected by ECC.
+	  The error detected can be single/multiple bits error.
+
 endmenu
