@@ -77,6 +77,9 @@
 		txd1-skew-psec = <0>;
 		txd2-skew-psec = <0>;
 		txd3-skew-psec = <0>;
+
+		interrupt-parent = <&pinctrl>;
+		interrupts = <RZG2L_GPIO(0, 0) IRQ_TYPE_EDGE_FALLING>;
 	};
 };
 
