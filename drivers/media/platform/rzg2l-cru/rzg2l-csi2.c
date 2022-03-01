@@ -643,6 +643,7 @@ error:
 
 static const struct of_device_id rzg2l_csi2_of_table[] = {
 	{ .compatible = "renesas,r9a07g044-csi2", },
+	{ .compatible = "renesas,r9a07g043-csi2", },
 	{ /* sentinel */ },
 };
 
