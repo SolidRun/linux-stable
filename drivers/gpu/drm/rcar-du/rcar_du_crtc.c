@@ -218,17 +218,16 @@ struct cpg_param {
 	u32	pl5_fracin;
 	u32	pl5_postdiv1;
 	u32	pl5_postdiv2;
-	u32	pl5_scc_en;
-	u32	pl5_downspread;
 	u32	pl5_divval;
 	u32	pl5_spread;
 	u32	dsi_div_a;
 	u32	dsi_div_b;
 };
 
-#define	TABLE_MAX	11
-#define reg_write(x, a)	iowrite32(a, x)
-#define CPG_LPCLK_DIV	0
+#define	TABLE_MAX		11
+#define	TABLE_PARALLEL_MAX	11
+#define reg_write(x, a)		iowrite32(a, x)
+#define CPG_LPCLK_DIV		0
 
 struct cpg_param resolution_param[TABLE_MAX] = {
 	{
@@ -239,8 +238,6 @@ struct cpg_param resolution_param[TABLE_MAX] = {
 		/* pl5_fracin		*/	13141593,
 		/* pl5_postdiv1		*/	1,
 		/* pl5_postdiv2		*/	1,
-		/* pl5_scc_en		*/	1,
-		/* pl5_downspread	*/	1,
 		/* pl5_divval		*/	6,
 		/* pl5_spread		*/	5,
 		/* dsi_div_a		*/	2,	// 1/4
@@ -254,8 +251,6 @@ struct cpg_param resolution_param[TABLE_MAX] = {
 		/* pl5_fracin		*/	13421773,
 		/* pl5_postdiv1		*/	1,
 		/* pl5_postdiv2		*/	1,
-		/* pl5_scc_en		*/	1,
-		/* pl5_downspread	*/	1,
 		/* pl5_divval		*/	6,
 		/* pl5_spread		*/	5,
 		/* dsi_div_a		*/	2,	// 1/4
@@ -269,8 +264,6 @@ struct cpg_param resolution_param[TABLE_MAX] = {
 		/* pl5_fracin		*/	0,
 		/* pl5_postdiv1		*/	1,
 		/* pl5_postdiv2		*/	1,
-		/* pl5_scc_en		*/	1,
-		/* pl5_downspread	*/	1,
 		/* pl5_divval		*/	6,
 		/* pl5_spread		*/	5,
 		/* dsi_div_a		*/	2,	// 1/4
@@ -284,8 +277,6 @@ struct cpg_param resolution_param[TABLE_MAX] = {
 		/* pl5_fracin		*/	301990,
 		/* pl5_postdiv1		*/	1,
 		/* pl5_postdiv2		*/	1,
-		/* pl5_scc_en		*/	1,
-		/* pl5_downspread	*/	1,
 		/* pl5_divval		*/	6,
 		/* pl5_spread		*/	5,
 		/* dsi_div_a		*/	2,	// 1/4
@@ -299,8 +290,6 @@ struct cpg_param resolution_param[TABLE_MAX] = {
 		/* pl5_fracin		*/	12359216,
 		/* pl5_postdiv1		*/	1,
 		/* pl5_postdiv2		*/	1,
-		/* pl5_scc_en		*/	1,
-		/* pl5_downspread	*/	1,
 		/* pl5_divval		*/	6,
 		/* pl5_spread		*/	5,
 		/* dsi_div_a		*/	2,	// 1/4
@@ -314,8 +303,6 @@ struct cpg_param resolution_param[TABLE_MAX] = {
 		/* pl5_fracin		*/	11184810,
 		/* pl5_postdiv1		*/	1,
 		/* pl5_postdiv2		*/	1,
-		/* pl5_scc_en		*/	1,
-		/* pl5_downspread	*/	1,
 		/* pl5_divval		*/	6,
 		/* pl5_spread		*/	5,
 		/* dsi_div_a		*/	2,	// 1/4
@@ -329,8 +316,6 @@ struct cpg_param resolution_param[TABLE_MAX] = {
 		/* pl5_fracin		*/	5592405,
 		/* pl5_postdiv1		*/	1,
 		/* pl5_postdiv2		*/	1,
-		/* pl5_scc_en		*/	1,
-		/* pl5_downspread	*/	1,
 		/* pl5_divval		*/	6,
 		/* pl5_spread		*/	5,
 		/* dsi_div_a		*/	2,	// 1/4
@@ -344,8 +329,6 @@ struct cpg_param resolution_param[TABLE_MAX] = {
 		/* pl5_fracin		*/	7560932,
 		/* pl5_postdiv1		*/	1,
 		/* pl5_postdiv2		*/	1,
-		/* pl5_scc_en		*/	1,
-		/* pl5_downspread	*/	1,
 		/* pl5_divval		*/	6,
 		/* pl5_spread		*/	5,
 		/* dsi_div_a		*/	2,	// 1/4
@@ -359,8 +342,6 @@ struct cpg_param resolution_param[TABLE_MAX] = {
 		/* pl5_fracin		*/	8388608,
 		/* pl5_postdiv1		*/	1,
 		/* pl5_postdiv2		*/	1,
-		/* pl5_scc_en		*/	1,
-		/* pl5_downspread	*/	1,
 		/* pl5_divval		*/	6,
 		/* pl5_spread		*/	5,
 		/* dsi_div_a		*/	2,	// 1/4
@@ -374,8 +355,6 @@ struct cpg_param resolution_param[TABLE_MAX] = {
 		/* pl5_fracin		*/	0,
 		/* pl5_postdiv1		*/	1,
 		/* pl5_postdiv2		*/	1,
-		/* pl5_scc_en		*/	1,
-		/* pl5_downspread	*/	1,
 		/* pl5_divval		*/	6,
 		/* pl5_spread		*/	5,
 		/* dsi_div_a		*/	2,	// 1/4
@@ -389,12 +368,156 @@ struct cpg_param resolution_param[TABLE_MAX] = {
 		/* pl5_fracin		*/	4194304,
 		/* pl5_postdiv1		*/	1,
 		/* pl5_postdiv2		*/	1,
-		/* pl5_scc_en		*/	1,
-		/* pl5_downspread	*/	1,
 		/* pl5_divval		*/	6,
 		/* pl5_spread		*/	5,
 		/* dsi_div_a		*/	2,	// 1/4
 		/* dsi_div_b		*/	2,	// 1/3
+	},
+};
+
+struct cpg_param resolution_param_parallel[TABLE_PARALLEL_MAX] = {
+	{
+		/* VGA 25.175MHz	*/
+		/* frequency		*/	25175,
+		/* pl5_refdiv		*/	1,
+		/* pl5_intin		*/	102,
+		/* pl5_fracin		*/	13386820,
+		/* pl5_postdiv1		*/	7,
+		/* pl5_postdiv2		*/	7,
+		/* pl5_divval		*/	0,
+		/* pl5_spread		*/	0x16,
+		/* dsi_div_a		*/	1,	// 1/2
+		/* dsi_div_b		*/	0,	// 1/1
+	},
+	{
+		/* VGA 25.200MHz	*/
+		/* frequency		*/	25200,
+		/* pl5_refdiv		*/	1,
+		/* pl5_intin		*/	73,
+		/* pl5_fracin		*/	8388608,
+		/* pl5_postdiv1		*/	7,
+		/* pl5_postdiv2		*/	5,
+		/* pl5_divval		*/	0,
+		/* pl5_spread		*/	0x16,
+		/* dsi_div_a		*/	1,	// 1/2
+		/* dsi_div_b		*/	0,	// 1/1
+	},
+	{
+		/* 480p/576p 27.000MHz	*/
+		/* frequency		*/	27000,
+		/* pl5_refdiv		*/	1,
+		/* pl5_intin		*/	78,
+		/* pl5_fracin		*/	12582912,
+		/* pl5_postdiv1		*/	7,
+		/* pl5_postdiv2		*/	5,
+		/* pl5_divval		*/	0,
+		/* pl5_spread		*/	0x16,
+		/* dsi_div_a		*/	1,	// 1/2
+		/* dsi_div_b		*/	0,	// 1/1
+	},
+	{
+		/* 480p 27.027MHz	*/
+		/* frequency		*/	27027,
+		/* pl5_refdiv		*/	1,
+		/* pl5_intin		*/	110,
+		/* pl5_fracin		*/	6043992,
+		/* pl5_postdiv1		*/	7,
+		/* pl5_postdiv2		*/	7,
+		/* pl5_divval		*/	0,
+		/* pl5_spread		*/	0x16,
+		/* dsi_div_a		*/	1,	// 1/2
+		/* dsi_div_b		*/	0,	// 1/1
+	},
+	{
+		/* WVGA 29.605MHz	*/
+		/* frequency		*/	29605,
+		/* pl5_refdiv		*/	1,
+		/* pl5_intin		*/	88,
+		/* pl5_fracin		*/	13673431,
+		/* pl5_postdiv1		*/	6,
+		/* pl5_postdiv2		*/	6,
+		/* pl5_divval		*/	0,
+		/* pl5_spread		*/	0x16,
+		/* dsi_div_a		*/	1,	// 1/2
+		/* dsi_div_b		*/	0,	// 1/1
+	},
+	{
+		/* SVGA 40.00MHz	*/
+		/* frequency		*/	40000,
+		/* pl5_refdiv		*/	1,
+		/* pl5_intin		*/	70,
+		/* pl5_fracin		*/	0,
+		/* pl5_postdiv1		*/	7,
+		/* pl5_postdiv2		*/	3,
+		/* pl5_divval		*/	0,
+		/* pl5_spread		*/	0x16,
+		/* dsi_div_a		*/	1,	// 1/2
+		/* dsi_div_b		*/	0,	// 1/1
+	},
+	{
+		/* XGA	65.00MHz	*/
+		/* frequency		*/	65000,
+		/* pl5_refdiv		*/	1,
+		/* pl5_intin		*/	81,
+		/* pl5_fracin		*/	4194304,
+		/* pl5_postdiv1		*/	5,
+		/* pl5_postdiv2		*/	3,
+		/* pl5_divval		*/	0,
+		/* pl5_spread		*/	0x16,
+		/* dsi_div_a		*/	1,	// 1/2
+		/* dsi_div_b		*/	0,	// 1/1
+	},
+	{
+		/* WXGA 1280x800 71.0MHz	*/
+		/* frequency		*/	71000,
+		/* pl5_refdiv		*/	1,
+		/* pl5_intin		*/	71,
+		/* pl5_fracin		*/	0,
+		/* pl5_postdiv1		*/	6,
+		/* pl5_postdiv2		*/	2,
+		/* pl5_divval		*/	0,
+		/* pl5_spread		*/	0x16,
+		/* dsi_div_a		*/	1,	// 1/2
+		/* dsi_div_b		*/	0,	// 1/1
+	},
+	{
+		/* 720p 74.176MHz	*/
+		/* frequency		*/	74176,
+		/* pl5_refdiv		*/	1,
+		/* pl5_intin		*/	86,
+		/* pl5_fracin		*/	9037327,
+		/* pl5_postdiv1		*/	7,
+		/* pl5_postdiv2		*/	2,
+		/* pl5_divval		*/	0,
+		/* pl5_spread		*/	0x16,
+		/* dsi_div_a		*/	1,	// 1/2
+		/* dsi_div_b		*/	0,	// 1/1
+	},
+	{
+		/* 720p 74.25MHz	*/
+		/* frequency		*/	74250,
+		/* pl5_refdiv		*/	1,
+		/* pl5_intin		*/	86,
+		/* pl5_fracin		*/	10485760,
+		/* pl5_postdiv1		*/	7,
+		/* pl5_postdiv2		*/	2,
+		/* pl5_divval		*/	0,
+		/* pl5_spread		*/	0x16,
+		/* dsi_div_a		*/	1,	// 1/2
+		/* dsi_div_b		*/	0,	// 1/1
+	},
+	{
+		/* WXGA 1280x800 83.5MHz	*/
+		/* frequency		*/	83500,
+		/* pl5_refdiv		*/	1,
+		/* pl5_intin		*/	83,
+		/* pl5_fracin		*/	8388608,
+		/* pl5_postdiv1		*/	6,
+		/* pl5_postdiv2		*/	2,
+		/* pl5_divval		*/	0,
+		/* pl5_spread		*/	0x16,
+		/* dsi_div_a		*/	1,	// 1/2
+		/* dsi_div_b		*/	0,	// 1/1
 	},
 };
 
@@ -411,16 +534,29 @@ static void rcar_du_crtc_set_display_timing(struct rcar_du_crtc *rcrtc)
 		u32 ditr0, ditr1, ditr2, ditr3, ditr4, ditr5, pbcr0;
 		void __iomem *cpg_base = ioremap(0x11010000, 0x1000);
 		u32 i, index, prevIndex = 0;
+		u32 parallelOut;
+		u32 tableMax;
+		struct cpg_param *paramPtr;
 
-		for (i = 0; i < TABLE_MAX; i++) {
-			if (resolution_param[i].frequency == mode->clock) {
+		if (of_machine_is_compatible("renesas,r9a07g043")) {
+			parallelOut = 1;
+			tableMax = TABLE_PARALLEL_MAX;
+			paramPtr = resolution_param_parallel;
+		} else {
+			parallelOut = 0;
+			tableMax = TABLE_MAX;
+			paramPtr = resolution_param;
+		}
+
+		for (i = 0; i < tableMax; i++) {
+			if (paramPtr[i].frequency == mode->clock) {
 				index = i;
 				break;
 			}
 
-			if (resolution_param[i].frequency > mode->clock) {
-				if ((resolution_param[i].frequency - mode->clock) >
-				    (mode->clock - resolution_param[prevIndex].frequency))
+			if (paramPtr[i].frequency > mode->clock) {
+				if ((paramPtr[i].frequency - mode->clock) >
+				(mode->clock - paramPtr[prevIndex].frequency))
 					index = prevIndex;
 				else
 					index = i;
@@ -429,35 +565,34 @@ static void rcar_du_crtc_set_display_timing(struct rcar_du_crtc *rcrtc)
 			prevIndex = i;
 		}
 
-		if (i == TABLE_MAX)
-			index = TABLE_MAX - 1;
+		if (i == tableMax)
+			index = tableMax - 1;
 
 		/* CPG_PL2_DDIV: DIV_DSI_LPCLK */
 		reg_write(cpg_base + 0x0204, 0x10000000 |
 			 (CPG_LPCLK_DIV << 12));
 		/* CPG_PL5_SDIV: DIV_DSI_A, DIV_DSI_B */
 		reg_write(cpg_base + 0x0420, 0x01010000 |
-			 (resolution_param[index].dsi_div_a << 0) |
-			 (resolution_param[index].dsi_div_b << 8));
+			 (paramPtr[index].dsi_div_a << 0) |
+			 (paramPtr[index].dsi_div_b << 8));
 		/* CPG_PLL5_CLK1: POSTDIV1, POSTDIV2, REFDIV */
 		reg_write(cpg_base + 0x0144, 0x01110000 |
-			 (resolution_param[index].pl5_postdiv1 << 0) |
-			 (resolution_param[index].pl5_postdiv2 << 4) |
-			 (resolution_param[index].pl5_refdiv << 8));
+			 (paramPtr[index].pl5_postdiv1 << 0) |
+			 (paramPtr[index].pl5_postdiv2 << 4) |
+			 (paramPtr[index].pl5_refdiv << 8));
 		/* CPG_PLL5_CLK3: DIVVAL=6, FRACIN */
 		reg_write(cpg_base + 0x014C,
-			 (resolution_param[index].pl5_divval << 0) |
-			 (resolution_param[index].pl5_fracin << 8));
+			 (paramPtr[index].pl5_divval << 0) |
+			 (paramPtr[index].pl5_fracin << 8));
 		/* CPG_PLL5_CLK4: INTIN */
 		reg_write(cpg_base + 0x0150, 0x000000ff |
-			 (resolution_param[index].pl5_intin << 16));
+			 (paramPtr[index].pl5_intin << 16));
 		/* CPG_PLL5_CLK5: SPREAD */
 		reg_write(cpg_base + 0x0154,
-			 (resolution_param[index].pl5_spread << 0));
-		/* CPG_PLL5_STBY: RESETB=1, SSC_EN, DOWNSPREAD */
-		reg_write(cpg_base + 0x0140, 0x00150001 |
-			 (resolution_param[index].pl5_scc_en << 2) |
-			 (resolution_param[index].pl5_downspread << 4));
+			 (paramPtr[index].pl5_spread << 0));
+		/* CPG_PLL5_STBY: RESETB=1 */
+		reg_write(cpg_base + 0x0140, 0x00150001);
+
 		iounmap(cpg_base);
 
 		clk_prepare_enable(rcrtc->rzg2l_clocks.dclk);
