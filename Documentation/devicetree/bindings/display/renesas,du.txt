@@ -13,6 +13,7 @@ Required Properties:
     - "renesas,du-r8a774b1" for R8A774B1 (RZ/G2N) compatible DU
     - "renesas,du-r8a774c0" for R8A774C0 (RZ/G2E) compatible DU
     - "renesas,du-r8a774e1" for R8A774E1 (RZ/G2H) compatible DU
+    - "renesas,du-rzg2ul" for R9A07G043 (RZ/G2UL) compatible DU
     - "renesas,du-rzg2l" for R9A07G044 (RZ/G2L) compatible DU
     - "renesas,du-rzg2lc" for R9A07G044 (RZ/G2LC) compatible DU
     - "renesas,du-r8a7779" for R8A7779 (R-Car H1) compatible DU
@@ -84,6 +85,7 @@ corresponding to each DU output.
  R8A774B1 (RZ/G2N)      DPAD 0         HDMI 0         LVDS 0         -
  R8A774C0 (RZ/G2E)      DPAD 0         LVDS 0         LVDS 1         -
  R8A774E1 (RZ/G2H)      DPAD 0         HDMI 0         LVDS 0         -
+ R9A07G043 (RZ/G2UL)    DPAD 0         -              -              -
  R9A07G044 (RZ/G2L)     DPAD 0         MIPI DSI 0     -              -
  R9A07G044 (RZ/G2LC)    MIPI DSI 0     -              -              -
  R8A7779 (R-Car H1)     DPAD 0         DPAD 1         -              -
