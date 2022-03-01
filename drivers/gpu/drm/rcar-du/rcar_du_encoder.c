@@ -33,6 +33,9 @@ static enum drm_mode_status rcar_du_encoder_mode_valid(
 	if (of_machine_is_compatible("renesas,r8a774c0") &&
 	    renc->output == RCAR_DU_OUTPUT_DPAD0 && mode->clock > 75000)
 		return MODE_BAD;
+	else if (of_machine_is_compatible("renesas,r9a07g043") &&
+		 mode->clock > 83500)
+		return MODE_BAD;
 	else
 		return MODE_OK;
 }
