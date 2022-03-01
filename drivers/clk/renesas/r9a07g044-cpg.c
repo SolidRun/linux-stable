@@ -469,6 +469,7 @@ static struct rzg2l_reset r9a07g044_resets[] = {
 
 static const unsigned int r9a07g044_crit_mod_clks[] __initconst = {
 	MOD_CLK_BASE + R9A07G044_GIC600_GICCLK,
+	MOD_CLK_BASE + R9A07G044_IA55_PCLK,
 	MOD_CLK_BASE + R9A07G044_IA55_CLK,
 	MOD_CLK_BASE + R9A07G044_DMAC_ACLK,
 };
