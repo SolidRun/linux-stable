@@ -1,0 +1,18 @@
+* Renesas Port Output Enable for GPT (POEG)
+
+Required Properties:
+- compatible: should be "renesas,poeg" and one of the following.
+ - "renesas,poeg-r9a07g044": for RZ/G2L, RZ/G2LC, RZ/V2L.
+
+- reg: base address and length of the registers block for the POEG
+- pinctrl-0: phandle, referring to a default pin configuration node.
+- pinctrl-names: Set to "default".
+
+Example: R9A07G044 (RZ/G2L) Port Output Enable for GPT (POEG)
+
+                poega: poeg@10048800 {
+                        compatible = "renesas,poeg-r9a07g044";
+                        reg = <0 0x10048800 0 0x04>;
+                        interrupts = <GIC_SPI 322 IRQ_TYPE_LEVEL_HIGH>;
+                        status = "disabled";
+                };
