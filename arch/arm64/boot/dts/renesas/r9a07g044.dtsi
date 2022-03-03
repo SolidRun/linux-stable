@@ -442,6 +442,46 @@
 			status = "disabled";
 		};
 
+		poega: poega@10048800 {
+			compatible = "renesas,poeg-r9a07g044";
+			reg = <0 0x10048800 0 0x04>;
+			interrupts = <GIC_SPI 322 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD R9A07G044_POEG_A_CLKP>;
+			power-domains = <&cpg>;
+			resets =  <&cpg R9A07G044_POEG_A_RST>;
+			status = "disabled";
+		};
+
+		poegb: poegb@10048C00 {
+			compatible = "renesas,poeg-r9a07g044";
+			reg = <0 0x10048C00 0 0x04>;
+			interrupts = <GIC_SPI 323 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD R9A07G044_POEG_B_CLKP>;
+			power-domains = <&cpg>;
+			resets =  <&cpg R9A07G044_POEG_B_RST>;
+			status = "disabled";
+		};
+
+		poegc: poegc@10049000 {
+			compatible = "renesas,poeg-r9a07g044";
+			reg = <0 0x10049000 0 0x04>;
+			interrupts = <GIC_SPI 324 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD R9A07G044_POEG_C_CLKP>;
+			power-domains = <&cpg>;
+			resets =  <&cpg R9A07G044_POEG_C_RST>;
+			status = "disabled";
+		};
+
+		poegd: poegd@10049400 {
+			compatible = "renesas,poeg-r9a07g044";
+			reg = <0 0x10049400 0 0x04>;
+			interrupts = <GIC_SPI 325 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD R9A07G044_POEG_D_CLKP>;
+			power-domains = <&cpg>;
+			resets =  <&cpg R9A07G044_POEG_D_RST>;
+			status = "disabled";
+		};
+
 		canfd: can@10050000 {
 			compatible = "renesas,r9a07g044-canfd", "renesas,rzg2l-canfd";
 			reg = <0 0x10050000 0 0x8000>;
