@@ -63,7 +63,7 @@
 #if (SW_SCIF_CAN || SW_RSPI_CAN)
 &canfd {
 	pinctrl-0 = <&can1_pins>;
-	/delete-node/ channel@0;
+	/delete-node/ channel0;
 };
 #else
 &canfd {
