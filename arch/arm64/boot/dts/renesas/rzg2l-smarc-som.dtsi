@@ -373,3 +373,10 @@
 	status = "okay";
 	timeout-sec = <60>;
 };
+
+&gpt5 {
+	pinctrl-0 = <&gpt5_pins>;
+	pinctrl-names = "default";
+	channel = "channel_A";
+	status = "okay";
+};
