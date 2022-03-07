@@ -290,13 +290,13 @@ static void cache_shared_cpu_map_remove(unsigned int cpu)
 
 static void free_cache_attributes(unsigned int cpu)
 {
-	if (!per_cpu_cacheinfo(cpu))
+	/* if (!per_cpu_cacheinfo(cpu))
 		return;
 
 	cache_shared_cpu_map_remove(cpu);
 
 	kfree(per_cpu_cacheinfo(cpu));
-	per_cpu_cacheinfo(cpu) = NULL;
+	per_cpu_cacheinfo(cpu) = NULL; */
 }
 
 int __weak init_cache_level(unsigned int cpu)
