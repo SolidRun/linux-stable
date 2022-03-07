@@ -1117,6 +1117,61 @@
 			status = "disabled";
 		};
 
+		gpt1: gpt@10048100 {
+			compatible = "renesas,gpt-r9a07g044";
+			reg = <0 0x10048100 0 0xa4>;
+			#pwm-cells = <2>;
+			interrupts = <GIC_SPI 231 IRQ_TYPE_EDGE_RISING>,
+				<GIC_SPI 232 IRQ_TYPE_EDGE_RISING>,
+				<GIC_SPI 233 IRQ_TYPE_EDGE_RISING>,
+				<GIC_SPI 234 IRQ_TYPE_EDGE_RISING>,
+				<GIC_SPI 235 IRQ_TYPE_EDGE_RISING>,
+				<GIC_SPI 236 IRQ_TYPE_EDGE_RISING>,
+				<GIC_SPI 237 IRQ_TYPE_EDGE_RISING>,
+				<GIC_SPI 238 IRQ_TYPE_EDGE_RISING>,
+				<GIC_SPI 239 IRQ_TYPE_EDGE_RISING>,
+				<GIC_SPI 240 IRQ_TYPE_EDGE_RISING>,
+				<GIC_SPI 241 IRQ_TYPE_EDGE_RISING>,
+				<GIC_SPI 242 IRQ_TYPE_EDGE_RISING>,
+				<GIC_SPI 243 IRQ_TYPE_EDGE_RISING>;
+			interrupt-names = "gtcia", "gtcib", "gtcic", "gtcid",
+				"gtcie", "gtcif", "gtciada", "gtciadb",
+				"gtciv", "gtciu", "gtcih", "gtcil",
+				"gtdei";
+			clocks = <&cpg CPG_MOD R9A07G044_GPT_PCLK>;
+			power-domains = <&cpg>;
+			resets =  <&cpg R9A07G044_GPT_RST_C>;
+			status = "disabled";
+		};
+
+		gpt2: gpt@10048200 {
+			compatible = "renesas,gpt-r9a07g044";
+			reg = <0 0x10048200 0 0xa4>;
+			#pwm-cells = <2>;
+			interrupts = <GIC_SPI 244 IRQ_TYPE_EDGE_RISING>,
+				<GIC_SPI 245 IRQ_TYPE_EDGE_RISING>,
+				<GIC_SPI 246 IRQ_TYPE_EDGE_RISING>,
+				<GIC_SPI 247 IRQ_TYPE_EDGE_RISING>,
+				<GIC_SPI 248 IRQ_TYPE_EDGE_RISING>,
+				<GIC_SPI 249 IRQ_TYPE_EDGE_RISING>,
+				<GIC_SPI 250 IRQ_TYPE_EDGE_RISING>,
+				<GIC_SPI 251 IRQ_TYPE_EDGE_RISING>,
+				<GIC_SPI 252 IRQ_TYPE_EDGE_RISING>,
+				<GIC_SPI 253 IRQ_TYPE_EDGE_RISING>,
+				<GIC_SPI 254 IRQ_TYPE_EDGE_RISING>,
+				<GIC_SPI 255 IRQ_TYPE_EDGE_RISING>,
+				<GIC_SPI 256 IRQ_TYPE_EDGE_RISING>;
+			interrupt-names = "gtcia", "gtcib", "gtcic", "gtcid",
+				"gtcie", "gtcif", "gtciada", "gtciadb",
+				"gtciv", "gtciu", "gtcih", "gtcil",
+				"gtdei";
+			clocks = <&cpg CPG_MOD R9A07G044_GPT_PCLK>;
+			power-domains = <&cpg>;
+			resets =  <&cpg R9A07G044_GPT_RST_C>;
+			status = "disabled";
+		};
+
+
 		gpt3: gpt@10048300 {
 			compatible = "renesas,gpt-r9a07g044";
 			reg = <0 0x10048300 0 0xa4>;
