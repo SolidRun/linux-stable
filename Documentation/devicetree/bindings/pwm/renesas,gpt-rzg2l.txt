@@ -1,0 +1,43 @@
+* Renesas GPT Timer Controller
+
+Required Properties:
+- compatible: should be "renesas,pwm-rcar" and one of the following.
+ - "renesas,gpt-r9a07g044": for RZ/G2L, RZ/G2LC, RZ/V2L.
+
+- reg: base address and length of the registers block for the PWM.
+- #pwm-cells: should be 2. See pwm.txt in this directory for a description of
+  the cells format.
+- clocks: clock phandle and specifier pair.
+- pinctrl-0: phandle, referring to a default pin configuration node.
+- pinctrl-names: Set to "default".
+- channel : output channel for GPT, to set this refer to output pin and
+ one of the following:
+	- "channel_A": use only channel A for output
+	- "channel_B": use only channel B for output
+	- "both_AB": use both channel A and B for output, this is double output mode
+
+
+Optional properties:
+- poeg: referring to a poeg node, if not set this property, GPT not
+  use poeg
+
+
+Example: R9A07G044L (RZ/G2L) GPT(PWM) Timer node
+
+                gpt0: gpt@10048000 {
+                        compatible = "renesas,gpt-r9a07g044";
+                        reg = <0 0x10048000 0 0xa4>;
+                        #pwm-cells = <2>;
+                        clocks = <&cpg CPG_MOD R9A07G044_GPT_PCLK>;
+                        status = "disabled";
+                };
+
+Example: GPT(PWM) node on RZ/G2L Smarc Board
+
+                &gpt4 {
+                        pinctrl-0 = <&gpt4_pins>;
+                        pinctrl-names = "default";
+                        channel = "both_AB";
+                        poeg = <&poegd>;
+                        status = "okay";
+                };
