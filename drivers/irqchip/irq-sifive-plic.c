@@ -17,6 +17,7 @@
 #include <linux/of_irq.h>
 #include <linux/platform_device.h>
 #include <linux/spinlock.h>
+#include <linux/sys_soc.h>
 #include <asm/smp.h>
 
 /*
@@ -60,10 +61,13 @@
 #define	PLIC_DISABLE_THRESHOLD		0x7
 #define	PLIC_ENABLE_THRESHOLD		0
 
+#define RENESAS_RZF_PLIC		1
+
 struct plic_priv {
 	struct cpumask lmask;
 	struct irq_domain *irqdomain;
 	void __iomem *regs;
+	bool is_rzf;
 };
 
 struct plic_handler {
@@ -77,8 +81,8 @@ struct plic_handler {
 	void __iomem		*enable_base;
 	struct plic_priv	*priv;
 };
-static int plic_parent_irq;
-static bool plic_cpuhp_setup_done;
+static int plic_parent_irq __ro_after_init;
+static bool plic_cpuhp_setup_done __ro_after_init;
 static DEFINE_PER_CPU(struct plic_handler, plic_handlers);
 
 static inline void plic_toggle(struct plic_handler *handler,
@@ -163,6 +167,19 @@ static void plic_irq_eoi(struct irq_data *d)
 {
 	struct plic_handler *handler = this_cpu_ptr(&plic_handlers);
 
+	if (handler->priv->is_rzf) {
+		int irq = irq_find_mapping(handler->priv->irqdomain, d->hwirq);
+
+		if (irq_get_trigger_type(irq) & IRQ_TYPE_EDGE_RISING) {
+			if (irqd_irq_masked(d)) {
+				plic_irq_unmask(d);
+				writel(d->hwirq, handler->hart_base + CONTEXT_CLAIM);
+				plic_irq_mask(d);
+			}
+			return;
+		}
+	}
+
 	if (irqd_irq_masked(d)) {
 		plic_irq_unmask(d);
 		writel(d->hwirq, handler->hart_base + CONTEXT_CLAIM);
@@ -194,6 +211,20 @@ static int plic_irqdomain_map(struct irq_domain *d, unsigned int irq,
 	return 0;
 }
 
+static int plic_irq_domain_translate(struct irq_domain *d,
+				    struct irq_fwspec *fwspec,
+				    unsigned long *hwirq,
+				    unsigned int *type)
+{
+	struct plic_priv *priv = d->host_data;
+	bool is_rzf = priv->is_rzf;
+
+	if (is_rzf)
+		return irq_domain_translate_twocell(d, fwspec, hwirq, type);
+
+	return irq_domain_translate_onecell(d, fwspec, hwirq, type);
+}
+
 static int plic_irq_domain_alloc(struct irq_domain *domain, unsigned int virq,
 				 unsigned int nr_irqs, void *arg)
 {
@@ -202,7 +233,7 @@ static int plic_irq_domain_alloc(struct irq_domain *domain, unsigned int virq,
 	unsigned int type;
 	struct irq_fwspec *fwspec = arg;
 
-	ret = irq_domain_translate_onecell(domain, fwspec, &hwirq, &type);
+	ret = plic_irq_domain_translate(domain, fwspec, &hwirq, &type);
 	if (ret)
 		return ret;
 
@@ -216,7 +247,7 @@ static int plic_irq_domain_alloc(struct irq_domain *domain, unsigned int virq,
 }
 
 static const struct irq_domain_ops plic_irqdomain_ops = {
-	.translate	= irq_domain_translate_onecell,
+	.translate	= plic_irq_domain_translate,
 	.alloc		= plic_irq_domain_alloc,
 	.free		= irq_domain_free_irqs_top,
 };
@@ -232,23 +263,43 @@ static void plic_handle_irq(struct irq_desc *desc)
 	struct plic_handler *handler = this_cpu_ptr(&plic_handlers);
 	struct irq_chip *chip = irq_desc_get_chip(desc);
 	void __iomem *claim = handler->hart_base + CONTEXT_CLAIM;
+	bool is_rzf = handler->priv->is_rzf;
+	bool is_edge = false;
 	irq_hw_number_t hwirq;
+	int irq;
 
 	WARN_ON_ONCE(!handler->present);
 
 	chained_irq_enter(chip, desc);
 
 	while ((hwirq = readl(claim))) {
-		int irq = irq_find_mapping(handler->priv->irqdomain, hwirq);
+		if (is_rzf) {
+			irq = irq_find_mapping(handler->priv->irqdomain, hwirq);
 
+			if (irq_get_trigger_type(irq) & IRQ_TYPE_EDGE_RISING) {
+				writel(hwirq, claim);
+				is_edge = true;
+				break;
+			}
+		}
+
+		irq = irq_find_mapping(handler->priv->irqdomain, hwirq);
 		if (unlikely(irq <= 0))
 			pr_warn_ratelimited("can't find mapping for hwirq %lu\n",
-					hwirq);
+					    hwirq);
 		else
 			generic_handle_irq(irq);
 	}
 
 	chained_irq_exit(chip, desc);
+
+	if (is_edge) {
+		if (unlikely(irq <= 0))
+			pr_warn_ratelimited("can't find mapping for hwirq %lu\n",
+					    hwirq);
+		else
+			generic_handle_irq(irq);
+	}
 }
 
 static void plic_set_threshold(struct plic_handler *handler, u32 threshold)
@@ -290,6 +341,9 @@ static int __init plic_init(struct device_node *node,
 	priv = kzalloc(sizeof(*priv), GFP_KERNEL);
 	if (!priv)
 		return -ENOMEM;
+
+	if (of_device_is_compatible(node, "renesas,plic-r9a07g043f"))
+		priv->is_rzf = RENESAS_RZF_PLIC;
 
 	priv->regs = of_iomap(node, 0);
 	if (WARN_ON(!priv->regs)) {
@@ -399,5 +453,6 @@ out_free_priv:
 }
 
 IRQCHIP_DECLARE(sifive_plic, "sifive,plic-1.0.0", plic_init);
+IRQCHIP_DECLARE(renesas_plic, "renesas,plic-r9a07g043f", plic_init);
 IRQCHIP_DECLARE(riscv_plic0, "riscv,plic0", plic_init); /* for legacy systems */
 IRQCHIP_DECLARE(thead_c900_plic, "thead,c900-plic", plic_init); /* for firmware driver */
