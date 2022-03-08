@@ -48,4 +48,14 @@ config SOC_KENDRYTE_K210_DTB_BUILTIN
 	  This option should be selected if no bootloader is being used.
 	  If unsure, say Y.
 
+config ARCH_RENESAS
+	bool "Renesas SoC Platforms"
+	select GPIOLIB
+	select PINCTRL
+	select PM
+	select PM_GENERIC_DOMAINS
+	select SOC_BUS
+	help
+	  This enables support for the RISC-V based Renesas SoCs.
+
 endmenu
