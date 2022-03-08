@@ -319,6 +319,14 @@ config ARCH_R9A07G054
 
 endif # ARM64
 
+if RISCV
+config ARCH_R9A07G043F
+	bool "RISC-V Platform support for RZ/Five"
+	help
+	  This enables support for the Renesas RZ/Five SoC variants.
+
+endif # RISCV
+
 config RST_RCAR
 	bool "Reset Controller support for R-Car" if COMPILE_TEST
 
