@@ -1,0 +1,23 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Device Tree Source for the RZ/Five Evaluation board
+ *
+ * Copyright (C) 2021 Renesas Electronics Corp.
+ */
+
+/dts-v1/;
+#include "r9a07g043f01.dtsi"
+#include "rzfive-type1-dev.dtsi"
+
+/ {
+	model = "Development board based on r9a07g043f01";
+	compatible = "renesas,r9a07g043f01-dev",
+		     "renesas,r9a07g043f01",
+		     "renesas,r9a07g043f";
+	
+	memory@48000000 {
+		device_type = "memory";
+		/* first 128MB is reserved for secure area. */
+		reg = <0 0x48000000 0 0x38000000>;
+	};
+};
