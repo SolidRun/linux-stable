@@ -29,6 +29,8 @@
 	/delete-node/ serial@1004c800;
 	/delete-node/ adc@10059000;
 	/delete-node/ ethernet@11c30000;
+	/delete-node/ vcp4@10820000;
+	/delete-node/ vcp4@10800000;
 };
 
 &du {
