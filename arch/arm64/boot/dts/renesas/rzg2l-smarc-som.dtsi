@@ -38,6 +38,37 @@
 		reg = <0x0 0x48000000 0x0 0x78000000>;
 	};
 
+	reserved-memory {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		global_cma: linux,cma@58000000 {
+			compatible = "shared-dma-pool";
+			linux,cma-default;
+			reusable;
+			reg = <0x0 0x58000000 0x0 0x10000000>;
+		};
+		mmp_reserved: linux,multimedia {
+			compatible = "shared-dma-pool";
+			reusable;
+			reg = <0x00000000 0x68000000 0x0 0x8000000>;
+		};
+	};
+
+	mmngr {
+		compatible = "renesas,mmngr";
+		memory-region = <&mmp_reserved>;
+	};
+
+	mmngrbuf {
+		compatible = "renesas,mmngrbuf";
+	};
+
+	vspm_if {
+		compatible = "renesas,vspm_if";
+	};
+
 	reg_1p8v: regulator0 {
 		compatible = "regulator-fixed";
 		regulator-name = "fixed-1.8V";
