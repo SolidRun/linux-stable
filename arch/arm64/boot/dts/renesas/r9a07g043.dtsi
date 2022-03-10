@@ -990,6 +990,26 @@
 			power-domains = <&cpg>;
 		};
 
+		isu: isum@10840000 {
+			compatible = "renesas,isum";
+			reg = <0 0x10840000 0 0x01F4>;
+			interrupts = <GIC_SPI 157 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 158 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 159 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 160 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD R9A07G043_ISU_ACLK>,
+				<&cpg CPG_MOD R9A07G043_ISU_PCLK>;
+			clock-names = "isu_aclk", "isu_pclk";
+			resets = <&cpg R9A07G043_ISU_ARESETN>,
+				<&cpg R9A07G043_ISU_PRESETN>;
+			reset-names = "aresetn", "presetn";
+			renesas,#ch = <0>;
+			renesas,#rpf = <1>;
+			renesas,#wpf = <1>;
+			renesas,has-rs;
+			power-domains = <&cpg>;
+		};
+
 		du: display@10890000 {
 			compatible = "renesas,du-rzg2ul";
 			reg = <0 0x10890000 0 0x10000>;
