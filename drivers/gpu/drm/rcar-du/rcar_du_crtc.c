@@ -625,6 +625,9 @@ static void rcar_du_crtc_set_display_timing(struct rcar_du_crtc *rcrtc)
 		rcar_du_write(rcdu, DU_DITR5, ditr5);
 		rcar_du_write(rcdu, DU_PBCR0, pbcr0);
 
+		/* FIXME: Enable auto resume when underrun */
+		rcar_du_write(rcdu, 0x40, 0x10000);
+
 		return;
 	}
 
