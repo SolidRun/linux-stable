@@ -1736,7 +1736,8 @@ static int rzg2l_pinctrl_probe(struct platform_device *pdev)
 		irqstr[i] = kasprintf(GFP_KERNEL, "tint%d", i);
 
 		if (devm_request_irq(pctrl->dev, irq->start,
-				     rzg2l_pinctrl_irq_handler, IRQF_SHARED,
+				     rzg2l_pinctrl_irq_handler,
+				     IRQF_SHARED | IRQF_NO_THREAD,
 				     irqstr[i], pctrl)) {
 			dev_err(pctrl->dev, "failed to request IRQ\n");
 			return -ENOENT;
