@@ -32,6 +32,38 @@
 #define CONNECTION_TIME		2000
 #define SETUP_WAIT_TIME		3000
 
+/*
+ * The base for the RZ/G2L CRU driver controls.
+ * We reserve 16 controls for this driver
+ * The last USER-class private control IDs is V4L2_CID_USER_ATMEL_ISC_BASE.
+ */
+
+#define V4L2_CID_USER_CRU_BASE	(V4L2_CID_USER_BASE + 0x10e0)
+
+/* V4L2 private controls */
+#define V4L2_CID_CRU_FRAME_SKIP	(V4L2_CID_USER_CRU_BASE + 0)
+
+#define V4L2_CID_CRU_LIMIT	1
+
+static const struct v4l2_ctrl_ops rzg2l_cru_ctrl_ops;
+
+static const struct v4l2_ctrl_config rzg2l_cru_ctrls[V4L2_CID_CRU_LIMIT] = {
+	{
+		.id = V4L2_CID_CRU_FRAME_SKIP,
+		.type = V4L2_CTRL_TYPE_BOOLEAN,
+		.ops = &rzg2l_cru_ctrl_ops,
+		.name = "Skipping Frames Enable/Disable",
+		.max = 1,
+		.min = 0,
+		.step = 1,
+		.def = 0,
+		.is_private = 1,
+	}
+};
+
+/* Minimum skipping frame for camera sensors stability */
+#define CRU_FRAME_SKIP		3
+
 /**
  * STOPPED  - No operation in progress
  * STARTING - Capture starting up
@@ -188,6 +220,7 @@ struct rzg2l_cru_dev {
 	struct delayed_work rzg2l_cru_resume;
 	wait_queue_head_t setup_wait;
 	bool suspend;
+	bool is_frame_skip;
 };
 
 #define cru_to_source(cru)		((cru)->parallel->subdev)

@@ -209,6 +209,7 @@ struct rzg2l_cru_buffer {
 
 static int sensor_stop_try;
 static int prev_slot;
+static int frame_skip;
 
 #define to_buf_list(vb2_buffer) (&container_of(vb2_buffer, \
 						struct rzg2l_cru_buffer, \
@@ -953,6 +954,7 @@ static int rzg2l_cru_start_streaming(struct vb2_queue *vq, unsigned int count)
 	reset_control_deassert(cru->rstc.aresetn);
 
 	sensor_stop_try = 0;
+	frame_skip = 0;
 
 	/* Allocate scratch buffer. */
 	cru->scratch = dma_alloc_coherent(cru->dev, cru->format.sizeimage,
@@ -1117,9 +1119,17 @@ static irqreturn_t rzg2l_cru_irq(int irq, void *data)
 	 * to capture first from slot 0.
 	 */
 	if (cru->state == STARTING) {
-		if (slot != 0) {
-			cru_dbg(cru, "Starting sync slot: %d\n", slot);
-			goto done;
+		if (cru->is_frame_skip) {
+			if (frame_skip < CRU_FRAME_SKIP) {
+				cru_dbg(cru, "Skipping %d frame\n", frame_skip);
+				frame_skip++;
+				goto done;
+			}
+		} else {
+			if (slot != 0) {
+				cru_dbg(cru, "Starting sync slot: %d\n", slot);
+				goto done;
+			}
 		}
 
 		cru_dbg(cru, "Capture start synced!\n");
