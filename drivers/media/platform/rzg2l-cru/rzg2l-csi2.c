@@ -5,6 +5,8 @@
  * Copyright (C) 2021 Renesas Electronics Corp.
  */
 
+#include <linux/clk.h>
+#include <linux/clk-provider.h>
 #include <linux/delay.h>
 #include <linux/interrupt.h>
 #include <linux/io.h>
@@ -166,6 +168,8 @@ struct rzg2l_csi2 {
 
 	struct v4l2_mbus_framefmt mf;
 
+	struct clk *vclk;
+
 	struct mutex lock;
 	int stream_count;
 	int power_count;
@@ -294,6 +298,7 @@ static int rzg2l_csi2_start(struct rzg2l_csi2 *priv)
 	int lanes;
 	u32 frrskw, frrclk, frrskw_coeff, frrclk_coeff;
 	int ret;
+	int count;
 
 	dev_dbg(priv->dev, "Input size (%ux%u%c)\n",
 		priv->mf.width, priv->mf.height,
@@ -343,8 +348,32 @@ static int rzg2l_csi2_start(struct rzg2l_csi2 *priv)
 	rzg2l_csi2_write(priv, CSI2nDTEL, 0xf77cff0f);
 	rzg2l_csi2_write(priv, CSI2nDTEH, 0x00ffff1f);
 
+	clk_disable_unprepare(priv->vclk);
+
+	for (count = 0; count < 5; count++) {
+		if (!(__clk_is_enabled(priv->vclk)))
+			break;
+		udelay(10);
+	}
+
+	if (count == 5)
+		return -ETIMEDOUT;
+
 	/* Enable LINK reception */
 	rzg2l_csi2_set(priv, CSI2nMCT3, CSI2nMCT3_RXEN);
+
+	ret = clk_prepare_enable(priv->vclk);
+	if (ret)
+		return ret;
+
+	for (count = 0; count < 5; count++) {
+		if (__clk_is_enabled(priv->vclk))
+			break;
+		udelay(10);
+	}
+
+	if (count == 5)
+		return -ETIMEDOUT;
 
 	return 0;
 }
@@ -600,6 +629,12 @@ static int rzg2l_csi2_probe(struct platform_device *pdev)
 	priv->power_count = 0;
 
 	platform_set_drvdata(pdev, priv);
+
+	priv->vclk = devm_clk_get(priv->dev, "vclk");
+	if (IS_ERR(priv->vclk)) {
+		dev_err(priv->dev, "failed to get VCLK clock\n");
+		return PTR_ERR(priv->vclk);
+	}
 
 	ret = rzg2l_csi2_parse_dt(priv);
 	if (ret)
