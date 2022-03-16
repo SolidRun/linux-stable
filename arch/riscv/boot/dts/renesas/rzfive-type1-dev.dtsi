@@ -431,11 +431,6 @@
 			pins = "SD0_CLK", "SD0_CMD";
 			power-source = <3300>;
 		};
-
-		sd0_mux {
-			pinmux = <RZG2L_PORT_PINMUX(0, 0, 1)>, /* CD */
-				 <RZG2L_PORT_PINMUX(0, 1, 1)>; /* WP */
-		};
 	};
 
 	sdhi0_pins_uhs: sd0_uhs {
@@ -448,11 +443,6 @@
 		sd0_ctrl_uhs {
 			pins = "SD0_CLK", "SD0_CMD";
 			power-source  = <1800>;
-		};
-
-		sd0_mux_uhs {
-			pinmux = <RZG2L_PORT_PINMUX(0, 0, 1)>, /* CD */
-				 <RZG2L_PORT_PINMUX(0, 1, 1)>; /* WP */
 		};
 	};
 #endif
@@ -468,15 +458,6 @@
 			pins = "SD1_CLK", "SD1_CMD";
 			power-source  = <3300>;
 		};
-
-		sd1_mux {
-#if (JP1)
-			pinmux = <RZG2L_PORT_PINMUX(0, 2, 1)>, /* CD */
-				 <RZG2L_PORT_PINMUX(0, 3, 1)>; /* WP */
-#else
-			pinmux = <RZG2L_PORT_PINMUX(0, 2, 1)>; /* CD */
-#endif
-		};
 	};
 
 	sdhi1_pins_uhs: sd1_uhs {
@@ -489,15 +470,6 @@
 		sd1_ctrl_uhs {
 			pins = "SD1_CLK", "SD1_CMD";
 			power-source  = <1800>;
-		};
-
-		sd1_mux_uhs {
-#if (JP1)
-			pinmux = <RZG2L_PORT_PINMUX(0, 2, 1)>, /* CD */
-				 <RZG2L_PORT_PINMUX(0, 3, 1)>; /* WP */
-#else
-			pinmux = <RZG2L_PORT_PINMUX(0, 2, 1)>; /* CD */
-#endif
 		};
 	};
 
@@ -586,6 +558,8 @@
 	pinctrl-0 = <&sdhi0_pins>;
 	pinctrl-1 = <&sdhi0_pins_uhs>;
 	pinctrl-names = "default", "state_uhs";
+	cd-gpios = <&pinctrl RZG2L_GPIO(0, 0) GPIO_ACTIVE_LOW>;
+	wp-gpios = <&pinctrl RZG2L_GPIO(0, 1) GPIO_ACTIVE_HIGH>;
 
 	vmmc-supply = <&reg_3p3v>;
 	vqmmc-supply = <&vccq_sdhi0>;
@@ -601,6 +575,10 @@
 	pinctrl-0 = <&sdhi1_pins>;
 	pinctrl-1 = <&sdhi1_pins_uhs>;
 	pinctrl-names = "default", "state_uhs";
+	cd-gpios = <&pinctrl RZG2L_GPIO(0, 2) GPIO_ACTIVE_LOW>;
+#if (JP1)
+	wp-gpios = <&pinctrl RZG2L_GPIO(0, 3) GPIO_ACTIVE_HIGH>;
+#endif
 
 	vmmc-supply = <&reg_3p3v>;
 	vqmmc-supply = <&vccq_sdhi1>;
