@@ -414,7 +414,7 @@
 		};
 
 		sd0_ctrl {
-			pins = "SD0_CLK", "SD0_CMD", "SD0_RST_N";
+			pins = "SD0_CLK", "SD0_CMD", "SD0_RST#";
 			power-source = <1800>;
 		};
 	};
