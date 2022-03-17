@@ -246,6 +246,18 @@
 	status = "okay";
 };
 
+&adc {
+        pinctrl-0 = <&adc_pins>;
+        pinctrl-names = "default";
+        status = "okay";
+
+	/delete-node/ channel@3;
+	/delete-node/ channel@4;
+	/delete-node/ channel@5;
+	/delete-node/ channel@6;
+	/delete-node/ channel@7;
+};
+
 &i2c0 {
 	pinctrl-0 = <&i2c0_pins>;
 	pinctrl-names = "default";
@@ -279,6 +291,10 @@
 &pinctrl {
 	pinctrl-0 = <&sound_clk_pins>;
 	pinctrl-names = "default";
+
+	adc_pins: adc {
+		pinmux = <RZG2L_PORT_PINMUX(5, 1, 3)>; /* ADC_TRG */
+	};
 
 #if (CN4_CAN_AUDIO)
 	canfd0_en {
