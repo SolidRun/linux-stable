@@ -224,7 +224,7 @@ err_free:
 
 TIMER_OF_DECLARE(ostm, "renesas,ostm", ostm_init);
 
-#ifdef CONFIG_ARCH_R9A07G044
+#if defined(CONFIG_ARCH_R9A07G044) || defined(CONFIG_ARCH_R9A07G043F)
 static int __init ostm_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
