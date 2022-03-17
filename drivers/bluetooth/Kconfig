@@ -257,6 +257,19 @@ config BT_HCIUART_MRVL
 
 	  Say Y here to compile support for HCI MRVL protocol.
 
+config BT_HCIUART_RENESAS
+	bool "Renesas protocol support"
+	depends on BT_HCIUART
+	depends on BT_HCIUART_SERDEV
+	select BT_HCIUART_H4
+	help
+	  The Renesas protocol support enables Bluetooth Low Energy HCI
+	  over serial.
+	  This protocol is required for the Renesas Bluetooth Low Energy
+	  devices with UART interface.
+
+	  Say Y here to compile support for HCI Renesas protocol.
+
 config BT_HCIBCM203X
 	tristate "HCI BCM203x USB driver"
 	depends on USB
