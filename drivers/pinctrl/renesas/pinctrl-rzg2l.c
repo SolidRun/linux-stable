@@ -942,7 +942,7 @@ static void rzg2l_gpio_irq_disable(struct irq_data *d)
 	if (gpioint == pctrl->data->ngpioints)
 		return;
 
-	tint_slot = rzg2l_gpio_irq_check_tint_slot(pctrl, gpioint);
+	tint_slot = rzg2l_gpio_irq_check_tint_slot(pctrl, hw_irq);
 	if (tint_slot ==  TINT_MAX)
 		return;
 
