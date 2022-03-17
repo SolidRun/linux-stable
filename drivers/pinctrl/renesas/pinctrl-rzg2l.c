@@ -1013,9 +1013,12 @@ static int rzg2l_gpio_irq_set_type(struct irq_data *d, unsigned int type)
 	if (gpioint == pctrl->data->ngpioints)
 		return -EINVAL;
 
-	tint_slot = rzg2l_gpio_irq_request_tint_slot(pctrl);
-	if (tint_slot ==  TINT_MAX)
-		return -EINVAL;
+	tint_slot = rzg2l_gpio_irq_check_tint_slot(pctrl, hw_irq);
+	if (tint_slot ==  TINT_MAX) {
+		tint_slot = rzg2l_gpio_irq_request_tint_slot(pctrl);
+		if (tint_slot ==  TINT_MAX)
+			return -EINVAL;
+	}
 
 	switch (type & IRQ_TYPE_SENSE_MASK) {
 	/*
