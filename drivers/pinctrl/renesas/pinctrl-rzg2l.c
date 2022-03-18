@@ -953,7 +953,7 @@ static void rzg2l_gpio_irq_disable(struct irq_data *d)
 	writeq(reg64, pctrl->base + ISEL(port));
 
 	reg32 = readl(pctrl->base_tint + TSSR(tint_slot / 4));
-	reg32 &= ~(GENMASK(7, 0) << (tint_slot % 4));
+	reg32 &= ~(GENMASK(7, 0) << ((tint_slot % 4) * 8));
 	writel(reg32, pctrl->base_tint + TSSR(tint_slot / 4));
 
 	spin_unlock_irqrestore(&pctrl->lock, flags);
