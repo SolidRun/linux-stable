@@ -322,6 +322,8 @@ endif # ARM64
 if RISCV
 config ARCH_R9A07G043F
 	bool "RISC-V Platform support for RZ/Five"
+	select ARCH_HAS_SYNC_DMA_FOR_CPU
+	select ARCH_HAS_SYNC_DMA_FOR_DEVICE
 	help
 	  This enables support for the Renesas RZ/Five SoC variants.
 
