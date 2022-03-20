@@ -74,16 +74,7 @@
 			};
 		};
 
-		l2cache: cache-controller@13400000 {
-			compatible = "cache";
-			cache-level = <0x2>;
-			cache-size = <0x40000>; // 256KB l2-cache
-			reg = <0x0 0x13400000 0x0 0x100000>; 
-			andes,inst-prefetch = <0x0>; // 1
-			andes,data-prefetch = <0x0>; // 
-			andes,tag-ram-ctl = <0x1 0x0>;
-			andes,data-ram-ctl = <0x1 0x0>;
-		};
+
 
 	};
 
@@ -613,6 +604,18 @@
 						&cpu0_intc 9>;	 
 		};
 
+		l2cache: cache-controller@13400000 {
+			compatible = "cache";
+			cache-level = <0x2>;
+			cache-size = <0x40000>; // 256KB l2-cache
+			reg = <0x0 0x13400000 0x0 0x100000>;
+			pma-area = <0x00000000 0x14000000>,
+				<0x20000000 0x10000000>;
+			andes,inst-prefetch = <0x0>;
+			andes,data-prefetch = <0x0>;
+			andes,tag-ram-ctl = <0x1 0x0>;
+			andes,data-ram-ctl = <0x1 0x0>;
+		};
 		sdhi0: mmc@11c00000  {
 			compatible = "renesas,sdhi-r9a07g043f",
 				     "renesas,rcar-gen3-sdhi";
