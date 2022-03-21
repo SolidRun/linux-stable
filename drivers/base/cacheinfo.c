@@ -261,7 +261,8 @@ static int cache_shared_cpu_map_setup(unsigned int cpu)
 	return 0;
 }
 
-static void cache_shared_cpu_map_remove(unsigned int cpu)
+
+static __maybe_unused void cache_shared_cpu_map_remove(unsigned int cpu)
 {
 	struct cpu_cacheinfo *this_cpu_ci = get_cpu_cacheinfo(cpu);
 	struct cacheinfo *this_leaf, *sib_leaf;
