@@ -515,7 +515,9 @@
 
 		pinctrl: pin-controller@11030000 {
 			compatible = "renesas,r9a07g043f-pinctrl";
-			reg = <0 0x11030000 0 0x10000>, <0 0x110a0020 0 0x30>;
+			reg =	<0 0x11030000 0 0x10000>,
+				<0 0x110a0020 0 0x30>,
+				<0 0x110b0020 0 0x04>;
 			gpio-controller;
 			#gpio-cells = <2>;
 			gpio-ranges = <&pinctrl 0 0 392>;
