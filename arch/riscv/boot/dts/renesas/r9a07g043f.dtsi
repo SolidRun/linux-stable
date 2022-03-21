@@ -602,7 +602,7 @@
 			compatible = "renesas,plic-r9a07g043f";
 			#interrupt-cells = <2>;
 			#address-cells = <0>;
-			riscv,ndev = <500>; // copy from hifive unmatched board
+			riscv,ndev = <512>;
 			interrupt-controller;
 			reg = <0x0 0x12C00000 0 0x400000>,
 			      <0x0 0x13000000 0 0x400000>;
