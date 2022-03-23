@@ -73,32 +73,21 @@
 #define CSIDPHYTIM1_THS_SETTLE(x)	((x) << 8)
 #define CSIDPHYTIM1_TCLK_SETTLE(x)	((x) << 0)
 
-struct timings {
-	u32 tclk_miss;
-	u32 t_init;
-	u32 tclk_prepare;
-	u32 tclk_settle;
-	u32 ths_prepare;
-	u32 ths_settle;
-};
+/* D-PHY Timing Setting Values for over 360 Mbps Transmission Rate */
+#define DPHY_TIMING_T_INIT		79801
+#define DPHY_TIMING_TCLK_MISS		4
+#define DPHY_TIMING_TCLK_SETTLE		18
+#define DPHY_TIMING_THS_SETTLE		18
+#define DPHY_TIMING_TCLK_PREPARE	10
+#define DPHY_TIMING_THS_PREPARE		10
 
-struct timings global_timings[2] = {
-	{
-		.tclk_miss	= 4,
-		.t_init		= 79801,
-		.tclk_prepare	= 10,
-		.tclk_settle	= 23,
-		.ths_prepare	= 19,
-		.ths_settle	= 31,
-	},
-	{
-		.tclk_miss	= 4,
-		.t_init		= 79801,
-		.tclk_prepare	= 10,
-		.tclk_settle	= 18,
-		.ths_prepare	= 10,
-		.ths_settle	= 19,
-	},
+struct timings {
+	u32 t_init;
+	u32 tclk_miss;
+	u32 tclk_settle;
+	u32 ths_settle;
+	u32 tclk_prepare;
+	u32 ths_prepare;
 };
 
 struct rzg2l_csi2_format {
@@ -216,7 +205,14 @@ static void rzg2l_csi2_clr(struct rzg2l_csi2 *priv, unsigned int reg, u32 clr)
 
 static int rzg2l_csi2_dphy_setting(struct rzg2l_csi2 *priv, bool on)
 {
-	struct timings dphy_timing;
+	struct timings dphy_timing = {
+		.t_init         = DPHY_TIMING_T_INIT,
+		.tclk_miss      = DPHY_TIMING_TCLK_MISS,
+		.tclk_settle    = DPHY_TIMING_TCLK_SETTLE,
+		.ths_settle     = DPHY_TIMING_THS_SETTLE,
+		.tclk_prepare   = DPHY_TIMING_TCLK_PREPARE,
+		.ths_prepare    = DPHY_TIMING_THS_PREPARE,
+	};
 	int ret = 0;
 
 	if (on) {
@@ -225,17 +221,28 @@ static int rzg2l_csi2_dphy_setting(struct rzg2l_csi2 *priv, bool on)
 		mdelay(1);
 
 		/* Set DPHY timing parameters */
-		if (priv->hsfreq <= 250)
-			dphy_timing = global_timings[0];
-		else
-			dphy_timing = global_timings[1];
+		if (priv->hsfreq <= 80) {
+			dphy_timing.tclk_settle = 23;
+			dphy_timing.ths_settle = 31;
+			dphy_timing.ths_prepare = 19;
+		} else if (priv->hsfreq <= 125) {
+			dphy_timing.tclk_settle = 23;
+			dphy_timing.ths_settle = 28;
+			dphy_timing.ths_prepare = 19;
+		} else if (priv->hsfreq <= 250) {
+			dphy_timing.tclk_settle = 23;
+			dphy_timing.ths_settle = 22;
+			dphy_timing.ths_prepare = 16;
+		} else if (priv->hsfreq <= 360) {
+			dphy_timing.ths_settle = 19;
+		}
 
 		dphytim0 = CSIDPHYTIM0_TCLK_MISS(dphy_timing.tclk_miss) |
 			   CSIDPHYTIM0_T_INIT(dphy_timing.t_init);
 		dphytim1 = CSIDPHYTIM1_THS_PREPARE(dphy_timing.ths_prepare) |
 			   CSIDPHYTIM1_TCLK_PREPARE(dphy_timing.tclk_prepare) |
 			   CSIDPHYTIM1_THS_SETTLE(dphy_timing.ths_settle) |
-			   CSIDPHYTIM1_THS_SETTLE(dphy_timing.tclk_settle);
+			   CSIDPHYTIM1_TCLK_SETTLE(dphy_timing.tclk_settle);
 
 		rzg2l_csi2_write(priv, CSIDPHYTIM0, dphytim0);
 		rzg2l_csi2_write(priv, CSIDPHYTIM1, dphytim1);
