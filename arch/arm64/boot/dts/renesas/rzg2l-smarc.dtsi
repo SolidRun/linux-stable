@@ -9,7 +9,7 @@
 #include <dt-bindings/pinctrl/rzg2l-pinctrl.h>
 
 /* comment the #define statement to disable SCIF2 (SER0) on PMOD1 (CN7) */
-#define PMOD1_SER0	1
+//#define PMOD1_SER0	1
 
 / {
 	aliases {
