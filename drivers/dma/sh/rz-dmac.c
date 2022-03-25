@@ -603,18 +603,19 @@ static int rz_dmac_config(struct dma_chan *chan,
 	channel->src_per_address = config->src_addr;
 	channel->dst_per_address = config->dst_addr;
 
-	val = rz_dmac_ds_to_val_mapping(config->dst_addr_width);
-	if (val == CHCFG_DS_INVALID)
-		return -EINVAL;
+	if (config->direction == DMA_DEV_TO_MEM) {
+		val = rz_dmac_ds_to_val_mapping(config->src_addr_width);
+		if (val == CHCFG_DS_INVALID)
+			return -EINVAL;
 
-	channel->chcfg |= CHCFG_FILL_DDS(val);
+		channel->chcfg |= CHCFG_FILL_SDS(val);
+	} else {
+		val = rz_dmac_ds_to_val_mapping(config->dst_addr_width);
+		if (val == CHCFG_DS_INVALID)
+			return -EINVAL;
 
-	val = rz_dmac_ds_to_val_mapping(config->src_addr_width);
-	if (val == CHCFG_DS_INVALID)
-		return -EINVAL;
-
-	channel->chcfg |= CHCFG_FILL_SDS(val);
-
+		channel->chcfg |= CHCFG_FILL_DDS(val);
+	}
 	return 0;
 }
 
