@@ -256,16 +256,18 @@ static void rspi_set_rate(struct rspi_data *rspi)
 	unsigned long clksrc;
 	int brdv = 0, spbr;
 
-	clksrc = clk_get_rate(rspi->clk);
-	spbr = DIV_ROUND_UP(clksrc, 2 * rspi->speed_hz) - 1;
-	while (spbr > 255 && brdv < 3) {
-		brdv++;
-		spbr = DIV_ROUND_UP(spbr + 1, 2) - 1;
-	}
+	if (!spi_controller_is_slave(rspi->ctlr)) {
+		clksrc = clk_get_rate(rspi->clk);
+		spbr = DIV_ROUND_UP(clksrc, 2 * rspi->speed_hz) - 1;
+		while (spbr > 255 && brdv < 3) {
+			brdv++;
+			spbr = DIV_ROUND_UP(spbr + 1, 2) - 1;
+		}
 
-	rspi_write8(rspi, clamp(spbr, 0, 255), RSPI_SPBR);
-	rspi->spcmd |= SPCMD_BRDV(brdv);
-	rspi->speed_hz = DIV_ROUND_UP(clksrc, (2U << brdv) * (spbr + 1));
+		rspi_write8(rspi, clamp(spbr, 0, 255), RSPI_SPBR);
+		rspi->spcmd |= SPCMD_BRDV(brdv);
+		rspi->speed_hz = DIV_ROUND_UP(clksrc, (2U << brdv) * (spbr + 1));
+	}
 }
 
 /*
@@ -328,7 +330,8 @@ static int rspi_rz_set_config_register(struct rspi_data *rspi, int access_size)
 	rspi_write16(rspi, rspi->spcmd, RSPI_SPCMD0);
 
 	/* Sets RSPI mode */
-	rspi_write8(rspi, SPCR_MSTR, RSPI_SPCR);
+	if (!spi_controller_is_slave(rspi->ctlr))
+		rspi_write8(rspi, SPCR_MSTR, RSPI_SPCR);
 
 	return 0;
 }
@@ -992,7 +995,8 @@ static int rspi_prepare_message(struct spi_controller *ctlr,
 			rspi->speed_hz = xfer->speed_hz;
 	}
 
-	rspi->spcmd = SPCMD_SSLKP;
+	if (!spi_controller_is_slave(rspi->ctlr))
+		rspi->spcmd = SPCMD_SSLKP;
 	if (spi->mode & SPI_CPOL)
 		rspi->spcmd |= SPCMD_CPOL;
 	if (spi->mode & SPI_CPHA)
@@ -1232,6 +1236,12 @@ static void rspi_reset_control_assert(void *data)
 	reset_control_assert(data);
 }
 
+static int rspi_mode(struct device *dev)
+{
+	return of_property_read_bool(dev->of_node, "spi-slave") ? RSPI_SPI_SLAVE
+								: RSPI_SPI_MASTER;
+}
+
 static int rspi_parse_dt(struct device *dev, struct spi_controller *ctlr)
 {
 	struct reset_control *rstc;
@@ -1296,7 +1306,11 @@ static int rspi_probe(struct platform_device *pdev)
 	const struct spi_ops *ops;
 	unsigned long clksrc;
 
-	ctlr = spi_alloc_master(&pdev->dev, sizeof(struct rspi_data));
+	ret = rspi_mode(&pdev->dev);
+	if (ret == RSPI_SPI_MASTER)
+		ctlr = spi_alloc_master(&pdev->dev, sizeof(struct rspi_data));
+	else
+		ctlr = spi_alloc_slave(&pdev->dev, sizeof(struct rspi_data));
 	if (ctlr == NULL)
 		return -ENOMEM;
 
