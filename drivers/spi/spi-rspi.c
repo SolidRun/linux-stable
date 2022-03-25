@@ -469,7 +469,7 @@ static int rspi_wait_for_interrupt(struct rspi_data *rspi, u8 wait_mask,
 		return 0;
 
 	rspi_enable_irq(rspi, enable_bit);
-	ret = wait_event_timeout(rspi->wait, rspi->spsr & wait_mask, HZ);
+	ret = wait_event_timeout(rspi->wait, rspi->spsr & wait_mask, 10 * HZ);
 	if (ret == 0 && !(rspi->spsr & wait_mask))
 		return -ETIMEDOUT;
 
