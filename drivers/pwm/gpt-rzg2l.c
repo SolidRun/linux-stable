@@ -23,6 +23,8 @@
 #include <linux/wait.h>
 #include <linux/of_platform.h>
 #include <linux/of_address.h>
+#include <linux/bitfield.h>
+#include <linux/iio/iio.h>
 
 #define GTPR_MAX_VALUE	0xFFFFFFFF
 #define GTSTR		0x0004
@@ -121,7 +123,7 @@
 #define IOCE		(1 << 5)
 #define IOCF		(1 << 1)
 
-#define NR_GPT_OPERATION	5
+#define NR_GPT_OPERATION	6
 
 static const char *const gpt_operation_enum[] = {
 	"normal_output",
@@ -129,6 +131,7 @@ static const char *const gpt_operation_enum[] = {
 	"double_buffer_output",
 	"deadtime_output",
 	"input_capture",
+	"counting_input",
 };
 
 enum {
@@ -137,6 +140,7 @@ enum {
 	DOUBLE_BUFFER_OUTPUT,
 	DEADTIME_OUTPUT,
 	INPUT_CAPTURE,
+	COUNTING_INPUT,
 };
 
 enum {
@@ -306,6 +310,7 @@ struct rzg2l_gpt_chip {
 	u32 poeg;
 	struct platform_device *poeg_dev;
 	bool enable_clock;
+	u32 counter_mode, reset_counter;
 };
 
 #if IS_BUILTIN(CONFIG_POEG_RZG2L)
@@ -337,6 +342,17 @@ static void rzg2l_gpt_write_mask(struct rzg2l_gpt_chip *pc, u32 data, u32 mask,
 static u32 rzg2l_gpt_read(struct rzg2l_gpt_chip *pc, unsigned int offset)
 {
 	return ioread32(pc->mmio_base + offset);
+}
+
+static u32 rzg2l_gpt_read_mask(struct rzg2l_gpt_chip *pc, u32 mask,
+				unsigned int offset)
+{
+	u32 tmp = 0;
+
+	tmp = ioread32(pc->mmio_base + offset);
+	tmp &= mask;
+
+	return tmp;
 }
 
 static int rzg2l_calculate_prescale(struct rzg2l_gpt_chip *pc,
@@ -475,6 +491,11 @@ static void rzg2l_reset_period_and_duty(struct rzg2l_gpt_chip *pc)
 	rzg2l_gpt_write(pc, 0, GTPR);
 	rzg2l_gpt_write(pc, 0, GTDVU);
 	rzg2l_gpt_write(pc, 0, GTDVD);
+	rzg2l_gpt_write(pc, 0, GTSSR);
+	rzg2l_gpt_write(pc, 0, GTPSR);
+	rzg2l_gpt_write(pc, 0, GTCSR);
+	rzg2l_gpt_write(pc, 0, GTUPSR);
+	rzg2l_gpt_write(pc, 0, GTDNSR);
 	pc->deadtime_first = 0;
 	pc->deadtime_second = 0;
 	pc->bufferA[0] = 0;
@@ -483,6 +504,8 @@ static void rzg2l_reset_period_and_duty(struct rzg2l_gpt_chip *pc)
 	pc->bufferB[0] = 0;
 	pc->bufferB[1] = 0;
 	pc->bufferB[2] = 0;
+	pc->counter_mode = 0;
+	pc->reset_counter = 0;
 }
 
 static int rzg2l_gpt_request(struct pwm_chip *chip, struct pwm_device *pwm)
@@ -510,8 +533,8 @@ static int rzg2l_gpt_config(struct pwm_chip *chip, struct pwm_device *pwm,
 	unsigned long pv, dc;
 	int prescale;
 
-	if (pc->gpt_operation == INPUT_CAPTURE) {
-		dev_err(chip->dev, "Input capture operation not use this config\n");
+	if ((pc->gpt_operation == INPUT_CAPTURE) || (pc->gpt_operation == COUNTING_INPUT)) {
+		dev_err(chip->dev, "This operation not use this config\n");
 		return -EINVAL;
 	}
 
@@ -734,6 +757,354 @@ static const struct pwm_ops rzg2l_gpt_ops = {
 	.enable = rzg2l_gpt_enable,
 	.disable = rzg2l_gpt_disable,
 	.owner = THIS_MODULE,
+};
+
+static int rzg2l_gpt_cnt_write_raw(struct iio_dev *indio_dev,
+				 struct iio_chan_spec const *chan,
+				 int val, int val2, long mask)
+{
+	struct rzg2l_gpt_chip *pc = iio_priv(indio_dev);
+
+	if (pc->gpt_operation != COUNTING_INPUT) {
+		dev_err(pc->chip.dev, "Must in counting input operation to use this config\n");
+		return -EINVAL;
+	}
+
+	switch (mask) {
+	case IIO_CHAN_INFO_ENABLE:
+		if (val < 0 || val > 1)
+			return -EINVAL;
+
+		rzg2l_gpt_write_mask(pc, val, GTCR_CST, GTCR);
+
+		return 0;
+	case IIO_CHAN_INFO_RAW:
+		if (val < 0)
+			return -EINVAL;
+
+		if (rzg2l_gpt_read_mask(pc, GTCR_CST, GTCR))
+			return -EBUSY;
+
+		rzg2l_gpt_write(pc, val, GTCNT);
+
+		return 0;
+	default:
+		return -EINVAL;
+	}
+}
+
+static int rzg2l_gpt_cnt_read_raw(struct iio_dev *indio_dev,
+				struct iio_chan_spec const *chan,
+				int *val, int *val2, long mask)
+{
+	struct rzg2l_gpt_chip *pc = iio_priv(indio_dev);
+	u32 dat;
+
+	if (pc->gpt_operation != COUNTING_INPUT) {
+		dev_err(pc->chip.dev, "Must in counting input operation to use this config\n");
+		return -EINVAL;
+	}
+
+	switch (mask) {
+	case IIO_CHAN_INFO_RAW:
+		dat = rzg2l_gpt_read(pc, GTCNT);
+		*val = dat;
+		return IIO_VAL_INT;
+	case IIO_CHAN_INFO_ENABLE:
+		dat = rzg2l_gpt_read_mask(pc, GTCR_CST, GTCR);
+		*val = dat;
+		return IIO_VAL_INT;
+	default:
+		return -EINVAL;
+	}
+}
+
+static const struct iio_info rzg2l_gpt_cnt_iio_info = {
+	.read_raw = rzg2l_gpt_cnt_read_raw,
+	.write_raw = rzg2l_gpt_cnt_write_raw,
+};
+
+static const char *const rzg2l_gpt_counter_modes[] = {
+	"mode-1",
+	"mode-2A",
+	"mode-2B",
+	"mode-2C",
+	"mode-3A",
+	"mode-3B",
+	"mode-3C",
+	"mode-4",
+	"mode-5A",
+	"mode-5B",
+};
+
+enum {
+	MODE_1,
+	MODE_2A,
+	MODE_2B,
+	MODE_2C,
+	MODE_3A,
+	MODE_3B,
+	MODE_3C,
+	MODE_4,
+	MODE_5A,
+	MODE_5B,
+	NR_MODE,
+};
+
+struct reg_full {
+	u32 value, offset;
+};
+
+struct counter_mode_params {
+	struct reg_full up_count;
+	struct reg_full down_count;
+};
+
+static const struct counter_mode_params mode_set[NR_MODE] = {
+	[MODE_1] = {
+		.up_count	= { 0x00006900, GTUPSR },
+		.down_count	= { 0x00009600, GTDNSR },
+	},
+	[MODE_2A] = {
+		.up_count	= { 0x00000800, GTUPSR },
+		.down_count	= { 0x00000400, GTDNSR },
+	},
+	[MODE_2B] = {
+		.up_count	= { 0x00000200, GTUPSR },
+		.down_count	= { 0x00000100, GTDNSR },
+	},
+	[MODE_2C] = {
+		.up_count	= { 0x00000A00, GTUPSR },
+		.down_count	= { 0x00000500, GTDNSR },
+	},
+	[MODE_3A] = {
+		.up_count	= { 0x00000800, GTUPSR },
+		.down_count	= { 0x00008000, GTDNSR },
+	},
+	[MODE_3B] = {
+		.up_count	= { 0x00000200, GTUPSR },
+		.down_count	= { 0x00002000, GTDNSR },
+	},
+	[MODE_3C] = {
+		.up_count	= { 0x00000A00, GTUPSR },
+		.down_count	= { 0x0000A000, GTDNSR },
+	},
+	[MODE_4] = {
+		.up_count	= { 0x00006000, GTUPSR },
+		.down_count	= { 0x00009000, GTDNSR },
+	},
+	[MODE_5A] = {
+		.up_count	= { 0x00000C00, GTUPSR },
+		.down_count	= { 0x00000000, GTDNSR },
+	},
+	[MODE_5B] = {
+		.up_count	= { 0x0000C000, GTUPSR },
+		.down_count	= { 0x00000000, GTDNSR },
+	},
+};
+
+static int rzg2l_gpt_get_counter_mode(struct iio_dev *indio_dev,
+					   const struct iio_chan_spec *chan)
+{
+	struct rzg2l_gpt_chip *pc = iio_priv(indio_dev);
+
+	if (pc->gpt_operation != COUNTING_INPUT) {
+		dev_err(pc->chip.dev, "Must in counting input operation to use this config\n");
+		return -EINVAL;
+	}
+
+	return pc->counter_mode;
+}
+
+static int rzg2l_gpt_set_counter_mode(struct iio_dev *indio_dev,
+					   const struct iio_chan_spec *chan,
+					   unsigned int type)
+{
+	struct rzg2l_gpt_chip *pc = iio_priv(indio_dev);
+
+	if (pc->gpt_operation != COUNTING_INPUT) {
+		dev_err(pc->chip.dev, "Must in counting input operation to use this config\n");
+		return -EINVAL;
+	}
+
+	if (rzg2l_gpt_read_mask(pc, GTCR_CST, GTCR))
+		return -EBUSY;
+
+	pc->counter_mode = type;
+
+	rzg2l_gpt_write(pc, mode_set[type].up_count.value, GTUPSR);
+	rzg2l_gpt_write(pc, mode_set[type].down_count.value, GTDNSR);
+	/* Reset counter when set mode */
+	rzg2l_gpt_write(pc, 0, GTCNT);
+
+	return 0;
+}
+
+static const struct iio_enum rzg2l_gpt_counter_mode_en = {
+	.items = rzg2l_gpt_counter_modes,
+	.num_items = ARRAY_SIZE(rzg2l_gpt_counter_modes),
+	.get = rzg2l_gpt_get_counter_mode,
+	.set = rzg2l_gpt_set_counter_mode,
+};
+
+
+static const char *rzg2l_gpt_reset_counters[5] = {
+	"NOT_USE",
+};
+
+enum {
+	NOT_USE,
+};
+
+struct reset_counter_params {
+	struct reg_full gtssr;
+	struct reg_full gtpsr;
+	struct reg_full gtcsr;
+};
+
+static struct reset_counter_params reset_counter_mode_set[5] = {
+	[NOT_USE] = {
+		.gtssr  = { 0x00000000, GTSSR },
+		.gtpsr  = { 0x00000000, GTPSR },
+		.gtcsr  = { 0x00000000, GTCSR },
+	},
+};
+
+static struct reset_counter_params reset_counter_mode_set_A = {
+	.gtssr  = { 0x00000002, GTSSR },
+	.gtpsr  = { 0x00000001, GTPSR },
+	.gtcsr  = { 0x00000001, GTCSR },
+};
+
+static struct reset_counter_params reset_counter_mode_set_B = {
+	.gtssr  = { 0x00000008, GTSSR },
+	.gtpsr  = { 0x00000004, GTPSR },
+	.gtcsr  = { 0x00000004, GTCSR },
+};
+
+static struct reset_counter_params reset_counter_mode_set_C = {
+	.gtssr  = { 0x00000020, GTSSR },
+	.gtpsr  = { 0x00000010, GTPSR },
+	.gtcsr  = { 0x00000010, GTCSR },
+};
+
+static struct reset_counter_params reset_counter_mode_set_D = {
+	.gtssr  = { 0x00000080, GTSSR },
+	.gtpsr  = { 0x00000040, GTPSR },
+	.gtcsr  = { 0x00000040, GTCSR },
+};
+
+static int rzg2l_gpt_get_reset_counter(struct iio_dev *indio_dev,
+				const struct iio_chan_spec *chan)
+{
+	struct rzg2l_gpt_chip *pc = iio_priv(indio_dev);
+
+	if (pc->gpt_operation != COUNTING_INPUT) {
+		dev_err(pc->chip.dev, "Must in counting input operation to use this config\n");
+		return -EINVAL;
+	}
+
+	return pc->reset_counter;
+}
+
+static int rzg2l_gpt_set_reset_counter(struct iio_dev *indio_dev,
+				const struct iio_chan_spec *chan,
+				unsigned int type)
+{
+	struct rzg2l_gpt_chip *pc = iio_priv(indio_dev);
+
+	if (pc->gpt_operation != COUNTING_INPUT) {
+		dev_err(pc->chip.dev, "Must in counting input operation to use this config\n");
+		return -EINVAL;
+	}
+
+	pc->reset_counter = type;
+
+	rzg2l_gpt_write(pc, reset_counter_mode_set[type].gtssr.value, GTSSR);
+	rzg2l_gpt_write(pc, reset_counter_mode_set[type].gtpsr.value, GTPSR);
+	rzg2l_gpt_write(pc, reset_counter_mode_set[type].gtcsr.value, GTCSR);
+
+	return 0;
+}
+
+static const struct iio_enum rzg2l_gpt_reset_counter_en = {
+	.items = rzg2l_gpt_reset_counters,
+	.num_items = ARRAY_SIZE(rzg2l_gpt_reset_counters),
+	.get = rzg2l_gpt_get_reset_counter,
+	.set = rzg2l_gpt_set_reset_counter,
+};
+
+static ssize_t rzg2l_gpt_cnt_get_counter_preset(struct iio_dev *indio_dev,
+						uintptr_t private,
+						const struct iio_chan_spec *chan,
+						char *buf)
+{
+	struct rzg2l_gpt_chip *pc = iio_priv(indio_dev);
+	u32 tmp = 0;
+
+	if (pc->gpt_operation != COUNTING_INPUT) {
+		dev_err(pc->chip.dev, "Must in counting input operation to use this config\n");
+		return -EINVAL;
+	}
+
+	tmp = rzg2l_gpt_read(pc, GTPR);
+
+	return snprintf(buf, PAGE_SIZE, "%u\n", tmp);
+}
+
+static ssize_t rzg2l_gpt_cnt_set_counter_preset(struct iio_dev *indio_dev,
+					  uintptr_t private,
+					  const struct iio_chan_spec *chan,
+					  const char *buf, size_t len)
+{
+	struct rzg2l_gpt_chip *pc = iio_priv(indio_dev);
+	int ret, tmp = 0;
+
+	if (pc->gpt_operation != COUNTING_INPUT) {
+		dev_err(pc->chip.dev, "Must in counting input operation to use this config\n");
+		return -EINVAL;
+	}
+
+	if (rzg2l_gpt_read_mask(pc, GTCR_CST, GTCR))
+		return -EBUSY;
+
+	ret = kstrtoint(buf, 0, &tmp);
+	if (ret)
+		return ret;
+
+	if ((tmp > (BIT(31)-1)) || (tmp < 0))
+		return -EINVAL;
+
+	rzg2l_gpt_write(pc, tmp, GTPR);
+	/* Reset counter when set preset */
+	rzg2l_gpt_write(pc, 0, GTCNT);
+
+	return len;
+}
+
+static const struct iio_chan_spec_ext_info rzg2l_gpt_cnt_ext_info[] = {
+	{
+		.name = "counter_preset",
+		.shared = IIO_SEPARATE,
+		.read = rzg2l_gpt_cnt_get_counter_preset,
+		.write = rzg2l_gpt_cnt_set_counter_preset,
+	},
+	IIO_ENUM("counter_mode", IIO_SEPARATE,
+		 &rzg2l_gpt_counter_mode_en),
+	IIO_ENUM_AVAILABLE("counter_mode", &rzg2l_gpt_counter_mode_en),
+	IIO_ENUM("reset_counter", IIO_SEPARATE,
+		&rzg2l_gpt_reset_counter_en),
+	IIO_ENUM_AVAILABLE("reset_counter", &rzg2l_gpt_reset_counter_en),
+	{}
+};
+
+static const struct iio_chan_spec rzg2l_gpt_cnt_channels = {
+	.type = IIO_COUNT,
+	.channel = 0,
+	.info_mask_separate = BIT(IIO_CHAN_INFO_RAW) |
+			      BIT(IIO_CHAN_INFO_ENABLE),
+	.ext_info = rzg2l_gpt_cnt_ext_info,
+	.indexed = 1,
 };
 
 static irqreturn_t gpt_gtciv_interrupt(int irq, void *data)
@@ -1555,7 +1926,7 @@ static ssize_t gpt_operation_store(struct device *dev,
 		return ret;
 
 	if (pc->channel != BOTH_AB)
-		if (ret == DEADTIME_OUTPUT) {
+		if ((ret == COUNTING_INPUT) || (ret == DEADTIME_OUTPUT)) {
 			dev_err(pc->chip.dev, "This operation must set in bothAB output\n");
 			return -EINVAL;
 		}
@@ -1606,6 +1977,24 @@ static ssize_t gpt_operation_store(struct device *dev,
 		rzg2l_gpt_write(pc, GTDTCR_DEADTIME_MODE, GTDTCR);
 		break;
 	case INPUT_CAPTURE:
+		break;
+	case COUNTING_INPUT:
+		/* Saw wave mode */
+		rzg2l_gpt_write_mask(pc, SAW_WAVE, GTCR_MODE_MASK, GTCR);
+		/* Maximum frequency*/
+		rzg2l_gpt_write_mask(pc, 0, GTCR_PRESCALE_MASK, GTCR);
+		/* Default period */
+		rzg2l_gpt_write(pc, GTPR_MAX_VALUE, GTPR);
+		/* Set initial value for counter */
+		rzg2l_gpt_write(pc, 0, GTCNT); // reset counter value
+		/* Using noise filter with P0/64 clock */
+		rzg2l_gpt_write(pc, channel_set[pc->channel].noise_filter.value,
+					GTIOR);
+		/* Default counting mode */
+		rzg2l_gpt_write(pc, mode_set[MODE_1].up_count.value, GTUPSR);
+		rzg2l_gpt_write(pc, mode_set[MODE_1].down_count.value, GTDNSR);
+		/* Default preset */
+		rzg2l_gpt_write(pc, BIT(31)-1, GTPR);
 		break;
 	}
 
@@ -1661,12 +2050,16 @@ static int rzg2l_gpt_probe(struct platform_device *pdev)
 	struct rzg2l_gpt_chip *rzg2l_gpt;
 	struct resource *res;
 	struct device_node *poeg_np;
-	int ret, irq = 0;
+	struct platform_device *poeg_dev_np;
+	struct iio_dev *indio_dev;
+	int ret, irq = 0, i;
 	const char *read_string;
 
-	rzg2l_gpt = devm_kzalloc(&pdev->dev, sizeof(*rzg2l_gpt), GFP_KERNEL);
-	if (rzg2l_gpt == NULL)
+	indio_dev = devm_iio_device_alloc(&pdev->dev, sizeof(*rzg2l_gpt));
+	if (!indio_dev)
 		return -ENOMEM;
+
+	rzg2l_gpt = iio_priv(indio_dev);
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (res == NULL) {
@@ -1678,27 +2071,42 @@ static int rzg2l_gpt_probe(struct platform_device *pdev)
 	if (IS_ERR(rzg2l_gpt->mmio_base))
 		return PTR_ERR(rzg2l_gpt->mmio_base);
 
-	poeg_np = of_parse_phandle(pdev->dev.of_node, "poeg", 0);
-	if (poeg_np != NULL) {
-		dev_info(&pdev->dev, "GPT used %s\n", poeg_np->name);
-
-		rzg2l_gpt->poeg_dev = of_find_device_by_node(poeg_np);
-		if (!rzg2l_gpt->poeg_dev) {
-			dev_info(&pdev->dev, "Not found device associate with POEG node\n");
-		} else {
-			if (strcmp(poeg_np->name, "poega") == 0)
-				rzg2l_gpt->poeg = GRPA;
-			else if (strcmp(poeg_np->name, "poegb") == 0)
-				rzg2l_gpt->poeg = GRPB;
-			else if (strcmp(poeg_np->name, "poegc") == 0)
-				rzg2l_gpt->poeg = GRPC;
-			else if (strcmp(poeg_np->name, "poegd") == 0)
-				rzg2l_gpt->poeg = GRPD;
-			else
-				dev_info(&pdev->dev, "Not found valid POEG\n");
+	for (i = 0; i < 4; i++) {
+		poeg_np = of_parse_phandle(pdev->dev.of_node, "poeg", i);
+		if (poeg_np != NULL) {
+			poeg_dev_np = of_find_device_by_node(poeg_np);
+			if (poeg_dev_np) {
+				if (strcmp(poeg_np->name, "poega") == 0) {
+					rzg2l_gpt_reset_counters[i+1] = "GTETRGA";
+					reset_counter_mode_set[i+1] = reset_counter_mode_set_A;
+					dev_info(&pdev->dev, "Can use GTETRGA as POEG, reset_counter\n");
+				} else if (strcmp(poeg_np->name, "poegb") == 0) {
+					rzg2l_gpt_reset_counters[i+1] = "GTETRGB";
+					reset_counter_mode_set[i+1] = reset_counter_mode_set_B;
+					dev_info(&pdev->dev, "Can use GTETRGB as POEG, reset_counter\n");
+				} else if (strcmp(poeg_np->name, "poegc") == 0) {
+					rzg2l_gpt_reset_counters[i+1] = "GTETRGC";
+					reset_counter_mode_set[i+1] = reset_counter_mode_set_C;
+					dev_info(&pdev->dev, "Can use GTETRGC as POEG, reset_counter\n");
+				} else if (strcmp(poeg_np->name, "poegd") == 0) {
+					rzg2l_gpt_reset_counters[i+1] = "GTETRGD";
+					reset_counter_mode_set[i+1] = reset_counter_mode_set_D;
+					dev_info(&pdev->dev, "Can use GTETRGD as POEG, reset_counter\n");
+				}
+			}
 		}
-	} else {
-		dev_info(&pdev->dev, "GPT not use POEG\n");
+	}
+
+	indio_dev->name = dev_name(&pdev->dev);
+	indio_dev->modes = INDIO_DIRECT_MODE;
+	indio_dev->info = &rzg2l_gpt_cnt_iio_info;
+	indio_dev->channels = &rzg2l_gpt_cnt_channels;
+	indio_dev->num_channels = 1;
+
+	ret = devm_iio_device_register(&pdev->dev, indio_dev);
+	if (ret < 0) {
+		dev_err(&pdev->dev, "failed to create counter device: %d\n", ret);
+		return ret;
 	}
 
 	rzg2l_gpt->rstc = devm_reset_control_get_shared(&pdev->dev, NULL);
