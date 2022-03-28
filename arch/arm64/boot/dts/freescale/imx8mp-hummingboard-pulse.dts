@@ -182,6 +182,10 @@
 	status = "okay";
 };
 
+&basler_1 {
+        status = "okay";
+};
+
 &easrc {
 	fsl,asrc-rate  = <48000>;
 	status = "okay";
@@ -198,7 +202,7 @@
 
 	spidev1: spi@0 {
 		reg = <0>;
-		compatible = "spidev";
+		compatible = "linux,spidev";
 		spi-max-frequency = <10000000>;
 	};
 };
@@ -284,7 +288,7 @@
 	eeprom_carrier: eeprom@57 {
 		compatible = "st,24c02", "atmel,24c02";
 		reg = <0x57>;
-		pagesize = <16>;
+		pagesize = <8>;
 	};
 
 	rtc: rtc@69 {
@@ -345,7 +349,6 @@
 &mipi_csi_0 {
 	#address-cells = <1>;
 	#size-cells = <0>;
-	status = "okay";
 	clock-frequency = <266000000>;
 	assigned-clock-parents = <&clk IMX8MP_SYS_PLL1_266M>;
 	assigned-clock-rates = <266000000>;
