@@ -128,6 +128,14 @@
 	clock-frequency = <12288000>;
 };
 
+#if (SW_SW0_DEV_SEL)
+&adc {
+        pinctrl-0 = <&adc_pins>;
+        pinctrl-names = "default";
+        status = "okay";
+};
+#endif
+
 #if (SW_ET0_EN_N)
 &canfd {
 	pinctrl-0 = <&canfd0_pins &canfd1_pins>;
@@ -249,8 +257,7 @@
 
 #if (SW_SW0_DEV_SEL)
 	adc_pins: adc {
-		groups = "adc_a";
-		function = "adc";
+		pinmux = <RZG2L_PORT_PINMUX(6, 2, 1)>; /* ADC_TRG */
 	};
 #endif
 
