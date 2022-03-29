@@ -121,6 +121,24 @@
 #define IOCE		(1 << 5)
 #define IOCF		(1 << 1)
 
+#define NR_GPT_OPERATION	5
+
+static const char *const gpt_operation_enum[] = {
+	"normal_output",
+	"single_buffer_output",
+	"double_buffer_output",
+	"deadtime_output",
+	"input_capture",
+};
+
+enum {
+	NORMAL_OUTPUT,
+	SINGLE_BUFFER_OUTPUT,
+	DOUBLE_BUFFER_OUTPUT,
+	DEADTIME_OUTPUT,
+	INPUT_CAPTURE,
+};
+
 enum {
 	CHANNEL_A,
 	CHANNEL_B,
@@ -283,10 +301,11 @@ struct rzg2l_gpt_chip {
 	enum pwm_polarity channel_polar[NR_CHANNEL];
 	unsigned int period_ns;
 	int channel;
-	bool deadtime_mode;
+	unsigned int gpt_operation;
 	unsigned long deadtime_first, deadtime_second;
 	u32 poeg;
 	struct platform_device *poeg_dev;
+	bool enable_clock;
 };
 
 #if IS_BUILTIN(CONFIG_POEG_RZG2L)
@@ -437,6 +456,16 @@ rzg2l_tick_number_to_time(struct rzg2l_gpt_chip *pc, u32 tick_number,
 
 static void rzg2l_reset_period_and_duty(struct rzg2l_gpt_chip *pc)
 {
+	rzg2l_gpt_write(pc, 0, GTCR);
+	rzg2l_gpt_write(pc, 0, GTST);
+	rzg2l_gpt_write(pc, 0, GTUDDTYC);
+	rzg2l_gpt_write(pc, 0, GTIOR);
+	rzg2l_gpt_write(pc, 0, GTINTAD);
+	rzg2l_gpt_write(pc, 0, GTBER);
+	rzg2l_gpt_write(pc, 0, GTDTCR);
+	rzg2l_gpt_write(pc, 0, GTCNT);
+	rzg2l_gpt_write(pc, 0, GTICASR);
+	rzg2l_gpt_write(pc, 0, GTICBSR);
 	rzg2l_gpt_write(pc, 0, GTCCRA);
 	rzg2l_gpt_write(pc, 0, GTCCRB);
 	rzg2l_gpt_write(pc, 0, GTCCRC);
@@ -458,11 +487,19 @@ static void rzg2l_reset_period_and_duty(struct rzg2l_gpt_chip *pc)
 
 static int rzg2l_gpt_request(struct pwm_chip *chip, struct pwm_device *pwm)
 {
+	struct rzg2l_gpt_chip *pc = to_rzg2l_gpt_chip(chip);
+
+	pc->enable_clock = 1;
+
 	return pm_runtime_get_sync(chip->dev);
 }
 
 static void rzg2l_gpt_free(struct pwm_chip *chip, struct pwm_device *pwm)
 {
+	struct rzg2l_gpt_chip *pc = to_rzg2l_gpt_chip(chip);
+
+	pc->enable_clock = 0;
+
 	pm_runtime_put(chip->dev);
 }
 
@@ -473,13 +510,18 @@ static int rzg2l_gpt_config(struct pwm_chip *chip, struct pwm_device *pwm,
 	unsigned long pv, dc;
 	int prescale;
 
+	if (pc->gpt_operation == INPUT_CAPTURE) {
+		dev_err(chip->dev, "Input capture operation not use this config\n");
+		return -EINVAL;
+	}
+
 	if ((duty_ns < 0) || (period_ns < 0)) {
 		dev_err(chip->dev, "Set time negative\n");
 		return -EINVAL;
 	}
 
 	if ((duty_ns > 0) && (pc->channel == BOTH_AB)) {
-		dev_err(chip->dev, "In both channel A and B mode please set duty cycle via buff\n");
+		dev_err(chip->dev, "In both channel A and B output please set duty cycle via buff\n");
 		return -EINVAL;
 	}
 
@@ -496,13 +538,10 @@ static int rzg2l_gpt_config(struct pwm_chip *chip, struct pwm_device *pwm,
 	pc->period_ns = period_ns;
 
 	/* GPT setting saw-wave up-counting */
-	/* Set operation GPT mode and select count clock */
-	if (pc->deadtime_mode)
-		rzg2l_gpt_write_mask(pc, SAW_WAVE_ONE_SHOT,
-					GTCR_MODE_MASK, GTCR);
-	else
+	if (pc->gpt_operation != DEADTIME_OUTPUT)
 		rzg2l_gpt_write_mask(pc, SAW_WAVE, GTCR_MODE_MASK, GTCR);
 
+	/* Set prescale for GPT */
 	rzg2l_gpt_write_mask(pc, (prescale<<24), GTCR_PRESCALE_MASK, GTCR);
 	/* Set counting mode */
 	rzg2l_gpt_write(pc, UP_COUNTING, GTUDDTYC); //up-counting
@@ -519,7 +558,7 @@ static int rzg2l_gpt_config(struct pwm_chip *chip, struct pwm_device *pwm,
 		rzg2l_gpt_write_mask(pc, pc->poeg,
 				GTINTAD_OUTPUT_DISABLE_GRP_MASK, GTINTAD);
 		/* Set output disable source */
-		if (pc->deadtime_mode)
+		if (pc->gpt_operation == DEADTIME_OUTPUT)
 			rzg2l_gpt_write_mask(pc,
 				OUTPUT_DISABLE_DEADTIME_ERROR,
 				GTINTAD_OUTPUT_DISABLE_POEG_MASK, GTINTAD);
@@ -536,11 +575,11 @@ static int rzg2l_gpt_config(struct pwm_chip *chip, struct pwm_device *pwm,
 	}
 
 	/* Enable overflow interrupt*/
-	if ((pc->poeg_dev != NULL) || (pc->deadtime_mode)) {
+	if ((pc->poeg_dev == NULL) && (pc->gpt_operation == NORMAL_OUTPUT)) {
+		rzg2l_gpt_write_mask(pc, 0, GTINTAD_GTINTPR_MASK, GTINTAD);
+	} else {
 		rzg2l_gpt_write_mask(pc,
 				GTINTPROV, GTINTAD_GTINTPR_MASK, GTINTAD);
-	} else {
-		rzg2l_gpt_write_mask(pc, 0, GTINTAD_GTINTPR_MASK, GTINTAD);
 	}
 
 	/* Set duty cycle */
@@ -548,16 +587,6 @@ static int rzg2l_gpt_config(struct pwm_chip *chip, struct pwm_device *pwm,
 
 	/* Set initial value for counter */
 	rzg2l_gpt_write(pc, 0, GTCNT); // reset counter value
-	/* Set no buffer operation */
-	if (pc->deadtime_mode) {
-		rzg2l_gpt_write(pc, GTBER_BUFFER_DEADTIME, GTBER);
-		/* Enable deadtime mode */
-		rzg2l_gpt_write(pc, GTDTCR_DEADTIME_MODE, GTDTCR);
-	} else {
-		rzg2l_gpt_write(pc, 0, GTBER);
-		/* Disable deadtime mode */
-		rzg2l_gpt_write(pc, 0, GTDTCR);
-	}
 
 	return 0;
 }
@@ -591,6 +620,11 @@ rzg2l_gpt_capture(struct pwm_chip *chip, struct pwm_device *pwm,
 	unsigned int effective_ticks;
 	u64 high, low;
 
+	if (pc->gpt_operation != INPUT_CAPTURE) {
+		dev_err(chip->dev, "Only input capture operation use this config\n");
+		return -EINVAL;
+	}
+
 	spin_lock_irqsave(&pc->lock, flags);
 
 	result->period = result->duty_cycle = 0;
@@ -612,7 +646,7 @@ rzg2l_gpt_capture(struct pwm_chip *chip, struct pwm_device *pwm,
 	rzg2l_gpt_write(pc, 0, GTCNT);
 	/* Set input pin as capture mode */
 	if (pc->channel == BOTH_AB) {
-		dev_err(chip->dev, "Input capture function not available on both A B channel mode\n");
+		dev_err(chip->dev, "Input capture function not available on both A B channel output\n");
 		goto out;
 	} else {
 		/* Using noise filter with P0/64 clock */
@@ -762,7 +796,7 @@ static irqreturn_t gpt_gtciv_interrupt(int irq, void *data)
 		}
 #endif
 
-		if (pc->deadtime_mode) {
+		if (pc->gpt_operation == DEADTIME_OUTPUT) {
 			rzg2l_gpt_write(pc, pc->bufferA[1], GTCCRC);
 			rzg2l_gpt_write(pc, pc->bufferA[2], GTCCRD);
 		}
@@ -882,12 +916,14 @@ static ssize_t buffA0_store(struct device *dev, struct device_attribute *attr,
 	unsigned long prescale;
 
 	if (pc->channel == CHANNEL_B) {
-		dev_err(pc->chip.dev, "Can not set channel A in channel B mode\n");
+		dev_err(pc->chip.dev, "Can not set channel A in channel B output\n");
 		return -EINVAL;
 	}
 
-	if (pc->deadtime_mode) {
-		dev_err(pc->chip.dev, "In deadtime mode,set A via 1 and 2\n");
+	if ((pc->gpt_operation != NORMAL_OUTPUT) &&
+		(pc->gpt_operation != SINGLE_BUFFER_OUTPUT) &&
+		(pc->gpt_operation != DOUBLE_BUFFER_OUTPUT)) {
+		dev_err(pc->chip.dev, "This operation not use this config\n");
 		return -EINVAL;
 	}
 
@@ -912,8 +948,6 @@ static ssize_t buffA0_store(struct device *dev, struct device_attribute *attr,
 
 	/*Set compare match value in GTCCRA*/
 	rzg2l_gpt_write(pc, pc->bufferA[0], GTCCRA);
-	/* Set no buffer operation */
-	rzg2l_gpt_write_mask(pc, 0, GTCCRA_BUFFER_MASK, GTBER);
 
 	mutex_unlock(&pc->mutex);
 
@@ -931,7 +965,7 @@ static ssize_t buffA0_show(struct device *dev, struct device_attribute *attr,
 	prescale = rzg2l_gpt_read(pc, GTCR) >> 24;
 	read_data = rzg2l_gpt_read(pc, GTCCRA);
 
-	if (pc->deadtime_mode)
+	if (pc->gpt_operation == DEADTIME_OUTPUT)
 		time_ns = rzg2l_tick_number_to_time(pc, read_data, prescale);
 	else
 		time_ns = rzg2l_tick_number_to_time(pc,
@@ -949,12 +983,14 @@ static ssize_t buffB0_store(struct device *dev, struct device_attribute *attr,
 	unsigned long prescale;
 
 	if (pc->channel == CHANNEL_A) {
-		dev_err(pc->chip.dev, "Can not set channel B in channel A mode\n");
+		dev_err(pc->chip.dev, "Can not set channel B in channel A output\n");
 		return -EINVAL;
 	}
 
-	if (pc->deadtime_mode) {
-		dev_err(pc->chip.dev, "In deadtime mode, B is set automatically\n");
+	if ((pc->gpt_operation != NORMAL_OUTPUT) &&
+		(pc->gpt_operation != SINGLE_BUFFER_OUTPUT) &&
+		(pc->gpt_operation != DOUBLE_BUFFER_OUTPUT)) {
+		dev_err(pc->chip.dev, "This operation not use this config\n");
 		return -EINVAL;
 	}
 
@@ -979,8 +1015,6 @@ static ssize_t buffB0_store(struct device *dev, struct device_attribute *attr,
 
 	/*Set compare match value in GTCCRB*/
 	rzg2l_gpt_write(pc, pc->bufferB[0], GTCCRB);
-	/* Set no buffer operation */
-	rzg2l_gpt_write_mask(pc, 0, GTCCRB_BUFFER_MASK, GTBER);
 
 	mutex_unlock(&pc->mutex);
 
@@ -998,7 +1032,7 @@ static ssize_t buffB0_show(struct device *dev, struct device_attribute *attr,
 	prescale = rzg2l_gpt_read(pc, GTCR) >> 24;
 	read_data = rzg2l_gpt_read(pc, GTCCRB);
 
-	if (pc->deadtime_mode)
+	if (pc->gpt_operation == DEADTIME_OUTPUT)
 		time_ns = rzg2l_tick_number_to_time(pc, read_data, prescale);
 	else
 		time_ns = rzg2l_tick_number_to_time(pc,
@@ -1016,7 +1050,14 @@ static ssize_t buffA1_store(struct device *dev, struct device_attribute *attr,
 	unsigned long prescale;
 
 	if (pc->channel == CHANNEL_B) {
-		dev_err(pc->chip.dev, "Can not set channel A in channel B mode\n");
+		dev_err(pc->chip.dev, "Can not set channel A in channel B output\n");
+		return -EINVAL;
+	}
+
+	if ((pc->gpt_operation != DEADTIME_OUTPUT) &&
+		(pc->gpt_operation != SINGLE_BUFFER_OUTPUT) &&
+		(pc->gpt_operation != DOUBLE_BUFFER_OUTPUT)) {
+		dev_err(pc->chip.dev, "This operation not use this config\n");
 		return -EINVAL;
 	}
 
@@ -1039,20 +1080,9 @@ static ssize_t buffA1_store(struct device *dev, struct device_attribute *attr,
 	prescale = rzg2l_gpt_read(pc, GTCR) >> 24;
 	pc->bufferA[1] = rzg2l_time_to_tick_number(pc, val, prescale);
 
-	if (!pc->deadtime_mode) {
-		pc->buffer_mode_count_A = 2;
-
-		/*Set buffer operation with CCRA in GTBER*/
-		rzg2l_gpt_write_mask(pc, GTCCRA_BUFFER_SINGLE,
-					GTCCRA_BUFFER_MASK, GTBER);
-	}
-
 	/* Set buffer value for A in GTCCRC(single), GTCCRD(double)*/
 	/* In deadtime mode GTCCRC is first compare */
 	rzg2l_gpt_write(pc, pc->bufferA[1], GTCCRC);
-
-	/* Enable overflow interrupt*/
-	rzg2l_gpt_write_mask(pc, GTINTPROV, GTINTAD_GTINTPR_MASK, GTINTAD);
 
 	mutex_unlock(&pc->mutex);
 
@@ -1082,12 +1112,13 @@ static ssize_t buffB1_store(struct device *dev, struct device_attribute *attr,
 	unsigned long prescale;
 
 	if (pc->channel == CHANNEL_A) {
-		dev_err(pc->chip.dev, "Can not set channel B in channel A mode\n");
+		dev_err(pc->chip.dev, "Can not set channel B in channel A output\n");
 		return -EINVAL;
 	}
 
-	if (pc->deadtime_mode) {
-		dev_err(pc->chip.dev, "In deadtime mode, B is set automatically\n");
+	if ((pc->gpt_operation != SINGLE_BUFFER_OUTPUT) &&
+		(pc->gpt_operation != DOUBLE_BUFFER_OUTPUT)) {
+		dev_err(pc->chip.dev, "This operation not use this config\n");
 		return -EINVAL;
 	}
 
@@ -1110,17 +1141,8 @@ static ssize_t buffB1_store(struct device *dev, struct device_attribute *attr,
 	prescale = rzg2l_gpt_read(pc, GTCR) >> 24;
 	pc->bufferB[1] = rzg2l_time_to_tick_number(pc, val, prescale);
 
-	pc->buffer_mode_count_B = 2;
-
-	/*Set buffer operation with CCRB in GTBER*/
-	rzg2l_gpt_write_mask(pc, GTCCRB_BUFFER_SINGLE,
-				GTCCRB_BUFFER_MASK, GTBER);
-
 	/* Set buffer value for B in GTCCRE(single), GTCCRF(double)*/
 	rzg2l_gpt_write(pc, pc->bufferB[1], GTCCRE);
-
-	/* Enable overflow interrupt*/
-	rzg2l_gpt_write_mask(pc, GTINTPROV, GTINTAD_GTINTPR_MASK, GTINTAD);
 
 	mutex_unlock(&pc->mutex);
 
@@ -1135,8 +1157,8 @@ static ssize_t buffB1_show(struct device *dev, struct device_attribute *attr,
 	unsigned long prescale;
 	unsigned long long time_ns;
 
-	if (pc->deadtime_mode) {
-		dev_err(pc->chip.dev, "In deadtime mode, read B via B0\n");
+	if (pc->gpt_operation == DEADTIME_OUTPUT) {
+		dev_err(pc->chip.dev, "In deadtime operation, read B via B0\n");
 		return -EINVAL;
 	}
 
@@ -1155,7 +1177,13 @@ static ssize_t buffA2_store(struct device *dev, struct device_attribute *attr,
 	unsigned long prescale;
 
 	if (pc->channel == CHANNEL_B) {
-		dev_err(pc->chip.dev, "Can not set channel A in channel B mode\n");
+		dev_err(pc->chip.dev, "Can not set channel A in channel B output\n");
+		return -EINVAL;
+	}
+
+	if ((pc->gpt_operation != DEADTIME_OUTPUT) &&
+		(pc->gpt_operation != DOUBLE_BUFFER_OUTPUT)) {
+		dev_err(pc->chip.dev, "This operation not use this config\n");
 		return -EINVAL;
 	}
 
@@ -1177,7 +1205,7 @@ static ssize_t buffA2_store(struct device *dev, struct device_attribute *attr,
 
 	prescale = rzg2l_gpt_read(pc, GTCR) >> 24;
 
-	if (pc->deadtime_mode) {
+	if (pc->gpt_operation == DEADTIME_OUTPUT) {
 		time_A1 = rzg2l_tick_number_to_time(pc,
 						pc->bufferA[1], prescale);
 		if (time_A1 > val) {
@@ -1188,18 +1216,8 @@ static ssize_t buffA2_store(struct device *dev, struct device_attribute *attr,
 
 	pc->bufferA[2] = rzg2l_time_to_tick_number(pc, val, prescale);
 
-	if (!pc->deadtime_mode) {
-		pc->buffer_mode_count_A = 3;
-		/*Set buffer operation with CCRA in GTBER*/
-		rzg2l_gpt_write_mask(pc, GTCCRA_BUFFER_DOUBLE,
-					GTCCRA_BUFFER_MASK, GTBER);
-	}
-
 	/* Set buffer value for A in GTCCRC(single), GTCCRD(double)*/
 	rzg2l_gpt_write(pc, pc->bufferA[2], GTCCRD);
-
-	/* Enable overflow interrupt*/
-	rzg2l_gpt_write_mask(pc, GTINTPROV, GTINTAD_GTINTPR_MASK, GTINTAD);
 
 out:
 	mutex_unlock(&pc->mutex);
@@ -1230,12 +1248,12 @@ static ssize_t buffB2_store(struct device *dev, struct device_attribute *attr,
 	unsigned long prescale;
 
 	if (pc->channel == CHANNEL_A) {
-		dev_err(pc->chip.dev, "Can not set channel B in channel A mode\n");
+		dev_err(pc->chip.dev, "Can not set channel B in channel A output\n");
 		return -EINVAL;
 	}
 
-	if (pc->deadtime_mode) {
-		dev_err(pc->chip.dev, "In deadtime mode, B is set automatically\n");
+	if (pc->gpt_operation != DOUBLE_BUFFER_OUTPUT) {
+		dev_err(pc->chip.dev, "This operation not use this config\n");
 		return -EINVAL;
 	}
 
@@ -1258,17 +1276,8 @@ static ssize_t buffB2_store(struct device *dev, struct device_attribute *attr,
 	prescale = rzg2l_gpt_read(pc, GTCR) >> 24;
 	pc->bufferB[2] = rzg2l_time_to_tick_number(pc, val, prescale);
 
-	pc->buffer_mode_count_B = 3;
-
-	/*Set buffer operation with CCRB in GTBER*/
-	rzg2l_gpt_write_mask(pc, GTCCRB_BUFFER_DOUBLE,
-				GTCCRB_BUFFER_MASK, GTBER);
-
 	/* Set buffer value for B in GTCCRE(single), GTCCRF(double)*/
 	rzg2l_gpt_write(pc, pc->bufferB[2], GTCCRF);
-
-	/* Enable overflow interrupt*/
-	rzg2l_gpt_write_mask(pc, GTINTPROV, GTINTAD_GTINTPR_MASK, GTINTAD);
 
 	mutex_unlock(&pc->mutex);
 
@@ -1283,8 +1292,8 @@ static ssize_t buffB2_show(struct device *dev, struct device_attribute *attr,
 	unsigned long prescale;
 	unsigned long long time_ns;
 
-	if (pc->deadtime_mode) {
-		dev_err(pc->chip.dev, "In deadtime mode, read B via B0\n");
+	if (pc->gpt_operation == DEADTIME_OUTPUT) {
+		dev_err(pc->chip.dev, "In deadtime operation, read B via B0\n");
 		return -EINVAL;
 	}
 
@@ -1302,7 +1311,7 @@ static ssize_t polarityA_store(struct device *dev,
 	int ret;
 
 	if (pc->channel != BOTH_AB) {
-		dev_err(pc->chip.dev, "Only use in both AB mode\n");
+		dev_err(pc->chip.dev, "Only use in both AB output\n");
 		return -EINVAL;
 	}
 
@@ -1353,7 +1362,7 @@ static ssize_t polarityB_store(struct device *dev,
 	int ret;
 
 	if (pc->channel != BOTH_AB) {
-		dev_err(pc->chip.dev, "Only use in both AB mode\n");
+		dev_err(pc->chip.dev, "Only use in both AB output\n");
 		return -EINVAL;
 	}
 
@@ -1396,47 +1405,6 @@ static ssize_t polarityB_show(struct device *dev, struct device_attribute *attr,
 	return sprintf(buf, "%s\n", polarity);
 }
 
-static ssize_t deadtime_mode_store(struct device *dev,
-		struct device_attribute *attr, const char *buf, size_t count)
-{
-	struct platform_device *pdev = to_platform_device(dev);
-	struct rzg2l_gpt_chip *pc = platform_get_drvdata(pdev);
-	int ret;
-	bool val;
-
-	if (pc->channel != BOTH_AB) {
-		dev_err(pc->chip.dev, "Only both_AB mode can use dead time mode\n");
-		return -EINVAL;
-	}
-
-	ret = kstrtobool(buf, &val);
-	if (ret)
-		return ret;
-
-	mutex_lock(&pc->mutex);
-
-	if (val ^ pc->deadtime_mode) {
-	/*Because deadtime mode use differrent mode (saw wave one shot)*/
-	/*Reset period and duty cycle register to prevent conflict*/
-		rzg2l_reset_period_and_duty(pc);
-		pc->chip.pwms[0].state.period = 0;
-		pc->deadtime_mode = val;
-	}
-
-	mutex_unlock(&pc->mutex);
-
-	return ret ? : count;
-}
-
-static ssize_t deadtime_mode_show(struct device *dev,
-		struct device_attribute *attr, char *buf)
-{
-	struct platform_device *pdev = to_platform_device(dev);
-	struct rzg2l_gpt_chip *pc = platform_get_drvdata(pdev);
-
-	return sprintf(buf, "%u\n",  pc->deadtime_mode);
-}
-
 static ssize_t deadtime_first_store(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t count)
 {
@@ -1446,8 +1414,8 @@ static ssize_t deadtime_first_store(struct device *dev,
 	int ret;
 	unsigned long prescale;
 
-	if (!pc->deadtime_mode) {
-		dev_err(pc->chip.dev, "Must in deadtime mode to set\n");
+	if (pc->gpt_operation != DEADTIME_OUTPUT) {
+		dev_err(pc->chip.dev, "Must in deadtime operation to set\n");
 		return -EINVAL;
 	}
 
@@ -1505,8 +1473,8 @@ static ssize_t deadtime_second_store(struct device *dev,
 	int ret;
 	unsigned long prescale;
 
-	if (!pc->deadtime_mode) {
-		dev_err(pc->chip.dev, "Must in deadtime mode to set\n");
+	if (pc->gpt_operation != DEADTIME_OUTPUT) {
+		dev_err(pc->chip.dev, "Must in deadtime operation to set\n");
 		return -EINVAL;
 	}
 
@@ -1546,13 +1514,113 @@ static ssize_t deadtime_second_show(struct device *dev,
 
 	prescale = rzg2l_gpt_read(pc, GTCR) >> 24;
 
-	if (!pc->deadtime_second)
+	if (pc->gpt_operation != DEADTIME_OUTPUT)
 		time_ns = 0;
 	else
 		time_ns = rzg2l_tick_number_to_time(pc,
 				pc->deadtime_second, prescale);
 
 	return sprintf(buf, "%llu\n", time_ns);
+}
+
+static ssize_t gpt_operation_available_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	unsigned int i;
+	size_t len = 0;
+
+	for (i = 0; i < NR_GPT_OPERATION; ++i)
+		len += sysfs_emit_at(buf, len, "%s ", gpt_operation_enum[i]);
+
+	/* replace last space with a newline */
+	buf[len - 1] = '\n';
+
+	return len;
+}
+
+static ssize_t gpt_operation_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	struct platform_device *pdev = to_platform_device(dev);
+	struct rzg2l_gpt_chip *pc = platform_get_drvdata(pdev);
+	int ret;
+
+	if (!pc->enable_clock) {
+		dev_err(pc->chip.dev, "Please export pwm module to enable clock first\n");
+		return -EINVAL;
+	}
+
+	ret = sysfs_match_string(gpt_operation_enum, buf);
+	if (ret < 0)
+		return ret;
+
+	if (pc->channel != BOTH_AB)
+		if (ret == DEADTIME_OUTPUT) {
+			dev_err(pc->chip.dev, "This operation must set in bothAB output\n");
+			return -EINVAL;
+		}
+
+	mutex_lock(&pc->mutex);
+
+	/* Reset registers to prevent conflict setting between modes */
+	rzg2l_reset_period_and_duty(pc);
+	pc->chip.pwms[0].state.period = 0;
+	pc->chip.pwms[0].state.duty_cycle = 0;
+	pc->chip.pwms[0].state.enabled = 0;
+	pc->chip.pwms[0].state.polarity = 0;
+
+	pc->gpt_operation = ret;
+
+	switch (pc->gpt_operation) {
+	case NORMAL_OUTPUT:
+		/* Set no buffer operation */
+		rzg2l_gpt_write_mask(pc, 0, GTCCRA_BUFFER_MASK, GTBER);
+		rzg2l_gpt_write_mask(pc, 0, GTCCRB_BUFFER_MASK, GTBER);
+		break;
+	case SINGLE_BUFFER_OUTPUT:
+		pc->buffer_mode_count_A = 2;
+		pc->buffer_mode_count_B = 2;
+		/*Set buffer operation with CCRA in GTBER*/
+		rzg2l_gpt_write_mask(pc, GTCCRA_BUFFER_SINGLE,
+					GTCCRA_BUFFER_MASK, GTBER);
+		/*Set buffer operation with CCRB in GTBER*/
+		rzg2l_gpt_write_mask(pc, GTCCRB_BUFFER_SINGLE,
+					GTCCRB_BUFFER_MASK, GTBER);
+		break;
+	case DOUBLE_BUFFER_OUTPUT:
+		pc->buffer_mode_count_A = 3;
+		pc->buffer_mode_count_B = 3;
+		/*Set buffer operation with CCRA in GTBER*/
+		rzg2l_gpt_write_mask(pc, GTCCRA_BUFFER_DOUBLE,
+					GTCCRA_BUFFER_MASK, GTBER);
+		/*Set buffer operation with CCRB in GTBER*/
+		rzg2l_gpt_write_mask(pc, GTCCRB_BUFFER_DOUBLE,
+					GTCCRB_BUFFER_MASK, GTBER);
+		break;
+	case DEADTIME_OUTPUT:
+		/* GPT setting saw-wave one shot up-counting */
+		rzg2l_gpt_write_mask(pc, SAW_WAVE_ONE_SHOT, GTCR_MODE_MASK, GTCR);
+		/* Set buffer deadtime */
+		rzg2l_gpt_write(pc, GTBER_BUFFER_DEADTIME, GTBER);
+		/* Enable deadtime mode */
+		rzg2l_gpt_write(pc, GTDTCR_DEADTIME_MODE, GTDTCR);
+		break;
+	case INPUT_CAPTURE:
+		break;
+	}
+
+	mutex_unlock(&pc->mutex);
+
+	return count;
+}
+
+static ssize_t gpt_operation_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct platform_device *pdev = to_platform_device(dev);
+	struct rzg2l_gpt_chip *pc = platform_get_drvdata(pdev);
+
+	return sysfs_emit(buf, "%s\n", gpt_operation_enum[pc->gpt_operation]);
 }
 
 static DEVICE_ATTR_RW(buffA0);
@@ -1563,9 +1631,10 @@ static DEVICE_ATTR_RW(buffB1);
 static DEVICE_ATTR_RW(buffB2);
 static DEVICE_ATTR_RW(polarityA);
 static DEVICE_ATTR_RW(polarityB);
-static DEVICE_ATTR_RW(deadtime_mode);
 static DEVICE_ATTR_RW(deadtime_first);
 static DEVICE_ATTR_RW(deadtime_second);
+static DEVICE_ATTR_RO(gpt_operation_available);
+static DEVICE_ATTR_RW(gpt_operation);
 
 static struct attribute *buffer_attrs[] = {
 	&dev_attr_buffA0.attr,
@@ -1576,9 +1645,10 @@ static struct attribute *buffer_attrs[] = {
 	&dev_attr_buffB2.attr,
 	&dev_attr_polarityA.attr,
 	&dev_attr_polarityB.attr,
-	&dev_attr_deadtime_mode.attr,
 	&dev_attr_deadtime_first.attr,
 	&dev_attr_deadtime_second.attr,
+	&dev_attr_gpt_operation_available.attr,
+	&dev_attr_gpt_operation.attr,
 	NULL,
 };
 
@@ -1723,6 +1793,8 @@ static int rzg2l_gpt_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "failed to create sysfs: %d\n", ret);
 		return ret;
 	}
+
+	rzg2l_gpt->gpt_operation = NORMAL_OUTPUT;
 
 	dev_info(&pdev->dev, "RZ/G2L GPT Driver probed\n");
 	platform_set_drvdata(pdev, rzg2l_gpt);
