@@ -14,8 +14,12 @@
  * Please change the jumper setting coresponding to below Macros:
  *
  * JP1:  1: JP1-1  SD1_WP
+ * JP964:	1: JP964-1 CAN0_TX	0: JP964-3 SCIF1_RXD
+ * JP966:	1: JP966-1 CAN1_RX	0: JP966-3 IRQ2_QSPI_INT_N
 */
 #define	JP1	0
+#define JP964	1
+#define JP966	1
 
 #define	SDHI0_SDSLOT		0
 
@@ -160,7 +164,7 @@
 	clock-frequency = <12288000>;
 };
 
-#if (CN4_CAN_AUDIO)
+#if (CN4_CAN_AUDIO && JP964 && JP966)
 &canfd {
 	pinctrl-0 = <&canfd0_pins &canfd1_pins>;
 	pinctrl-names = "default";
@@ -300,7 +304,7 @@
 		pinmux = <RZG2L_PORT_PINMUX(5, 1, 3)>; /* ADC_TRG */
 	};
 
-#if (CN4_CAN_AUDIO)
+#if (CN4_CAN_AUDIO && JP964 && JP966)
 	canfd0_en {
 		gpio-hog;
 		gpios = <RZG2L_GPIO(13, 3) GPIO_ACTIVE_LOW>;
