@@ -457,7 +457,6 @@
 	vqmmc-supply = <&vccq_sdhi2>;
 	bus-width = <4>;
 	cd-gpios = <&gpio4 20 GPIO_ACTIVE_LOW>;
-	sd-uhs-sdr50;
 	status = "okay";
 };
 
