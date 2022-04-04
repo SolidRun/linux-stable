@@ -60,7 +60,7 @@ void *arch_dma_alloc(struct device *dev, size_t size, dma_addr_t *handle,
 	void* kvaddr, *coherent_kvaddr;
 	size = PAGE_ALIGN(size);
 
-	kvaddr = dma_direct_alloc_pages(dev, size, handle, gfp & (~__GFP_DIRECT_RECLAIM), attrs);
+	kvaddr = dma_direct_alloc_pages(dev, size, handle, gfp, attrs);
 	if (!kvaddr)
 		goto no_mem;
 
