@@ -20,4 +20,17 @@
 		/* first 128MB is reserved for secure area. */
 		reg = <0 0x48000000 0 0x38000000>;
 	};
+
+	reserved-memory {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		reserved: linux,cma@58000000 {
+			compatible = "shared-dma-pool";
+			linux,cma-default;
+			reusable;
+			reg = <0x0 0x58000000 0x0 0x08000000>;
+		};
+	};
 };
