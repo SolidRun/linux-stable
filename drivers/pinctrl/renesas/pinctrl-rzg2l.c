@@ -1095,6 +1095,12 @@ static int rzg2l_gpio_irq_set_type(struct irq_data *d, unsigned int type)
 	case IRQ_TYPE_EDGE_FALLING:
 		irq_type = FALLING_EDGE;
 		break;
+	case IRQ_TYPE_LEVEL_LOW:
+		irq_type = LOW_LEVEL;
+		break;
+	case IRQ_TYPE_LEVEL_HIGH:
+		irq_type = HIGH_LEVEL;
+		break;
 	default:
 		return -EINVAL;
 	}
