@@ -799,6 +799,7 @@ static const struct vsp1_device_info vsp1_device_infos[] = {
 
 static const struct soc_device_attribute rzg2l_match[] = {
 	{ .family = "RZ/G2L" },
+	{ .family = "RZ/V2L" },
 	{ .family = "RZ/G2UL" },
 	{ /* sentinel*/ }
 };
