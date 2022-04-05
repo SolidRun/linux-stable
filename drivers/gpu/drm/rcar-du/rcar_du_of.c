@@ -321,6 +321,7 @@ done:
 static const struct soc_device_attribute rzg2l_match[] = {
 	{ .family = "RZ/G2L" },
 	{ .family = "RZ/G2UL" },
+	{ .family = "RZ/V2L" },
 	{ /* sentinel*/ }
 };
 
