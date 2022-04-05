@@ -347,6 +347,7 @@ struct rzg2l_gpt_chip {
 	u32 poeg;
 	bool enable_clock;
 	u32 counter_mode, reset_counter;
+	u32 pulse_number;
 };
 
 #if IS_BUILTIN(CONFIG_POEG_RZG2L)
@@ -1181,6 +1182,19 @@ static irqreturn_t gpt_gtciv_interrupt(int irq, void *data)
 		if (pc->gpt_operation == DEADTIME_OUTPUT) {
 			rzg2l_gpt_write(pc, pc->bufferA[1], GTCCRC);
 			rzg2l_gpt_write(pc, pc->bufferA[2], GTCCRD);
+		}
+
+		if (pc->pulse_number) {
+			pc->pulse_number--;
+			if (!pc->pulse_number) {
+				/* Stop count */
+				rzg2l_gpt_write_mask(pc, 0, GTCR_CST, GTCR);
+				pc->chip.pwms[0].state.enabled = 0;
+				if ((!pc->poeg) &&
+					(pc->gpt_operation == NORMAL_OUTPUT))
+					rzg2l_gpt_write_mask(pc, 0,
+						GTINTAD_GTINTPR_MASK, GTINTAD);
+			}
 		}
 
 		irq_flags &= ~TCFPO;
@@ -2101,6 +2115,51 @@ static ssize_t POEG_show(struct device *dev, struct device_attribute *attr,
 	return sysfs_emit(buf, "%s\n", rzg2l_gpt_POEGs[pc->poeg]);
 }
 
+static ssize_t pulse_number_store(struct device *dev, struct device_attribute *attr,
+				const char *buf, size_t count)
+{
+	struct platform_device *pdev = to_platform_device(dev);
+	struct rzg2l_gpt_chip *pc = platform_get_drvdata(pdev);
+	int val, ret;
+
+	if ((pc->gpt_operation != NORMAL_OUTPUT) &&
+		(pc->gpt_operation != SINGLE_BUFFER_OUTPUT) &&
+		(pc->gpt_operation != DOUBLE_BUFFER_OUTPUT) &&
+		(pc->gpt_operation != DEADTIME_OUTPUT)) {
+		dev_err(pc->chip.dev, "This operation not use this config\n");
+		return -EINVAL;
+	}
+
+	ret = kstrtouint(buf, 0, &val);
+	if (ret)
+		return ret;
+
+	if (val < 0) {
+		dev_err(pc->chip.dev, "Pulse number must greater or equal 0\n");
+		return -EINVAL;
+	}
+
+	mutex_lock(&pc->mutex);
+
+	/* Enable interrupt */
+	rzg2l_gpt_write_mask(pc, GTINTPROV, GTINTAD_GTINTPR_MASK, GTINTAD);
+
+	pc->pulse_number = val;
+
+	mutex_unlock(&pc->mutex);
+
+	return ret ? : count;
+}
+
+static ssize_t pulse_number_show(struct device *dev, struct device_attribute *attr,
+				char *buf)
+{
+	struct platform_device *pdev = to_platform_device(dev);
+	struct rzg2l_gpt_chip *pc = platform_get_drvdata(pdev);
+
+	return sprintf(buf, "%u\n", pc->pulse_number);
+}
+
 static DEVICE_ATTR_RW(buffA0);
 static DEVICE_ATTR_RW(buffA1);
 static DEVICE_ATTR_RW(buffA2);
@@ -2115,6 +2174,7 @@ static DEVICE_ATTR_RO(gpt_operation_available);
 static DEVICE_ATTR_RW(gpt_operation);
 static DEVICE_ATTR_RO(POEG_available);
 static DEVICE_ATTR_RW(POEG);
+static DEVICE_ATTR_RW(pulse_number);
 
 static struct attribute *buffer_attrs[] = {
 	&dev_attr_buffA0.attr,
@@ -2131,6 +2191,7 @@ static struct attribute *buffer_attrs[] = {
 	&dev_attr_gpt_operation.attr,
 	&dev_attr_POEG_available.attr,
 	&dev_attr_POEG.attr,
+	&dev_attr_pulse_number.attr,
 	NULL,
 };
 
