@@ -289,6 +289,43 @@ static const struct set_params channel_set[NR_CHANNEL] = {
 	},
 };
 
+static const char *rzg2l_gpt_POEGs[5] = {
+	"NOT_USE",
+};
+
+enum {
+	NOT_USE,
+};
+
+struct POEG_params {
+	u32 poeg;
+	struct platform_device *poeg_dev;
+};
+
+static struct POEG_params POEG_mode_set[5] = {
+	[NOT_USE] = {
+		.poeg = 0,
+		.poeg_dev = NULL,
+	},
+};
+
+static struct POEG_params POEG_mode_set_A = {
+	.poeg = GRPA,
+};
+
+static struct POEG_params POEG_mode_set_B = {
+	.poeg = GRPB,
+};
+
+static struct POEG_params POEG_mode_set_C = {
+	.poeg = GRPC,
+};
+
+static struct POEG_params POEG_mode_set_D = {
+	.poeg = GRPD,
+};
+
+
 struct rzg2l_gpt_chip {
 	struct	pwm_chip chip;
 	struct	clk *clk;
@@ -308,7 +345,6 @@ struct rzg2l_gpt_chip {
 	unsigned int gpt_operation;
 	unsigned long deadtime_first, deadtime_second;
 	u32 poeg;
-	struct platform_device *poeg_dev;
 	bool enable_clock;
 	u32 counter_mode, reset_counter;
 };
@@ -576,29 +612,8 @@ static int rzg2l_gpt_config(struct pwm_chip *chip, struct pwm_device *pwm,
 	channel_set[pc->channel].phase.polar[pc->channel_polar[pc->channel]],
 	channel_set[pc->channel].phase.mask, GTIOR);
 
-	if (pc->poeg_dev != NULL) {
-		/* Set output disable group */
-		rzg2l_gpt_write_mask(pc, pc->poeg,
-				GTINTAD_OUTPUT_DISABLE_GRP_MASK, GTINTAD);
-		/* Set output disable source */
-		if (pc->gpt_operation == DEADTIME_OUTPUT)
-			rzg2l_gpt_write_mask(pc,
-				OUTPUT_DISABLE_DEADTIME_ERROR,
-				GTINTAD_OUTPUT_DISABLE_POEG_MASK, GTINTAD);
-		else
-			rzg2l_gpt_write_mask(pc,
-				OUTPUT_DISABLE_SAME_LEVEL_HIGH|
-				OUTPUT_DISABLE_SAME_LEVEL_LOW,
-				GTINTAD_OUTPUT_DISABLE_POEG_MASK, GTINTAD);
-		/* Enable pin output disable */
-		rzg2l_gpt_write_mask(pc,
-				channel_set[pc->channel].output_disable.value,
-				channel_set[pc->channel].output_disable.mask,
-				GTIOR);
-	}
-
 	/* Enable overflow interrupt*/
-	if ((pc->poeg_dev == NULL) && (pc->gpt_operation == NORMAL_OUTPUT)) {
+	if ((!pc->poeg) && (pc->gpt_operation == NORMAL_OUTPUT)) {
 		rzg2l_gpt_write_mask(pc, 0, GTINTAD_GTINTPR_MASK, GTINTAD);
 	} else {
 		rzg2l_gpt_write_mask(pc,
@@ -952,10 +967,6 @@ static const char *rzg2l_gpt_reset_counters[5] = {
 	"NOT_USE",
 };
 
-enum {
-	NOT_USE,
-};
-
 struct reset_counter_params {
 	struct reg_full gtssr;
 	struct reg_full gtpsr;
@@ -1158,11 +1169,11 @@ static irqreturn_t gpt_gtciv_interrupt(int irq, void *data)
 		}
 
 #if IS_BUILTIN(CONFIG_POEG_RZG2L)
-		if (pc->poeg_dev != NULL) {
+		if (pc->poeg) {
 			/*Clear input edge flag*/
-			rzg2l_poeg_clear_bit_export(pc->poeg_dev, PIDF, POEGG);
+			rzg2l_poeg_clear_bit_export(POEG_mode_set[pc->poeg].poeg_dev, PIDF, POEGG);
 			/*Clear GPT disable flag*/
-			rzg2l_poeg_clear_bit_export(pc->poeg_dev, IOCF, POEGG);
+			rzg2l_poeg_clear_bit_export(POEG_mode_set[pc->poeg].poeg_dev, IOCF, POEGG);
 
 		}
 #endif
@@ -2012,6 +2023,84 @@ static ssize_t gpt_operation_show(struct device *dev,
 	return sysfs_emit(buf, "%s\n", gpt_operation_enum[pc->gpt_operation]);
 }
 
+static ssize_t POEG_available_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	unsigned int i;
+	size_t len = 0;
+
+	for (i = 0; i < 5; ++i)
+		len += sysfs_emit_at(buf, len, "%s ", rzg2l_gpt_POEGs[i]);
+
+	/* replace last space with a newline */
+	buf[len - 1] = '\n';
+
+	return len;
+}
+
+static ssize_t POEG_store(struct device *dev, struct device_attribute *attr,
+			const char *buf, size_t count)
+{
+	struct platform_device *pdev = to_platform_device(dev);
+	struct rzg2l_gpt_chip *pc = platform_get_drvdata(pdev);
+	int ret;
+
+	ret = sysfs_match_string(rzg2l_gpt_POEGs, buf);
+	if (ret < 0)
+		return ret;
+
+	mutex_lock(&pc->mutex);
+
+	pc->poeg = ret;
+
+	if (pc->poeg) {
+		/* Set output disable group */
+		rzg2l_gpt_write_mask(pc, POEG_mode_set[pc->poeg].poeg,
+				GTINTAD_OUTPUT_DISABLE_GRP_MASK, GTINTAD);
+		/* Set output disable source */
+		if (pc->gpt_operation == DEADTIME_OUTPUT)
+			rzg2l_gpt_write_mask(pc,
+					OUTPUT_DISABLE_DEADTIME_ERROR,
+					GTINTAD_OUTPUT_DISABLE_POEG_MASK, GTINTAD);
+		else
+			rzg2l_gpt_write_mask(pc,
+					OUTPUT_DISABLE_SAME_LEVEL_HIGH|
+					OUTPUT_DISABLE_SAME_LEVEL_LOW,
+					GTINTAD_OUTPUT_DISABLE_POEG_MASK, GTINTAD);
+		/* Enable pin output disable */
+		rzg2l_gpt_write_mask(pc,
+				channel_set[pc->channel].output_disable.value,
+				channel_set[pc->channel].output_disable.mask,
+				GTIOR);
+		/* Enable overflow interrupt*/
+		rzg2l_gpt_write_mask(pc,
+				GTINTPROV, GTINTAD_GTINTPR_MASK, GTINTAD);
+	} else {
+		/* Set output disable group */
+		rzg2l_gpt_write_mask(pc, 0, GTINTAD_OUTPUT_DISABLE_GRP_MASK, GTINTAD);
+		/* Set output disable source */
+		rzg2l_gpt_write_mask(pc, 0, GTINTAD_OUTPUT_DISABLE_POEG_MASK, GTINTAD);
+		/* Disable pin output disable */
+		rzg2l_gpt_write_mask(pc, 0, channel_set[pc->channel].output_disable.mask, GTIOR);
+		/* Disable interrupt if in normal mode */
+		if (pc->gpt_operation == NORMAL_OUTPUT)
+			rzg2l_gpt_write_mask(pc, 0, GTINTAD_GTINTPR_MASK, GTINTAD);
+	}
+
+	mutex_unlock(&pc->mutex);
+
+	return count;
+}
+
+static ssize_t POEG_show(struct device *dev, struct device_attribute *attr,
+			char *buf)
+{
+	struct platform_device *pdev = to_platform_device(dev);
+	struct rzg2l_gpt_chip *pc = platform_get_drvdata(pdev);
+
+	return sysfs_emit(buf, "%s\n", rzg2l_gpt_POEGs[pc->poeg]);
+}
+
 static DEVICE_ATTR_RW(buffA0);
 static DEVICE_ATTR_RW(buffA1);
 static DEVICE_ATTR_RW(buffA2);
@@ -2024,6 +2113,8 @@ static DEVICE_ATTR_RW(deadtime_first);
 static DEVICE_ATTR_RW(deadtime_second);
 static DEVICE_ATTR_RO(gpt_operation_available);
 static DEVICE_ATTR_RW(gpt_operation);
+static DEVICE_ATTR_RO(POEG_available);
+static DEVICE_ATTR_RW(POEG);
 
 static struct attribute *buffer_attrs[] = {
 	&dev_attr_buffA0.attr,
@@ -2038,6 +2129,8 @@ static struct attribute *buffer_attrs[] = {
 	&dev_attr_deadtime_second.attr,
 	&dev_attr_gpt_operation_available.attr,
 	&dev_attr_gpt_operation.attr,
+	&dev_attr_POEG_available.attr,
+	&dev_attr_POEG.attr,
 	NULL,
 };
 
@@ -2052,7 +2145,7 @@ static int rzg2l_gpt_probe(struct platform_device *pdev)
 	struct device_node *poeg_np;
 	struct platform_device *poeg_dev_np;
 	struct iio_dev *indio_dev;
-	int ret, irq = 0, i;
+	int ret, irq = 0, i, j;
 	const char *read_string;
 
 	indio_dev = devm_iio_device_alloc(&pdev->dev, sizeof(*rzg2l_gpt));
@@ -2071,26 +2164,39 @@ static int rzg2l_gpt_probe(struct platform_device *pdev)
 	if (IS_ERR(rzg2l_gpt->mmio_base))
 		return PTR_ERR(rzg2l_gpt->mmio_base);
 
-	for (i = 0; i < 4; i++) {
+	for (i = 0, j = 0; i < 4; i++) {
 		poeg_np = of_parse_phandle(pdev->dev.of_node, "poeg", i);
 		if (poeg_np != NULL) {
 			poeg_dev_np = of_find_device_by_node(poeg_np);
 			if (poeg_dev_np) {
+				j++;
 				if (strcmp(poeg_np->name, "poega") == 0) {
-					rzg2l_gpt_reset_counters[i+1] = "GTETRGA";
-					reset_counter_mode_set[i+1] = reset_counter_mode_set_A;
+					rzg2l_gpt_POEGs[j] = "POEGA";
+					POEG_mode_set_A.poeg_dev = poeg_dev_np;
+					POEG_mode_set[j] = POEG_mode_set_A;
+					rzg2l_gpt_reset_counters[j] = "GTETRGA";
+					reset_counter_mode_set[j] = reset_counter_mode_set_A;
 					dev_info(&pdev->dev, "Can use GTETRGA as POEG, reset_counter\n");
 				} else if (strcmp(poeg_np->name, "poegb") == 0) {
-					rzg2l_gpt_reset_counters[i+1] = "GTETRGB";
-					reset_counter_mode_set[i+1] = reset_counter_mode_set_B;
+					rzg2l_gpt_POEGs[j] = "POEGB";
+					POEG_mode_set_B.poeg_dev = poeg_dev_np;
+					POEG_mode_set[j] = POEG_mode_set_B;
+					rzg2l_gpt_reset_counters[j] = "GTETRGB";
+					reset_counter_mode_set[j] = reset_counter_mode_set_B;
 					dev_info(&pdev->dev, "Can use GTETRGB as POEG, reset_counter\n");
 				} else if (strcmp(poeg_np->name, "poegc") == 0) {
-					rzg2l_gpt_reset_counters[i+1] = "GTETRGC";
-					reset_counter_mode_set[i+1] = reset_counter_mode_set_C;
+					rzg2l_gpt_POEGs[j] = "POEGC";
+					POEG_mode_set_C.poeg_dev = poeg_dev_np;
+					POEG_mode_set[j] = POEG_mode_set_C;
+					rzg2l_gpt_reset_counters[j] = "GTETRGC";
+					reset_counter_mode_set[j] = reset_counter_mode_set_C;
 					dev_info(&pdev->dev, "Can use GTETRGC as POEG, reset_counter\n");
 				} else if (strcmp(poeg_np->name, "poegd") == 0) {
-					rzg2l_gpt_reset_counters[i+1] = "GTETRGD";
-					reset_counter_mode_set[i+1] = reset_counter_mode_set_D;
+					rzg2l_gpt_POEGs[j] = "POEGD";
+					POEG_mode_set_D.poeg_dev = poeg_dev_np;
+					POEG_mode_set[j] = POEG_mode_set_D;
+					rzg2l_gpt_reset_counters[j] = "GTETRGD";
+					reset_counter_mode_set[j] = reset_counter_mode_set_D;
 					dev_info(&pdev->dev, "Can use GTETRGD as POEG, reset_counter\n");
 				}
 			}
