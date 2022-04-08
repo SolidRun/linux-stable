@@ -426,6 +426,9 @@ static int rzg2l_dt_subnode_to_map(struct pinctrl_dev *pctldev,
 	if (num_pins)
 		nmaps += num_pins;
 
+	if (configs && num_pinmux)
+		nmaps += 1;
+
 	maps = krealloc(maps, nmaps * sizeof(*maps), GFP_KERNEL);
 	if (!maps) {
 		ret = -ENOMEM;
@@ -489,6 +492,8 @@ static int rzg2l_dt_subnode_to_map(struct pinctrl_dev *pctldev,
 
 	maps[idx].data.mux.group = np->name;
 	maps[idx].data.mux.function = np->name;
+	maps[idx].type = PIN_MAP_TYPE_MUX_GROUP;
+	idx++;
 
 	if (num_configs) {
 		ret = rzg2l_map_add_config(&maps[idx], np->name,
@@ -496,11 +501,9 @@ static int rzg2l_dt_subnode_to_map(struct pinctrl_dev *pctldev,
 					   configs, num_configs);
 		if (ret < 0)
 			goto remove_group;
-	} else {
-		maps[idx].type = PIN_MAP_TYPE_MUX_GROUP;
-	}
 
-	idx++;
+		idx++;
+	};
 
 	dev_dbg(pctrl->dev, "Parsed %pOF with %d pins\n", np, num_pinmux);
 	ret = 0;
