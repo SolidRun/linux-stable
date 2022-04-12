@@ -536,7 +536,7 @@
         };
 
 	rtc@69 {
-		compatible = "abracon,ab1805";
+		compatible = "abracon,abx80x";
 		reg = <0x69>;
 		abracon,tc-diode = "schottky";
 		abracon,tc-resistor = <3>;
