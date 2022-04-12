@@ -251,7 +251,7 @@
         };
 
 
-	pinctrl_i2c2_synaptics_dsx_io: synaptics_dsx_iogrp {
+	pinctrl_i2c3_accel: i2c3grp-accel {
 		fsl,pins = <
 			MX8MN_IOMUXC_GPIO1_IO09_GPIO1_IO9		0x19
 		>;
@@ -516,9 +516,17 @@
 	pinctrl-names = "default", "gpio";
 	pinctrl-0 = <&pinctrl_i2c3>;
 	pinctrl-1 = <&pinctrl_i2c3_gpio>;
+	pinctrl-2 = <&pinctrl_i2c3_accel>;
 	scl-gpios = <&gpio5 18 GPIO_ACTIVE_HIGH>;
 	sda-gpios = <&gpio5 19 GPIO_ACTIVE_HIGH>;
 	status = "okay";
+
+	accelerometer@1d {
+		compatible = "adi,adxl345";
+		reg = <0x1d>;
+		interrupt-parent = <&gpio1>; // GPIO1_IO09
+		interrupts = <9 IRQ_TYPE_LEVEL_HIGH>;
+	};
 
         io_expander: gpio-controller@20 {
 		/*ignore interrupts - using polling method (gpio-keys-polled)*/
@@ -534,6 +542,11 @@
 		//interrupt-parent = <&gpio2>;
 		//interrupts = <11 IRQ_TYPE_EDGE_FALLING>;
         };
+
+	ambient_light_sensor: isl29023@44 {
+		compatible = "isil,isl29023";
+		reg = <0x44>;
+	};
 
 	rtc@69 {
 		compatible = "abracon,abx80x";
