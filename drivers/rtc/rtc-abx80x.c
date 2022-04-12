@@ -88,7 +88,7 @@
 
 static u8 trickle_resistors[] = {0, 3, 6, 11};
 
-enum abx80x_chip {AB0801, AB0803, AB0804, AB0805,
+enum abx80x_chip {AB0801, AB0803, AB0804, AB0805, AM1805,
 	AB1801, AB1803, AB1804, AB1805, RV1805, ABX80X};
 
 struct abx80x_cap {
@@ -102,6 +102,7 @@ static struct abx80x_cap abx80x_caps[] = {
 	[AB0803] = {.pn = 0x0803},
 	[AB0804] = {.pn = 0x0804, .has_tc = true, .has_wdog = true},
 	[AB0805] = {.pn = 0x0805, .has_tc = true, .has_wdog = true},
+	[AM1805] = {.pn = 0x1800, .has_tc = true, .has_wdog = true},
 	[AB1801] = {.pn = 0x1801},
 	[AB1803] = {.pn = 0x1803},
 	[AB1804] = {.pn = 0x1804, .has_tc = true, .has_wdog = true},
@@ -857,6 +858,7 @@ static const struct i2c_device_id abx80x_id[] = {
 	{ "ab0803", AB0803 },
 	{ "ab0804", AB0804 },
 	{ "ab0805", AB0805 },
+	{ "am1805", AM1805 },
 	{ "ab1801", AB1801 },
 	{ "ab1803", AB1803 },
 	{ "ab1804", AB1804 },
