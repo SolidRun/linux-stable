@@ -17,14 +17,6 @@
 		stdout-path = &uart2;
 	};
 
-        modem_reset: modem-reset {
-                compatible = "gpio-reset";
-                reset-gpios = <&gpio2 6 GPIO_ACTIVE_LOW>;
-                reset-delay-us = <2000>;
-                reset-post-delay-ms = <40>;
-                #reset-cells = <0>;
-        };
-	
 	ublox_reset: ublox-reset {
                 compatible = "gpio-reset";
                 reset-gpios = <&gpio1 5 GPIO_ACTIVE_LOW>;
@@ -310,13 +302,20 @@
 		>;
 	};
 
+	pinctrl_uart1_bt: uart1btgrp {
+		fsl,pins = <
+			MX8MN_IOMUXC_SD1_DATA4_GPIO2_IO6	0x41	/* bt-en */
+			MX8MN_IOMUXC_SD1_DATA5_GPIO2_IO7	0x41	/* bt-wake-device*/
+			MX8MN_IOMUXC_SD1_DATA6_GPIO2_IO8	0x41	/* bt-wake-host*/
+		>;
+	};
+
 	pinctrl_uart1: uart1grp {
 		fsl,pins = <
 			MX8MN_IOMUXC_UART1_RXD_UART1_DCE_RX	0x140
 			MX8MN_IOMUXC_UART1_TXD_UART1_DCE_TX	0x140
 			MX8MN_IOMUXC_UART3_RXD_UART1_DCE_CTS_B	0x140
 			MX8MN_IOMUXC_UART3_TXD_UART1_DCE_RTS_B	0x140
-			MX8MN_IOMUXC_SD1_DATA4_GPIO2_IO6	0x19
 		>;
 	};
 
@@ -671,8 +670,16 @@
         assigned-clocks = <&clk IMX8MN_CLK_UART1>;
         assigned-clock-parents = <&clk IMX8MN_SYS_PLL1_80M>;
         fsl,uart-has-rtscts;
-        resets = <&modem_reset>;
         status = "okay";
+
+	bluetooth {
+		compatible = "brcm,bcm4330-bt";
+		device-wakeup-gpios = <&gpio2 7 GPIO_ACTIVE_HIGH>;
+		host-wakeup-gpios = <&gpio2 8 GPIO_ACTIVE_HIGH>;
+		shutdown-gpios = <&gpio2 6 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_uart1_bt>;
+	};
 };
 
 &uart2 { /* console */
