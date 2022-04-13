@@ -16,6 +16,7 @@ Required Properties:
     - "renesas,du-rzg2ul" for R9A07G043 (RZ/G2UL) compatible DU
     - "renesas,du-rzg2l" for R9A07G044 (RZ/G2L) compatible DU
     - "renesas,du-rzg2lc" for R9A07G044 (RZ/G2LC) compatible DU
+    - "renesas,du-rzv2l" for R9A07G054 (RZ/V2L) compatible DU
     - "renesas,du-r8a7779" for R8A7779 (R-Car H1) compatible DU
     - "renesas,du-r8a7790" for R8A7790 (R-Car H2) compatible DU
     - "renesas,du-r8a7791" for R8A7791 (R-Car M2-W) compatible DU
@@ -88,6 +89,7 @@ corresponding to each DU output.
  R9A07G043 (RZ/G2UL)    DPAD 0         -              -              -
  R9A07G044 (RZ/G2L)     DPAD 0         MIPI DSI 0     -              -
  R9A07G044 (RZ/G2LC)    MIPI DSI 0     -              -              -
+ R9A07G054 (RZ/V2L)     DPAD 0         MIPI DSI 0     -              -
  R8A7779 (R-Car H1)     DPAD 0         DPAD 1         -              -
  R8A7790 (R-Car H2)     DPAD 0         LVDS 0         LVDS 1         -
  R8A7791 (R-Car M2-W)   DPAD 0         LVDS 0         -              -
