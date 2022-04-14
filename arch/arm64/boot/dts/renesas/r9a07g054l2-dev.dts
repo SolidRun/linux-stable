@@ -35,6 +35,24 @@
 			reusable;
 			reg = <0x00000000 0x68000000 0x0 0x8000000>;
 		};
+
+		/* device specific region for contiguous allocations */
+		drp_reserved: DRP-AI {
+			reusable;
+			reg = <0x0 0x80000000 0x0 0x20000000>;
+		};
+
+		image_buf0: image_buf@0 {
+			compatible = "shared-dma-pool";
+			reusable;
+			reg = <0x0 0xB0000000 0x0 0x04000000>;
+			label = "image_buf0";
+		};
+
+		isp_work0: SIMPLE_ISP {
+			reusable;
+			reg = <0x0 0xB4000000 0x0 0x03000000>;
+		};
 	};
 
 	mmngr {
