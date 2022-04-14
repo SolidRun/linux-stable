@@ -11,7 +11,7 @@
 
 / {
 	model = "Evaluation board based on r9a07g054l2";
-	compatible = "renesas,r9a07g054l2-dev", "renesas,r9a07g054l2";
+	compatible = "renesas,r9a07g054l2-dev", "renesas,r9a07g054l2", "renesas,r9a07g054";
 
 	memory@48000000 {
 		device_type = "memory";
