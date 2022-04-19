@@ -1092,13 +1092,15 @@ static const struct pwm_ops mtu3_pwm_ops = {
 	.set_polarity	= renesas_mtu3_pwm_set_polarity,
 };
 
-/* Setting mtu3 */
-static int renesas_mtu3_setup(struct renesas_mtu3_device *mtu,
-			struct platform_device *pdev)
+static int renesas_mtu3_probe(struct platform_device *pdev)
 {
-	struct device *dev = &pdev->dev;
-	struct device_node *np = dev->of_node;
+	struct renesas_mtu3_device *mtu = platform_get_drvdata(pdev);
+	struct device_node *np = pdev->dev.of_node;
 	int ret, i;
+
+	mtu = kzalloc(sizeof(*mtu), GFP_KERNEL);
+	if (mtu == NULL)
+		return -ENOMEM;
 
 	mtu->pdev = pdev;
 	raw_spin_lock_init(&mtu->lock);
@@ -1117,20 +1119,20 @@ static int renesas_mtu3_setup(struct renesas_mtu3_device *mtu,
 		return PTR_ERR(mtu->clk);
 	}
 
-	ret = clk_prepare(mtu->clk);
-	if (ret < 0)
-		goto err_clk_put;
-
-	ret = clk_enable(mtu->clk);
-	if (ret < 0)
-		goto err_clk_unprepare;
+	ret = clk_prepare_enable(mtu->clk);
+	if (ret < 0) {
+		dev_err(&mtu->pdev->dev,
+			"failed to prepare and enable clk with error %d\n", ret);
+		goto err_clk;
+	}
 	mtu->rate = clk_get_rate(mtu->clk)/64;
 
 	/* Map the memory resource. */
 	ret = renesas_mtu3_map_memory(mtu);
 	if (ret < 0) {
-		dev_err(&mtu->pdev->dev, "failed to remap I/O memory\n");
-		goto err_clk_unprepare;
+		dev_err(&mtu->pdev->dev,
+			"failed to map I/O memory with error %d\n", ret);
+		goto err_unmap;
 	}
 
 	/* Allocate and setup the channels. */
@@ -1142,9 +1144,12 @@ static int renesas_mtu3_setup(struct renesas_mtu3_device *mtu,
 		GFP_KERNEL);
 	if (mtu->channels == NULL) {
 		ret = -ENOMEM;
+		dev_err(&mtu->pdev->dev,
+			"failed to allocate memory for MTU3 channels with error %d\n", ret);
 		goto err_unmap;
 	}
 
+	/* Setting for PWM functions */
 	ret = renesas_mtu3_register_pwm(mtu, np);
 	if (ret < 0)
 		dev_err(&mtu->pdev->dev,
@@ -1153,8 +1158,9 @@ static int renesas_mtu3_setup(struct renesas_mtu3_device *mtu,
 		dev_info(&mtu->pdev->dev,
 			" used for pwm controller of mtu3\n");
 
+	/* 2 rest channels will be used for clocksource and clockevent except ch5 */
 	for (i = 0; i < mtu->num_channels; i++) {
-		if (mtu->channels[i].function != MTU3_PWM_MODE_1) {
+		if ((mtu->channels[i].function == MTU3_NORMAL) && (i != 5)) {
 			mtu->channels[i].index = i;
 			if (!(mtu->has_clocksource)) {
 				mtu->channels[i].function = MTU3_CLOCKSOURCE;
@@ -1178,33 +1184,6 @@ static int renesas_mtu3_setup(struct renesas_mtu3_device *mtu,
 
 	platform_set_drvdata(pdev, mtu);
 
-	return 0;
-
-err_unmap:
-	kfree(mtu->channels);
-	iounmap(mtu->mapbase);
-err_clk_unprepare:
-	clk_unprepare(mtu->clk);
-err_clk_put:
-	clk_put(mtu->clk);
-	return ret;
-}
-
-static int renesas_mtu3_probe(struct platform_device *pdev)
-{
-	struct renesas_mtu3_device *mtu = platform_get_drvdata(pdev);
-	int ret;
-
-	mtu = kzalloc(sizeof(*mtu), GFP_KERNEL);
-	if (mtu == NULL)
-		return -ENOMEM;
-
-	ret = renesas_mtu3_setup(mtu, pdev);
-	if (!!ret) {
-		kfree(mtu);
-		return ret;
-	}
-
 	pm_runtime_enable(&mtu->pdev->dev);
 
 	if (mtu->has_clockevent)
@@ -1215,6 +1194,14 @@ static int renesas_mtu3_probe(struct platform_device *pdev)
 	dev_info(&mtu->pdev->dev, "Renesas MTU3 driver probed\n");
 
 	return 0;
+
+err_clk:
+	clk_disable_unprepare(mtu->clk);
+	clk_put(mtu->clk);
+err_unmap:
+	iounmap(mtu->mapbase);
+	kfree(mtu);
+	return ret;
 }
 
 static int renesas_mtu3_remove(struct platform_device *pdev)
