@@ -30,10 +30,7 @@
 #include <linux/of_device.h>
 #include <linux/reset.h>
 #include <linux/pwm.h>
-
-#ifdef CONFIG_SUPERH
-#include <asm/platform_early.h>
-#endif
+#include <linux/iio/iio.h>
 
 struct renesas_mtu3_device;
 
@@ -43,6 +40,7 @@ enum mtu3_functions {
 	MTU3_CLOCKEVENT,	/* Assign clockevent function */
 	MTU3_PWM_MODE_1,	/* Assign pwm mode 1 function */
 	MTU3_PWM_COMPLEMENTARY,	/* Assign complementary pwm */
+	MTU3_PHASE_COUNTING,	/* Assign phase counting modes */
 };
 
 struct mtu3_pwm_device {
@@ -101,6 +99,7 @@ struct renesas_mtu3_device {
 #define TOCR1B		0x80E /* Timer output control register 1B */
 #define TOCR2A		0x00F /* Timer output control register 2A */
 #define TOCR2B		0x80F /* Timer output control register 2B */
+#define TMDR3		0x191 /* Timer Mode Register 3 */
 
 /* 8 bit channel registers */
 #define TCR		0 /* Timer control register */
@@ -160,10 +159,11 @@ struct renesas_mtu3_device {
 #define TMDR_MD_NORMAL		(0 << 0)
 #define TMDR_MD_PWM_1		(2 << 0)
 #define TMDR_MD_PWM_2		(3 << 0)
-#define TMDR_MD_PHASE_1		(4 << 0)
-#define TMDR_MD_PHASE_2		(5 << 0)
-#define TMDR_MD_PHASE_3		(6 << 0)
-#define TMDR_MD_PHASE_4		(7 << 0)
+#define TMDR_MD_PHASE_CNT_1	(4 << 0)
+#define TMDR_MD_PHASE_CNT_2	(5 << 0)
+#define TMDR_MD_PHASE_CNT_3	(6 << 0)
+#define TMDR_MD_PHASE_CNT_4	(7 << 0)
+#define TMDR_MD_PHASE_CNT_5	(9 << 0)
 #define TMDR_MD_PWM_SYNC	(8 << 0)
 #define TMDR_MD_PWM_COMP_CREST	(13 << 0)
 #define TMDR_MD_PWM_COMP_TROUGH	(14 << 0)
@@ -1092,15 +1092,358 @@ static const struct pwm_ops mtu3_pwm_ops = {
 	.set_polarity	= renesas_mtu3_pwm_set_polarity,
 };
 
+/* Counter APIs*/
+static int iio_chan_to_mtu3_chan(const struct iio_chan_spec *chan,
+				struct renesas_mtu3_device *mtu)
+{
+	int ret;
+	/*
+	 * This function is used to convert IIO channels to mtu3 channels
+	 * by comparing IIO channels' name .
+	 * MTU3 only can use channel 1&2 for phase counting functions
+	 * and their MTU3 channel's function must be assigned for this function.
+	 * Other cases are invalid.
+	 */
+	if (!strcmp(chan->extend_name, "mtu1"))
+		ret = 1;
+	else if (!strcmp(chan->extend_name, "mtu2"))
+		ret = 2;
+	else
+		return -EINVAL;
+
+	if (mtu->channels[ret].function != MTU3_PHASE_COUNTING) {
+		dev_err(&mtu->pdev->dev, "corresponding MTU channel is not "
+			"in phase counting mode\n");
+		return -ENODEV;
+	}
+
+	return ret;
+
+}
+
+static ssize_t renesas_mtu3_cnt_get_phase_counting_mode(struct iio_dev *indio_dev,
+						uintptr_t private,
+						const struct iio_chan_spec *chan,
+						char *buf)
+{
+	struct renesas_mtu3_device *mtu = iio_priv(indio_dev);
+	int ch;
+	int  tmp;
+
+	ch = iio_chan_to_mtu3_chan(chan, mtu);
+	if (ch < 0)
+		return ch;
+
+	tmp = renesas_mtu3_ch_reg_read(&mtu->channels[ch], TMDR1);
+	if ((tmp >= TMDR_MD_PHASE_CNT_1) && (tmp <= TMDR_MD_PHASE_CNT_4))
+		tmp -= 3;
+	else if (tmp == TMDR_MD_PHASE_CNT_5)
+		tmp = 5;
+	else
+		tmp = -EINVAL;
+
+	return snprintf(buf, PAGE_SIZE, "%u\n", tmp);
+}
+
+static ssize_t renesas_mtu3_cnt_set_phase_counting_mode(struct iio_dev *indio_dev,
+						uintptr_t private,
+						const struct iio_chan_spec *chan,
+						const char *buf, size_t len)
+{
+	struct renesas_mtu3_device *mtu = iio_priv(indio_dev);
+	int ch, ret;
+	int  tmp;
+
+	ch = iio_chan_to_mtu3_chan(chan, mtu);
+	if (ch < 0)
+		return ch;
+
+	ret = kstrtoint(buf, 0, &tmp);
+	if (ret)
+		return ret;
+	if ((tmp >= 1) && (tmp <= 4))
+		tmp += 3;
+	else if (tmp == 5)
+		tmp = TMDR_MD_PHASE_CNT_5;
+	else
+		return len;
+
+	renesas_mtu3_ch_reg_write(&mtu->channels[ch], TMDR1, tmp);
+
+	return len;
+}
+
+static ssize_t renesas_mtu3_cnt_get_max_value(struct iio_dev *indio_dev,
+					uintptr_t private,
+					const struct iio_chan_spec *chan,
+					char *buf)
+{
+	struct renesas_mtu3_device *mtu = iio_priv(indio_dev);
+	int ch, ret;
+
+	ch = iio_chan_to_mtu3_chan(chan, mtu);
+	if (ch < 0)
+		return ch;
+
+	ret = renesas_mtu3_ch_reg_read(&mtu->channels[ch], TGRA);
+
+	if ((ret > 65535) || (ret < 0))
+		return -EINVAL;
+
+	return snprintf(buf, PAGE_SIZE, "%u\n", ret);
+}
+
+static ssize_t renesas_mtu3_cnt_set_max_value(struct iio_dev *indio_dev,
+					   uintptr_t private,
+					   const struct iio_chan_spec *chan,
+					   const char *buf, size_t len)
+{
+	struct renesas_mtu3_device *mtu = iio_priv(indio_dev);
+	int ch, ret, val = 0;
+
+	ch = iio_chan_to_mtu3_chan(chan, mtu);
+	if (ch < 0)
+		return ch;
+
+	ret = kstrtoint(buf, 0, &val);
+	if (ret)
+		return ret;
+
+	if ((val > 65535) || (val < 0))
+		return -EINVAL;
+
+	if (val > 0)
+		renesas_mtu3_ch_reg_write(&mtu->channels[ch], TCR, TCR_CCLR_TGRA);
+	else
+		renesas_mtu3_ch_reg_write(&mtu->channels[ch], TCR, TCR_CCLR_NONE);
+
+	renesas_mtu3_ch_reg_write(&mtu->channels[ch], TGRA, val);
+
+	return len;
+}
+
+static ssize_t renesas_mtu3_cnt_get_inputs(struct iio_dev *indio_dev,
+					uintptr_t private,
+					const struct iio_chan_spec *chan,
+					char *buf)
+{
+	struct renesas_mtu3_device *mtu = iio_priv(indio_dev);
+	int ch, ret;
+
+	ch = iio_chan_to_mtu3_chan(chan, mtu);
+	if (ch < 0)
+		return ch;
+
+	if (ch == 2) {
+		ret = renesas_mtu3_shared_reg_read(mtu, TMDR3) & 0x2;
+		if (ret != 0)
+			return snprintf(buf, PAGE_SIZE, "%s\n",
+					"MTCLKC MTCLKD");
+	}
+
+	return snprintf(buf, PAGE_SIZE, "%s\n", "MTCLKA MTCLKB");
+}
+
+static ssize_t renesas_mtu3_cnt_set_inputs(struct iio_dev *indio_dev,
+					   uintptr_t private,
+					   const struct iio_chan_spec *chan,
+					   const char *buf, size_t len)
+{
+	struct renesas_mtu3_device *mtu = iio_priv(indio_dev);
+	int ch, ret, val = 0;
+
+	ch = iio_chan_to_mtu3_chan(chan, mtu);
+	if (ch < 0)
+		return ch;
+
+	if (ch != 2)
+		return -EPERM;
+
+	ret = kstrtoint(buf, 0, &val);
+	if (ret)
+		return ret;
+
+	if (val == 1) {
+		val = renesas_mtu3_shared_reg_read(mtu, TMDR3) & 0x1;
+		renesas_mtu3_shared_reg_write(mtu, TMDR3, val);
+	} else if (val == 0) {
+		val = renesas_mtu3_shared_reg_read(mtu, TMDR3) | 0x2;
+		renesas_mtu3_shared_reg_write(mtu, TMDR3, val);
+	} else
+		return -EINVAL;
+
+	return len;
+}
+
+static const struct iio_chan_spec_ext_info renesas_mtu3_cnt_ext_info[] = {
+	{
+		.name = "mode",
+		.shared = IIO_SEPARATE,
+		.read = renesas_mtu3_cnt_get_phase_counting_mode,
+		.write = renesas_mtu3_cnt_set_phase_counting_mode,
+	},
+	{
+		.name = "max_value",
+		.shared = IIO_SEPARATE,
+		.read = renesas_mtu3_cnt_get_max_value,
+		.write = renesas_mtu3_cnt_set_max_value,
+	},
+	{
+		.name = "inputs",
+		.shared = IIO_SEPARATE,
+		.read = renesas_mtu3_cnt_get_inputs,
+		.write = renesas_mtu3_cnt_set_inputs,
+	},
+	{},
+};
+
+static int renesas_mtu3_cnt_read_raw(struct iio_dev *indio_dev,
+				     struct iio_chan_spec const *chan,
+				     int *val, int *val2, long mask)
+{
+	struct renesas_mtu3_device *mtu  = iio_priv(indio_dev);
+	int ch;
+
+	ch = iio_chan_to_mtu3_chan(chan, mtu);
+	if (ch < 0)
+		return ch;
+
+	switch (mask) {
+	case IIO_CHAN_INFO_ENABLE:
+		*val = (renesas_mtu3_shared_reg_read(mtu, TSTRA) &
+			(0x1 << ch)) >> ch;
+		return IIO_VAL_INT;
+	case IIO_CHAN_INFO_RAW:
+		*val = renesas_mtu3_get_counter(&mtu->channels[ch]);
+		return IIO_VAL_INT;
+	default:
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+static int renesas_mtu3_cnt_write_raw(struct iio_dev *indio_dev,
+				      struct iio_chan_spec const *chan,
+				      int val, int val2, long mask)
+{
+	struct renesas_mtu3_device *mtu  = iio_priv(indio_dev);
+	int ch;
+
+	ch = iio_chan_to_mtu3_chan(chan, mtu);
+	if (ch < 0)
+		return ch;
+
+	switch (mask) {
+	case IIO_CHAN_INFO_ENABLE:
+		if (val == 1)
+			renesas_mtu3_enable(&mtu->channels[ch]);
+		else if (val == 0)
+			renesas_mtu3_disable(&mtu->channels[ch]);
+		else
+			return -EINVAL;
+		break;
+	case IIO_CHAN_INFO_RAW:
+		if (val < 0)
+			return -EINVAL;
+
+		renesas_mtu3_ch_reg_write(&mtu->channels[ch], TCNT, val);
+		break;
+	default:
+			return -EINVAL;
+	}
+
+	return 0;
+}
+
+static const struct iio_info renesas_mtu3_iio_info = {
+	.read_raw = renesas_mtu3_cnt_read_raw,
+	.write_raw = renesas_mtu3_cnt_write_raw,
+};
+
+#define RENESAS_MTU3_COUNTER_CHANNEL(ch) {				\
+	.type = IIO_COUNT,						\
+	.indexed = 0,							\
+	.channel = (ch),						\
+	.info_mask_separate =	BIT(IIO_CHAN_INFO_RAW) |		\
+				BIT(IIO_CHAN_INFO_ENABLE),		\
+	.ext_info = renesas_mtu3_cnt_ext_info,				\
+}
+
+static struct iio_chan_spec renesas_mtu3_cnt_channels[] = {
+	/* This is quirk attribute to switch input pins of MTU2 */
+	RENESAS_MTU3_COUNTER_CHANNEL(0),
+	RENESAS_MTU3_COUNTER_CHANNEL(1),
+};
+
 static int renesas_mtu3_probe(struct platform_device *pdev)
 {
-	struct renesas_mtu3_device *mtu = platform_get_drvdata(pdev);
+	struct renesas_mtu3_device *mtu;
 	struct device_node *np = pdev->dev.of_node;
-	int ret, i;
+	u32 tmp, num_counters = 0;
+	int ret, i, j;
+
+	/*
+	 * Set the highest priority of checking counters property in devicetree
+	 * to create IIO devices firstly for preventing conflicts.
+	 */
+	if (of_get_property(np, "16-bit_phase_counting", &tmp)) {
+		struct iio_dev *indio_dev;
+
+		indio_dev = devm_iio_device_alloc(&pdev->dev,
+						  sizeof(struct renesas_mtu3_device));
+		if (!indio_dev)
+			return -ENOMEM;
+
+		num_counters = tmp/sizeof(u32);
+		indio_dev->num_channels = 0;
+
+		for (i = 0; i < num_counters; i++) {
+			of_property_read_u32_index(np, "16-bit_phase_counting",
+						   i, &tmp);
+			/*
+			 * MTU3 16-bit phase counting only support channels 1&2.
+			 * We skip setting with the cases that the channel is other numbers.
+			 */
+			if ((tmp == 1 || tmp == 2) && indio_dev->num_channels < 2) {
+				j = indio_dev->num_channels;
+				if (tmp == 1)
+					renesas_mtu3_cnt_channels[j].extend_name = "mtu1";
+				else
+					renesas_mtu3_cnt_channels[j].extend_name = "mtu2";
+
+				indio_dev->num_channels++;
+			}
+		}
+
+		num_counters = indio_dev->num_channels;
+
+		if (indio_dev->num_channels > 0) {
+			indio_dev->name = dev_name(&pdev->dev);
+			indio_dev->modes = INDIO_DIRECT_MODE;
+			indio_dev->info = &renesas_mtu3_iio_info;
+			indio_dev->channels = renesas_mtu3_cnt_channels;
+			ret = iio_device_register(indio_dev);
+			if (ret < 0) {
+				dev_err(&pdev->dev,
+					"failed to register IIO counter%d\n", ret);
+				iio_device_free(indio_dev);
+				num_counters = 0;
+			} else {
+				mtu = iio_priv(indio_dev);
+				goto skip_allocate_mtu_pointer;
+			}
+		} else
+			iio_device_free(indio_dev);
+	}
 
 	mtu = kzalloc(sizeof(*mtu), GFP_KERNEL);
-	if (mtu == NULL)
+	if (mtu == NULL) {
+		kfree(mtu);
 		return -ENOMEM;
+	}
+
+skip_allocate_mtu_pointer:
 
 	mtu->pdev = pdev;
 	raw_spin_lock_init(&mtu->lock);
@@ -1147,6 +1490,29 @@ static int renesas_mtu3_probe(struct platform_device *pdev)
 		dev_err(&mtu->pdev->dev,
 			"failed to allocate memory for MTU3 channels with error %d\n", ret);
 		goto err_unmap;
+	}
+
+	/* Setting MTU3 channels for phase counting functions */
+	if (num_counters > 0) {
+		for (i = 0; i < num_counters; i++) {
+			if (!strcmp(renesas_mtu3_cnt_channels[i].extend_name,
+				   "mtu1"))
+				j = 1;
+			else if (!strcmp(renesas_mtu3_cnt_channels[i].extend_name,
+					 "mtu2"))
+				j = 2;
+			mtu->channels[j].function = MTU3_PHASE_COUNTING;
+			renesas_mtu3_setup_channel(&mtu->channels[j],
+						   j, mtu);
+			/*
+			 * Phase counting mode 1 will be used as default
+			 * when initializing counters.
+			 */
+			renesas_mtu3_ch_reg_write(&mtu->channels[j],
+						  TMDR1, TMDR_MD_PHASE_CNT_1);
+			dev_info(&mtu->pdev->dev, "ch%d used for phase counting\n",
+				 mtu->channels[j].index);
+		}
 	}
 
 	/* Setting for PWM functions */
@@ -1224,19 +1590,18 @@ static struct platform_driver renesas_mtu3_device_driver = {
 	},
 };
 
-static int __init renesas_mtu3_init(void)
+static int __maybe_unused __init renesas_mtu3_init(void)
 {
 	return platform_driver_register(&renesas_mtu3_device_driver);
 
 }
 
-static void __exit renesas_mtu3_exit(void)
+static void __maybe_unused __exit renesas_mtu3_exit(void)
 {
 	platform_driver_unregister(&renesas_mtu3_device_driver);
 }
 
-subsys_initcall(renesas_mtu3_init);
-module_exit(renesas_mtu3_exit);
+module_platform_driver(renesas_mtu3_device_driver);
 
 MODULE_DESCRIPTION("Renesas MTU3 Timer Driver");
 MODULE_LICENSE("GPL v2");
