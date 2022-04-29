@@ -362,7 +362,7 @@
 			interrupts = <382 IRQ_TYPE_LEVEL_HIGH>,
 				     <380 IRQ_TYPE_EDGE_RISING>,
 				     <381 IRQ_TYPE_EDGE_RISING>,
-				     <284 IRQ_TYPE_LEVEL_HIGH>,
+				     <384 IRQ_TYPE_LEVEL_HIGH>,
 				     <385 IRQ_TYPE_LEVEL_HIGH>,
 				     <383 IRQ_TYPE_LEVEL_HIGH>,
 				     <386 IRQ_TYPE_LEVEL_HIGH>,
