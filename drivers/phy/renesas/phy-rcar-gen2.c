@@ -868,7 +868,7 @@ static int rcar_gen2_phy_probe(struct platform_device *pdev)
 #endif
 
 		error = of_property_read_u32(np, "reg", &channel_num);
-		if (error || channel_num >= data->num_channels) {
+		if (error || channel_num > 2) {
 			dev_err(dev, "Invalid \"reg\" property\n");
 			of_node_put(np);
 			return error;
