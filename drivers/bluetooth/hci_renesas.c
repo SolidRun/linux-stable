@@ -18,6 +18,7 @@
 #include <linux/module.h>
 #include <linux/of.h>
 #include <linux/serdev.h>
+#include <linux/gpio/consumer.h>
 #include <net/bluetooth/bluetooth.h>
 #include <net/bluetooth/hci_core.h>
 
@@ -37,6 +38,10 @@ enum {
 	STATE_FW_BOOTED
 };
 
+#define VERSION "0.1"
+
+#define FIRMWARE_DA14531	"renesas/hci_531.bin"
+
 #define STX		0x02
 #define SOH		0x01
 #define ACK		0x06
@@ -45,6 +50,8 @@ enum {
 
 struct renesas_serdev {
 	struct hci_uart hu;
+
+	struct gpio_desc *reset;
 };
 
 struct renesas_data {
@@ -161,6 +168,32 @@ static int renesas_send_fw_size(struct hci_uart *hu, u16 length)
 	return 0;
 }
 
+static void reset_device(struct gpio_desc *gpio)
+{
+	if (gpiod_get_value(gpio) == 0) {
+		gpiod_set_value_cansleep(gpio, 1);
+		usleep_range(1000, 2000);
+	}
+	gpiod_set_value_cansleep(gpio, 0);
+	usleep_range(5000, 10000);
+	gpiod_direction_input(gpio);
+}
+
+static void renesas_reset(struct hci_uart *hu)
+{
+	struct serdev_device *serdev = hu->serdev;
+	if (serdev) {
+		struct renesas_serdev *rdatadev = serdev_device_get_drvdata(serdev);
+		if (rdatadev && rdatadev->reset) {
+			reset_device(rdatadev->reset);
+		} else {
+			bt_dev_warn(hu->hdev, "Reset pin is not available!");
+		}
+	} else {
+		bt_dev_warn(hu->hdev, "Reset is required!");
+	}
+}
+
 static int renesas_load_firmware(struct hci_dev *hdev, const char *name)
 {
 	struct hci_uart *hu = hci_get_drvdata(hdev);
@@ -188,6 +221,9 @@ static int renesas_load_firmware(struct hci_dev *hdev, const char *name)
 
 	rdata->state = STATE_FW_INIT;
 	set_bit(STATE_FW_STX_PENDING, &rdata->flags);
+
+	/* reset */
+	renesas_reset(hu);
 
 	while (rdata->state != STATE_FW_DONE) {
 		struct sk_buff *skb;
@@ -296,7 +332,7 @@ static int renesas_setup(struct hci_uart *hu)
 
 	hci_uart_set_flow_control(hu, true);
 
-	err = renesas_load_firmware(hu->hdev, "renesas/hci_531.bin");
+	err = renesas_load_firmware(hu->hdev, FIRMWARE_DA14531);
 	if (err)
 		return err;
 
@@ -432,6 +468,13 @@ static int renesas_serdev_probe(struct serdev_device *serdev)
 	rdatadev->hu.serdev = serdev;
 	serdev_device_set_drvdata(serdev, rdatadev);
 
+	rdatadev->reset = devm_gpiod_get(&serdev->dev, "reset", GPIOD_OUT_HIGH);
+	if (IS_ERR(rdatadev->reset)) {
+		int err = 0;
+		err = PTR_ERR(rdatadev->reset);
+		dev_warn(&serdev->dev, "could not get reset gpio: %d", err);
+	}
+
 	return hci_uart_register_device(&rdatadev->hu, &renesas_proto);
 }
 
@@ -472,3 +515,9 @@ int __exit renesas_deinit(void)
 
 	return hci_uart_unregister_proto(&renesas_proto);
 }
+
+MODULE_AUTHOR("Alvin Park <alvin.park.pv@renesas.com>");
+MODULE_DESCRIPTION("Renesas Bluetooth Serial driver ver " VERSION);
+MODULE_VERSION(VERSION);
+MODULE_LICENSE("GPL");
+MODULE_FIRMWARE(FIRMWARE_DA14531);
