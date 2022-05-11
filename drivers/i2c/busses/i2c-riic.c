@@ -281,6 +281,10 @@ static const struct i2c_algorithm riic_algo = {
 	.functionality	= riic_func,
 };
 
+static const struct i2c_adapter_quirks riic_quirks = {
+	.flags = I2C_AQ_NO_ZERO_LEN,
+};
+
 static int riic_init_hw(struct riic_dev *riic, struct i2c_timings *t)
 {
 	int ret = 0;
@@ -453,6 +457,8 @@ static int riic_i2c_probe(struct platform_device *pdev)
 	adap->algo = &riic_algo;
 	adap->dev.parent = &pdev->dev;
 	adap->dev.of_node = pdev->dev.of_node;
+
+	adap->quirks = &riic_quirks;
 
 	init_completion(&riic->msg_done);
 
