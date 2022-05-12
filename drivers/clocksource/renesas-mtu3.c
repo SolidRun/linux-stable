@@ -82,41 +82,113 @@ struct renesas_mtu3_device {
 	struct mtu3_pwm_device *pwms;
 };
 
-/* shared register offsets */
+/* 8-bit shared register offsets macros */
 #define TSTRA		0x080 /* Timer start register A */
-#define TSTRB		0x880 /* shared register */
+#define TSTRB		0x880 /* Timer start register B */
+#define TSYRA		0x081 /* Timer synchronous register A */
+#define TSYRB		0x881 /* Timer synchronous register B */
 #define TOERA		0x00A /* Timer output master enable register A */
 #define TOERB		0x80A /* Timer output master enable register B */
-#define TDDRA		0x016 /* Timer dead time data register A */
-#define TDDRB		0x816 /* Timer dead time data register B */
-#define TCDRA		0x014 /* Timer cycle data register A */
-#define TCDRB		0x814 /* Timer cycle data register B */
-#define TCBRA		0x022 /* Timer cycle buffer register A */
-#define TCBRB		0x822 /* Timer cycle buffer register B */
 #define TDERA		0x034 /* Timer dead time enable A */
 #define TDERB		0x834 /* Timer dead time enable B */
 #define TOCR1A		0x00E /* Timer output control register 1A */
 #define TOCR1B		0x80E /* Timer output control register 1B */
 #define TOCR2A		0x00F /* Timer output control register 2A */
 #define TOCR2B		0x80F /* Timer output control register 2B */
+#define TGCRA		0x00F /* Timer gate control register A */
+#define TOLBRA		0x036 /* Timer output level buffer register A */
+#define TOLBRB		0x836 /* Timer output level buffer register B */
+#define TITMRA		0x03A /* Timer interrupt skipping mode register A */
+#define TITMRB		0x83A /* Timer interrupt skipping mode register B */
+#define TITCR1A		0x030 /* Timer interrupt skipping set register 1A */
+#define TITCR1B		0x830 /* Timer interrupt skipping set register 1B */
+#define TITCNT1A	0x031 /* Timer interrupt skipping register A */
+#define TITCNT1B	0x831 /* Timer interrupt skipping register B */
+#define TITCR2A		0x03B /* Timer interrupt skipping set register 2A */
+#define TITCR2B		0x83B /* Timer interrupt skipping set register 2B */
+#define TITCNT2A	0x03C /* Timer interrupt skipping counter 2A */
+#define TITCNT2B	0x83C /* Timer interrupt skipping counter 2B */
+#define TWCRA		0x060 /* Timer waveform control register A */
+#define TWCRB		0x860 /* Timer waveform control register B */
+#define TMDR2A		0x070 /* Timer mode register 2A */
+#define TMDR2B		0x870 /* Timer mode register 2B */
+#define TRWERA		0x084 /* Timer read/write enable register A */
+#define TRWERB		0x884 /* Timer read/write enable register B */
+#define TCSYSTR		0x082 /* Timer counter synchronous start register */
+/*
+ * TMDR3 and NFCRC are unique registers supporting for operation of channels
+ * which they are not belong to, so we put their offsets in shared registers.
+ */
 #define TMDR3		0x191 /* Timer Mode Register 3 */
+#define NFCRC		0x099 /* Noise filter control register C */
 
-/* 8 bit channel registers */
-#define TCR		0 /* Timer control register */
-#define TMDR1		1 /* Timer mode register 1 */
-#define TIORH		2 /* Timer I/O control register H */
-#define TIOR		2 /* Timer I/O control register */
-#define TIORL		3 /* Timer I/O control register L */
-#define TIER		4 /* channel register */
-#define TSR		5 /* channel register */
-#define TCR2		6 /* channel register */
+/* 16-bit shared register offset macros */
+#define TDDRA		0x016 /* Timer dead time data register A */
+#define TDDRB		0x816 /* Timer dead time data register B */
+#define TCDRA		0x014 /* Timer cycle data register A */
+#define TCDRB		0x814 /* Timer cycle data register B */
+#define TCBRA		0x022 /* Timer cycle buffer register A */
+#define TCBRB		0x822 /* Timer cycle buffer register B */
+#define TCNTSA		0x020 /* Timer subcounter A */
+#define TCNTSB		0x820 /* Timer subcounter B */
 
-/* 16 bit channel registers */
-#define TCNT		7 /* Timer counter */
-#define TGRA		8 /* Timer general register A */
-#define TGRB		9 /* Timer general register B */
-#define TGRC		10 /* Timer general register C */
-#define TGRD		11 /* Timer general register D */
+/*
+ * MTU5 contains 3 timer counter registers and is totaly different
+ * from other channels, so we must separate its offset
+ */
+
+/* 8-bit register offset macros of MTU3 channels except MTU5 */
+#define TIER		0 /* Timer interrupt register */
+#define NFCR		1 /* Timer status register */
+#define TSR		2 /* Noise filter control register */
+#define TCR		3 /* Timer control register */
+#define TCR2		4 /* Timer control register 2 */
+#define TMDR1		5 /* Timer mode register 1 */
+#define TIOR		6 /* Timer I/O control register */
+#define TIORH		6 /* Timer I/O control register H */
+#define TIORL		7 /* Timer I/O control register L */
+/* Only MTU3/4/6/7 have TBTM registers */
+#define TBTM		8 /* Timer buffer operation transfer mode register */
+
+/* 8-bit MTU5 register offset macros */
+#define TSTR		2 /* MTU5 Timer start register */
+#define TCNTCMPCLR	3 /* MTU5 Timer compare match clear register */
+#define TCRU		4 /* Timer control register U */
+#define TCR2U		5 /* Timer control register 2U */
+#define TIORU		6 /* Timer I/O control register U */
+#define TCRV		7 /* Timer control register V */
+#define TCR2V		8 /* Timer control register 2V */
+#define TIORV		9 /* Timer I/O control register V */
+#define TCRW		10 /* Timer control register W */
+#define TCR2W		11 /* Timer control register 2W */
+#define TIORW		12 /* Timer I/O control register W */
+
+/* 16-bit register offset macros of MTU3 channels except MTU5 */
+#define TCNT		0 /* Timer counter */
+#define TGRA		1 /* Timer general register A */
+#define TGRB		2 /* Timer general register B */
+#define TGRC		3 /* Timer general register C */
+#define TGRD		4 /* Timer general register D */
+#define TGRE		5 /* Timer general register E */
+#define TGRF		6 /* Timer general register F */
+#define TADCR		7 /* Timer A/D converter start request control register */
+#define TADCORA		8 /* Timer A/D converter start request cycle set register A */
+#define TADCORB		9 /* Timer A/D converter start request cycle set register B */
+#define TADCOBRA	10 /* Timer A/D converter start request cycle set buffer register A */
+#define TADCOBRB	11 /* Timer A/D converter start request cycle set buffer register B */
+
+/* 16-bit MTU5 register offset macros */
+#define TCNTU		0 /* MTU5 Timer counter U */
+#define TGRU		1 /* MTU5 Timer general register U */
+#define TCNTV		2 /* MTU5 Timer counter V */
+#define TGRV		3 /* MTU5 Timer general register V */
+#define TCNTW		4 /* MTU5 Timer counter W */
+#define TGRW		5 /* MTU5 Timer general register W */
+
+/* 32-bit register offset */
+#define TCNTLW		0 /* Timer longword counter */
+#define TGRALW		1 /* Timer longword general register A */
+#define TGRBLW		2 /* Timer longowrd general register B */
 
 /* Macros for setting registers */
 #define TCR_CCLR_NONE		(0 << 5)
@@ -210,77 +282,181 @@ struct renesas_mtu3_device {
 #define FLAG_SKIPEVENT (1 << 3)
 #define FLAG_IRQCONTEXT (1 << 4)
 
-static unsigned long rzg2l_mtu_reg_offs[][12] = {
-	{[TCR] = 0x0, [TMDR1] = 0x1, [TIORH] = 0x2, [TIORL] = 0x3, [TIER] = 0x4,
-	 [TCNT] = 0x6, [TGRA] = 0x8, [TGRB] = 0xA, [TGRC] = 0xC, [TGRD] = 0xE,
-	 [TCR2] = 0x28 },
-	{[TCR] = 0x0, [TMDR1] = 0x1, [TIOR] = 0x2, [TIER] = 0x4, [TSR] = 0x5,
-	 [TCNT] = 0x6, [TGRA] = 0x8, [TGRB] = 0xA, [TCR2] = 0x14 },
-	{[TCR] = 0x0, [TMDR1] = 0x1, [TIOR] = 0x2, [TIER] = 0x4, [TSR] = 0x5,
-	 [TCNT] = 0x6, [TGRA] = 0x8, [TGRB] = 0xA, [TCR2] = 0xC },
-	{[TCR] = 0x0, [TMDR1] = 0x2, [TIORH] = 0x4, [TIORL] = 0x5, [TIER] = 0x8,
-	 [TCNT] = 0x10, [TGRA] = 0x18, [TGRB] = 0x1A, [TGRC] = 0x24,
-	 [TGRD] = 0x26, [TCR2] = 0x4C, [TSR] = 0x2C },
-	{[TCR] = 0x0, [TMDR1] = 0x2, [TIORH] = 0x5, [TIORL] = 0x6, [TIER] = 0x8,
-	 [TCNT] = 0x11, [TGRA] = 0x1B, [TGRB] = 0x1D, [TGRC] = 0x27,
-	 [TGRD] = 0x29, [TSR] = 0x2C, [TCR2] = 0x4C },
-	{},
-	{[TCR] = 0x0, [TMDR1] = 0x2, [TIORH] = 0x4, [TIORL] = 0x5, [TIER] = 0x8,
-	 [TCNT] = 0x10, [TGRA] = 0x18, [TGRB] = 0x1A, [TGRC] = 0x24,
-	 [TGRD] = 0x26, [TSR] = 0x2C, [TCR2] = 0x4C },
-	{[TCR] = 0x0, [TMDR1] = 0x2, [TIORH] = 0x5, [TIORL] = 0x6, [TIER] = 0x8,
-	 [TCNT] = 0x11, [TGRA] = 0x1B, [TGRB] = 0x1D, [TGRC] = 0x27,
-	 [TGRD] = 0x29, [TSR] = 0x2C, [TCR2] = 0x4C },
-	{[TCR] = 0x0, [TMDR1] = 0x1, [TIORH] = 0x2, [TIORL] = 0x3, [TIER] = 0x4,
-	 [TCNT] = 0x8, [TGRA] = 0xC, [TGRB] = 0x10, [TGRC] = 0x14,
-	 [TGRD] = 0x18, [TCR2] = 0x6 }
+static unsigned long renesas_mtu3_8bit_ch_reg_offs[][13] = {
+	{[TIER] = 0x4, [NFCR] = 0x70, [TCR] = 0x0, [TCR2] = 0x28, [TMDR1] = 0x1,
+	 [TIORH] = 0x2, [TIORL] = 0x3},
+	{[TIER] = 0x4, [NFCR] = 0xEF, [TSR] = 0x5, [TCR] = 0x0, [TCR2] = 0x14,
+	 [TMDR1] = 0x1, [TIOR] = 0x2},
+	{[TIER] = 0x4, [NFCR] = 0x16E, [TSR] = 0x5, [TCR] = 0x0, [TCR2] = 0xC,
+	 [TMDR1] = 0x1, [TIOR] = 0x2},
+	{[TIER] = 0x8, [NFCR] = 0x93, [TSR] = 0x2C, [TCR] = 0x0, [TCR2] = 0x4C,
+	 [TMDR1] = 0x2, [TIORH] = 0x4, [TIORL] = 0x5, [TBTM] = 0x38},
+	{[TIER] = 0x8, [NFCR] = 0x93, [TSR] = 0x2C, [TCR] = 0x0, [TCR2] = 0x4C,
+	 [TMDR1] = 0x2, [TIORH] = 0x5, [TIORL] = 0x6, [TBTM] = 0x38},
+	{[TIER] = 0x32, [NFCR] = 0x1EB, [TSTR] = 0x34, [TCNTCMPCLR] = 0x36,
+	 [TCRU] = 0x4, [TCR2U] = 0x5, [TIORU] = 0x6, [TCRV] = 0x14, [TCR2V] = 0x15,
+	 [TIORV] = 0x16, [TCRW] = 0x24, [TCR2W] = 0x25, [TIORW] = 0x26},
+	{[TIER] = 0x8, [NFCR] = 0x93, [TSR] = 0x2C, [TCR] = 0x0, [TCR2] = 0x4C,
+	 [TMDR1] = 0x2, [TIORH] = 0x4, [TIORL] = 0x5, [TBTM] = 0x38},
+	{[TIER] = 0x8, [NFCR] = 0x93, [TSR] = 0x2C, [TCR] = 0x0, [TCR2] = 0x4C,
+	 [TMDR1] = 0x2, [TIORH] = 0x5, [TIORL] = 0x6, [TBTM] = 0x38},
+	{[TIER] = 0x4, [NFCR] = 0x368, [TCR] = 0x0, [TCR2] = 0x6, [TMDR1] = 0x1,
+	 [TIORH] = 0x2, [TIORL] = 0x3}
 };
 
-static inline unsigned long renesas_mtu3_ch_reg_read(
-		struct renesas_mtu3_channel *ch, int reg_nr)
+static unsigned long renesas_mtu3_16bit_ch_reg_offs[][12] = {
+	{[TCNT] = 0x6, [TGRA] = 0x8, [TGRB] = 0xA, [TGRC] = 0xC, [TGRD] = 0xE,
+	 [TGRE] = 0x20, [TGRF] = 0x22},
+	{[TCNT] = 0x6, [TGRA] = 0x8, [TGRB] = 0xA},
+	{[TCNT] = 0x6, [TGRA] = 0x8, [TGRB] = 0xA},
+	{[TCNT] = 0x10, [TGRA] = 0x18, [TGRB] = 0x1A, [TGRC] = 0x24, [TGRD] = 0x26,
+	 [TGRE] = 0x72},
+	{[TCNT] = 0x11, [TGRA] = 0x1B, [TGRB] = 0x1D, [TGRC] = 0x27, [TGRD] = 0x29,
+	 [TGRE] = 0x73, [TGRF] = 0x75, [TADCR] = 0x3F, [TADCORA] = 0x43,
+	 [TADCORB] = 0x45, [TADCOBRA] = 0x47, [TADCOBRB] = 0x49},
+	{[TCNTU] = 0x0, [TGRU] = 0x2, [TCNTV] = 0x10, [TGRV] = 0x12, [TCNTW] = 0x20,
+	 [TGRW] = 0x22},
+	{[TCNT] = 0x10, [TGRA] = 0x18, [TGRB] = 0x1A, [TGRC] = 0x24, [TGRD] = 0x26,
+	 [TGRE] = 0x72},
+	{[TCNT] = 0x11, [TGRA] = 0x1B, [TGRB] = 0x1D, [TGRC] = 0x27, [TGRD] = 0x29,
+	 [TGRE] = 0x73, [TGRF] = 0x75, [TADCR] = 0x3F, [TADCORA] = 0x43,
+	 [TADCORB] = 0x45, [TADCOBRA] = 0x47, [TADCOBRB] = 0x49},
+};
+
+static unsigned long renesas_mtu3_32bit_ch_reg_offs[][5] = {
+	{[TCNTLW] = 0x20, [TGRALW] = 0x24, [TGRBLW] = 0x28},
+	{[TCNT] = 0x8, [TGRA] = 0xC, [TGRB] = 0x10, [TGRC] = 0x14, [TGRD] = 0x18}
+};
+
+static inline int renesas_mtu3_8bit_ch_reg_read(struct renesas_mtu3_channel *ch,
+						int reg)
 {
 	unsigned long offs;
 
-	offs = rzg2l_mtu_reg_offs[ch->index][reg_nr];
-	if ((reg_nr <= TCR2) && (reg_nr >= TCR))
+	offs = renesas_mtu3_8bit_ch_reg_offs[ch->index][reg];
+
+	if ((reg != TCR) && (offs == 0))
+		return -EINVAL;
+
+	/* With MTU0/1/2/5/8, NFCR addresses are smaller than channels' base addresses */
+	if ((reg == NFCR) && ((ch->index <= 2) || (ch->index == 5) || (ch->index == 8)))
+		return ioread8(ch->base - offs);
+	else
 		return ioread8(ch->base + offs);
-	else if ((reg_nr >= TCNT) && (reg_nr <= TGRD))
-		return ioread16(ch->base + offs);
+}
+
+static inline int renesas_mtu3_16bit_ch_reg_read(struct renesas_mtu3_channel *ch,
+						int reg)
+{
+	unsigned long offs;
+
+	/* MTU8 doesn't have 16-bit registers */
+	if (ch->index > 7)
+		return -EINVAL;
+
+	offs = renesas_mtu3_16bit_ch_reg_offs[ch->index][reg];
+
+	if ((ch->index != 5) && (reg != TCNTU) && (offs == 0))
+		return -EINVAL;
+
+	return ioread16(ch->base + offs);
+}
+
+static inline int renesas_mtu3_32bit_ch_reg_read(struct renesas_mtu3_channel *ch,
+						int reg)
+{
+	unsigned long offs = 0;
+
+	if (ch->index == 1)
+		offs = renesas_mtu3_32bit_ch_reg_offs[0][reg];
+	else if (ch->index == 8)
+		offs = renesas_mtu3_32bit_ch_reg_offs[1][reg];
+
+	if (offs != 0)
+		return ioread32(ch->base + offs);
+
+	return -EINVAL;
+}
+
+static inline unsigned long renesas_mtu3_shared_reg_read(struct renesas_mtu3_device *mtu,
+							int reg_s)
+{
+	if (reg_s == TDDRA || reg_s == TDDRB ||
+	    reg_s == TCDRA || reg_s == TCDRB ||
+	    reg_s == TCBRA || reg_s == TCBRB ||
+	    reg_s == TCNTSA || reg_s == TCNTSB)
+		return ioread16(mtu->mapbase + reg_s);
+	else
+		return ioread8(mtu->mapbase + reg_s);
+}
+
+static inline int renesas_mtu3_8bit_ch_reg_write(struct renesas_mtu3_channel *ch,
+						int reg, u8 value)
+{
+	unsigned long offs;
+
+	offs = renesas_mtu3_8bit_ch_reg_offs[ch->index][reg];
+
+	if ((ch->index != 5) && (reg != TCR) && (offs == 0))
+		return -EINVAL;
+
+	/* With MTU0/1/2/5/8, NFCR addresses are smaller than channels' base addresses */
+	if ((reg == NFCR) && ((ch->index <= 2) || (ch->index == 5) || (ch->index == 8)))
+		iowrite8(value, ch->base - offs);
+	else
+		iowrite8(value, ch->base + offs);
+
 	return 0;
 }
 
-static inline unsigned long renesas_mtu3_shared_reg_read(
-			struct renesas_mtu3_device *mtu, int reg_nr)
-{
-	if (reg_nr == TDDRA || reg_nr == TDDRB ||
-	    reg_nr == TCDRA || reg_nr == TCDRB ||
-	    reg_nr == TCBRA || reg_nr == TCBRB)
-		return ioread16(mtu->mapbase + reg_nr);
-	else
-		return ioread8(mtu->mapbase + reg_nr);
-}
-
-static inline void renesas_mtu3_ch_reg_write(struct renesas_mtu3_channel *ch,
-			int reg_nr, unsigned long value)
+static inline int renesas_mtu3_16bit_ch_reg_write(struct renesas_mtu3_channel *ch,
+						int reg, u16 value)
 {
 	unsigned long offs;
 
-	offs = rzg2l_mtu_reg_offs[ch->index][reg_nr];
-	if ((reg_nr <= TCR2) && (reg_nr >= TCR))
-		iowrite8((u8)value, ch->base + offs);
-	else if ((reg_nr >= TCNT) && (reg_nr <= TGRD))
-		iowrite16((u16)value, ch->base + offs);
+	/* MTU8 doesn't have 16-bit registers */
+	if (ch->index > 7)
+		return -EINVAL;
+
+	offs = renesas_mtu3_16bit_ch_reg_offs[ch->index][reg];
+
+	/* Any 16-bit offs is invalid except MTU5.TCNTU */
+	if ((ch->index != 5) && (reg != TCNTU) && (offs == 0))
+		return -EINVAL;
+
+	iowrite16(value, ch->base + offs);
+
+	return 0;
+}
+
+static inline int renesas_mtu3_32bit_ch_reg_write(struct renesas_mtu3_channel *ch,
+						int reg, u32 value)
+{
+	unsigned long offs = 0;
+
+	if (ch->index == 1)
+		offs = renesas_mtu3_32bit_ch_reg_offs[0][reg];
+	else if (ch->index == 8)
+		offs = renesas_mtu3_32bit_ch_reg_offs[1][reg];
+
+	if (offs != 0) {
+		iowrite32(value, ch->base + offs);
+		return 0;
+	}
+
+	return -EINVAL;
 }
 
 static inline void renesas_mtu3_shared_reg_write(struct renesas_mtu3_device *mtu,
-					int reg_nr, unsigned long value)
+					int reg_s, unsigned long value)
 {
-	if (reg_nr == TDDRA || reg_nr == TDDRB ||
-	    reg_nr == TCDRA || reg_nr == TCDRB ||
-	    reg_nr == TCBRA || reg_nr == TCBRB)
-		iowrite16((u16)value, mtu->mapbase + reg_nr);
+	if (reg_s == TDDRA || reg_s == TDDRB ||
+	    reg_s == TCDRA || reg_s == TCDRB ||
+	    reg_s == TCBRA || reg_s == TCBRB ||
+	    reg_s == TCNTSA || reg_s == TCNTSB)
+		iowrite16((u16)value, mtu->mapbase + reg_s);
 	else
-		iowrite8((u8)value, mtu->mapbase + reg_nr);
+		iowrite8((u8)value, mtu->mapbase + reg_s);
 }
 
 static void renesas_mtu3_start_stop_ch(struct renesas_mtu3_channel *ch, bool start)
@@ -344,16 +520,17 @@ static int renesas_mtu3_enable(struct renesas_mtu3_channel *ch)
 	 * Clear on TGRA compare match, divide clock by 64.
 	 */
 	if (ch->function == MTU3_CLOCKSOURCE) {
-		renesas_mtu3_ch_reg_write(ch, TCR, TCR_TPSC_P64);
-		renesas_mtu3_ch_reg_write(ch, TIER, 0);
+		renesas_mtu3_8bit_ch_reg_write(ch, TCR, TCR_TPSC_P64);
+		renesas_mtu3_8bit_ch_reg_write(ch, TIER, 0);
 	} else if (ch->function == MTU3_CLOCKEVENT) {
-		renesas_mtu3_ch_reg_write(ch, TCR, TCR_CCLR_TGRA | TCR_TPSC_P64);
-		renesas_mtu3_ch_reg_write(ch, TIOR,
+		renesas_mtu3_8bit_ch_reg_write(ch, TCR,
+					TCR_CCLR_TGRA | TCR_TPSC_P64);
+		renesas_mtu3_8bit_ch_reg_write(ch, TIOR,
 			TIOC_IOCH(TIOR_OC_1_L_COMP_MATCH) |
 			TIOC_IOCL(TIOR_OC_1_L_COMP_MATCH));
-		renesas_mtu3_ch_reg_write(ch, TGRA, periodic);
-		renesas_mtu3_ch_reg_write(ch, TMDR1, TMDR_MD_NORMAL);
-		renesas_mtu3_ch_reg_write(ch, TIER, TIER_TGIEA);
+		renesas_mtu3_16bit_ch_reg_write(ch, TGRA, periodic);
+		renesas_mtu3_8bit_ch_reg_write(ch, TMDR1, TMDR_MD_NORMAL);
+		renesas_mtu3_8bit_ch_reg_write(ch, TIER, TIER_TGIEA);
 	}
 
 	/* enable channel */
@@ -468,7 +645,7 @@ static u32 renesas_mtu3_get_counter(struct renesas_mtu3_channel *ch)
 {
 	u32 v2;
 
-	v2 = renesas_mtu3_ch_reg_read(ch, TCNT);
+	v2 = renesas_mtu3_16bit_ch_reg_read(ch, TCNT);
 
 	return v2;
 }
@@ -662,10 +839,10 @@ static int renesas_mtu3_pwm_output_setup(struct renesas_mtu3_channel *ch,
 			output_mode = TIOR_OC_0_H_COMP_MATCH;
 
 		if (output == 0)
-			renesas_mtu3_ch_reg_write(ch, TIORH,
+			renesas_mtu3_8bit_ch_reg_write(ch, TIORH,
 			(TIOR_OC_1_TOGGLE << 4) | output_mode);
 		else if (output == 1)
-			renesas_mtu3_ch_reg_write(ch, TIORL,
+			renesas_mtu3_8bit_ch_reg_write(ch, TIORL,
 			(TIOR_OC_1_TOGGLE << 4) | output_mode);
 	} else if (ch->function == MTU3_PWM_COMPLEMENTARY) {
 		if (ch->index == 3) {
@@ -708,17 +885,17 @@ static int renesas_mtu3_pwm_enable(struct pwm_chip *chip,
 
 	ch1 = &mtu3->channels[mtu3->pwms[pwm->hwpwm].ch1];
 	if (ch1->function == MTU3_PWM_MODE_1) {
-		renesas_mtu3_ch_reg_write(ch1, TMDR1, TMDR_MD_PWM_1);
+		renesas_mtu3_8bit_ch_reg_write(ch1, TMDR1, TMDR_MD_PWM_1);
 		renesas_mtu3_pwm_output_setup(ch1, mtu3->pwms[pwm->hwpwm].output,
 					pwm->state.polarity);
 		renesas_mtu3_start_stop_ch(ch1, true);
 	} else if (ch1->function == MTU3_PWM_COMPLEMENTARY) {
 		ch2 = &mtu3->channels[mtu3->pwms[pwm->hwpwm].ch2];
-		renesas_mtu3_ch_reg_write(ch1, TMDR1, TMDR_MD_PWM_COMP_BOTH);
-		renesas_mtu3_ch_reg_write(ch2, TMDR1, TMDR_MD_PWM_COMP_BOTH);
+		renesas_mtu3_8bit_ch_reg_write(ch1, TMDR1, TMDR_MD_PWM_COMP_BOTH);
+		renesas_mtu3_8bit_ch_reg_write(ch2, TMDR1, TMDR_MD_PWM_COMP_BOTH);
 		val = renesas_mtu3_shared_reg_read(mtu3, TDDRA);
-		renesas_mtu3_ch_reg_write(ch1, TCNT, val);
-		renesas_mtu3_ch_reg_write(ch2, TCNT, 0);
+		renesas_mtu3_16bit_ch_reg_write(ch1, TCNT, val);
+		renesas_mtu3_16bit_ch_reg_write(ch2, TCNT, 0);
 		renesas_mtu3_pwm_output_setup(ch1, mtu3->pwms[pwm->hwpwm].output,
 					pwm->state.polarity);
 		renesas_mtu3_start_stop_ch(ch1, true);
@@ -737,21 +914,21 @@ static void renesas_mtu3_pwm_disable(struct pwm_chip *chip,
 
 	ch1 = &mtu3->channels[mtu3->pwms[pwm->hwpwm].ch1];
 	/* Return to normal mode and disable output pins of MTU3 channel */
-	renesas_mtu3_ch_reg_write(ch1, TMDR1, TMDR_MD_NORMAL);
+	renesas_mtu3_8bit_ch_reg_write(ch1, TMDR1, TMDR_MD_NORMAL);
 
 	/* Disable output waveform of MTU3 pins */
 	if (ch1->function == MTU3_PWM_MODE_1) {
 		if (mtu3->pwms[pwm->hwpwm].output == 0)
-			renesas_mtu3_ch_reg_write(ch1, TIORH,
+			renesas_mtu3_8bit_ch_reg_write(ch1, TIORH,
 			TIOR_OC_RETAIN);
 		else if (mtu3->pwms[pwm->hwpwm].output == 1)
-			renesas_mtu3_ch_reg_write(ch1, TIORL,
+			renesas_mtu3_8bit_ch_reg_write(ch1, TIORL,
 			TIOR_OC_RETAIN);
 
 		renesas_mtu3_start_stop_ch(ch1, false);
 	} else if (ch1->function == MTU3_PWM_COMPLEMENTARY) {
 		ch2 = &mtu3->channels[mtu3->pwms[pwm->hwpwm].ch2];
-		renesas_mtu3_ch_reg_write(ch2, TMDR1, TMDR_MD_NORMAL);
+		renesas_mtu3_8bit_ch_reg_write(ch2, TMDR1, TMDR_MD_NORMAL);
 
 		if (ch1->index == 3) {
 			val = renesas_mtu3_shared_reg_read(ch1->mtu, TOERA) &
@@ -828,15 +1005,15 @@ static int renesas_mtu3_pwm_config(struct pwm_chip *chip,
 		}
 
 		if (mtu3->pwms[pwm->hwpwm].output == 0) {
-			renesas_mtu3_ch_reg_write(ch1, TCR,
+			renesas_mtu3_8bit_ch_reg_write(ch1, TCR,
 			TCR_CCLR_TGRA | TCR_CKEG_RISING | prescaler);
-			renesas_mtu3_ch_reg_write(ch1, TGRB, duty);
-			renesas_mtu3_ch_reg_write(ch1, TGRA, period);
+			renesas_mtu3_16bit_ch_reg_write(ch1, TGRB, duty);
+			renesas_mtu3_16bit_ch_reg_write(ch1, TGRA, period);
 		} else if (mtu3->pwms[pwm->hwpwm].output == 1) {
-			renesas_mtu3_ch_reg_write(ch1, TCR,
+			renesas_mtu3_8bit_ch_reg_write(ch1, TCR,
 			TCR_CCLR_TGRC | TCR_CKEG_RISING | prescaler);
-			renesas_mtu3_ch_reg_write(ch1, TGRD, duty);
-			renesas_mtu3_ch_reg_write(ch1, TGRC, period);
+			renesas_mtu3_16bit_ch_reg_write(ch1, TGRD, duty);
+			renesas_mtu3_16bit_ch_reg_write(ch1, TGRC, period);
 		}
 	} else if (ch1->function == MTU3_PWM_COMPLEMENTARY) {
 
@@ -886,8 +1063,10 @@ static int renesas_mtu3_pwm_config(struct pwm_chip *chip,
 		}
 
 		ch2 = &mtu3->channels[mtu3->pwms[pwm->hwpwm].ch2];
-		renesas_mtu3_ch_reg_write(ch1, TCR, TCR_CKEG_RISING | prescaler);
-		renesas_mtu3_ch_reg_write(ch2, TCR, TCR_CKEG_RISING | prescaler);
+		renesas_mtu3_8bit_ch_reg_write(ch1, TCR,
+					TCR_CKEG_RISING | prescaler);
+		renesas_mtu3_8bit_ch_reg_write(ch2, TCR,
+					TCR_CKEG_RISING | prescaler);
 
 		if (ch1->index == 3 || ch1->index == 4) {
 			renesas_mtu3_shared_reg_write(mtu3, TDDRA, deadtime);
@@ -899,22 +1078,26 @@ static int renesas_mtu3_pwm_config(struct pwm_chip *chip,
 
 		if (ch1->index == 4 || ch1->index == 7) {
 			if (mtu3->pwms[pwm->hwpwm].output == 0) {
-				renesas_mtu3_ch_reg_write(ch2, TGRB, duty);
-				renesas_mtu3_ch_reg_write(ch2, TGRA,
+				renesas_mtu3_16bit_ch_reg_write(ch2,
+								TGRB, duty);
+				renesas_mtu3_16bit_ch_reg_write(ch2, TGRA,
 							period + deadtime);
 			} else if (mtu3->pwms[pwm->hwpwm].output == 1) {
-				renesas_mtu3_ch_reg_write(ch2, TGRD, duty);
-				renesas_mtu3_ch_reg_write(ch2, TGRC,
+				renesas_mtu3_16bit_ch_reg_write(ch2,
+								TGRD, duty);
+				renesas_mtu3_16bit_ch_reg_write(ch2, TGRC,
 							period + deadtime);
 			}
 		} else {
 			if (mtu3->pwms[pwm->hwpwm].output == 0) {
-				renesas_mtu3_ch_reg_write(ch1, TGRB, duty);
-				renesas_mtu3_ch_reg_write(ch1, TGRA,
+				renesas_mtu3_16bit_ch_reg_write(ch1,
+								TGRB, duty);
+				renesas_mtu3_16bit_ch_reg_write(ch1, TGRA,
 							period + deadtime);
 			} else if (mtu3->pwms[pwm->hwpwm].output == 1) {
-				renesas_mtu3_ch_reg_write(ch1, TGRD, duty);
-				renesas_mtu3_ch_reg_write(ch1, TGRC,
+				renesas_mtu3_16bit_ch_reg_write(ch1,
+								TGRD, duty);
+				renesas_mtu3_16bit_ch_reg_write(ch1, TGRC,
 							period + deadtime);
 			}
 		}
@@ -1134,7 +1317,7 @@ static ssize_t renesas_mtu3_cnt_get_phase_counting_mode(struct iio_dev *indio_de
 	if (ch < 0)
 		return ch;
 
-	tmp = renesas_mtu3_ch_reg_read(&mtu->channels[ch], TMDR1);
+	tmp = renesas_mtu3_8bit_ch_reg_read(&mtu->channels[ch], TMDR1);
 	if ((tmp >= TMDR_MD_PHASE_CNT_1) && (tmp <= TMDR_MD_PHASE_CNT_4))
 		tmp -= 3;
 	else if (tmp == TMDR_MD_PHASE_CNT_5)
@@ -1168,7 +1351,7 @@ static ssize_t renesas_mtu3_cnt_set_phase_counting_mode(struct iio_dev *indio_de
 	else
 		return len;
 
-	renesas_mtu3_ch_reg_write(&mtu->channels[ch], TMDR1, tmp);
+	renesas_mtu3_8bit_ch_reg_write(&mtu->channels[ch], TMDR1, tmp);
 
 	return len;
 }
@@ -1185,7 +1368,7 @@ static ssize_t renesas_mtu3_cnt_get_max_value(struct iio_dev *indio_dev,
 	if (ch < 0)
 		return ch;
 
-	ret = renesas_mtu3_ch_reg_read(&mtu->channels[ch], TGRA);
+	ret = renesas_mtu3_16bit_ch_reg_read(&mtu->channels[ch], TGRA);
 
 	if ((ret > 65535) || (ret < 0))
 		return -EINVAL;
@@ -1213,11 +1396,13 @@ static ssize_t renesas_mtu3_cnt_set_max_value(struct iio_dev *indio_dev,
 		return -EINVAL;
 
 	if (val > 0)
-		renesas_mtu3_ch_reg_write(&mtu->channels[ch], TCR, TCR_CCLR_TGRA);
+		renesas_mtu3_8bit_ch_reg_write(&mtu->channels[ch],
+						TCR, TCR_CCLR_TGRA);
 	else
-		renesas_mtu3_ch_reg_write(&mtu->channels[ch], TCR, TCR_CCLR_NONE);
+		renesas_mtu3_8bit_ch_reg_write(&mtu->channels[ch],
+						TCR, TCR_CCLR_NONE);
 
-	renesas_mtu3_ch_reg_write(&mtu->channels[ch], TGRA, val);
+	renesas_mtu3_16bit_ch_reg_write(&mtu->channels[ch], TGRA, val);
 
 	return len;
 }
@@ -1347,7 +1532,7 @@ static int renesas_mtu3_cnt_write_raw(struct iio_dev *indio_dev,
 		if (val < 0)
 			return -EINVAL;
 
-		renesas_mtu3_ch_reg_write(&mtu->channels[ch], TCNT, val);
+		renesas_mtu3_16bit_ch_reg_write(&mtu->channels[ch], TCNT, val);
 		break;
 	default:
 			return -EINVAL;
@@ -1508,8 +1693,8 @@ skip_allocate_mtu_pointer:
 			 * Phase counting mode 1 will be used as default
 			 * when initializing counters.
 			 */
-			renesas_mtu3_ch_reg_write(&mtu->channels[j],
-						  TMDR1, TMDR_MD_PHASE_CNT_1);
+			renesas_mtu3_8bit_ch_reg_write(&mtu->channels[j],
+							TMDR1, TMDR_MD_PHASE_CNT_1);
 			dev_info(&mtu->pdev->dev, "ch%d used for phase counting\n",
 				 mtu->channels[j].index);
 		}
