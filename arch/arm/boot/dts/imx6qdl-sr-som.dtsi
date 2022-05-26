@@ -91,7 +91,7 @@
                ethernet-phy@1 {
                        reg = <1>;
                        adi,phy-output-clock = "125mhz-free-running";
-                       status = "disabled";
+                       status = "okay";
                };
 	};
 };
