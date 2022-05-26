@@ -135,6 +135,16 @@
 				MX6QDL_PAD_CSI0_DAT11__UART1_RX_DATA	0x1b0b1
 			>;
 		};
+
+		/*
+		* ADIN1300 (som rev 1.9 or later) is always at address 1. It
+		* will be enabled automatically by U-Boot if detected.
+		*/
+		ethernet-phy@1 {
+			reg = <1>;
+			adi,phy-output-clock = "125mhz-free-running";
+			status = "okay";
+		};
 	};
 };
 
