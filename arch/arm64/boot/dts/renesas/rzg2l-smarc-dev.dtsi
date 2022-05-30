@@ -494,6 +494,18 @@
 #endif
 
 #if !(CN12)
+	poega_pins: poega {
+		pinmux = <RZG2L_PORT_PINMUX(36, 0, 5)>;
+	};
+
+	poegb_pins: poegb {
+		pinmux = <RZG2L_PORT_PINMUX(36, 1, 5)>;
+	};
+
+	poegc_pins: poegc {
+		pinmux = <RZG2L_PORT_PINMUX(37, 0, 5)>;
+	};
+
 	poegd_pins: poegd {
 		pinmux = <RZG2L_PORT_PINMUX(37, 1, 5)>; /* Ext Trigger*/
 	};
@@ -850,6 +862,24 @@
 #endif
 
 #if !(CN12)
+&poega {
+	pinctrl-0 = <&poega_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&poegb {
+	pinctrl-0 = <&poegb_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&poegc {
+	pinctrl-0 = <&poegc_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
 &poegd {
 	pinctrl-0 = <&poegd_pins>;
 	pinctrl-names = "default";
@@ -864,7 +894,7 @@
 	channel = "channel_B";
 	//conflict pin with SD1 WP
 #if !(CN12)
-	poeg = <&poegd>;
+	poeg = <&poega &poegb &poegc &poegd>;
 #endif
 	status = "okay";
 };
@@ -876,7 +906,7 @@
 	pinctrl-names = "default";
 	channel = "both_AB";
 #if !(CN12)
-	poeg = <&poegd>;
+	poeg = <&poega &poegb &poegc &poegd>;
 #endif
 	status = "okay";
 };
