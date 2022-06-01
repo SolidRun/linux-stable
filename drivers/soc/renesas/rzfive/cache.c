@@ -54,9 +54,9 @@ struct v5l2_plat {
 
 struct rzf_pma_plat {
 	unsigned long id;
-	u32 start;
-	u32 size;
-	u32 vaddr;
+	u64 start;
+	u64 size;
+	u64 vaddr;
 };
 
 #define MAX_CACHE_LINE_SIZE 256
@@ -503,8 +503,8 @@ static void cpu_l2c_of_to_plat(struct v5l2_plat *priv,
 	of_property_read_u32_array(np, "andes,data-ram-ctl", priv->dram_ctl, 2);
 
 	for (i = 0 ; i < 2 ; i++) {
-		of_property_read_u32_index(np, "pma-area", (i << 1), &(pma_area[i].start));
-		of_property_read_u32_index(np, "pma-area", (i << 1) + 1, &(pma_area[i].size));
+		of_property_read_u64_index(np, "pma-area", (i << 1), &(pma_area[i].start));
+		of_property_read_u64_index(np, "pma-area", (i << 1) + 1, &(pma_area[i].size));
 		pma_area[i].vaddr = pma_area[i].start + pma_area[i].size;
 		pma_area[i].id = i;
 		cpu_nocache_area_set(pma_area[i].start, pma_area[i].size, \

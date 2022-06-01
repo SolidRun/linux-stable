@@ -40,8 +40,7 @@
 
 		reserved: linux,cma@58000000 {
 			compatible = "shared-dma-pool";
-			linux,cma-default;
-			reusable;
+			no-map;
 			reg = <0x0 0x58000000 0x0 0x08000000>;
 		};
 	};
