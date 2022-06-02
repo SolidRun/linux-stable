@@ -1,0 +1,37 @@
+* Renesas RAA215300 Power Management Integrated Circuit bindings
+
+The RAA215300 is a high-performance, low cost 9-channel PMIC designed for 32-bit
+and 64-bit MCU and MPU applications. It supports DDR3, DDR3L, DDR4, and LPDDR4
+memory power requirements.
+The internally compensated regulators, built-in Real Time Clock (RTC), 32kHz
+crystal oscillator and coin cell battery charger provide a highly integrated,
+small footprint power solution ideal for System-On-Module (SoM) applications.
+
+The RAA215300 has six high efficiency buck regulators and three LDOs to provide
+the complete system power. The internal device registers and EEPROM can be used
+to configure and optimize the RAA215300 for different application requirements,
+for example: power sequences, output voltages, and switching frequencies.
+Dynamic Voltage Scaling (DVS) and low power Sleep modes are supported.
+
+Although the RAA215300 is an I2C slave that comes with an RTC device (same IP as
+the ISL1208), the RTC IP is actually implemented as an I2C slave on its own with
+its own I2C address, and its software support comes with a completely separated
+driver. In order for the RTC to work properly, it has to be enabled via the PMIC
+slave, and some RTC related features are also dealt with from the PMIC slave
+(e.g. the RTC battery backup charger).
+
+Required properties:
+ - compatible		: Should be "renesas,raa215300".
+ - reg			: I2C slave address.
+
+Optional properties:
+- rtc-enable		: Enables the RTC IP (which is disabled by default).
+
+Example:
+
+	pmic: raa215300@12 {
+		compatible = "renesas,raa215300";
+		reg = <0x12>;
+
+		rtc-enable;
+	};
