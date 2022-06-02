@@ -167,6 +167,26 @@ isl1208_i2c_validate_client(struct i2c_client *client)
 }
 
 static int
+isl1208_set_external_oscillator(struct i2c_client *client, bool enable)
+{
+	s32 data;
+	int ret;
+
+	data = i2c_smbus_read_byte_data(client, ISL1208_REG_SR);
+	if (data < 0)
+		return data;
+
+	if (enable)
+		ret = i2c_smbus_write_byte_data(client, ISL1208_REG_SR, data |
+						ISL1208_REG_SR_XTOSCB);
+	else
+		ret = i2c_smbus_write_byte_data(client, ISL1208_REG_SR, data &
+						~ISL1208_REG_SR_XTOSCB);
+
+	return ret;
+}
+
+static int
 isl1208_i2c_get_sr(struct i2c_client *client)
 {
 	return i2c_smbus_read_byte_data(client, ISL1208_REG_SR);
@@ -802,6 +822,7 @@ isl1208_probe(struct i2c_client *client, const struct i2c_device_id *id)
 	int rc = 0;
 	struct isl1208_state *isl1208;
 	int evdet_irq = -1;
+	bool external_oscillator;
 
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C))
 		return -ENODEV;
@@ -893,6 +914,18 @@ isl1208_probe(struct i2c_client *client, const struct i2c_device_id *id)
 	rc = rtc_nvmem_register(isl1208->rtc, &isl1208->nvmem_config);
 	if (rc)
 		return rc;
+
+	external_oscillator = of_property_read_bool(client->dev.of_node,
+						    "external-oscillator");
+
+	rc = isl1208_set_external_oscillator(client, external_oscillator);
+	if (rc)
+		return rc;
+
+	if (external_oscillator)
+		dev_info(&client->dev, "Using external oscillator");
+	else
+		dev_info(&client->dev, "Using internal oscillator");
 
 	return rtc_register_device(isl1208->rtc);
 }
