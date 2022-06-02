@@ -320,6 +320,78 @@
 			status = "disabled";
 		};
 
+		scif1: serial@1004bc00 {
+			compatible = "renesas,scif-r9a07g043f";
+			reg = <0 0x1004bc00 0 0x400>;
+			interrupts = <417 IRQ_TYPE_LEVEL_HIGH>,
+				     <419 IRQ_TYPE_LEVEL_HIGH>,
+				     <420 IRQ_TYPE_LEVEL_HIGH>,
+				     <418 IRQ_TYPE_LEVEL_HIGH>,
+				     <421 IRQ_TYPE_LEVEL_HIGH>,
+				     <421 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "eri", "rxi", "txi",
+					  "bri", "dri", "tei";
+			clocks = <&cpg CPG_MOD R9A07G043F_SCIF1_CLK_PCK>;
+			clock-names = "fck";
+			power-domains = <&cpg>;
+			resets = <&cpg R9A07G043F_SCIF1_RST_SYSTEM_N>;
+			status = "disabled";
+		    };
+
+		scif2: serial@1004c000 {
+			compatible = "renesas,scif-r9a07g043f";
+			reg = <0 0x1004c000 0 0x400>;
+			interrupts = <422 IRQ_TYPE_LEVEL_HIGH>,
+				     <424 IRQ_TYPE_LEVEL_HIGH>,
+				     <495 IRQ_TYPE_LEVEL_HIGH>,
+				     <493 IRQ_TYPE_LEVEL_HIGH>,
+				     <496 IRQ_TYPE_LEVEL_HIGH>,
+				     <496 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "eri", "rxi", "txi",
+					  "bri", "dri", "tei";
+			clocks = <&cpg CPG_MOD R9A07G043F_SCIF2_CLK_PCK>;
+			clock-names = "fck";
+			power-domains = <&cpg>;
+			resets = <&cpg R9A07G043F_SCIF2_RST_SYSTEM_N>;
+			status = "disabled";
+		    };
+
+		scif3: serial@1004c400 {
+			compatible = "renesas,scif-r9a07g043f";
+			reg = <0 0x1004c400 0 0x400>;
+			interrupts = <427 IRQ_TYPE_LEVEL_HIGH>,
+				     <429 IRQ_TYPE_LEVEL_HIGH>,
+				     <430 IRQ_TYPE_LEVEL_HIGH>,
+				     <428 IRQ_TYPE_LEVEL_HIGH>,
+				     <431 IRQ_TYPE_LEVEL_HIGH>,
+				     <431 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "eri", "rxi", "txi",
+					  "bri", "dri", "tei";
+			clocks = <&cpg CPG_MOD R9A07G043F_SCIF3_CLK_PCK>;
+			clock-names = "fck";
+			power-domains = <&cpg>;
+			resets = <&cpg R9A07G043F_SCIF3_RST_SYSTEM_N>;
+			status = "disabled";
+		    };
+
+		scif4: serial@1004c800 {
+			compatible = "renesas,scif-r9a07g043f";
+			reg = <0 0x1004c800 0 0x400>;
+			interrupts = <432 IRQ_TYPE_LEVEL_HIGH>,
+				     <434 IRQ_TYPE_LEVEL_HIGH>,
+				     <435 IRQ_TYPE_LEVEL_HIGH>,
+				     <433 IRQ_TYPE_LEVEL_HIGH>,
+				     <436 IRQ_TYPE_LEVEL_HIGH>,
+				     <436 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "eri", "rxi", "txi",
+					  "bri", "dri", "tei";
+			clocks = <&cpg CPG_MOD R9A07G043F_SCIF4_CLK_PCK>;
+			clock-names = "fck";
+			power-domains = <&cpg>;
+			resets = <&cpg R9A07G043F_SCIF4_RST_SYSTEM_N>;
+			status = "disabled";
+		    };
+
 		canfd: can@10050000 {
 			compatible = "renesas,r9a07g043f-canfd", "renesas,rzg2l-canfd";
 			reg = <0 0x10050000 0 0x8000>;
