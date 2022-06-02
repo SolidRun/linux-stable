@@ -24,6 +24,7 @@
 
 / {
 	aliases {
+		i2c3 = &i2c3;
 		ethernet0 = &eth0;
 		ethernet1 = &eth1;
 	};
@@ -451,4 +452,26 @@
 
 &ohci1 {
 	memory-region = <&global_cma>;
+};
+
+&i2c3 {
+	pinctrl-0 = <&i2c3_pins>;
+	pinctrl-names = "default";
+	clock-frequency = <400000>;
+
+	status = "okay";
+
+	pmic: raa215300@12 {
+		compatible = "renesas,raa215300";
+		reg = <0x12>;
+
+		rtc-enable;
+	};
+
+	rtc: isl1208@6f {
+		compatible = "isil,isl1208";
+		reg = <0x6f>;
+
+		external-oscillator;
+	};
 };
