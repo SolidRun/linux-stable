@@ -1458,7 +1458,7 @@ static ssize_t renesas_mtu3_cnt_set_inputs(struct iio_dev *indio_dev,
 					   const char *buf, size_t len)
 {
 	struct renesas_mtu3_device *mtu = iio_priv(indio_dev);
-	int ch, ret, val = 0;
+	int ch, val = 0;
 
 	ch = iio_chan_to_mtu3_chan(chan, mtu);
 	if (ch < 0)
@@ -1468,14 +1468,10 @@ static ssize_t renesas_mtu3_cnt_set_inputs(struct iio_dev *indio_dev,
 	if ((ch == 1) && (mtu->channels[ch].function == MTU3_16BIT_PHASE_COUNTING))
 		return -EPERM;
 
-	ret = kstrtoint(buf, 0, &val);
-	if (ret)
-		return ret;
-
-	if (val == 1) {
+	if (!strncmp(buf, "MTCLKA-MTCLKB", strlen("MTCLKA-MTCLKB"))) {
 		val = renesas_mtu3_shared_reg_read(mtu, TMDR3) & 0x1;
 		renesas_mtu3_shared_reg_write(mtu, TMDR3, val);
-	} else if (val == 0) {
+	} else if (!strncmp(buf, "MTCLKC-MTCLKD", strlen("MTCLKC-MTCLKD"))) {
 		val = renesas_mtu3_shared_reg_read(mtu, TMDR3) | 0x2;
 		renesas_mtu3_shared_reg_write(mtu, TMDR3, val);
 	} else
