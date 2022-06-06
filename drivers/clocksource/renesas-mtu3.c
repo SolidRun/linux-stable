@@ -285,6 +285,10 @@ struct renesas_mtu3_device {
 #define FLAG_SKIPEVENT (1 << 3)
 #define FLAG_IRQCONTEXT (1 << 4)
 
+/* Phase counting max values */
+#define PHASE_CNT_16_BIT_MAX	(BIT(15)-1)
+#define PHASE_CNT_32_BIT_MAX	(BIT(31)-1)
+
 static unsigned long renesas_mtu3_8bit_ch_reg_offs[][13] = {
 	{[TIER] = 0x4, [NFCR] = 0x70, [TCR] = 0x0, [TCR2] = 0x28, [TMDR1] = 0x1,
 	 [TIORH] = 0x2, [TIORL] = 0x3},
@@ -1377,7 +1381,7 @@ static ssize_t renesas_mtu3_cnt_get_max_value(struct iio_dev *indio_dev,
 		ret = renesas_mtu3_16bit_ch_reg_read(&mtu->channels[ch],
 							TGRA);
 	else if (mtu->channels[ch].function == MTU3_32BIT_PHASE_COUNTING)
-		ret = U32_MAX;
+		ret = PHASE_CNT_32_BIT_MAX;
 
 	return snprintf(buf, PAGE_SIZE, "%u\n", ret);
 }
@@ -1413,7 +1417,7 @@ static ssize_t renesas_mtu3_cnt_set_max_value(struct iio_dev *indio_dev,
 		renesas_mtu3_8bit_ch_reg_write(&mtu->channels[ch],
 						TCR, TCR_CCLR_NONE);
 	else if (mtu->channels[ch].function == MTU3_16BIT_PHASE_COUNTING) {
-		if (val > U16_MAX)
+		if (val > PHASE_CNT_16_BIT_MAX)
 			return -EINVAL;
 
 		renesas_mtu3_16bit_ch_reg_write(&mtu->channels[ch],
@@ -1520,8 +1524,8 @@ static int renesas_mtu3_cnt_read_raw(struct iio_dev *indio_dev,
 		return IIO_VAL_INT;
 	case IIO_CHAN_INFO_RAW:
 		if (mtu->channels[ch].function == MTU3_16BIT_PHASE_COUNTING)
-			*val = renesas_mtu3_16bit_ch_reg_read(&mtu->channels[ch],
-								TCNT);
+			*val = (short)renesas_mtu3_16bit_ch_reg_read(&mtu->channels[ch],
+									TCNT);
 		else if (mtu->channels[ch].function == MTU3_32BIT_PHASE_COUNTING)
 			*val = renesas_mtu3_32bit_ch_reg_read(&mtu->channels[ch],
 								TCNTLW);
@@ -1565,9 +1569,6 @@ static int renesas_mtu3_cnt_write_raw(struct iio_dev *indio_dev,
 			return -EINVAL;
 		break;
 	case IIO_CHAN_INFO_RAW:
-		if (val < 0)
-			return -EINVAL;
-
 		if (mtu->channels[ch].function == MTU3_16BIT_PHASE_COUNTING)
 			renesas_mtu3_16bit_ch_reg_write(&mtu->channels[ch],
 							TCNT, val);
@@ -1792,6 +1793,13 @@ skip_allocate_mtu_pointer:
 				 */
 				renesas_mtu3_8bit_ch_reg_write(&mtu->channels[j],
 							TMDR1, TMDR_MD_PHASE_CNT_1);
+
+				/* Initialize 16-bit counter max value */
+				renesas_mtu3_8bit_ch_reg_write(&mtu->channels[j], TCR,
+								TCR_CCLR_TGRA);
+				renesas_mtu3_16bit_ch_reg_write(&mtu->channels[j],
+							TGRA, PHASE_CNT_16_BIT_MAX);
+
 				dev_info(&mtu->pdev->dev,
 					 "ch%d used for 16-bit phase counting\n",
 					 mtu->channels[j].index);
