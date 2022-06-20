@@ -966,7 +966,7 @@ static int rzg2l_gpio_irq_check_tint_slot(struct rzg2l_pinctrl *pctrl,
 	return i;
 }
 
-static void rzg2l_gpio_irq_disable(struct irq_data *d)
+static void rzg2l_gpio_irq_shutdown(struct irq_data *d)
 {
 	struct gpio_chip *chip = irq_data_get_irq_chip_data(d);
 	struct rzg2l_pinctrl *pctrl = gpiochip_get_data(chip);
@@ -1561,7 +1561,7 @@ static int rzg2l_gpio_register(struct rzg2l_pinctrl *pctrl)
 	dev_dbg(pctrl->dev, "Registered gpio controller\n");
 
 	irq_chip->name = dev_name(pctrl->dev);
-	irq_chip->irq_disable = rzg2l_gpio_irq_disable;
+	irq_chip->irq_shutdown = rzg2l_gpio_irq_shutdown;
 	irq_chip->irq_mask = rzg2l_gpio_irq_mask;
 	irq_chip->irq_unmask = rzg2l_gpio_irq_unmask;
 	irq_chip->irq_set_type = rzg2l_gpio_irq_set_type;
