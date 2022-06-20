@@ -1124,13 +1124,13 @@ static int rzg2l_gpio_irq_set_type(struct irq_data *d, unsigned int type)
 
 	if (tint_slot > 15) {
 		reg32 = readl(pctrl->base_tint + TITSR1);
-		reg32 &= ~(IRQ_MASK << (tint_slot * 2));
-		reg32 |= irq_type << (tint_slot * 2);
+		reg32 &= ~(IRQ_MASK << ((tint_slot - 16) * 2));
+		reg32 |= irq_type << ((tint_slot - 16) * 2);
 		writel(reg32, pctrl->base_tint + TITSR1);
 	} else {
 		reg32 = readl(pctrl->base_tint + TITSR0);
-		reg32 &= ~(IRQ_MASK << ((tint_slot - 16) * 2));
-		reg32 |= irq_type << ((tint_slot - 16) * 2);
+		reg32 &= ~(IRQ_MASK << (tint_slot * 2));
+		reg32 |= irq_type << (tint_slot * 2);
 		writel(reg32, pctrl->base_tint + TITSR0);
 	}
 
