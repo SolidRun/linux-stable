@@ -1023,6 +1023,12 @@ static void rzg2l_gpio_irq_shutdown(struct irq_data *d)
 	reg32 &= ~(GENMASK(7, 0) << ((tint_slot % 4) * 8));
 	writel(reg32, pctrl->base_tint + TSSR(tint_slot / 4));
 
+	if (pctrl->data->irq_mask) {
+		reg32 = readl(pctrl->tint_irq_mask + TMSK);
+		reg32 |= BIT(tint_slot);
+		writel(reg32, pctrl->tint_irq_mask + TMSK);
+	}
+
 	spin_unlock_irqrestore(&pctrl->lock, flags);
 
 	pctrl->tint[tint_slot] = 0;
@@ -1050,9 +1056,15 @@ static void rzg2l_gpio_irq_mask(struct irq_data *d)
 
 	spin_lock_irqsave(&pctrl->lock, flags);
 
-	reg32 = readl(pctrl->base_tint + TSSR(tint_slot / 4));
-	reg32 &= ~(BIT(7) << ((tint_slot % 4) * 8));
-	writel(reg32, pctrl->base_tint + TSSR(tint_slot / 4));
+	if (pctrl->data->irq_mask) {
+		reg32 = readl(pctrl->tint_irq_mask + TMSK);
+		reg32 |= BIT(tint_slot);
+		writel(reg32, pctrl->tint_irq_mask + TMSK);
+	} else {
+		reg32 = readl(pctrl->base_tint + TSSR(tint_slot / 4));
+		reg32 &= ~(BIT(7) << ((tint_slot % 4) * 8));
+		writel(reg32, pctrl->base_tint + TSSR(tint_slot / 4));
+	}
 
 	spin_unlock_irqrestore(&pctrl->lock, flags);
 }
@@ -1068,7 +1080,6 @@ static void rzg2l_gpio_irq_unmask(struct irq_data *d)
 	u32 tint_slot;
 	unsigned long flags;
 	u32 reg32;
-	u32 irq_type;
 
 	gpioint = rzg2l_gpio_irq_validate_id(pctrl, port, bit);
 	if (gpioint == pctrl->data->ngpioints)
@@ -1080,24 +1091,32 @@ static void rzg2l_gpio_irq_unmask(struct irq_data *d)
 
 	spin_lock_irqsave(&pctrl->lock, flags);
 
-	if (tint_slot > 15) {
-		reg32 = readl(pctrl->base_tint + TITSR1);
-		reg32 = reg32 >> ((tint_slot - 16) * 2);
-		irq_type = reg32 & IRQ_MASK;
+	if (pctrl->data->irq_mask) {
+		reg32 = readl(pctrl->tint_irq_mask + TMSK);
+		reg32 &= ~BIT(tint_slot);
+		writel(reg32, pctrl->tint_irq_mask + TMSK);
 	} else {
-		reg32 = readl(pctrl->base_tint + TITSR0);
-		reg32 = reg32 >> (tint_slot * 2);
-		irq_type = reg32 & IRQ_MASK;
-	}
+		u32 irq_type;
 
-	reg32 = readl(pctrl->base_tint + TSSR(tint_slot / 4));
-	reg32 |= BIT(7) << (8 * (tint_slot % 4));
-	writel(reg32, pctrl->base_tint + TSSR(tint_slot / 4));
+		if (tint_slot > 15) {
+			reg32 = readl(pctrl->base_tint + TITSR1);
+			reg32 = reg32 >> ((tint_slot - 16) * 2);
+			irq_type = reg32 & IRQ_MASK;
+		} else {
+			reg32 = readl(pctrl->base_tint + TITSR0);
+			reg32 = reg32 >> (tint_slot * 2);
+			irq_type = reg32 & IRQ_MASK;
+		}
 
-	/* Clear Interrupt status bit to avoid unexpected triggering */
-	if ((irq_type == RISING_EDGE) || (irq_type == FALLING_EDGE)) {
-		reg32 = readl(pctrl->base_tint + TSCR);
-		writel(reg32 & ~BIT(tint_slot), pctrl->base_tint + TSCR);
+		reg32 = readl(pctrl->base_tint + TSSR(tint_slot / 4));
+		reg32 |= BIT(7) << (8 * (tint_slot % 4));
+		writel(reg32, pctrl->base_tint + TSSR(tint_slot / 4));
+
+		/* Clear Interrupt status bit to avoid unexpected triggering */
+		if ((irq_type == RISING_EDGE) || (irq_type == FALLING_EDGE)) {
+			reg32 = readl(pctrl->base_tint + TSCR);
+			writel(reg32 & ~BIT(tint_slot), pctrl->base_tint + TSCR);
+		}
 	}
 
 	spin_unlock_irqrestore(&pctrl->lock, flags);
@@ -1178,8 +1197,18 @@ static int rzg2l_gpio_irq_set_type(struct irq_data *d, unsigned int type)
 	}
 
 	reg32 = readl(pctrl->base_tint + TSSR(tint_slot / 4));
-	reg32 |= gpioint << (8 * (tint_slot % 4));
+	if (pctrl->data->irq_mask)
+		reg32 |= (BIT(7) | gpioint) << (8 * (tint_slot % 4));
+	else
+		reg32 |= gpioint << (8 * (tint_slot % 4));
 	writel(reg32, pctrl->base_tint + TSSR(tint_slot / 4));
+
+	/* Clear Interrupt status bit to avoid unexpected triggering */
+	if ((pctrl->data->irq_mask) &&
+	   ((irq_type == RISING_EDGE) || (irq_type == FALLING_EDGE))) {
+		reg32 = readl(pctrl->base_tint + TSCR);
+		writel(reg32 & ~BIT(tint_slot), pctrl->base_tint + TSCR);
+	}
 
 	spin_unlock_irqrestore(&pctrl->lock, flags);
 
@@ -1783,9 +1812,9 @@ static int rzg2l_pinctrl_probe(struct platform_device *pdev)
 	if (ret)
 		return ret;
 
-	/* Unmask all TINT interrupts mask if TMSK is existed */
+	/* Mask all TINT interrupts mask if TMSK is existed */
 	if (pctrl->data->irq_mask)
-		writel(0, pctrl->tint_irq_mask + TMSK);
+		writel(0xffffffff, pctrl->tint_irq_mask + TMSK);
 
 	dev_info(pctrl->dev, "%s support registered\n", DRV_NAME);
 	return 0;
