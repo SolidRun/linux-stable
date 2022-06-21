@@ -47,6 +47,8 @@
 		i2c0 = &i2c0;
 		i2c1 = &i2c1;
 		serial0 = &scif0;
+		mmc0 = &sdhi0;
+		mmc1 = &sdhi1;
 #if (CN11_ETHER0)
 		ethernet0 = &eth0;
 #endif
