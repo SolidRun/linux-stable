@@ -91,6 +91,7 @@
 #define PFC(n)			(0x0400 + 0x40 + (n) * 4)
 #define PIN(n)			(0x0800 + 0x10 + (n))
 #define IOLH(n)			(0x1000 + (n) * 8)
+#define SR(n)			(0x1400 + (n) * 8)
 #define IEN(n)			(0x1800 + (n) * 8)
 #define ISEL(n)			(0x2C00 + 0x80 + (n) * 8)
 #define PWPR			(0x3014)
@@ -112,6 +113,7 @@
 #define ETH_PVDD_MASK		0x03
 #define PFC_MASK		0x07
 #define IEN_MASK		0x01
+#define SR_MASK			0x01
 #define IOLH_MASK		0x03
 
 #define PM_INPUT		0x1
@@ -719,6 +721,14 @@ static int rzg2l_pinctrl_pinconf_get(struct pinctrl_dev *pctldev,
 		break;
 	}
 
+	case PIN_CONFIG_SLEW_RATE: {
+		if (!(cfg & PIN_CFG_SR))
+			return -EINVAL;
+
+		arg = rzg2l_read_pin_config(pctrl, SR(port_offset), bit, SR_MASK);
+		break;
+	}
+
 	default:
 		return -ENOTSUPP;
 	}
@@ -841,6 +851,18 @@ static int rzg2l_pinctrl_pinconf_set(struct pinctrl_dev *pctldev,
 				return -EINVAL;
 
 			rzg2l_rmw_pin_config(pctrl, IOLH(port_offset), bit, IOLH_MASK, index);
+			break;
+		}
+
+		case PIN_CONFIG_SLEW_RATE: {
+			unsigned int arg =
+					pinconf_to_config_argument(_configs[i]);
+
+			if (!(cfg & PIN_CFG_SR))
+				return -EINVAL;
+
+			rzg2l_rmw_pin_config(pctrl, SR(port_offset),
+					     bit, SR_MASK, !!arg);
 			break;
 		}
 
