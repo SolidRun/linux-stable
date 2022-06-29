@@ -96,8 +96,6 @@ static void rzg2l_mipi_dsi_clr(void __iomem *mem, u32 reg, u32 clr)
 	rzg2l_mipi_dsi_write(mem, reg, rzg2l_mipi_dsi_read(mem, reg) & ~clr);
 }
 
-static int rzg2l_mipi_dsi_parse_dt(struct rzg2l_mipi_dsi *mipi_dsi);
-
 /* -----------------------------------------------------------------------------
  * Hardware Setup
  */
@@ -561,10 +559,6 @@ static int rzg2l_mipi_dsi_attach(struct drm_bridge *bridge,
 	struct drm_encoder *encoder = bridge->encoder;
 	int ret;
 
-	ret = rzg2l_mipi_dsi_parse_dt(mipi_dsi);
-	if (ret < 0)
-		return ret;
-
 	/* If we have a next bridge just attach it. */
 	if (mipi_dsi->next_bridge)
 		return drm_bridge_attach(bridge->encoder,
@@ -930,6 +924,10 @@ static int rzg2l_mipi_dsi_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, mipi_dsi);
 	mipi_dsi->dev = dev;
+
+	ret = rzg2l_mipi_dsi_parse_dt(mipi_dsi);
+	if (ret < 0)
+		return ret;
 
 	/* Init bridge */
 	mipi_dsi->bridge.driver_private = mipi_dsi;
