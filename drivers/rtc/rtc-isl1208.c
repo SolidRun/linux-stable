@@ -944,3 +944,4 @@ module_i2c_driver(isl1208_driver);
 MODULE_AUTHOR("Herbert Valerio Riedel <hvr@gnu.org>");
 MODULE_DESCRIPTION("Intersil ISL1208 RTC driver");
 MODULE_LICENSE("GPL");
+MODULE_SOFTDEP("pre: raa215300");
