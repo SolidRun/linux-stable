@@ -1631,7 +1631,7 @@ static int rzg2l_gpt_probe(struct platform_device *pdev)
 		dev_info(&pdev->dev, "GPT not use POEG\n");
 	}
 
-	rzg2l_gpt->rstc = devm_reset_control_get(&pdev->dev, NULL);
+	rzg2l_gpt->rstc = devm_reset_control_get_shared(&pdev->dev, NULL);
 	if (IS_ERR(rzg2l_gpt->rstc)) {
 		dev_err(&pdev->dev, "failed to get cpg reset\n");
 		return PTR_ERR(rzg2l_gpt->rstc);
