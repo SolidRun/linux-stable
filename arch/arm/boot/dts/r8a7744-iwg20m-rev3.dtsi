@@ -1,0 +1,32 @@
+/*
+ * Device Tree Source for the iWave-RZG1M-20M Qseven SOM
+ *
+ * Copyright (C) 2017 Renesas Electronics Corp.
+ *
+ * This file is licensed under the terms of the GNU General Public License
+ * version 2.  This program is licensed "as is" without any warranty of any
+ * kind, whether express or implied.
+ */
+
+#include "r8a7744.dtsi"
+#include <dt-bindings/gpio/gpio.h>
+#include "r8a7744-iwg20m.dtsi"
+
+&qspi {
+	status = "okay";
+
+	/* WARNING - This device contains the bootloader. Handle with care. */
+	flash: flash@0 {
+		compatible = "sst,sst25vf016b", "jedec,spi-nor";
+		spi-max-frequency = <50000000>;
+	};
+};
+
+&sdhi0 {
+	/delete-property/ pinctrl-1;
+	/delete-property/ pinctrl-names;
+	/delete-property/ sd-uhs-sdr50;
+	pinctrl-names = "default";
+	vqmmc-supply = <&reg_3p3v>;
+	status = "okay";
+};
