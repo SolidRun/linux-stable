@@ -73,6 +73,9 @@
 #define CSIDPHYTIM1_THS_SETTLE(x)	((x) << 8)
 #define CSIDPHYTIM1_TCLK_SETTLE(x)	((x) << 0)
 
+/* D-PHY Skew Adjustment Function */
+#define CSIDPHYSKW0			0x460
+
 /* D-PHY Timing Setting Values for over 360 Mbps Transmission Rate */
 #define DPHY_TIMING_T_INIT		79801
 #define DPHY_TIMING_TCLK_MISS		4
@@ -246,6 +249,9 @@ static int rzg2l_csi2_dphy_setting(struct rzg2l_csi2 *priv, bool on)
 
 		rzg2l_csi2_write(priv, CSIDPHYTIM0, dphytim0);
 		rzg2l_csi2_write(priv, CSIDPHYTIM1, dphytim1);
+
+		/* Set D-PHY Skew Adjustment with recommended value */
+		rzg2l_csi2_write(priv, CSIDPHYSKW0, 0x00001111);
 
 		/* Set the EN_BGR bit */
 		rzg2l_csi2_set(priv, CSIDPHYCTRL0, CSIDPHYCTRL0_EN_BGR);
