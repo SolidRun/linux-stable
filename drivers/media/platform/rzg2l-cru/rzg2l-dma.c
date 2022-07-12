@@ -791,9 +791,14 @@ static int rzg2l_cru_set_stream(struct rzg2l_cru_dev *cru, int on)
 	spin_lock_irqsave(&cru->qlock, flags);
 
 	/* Select a video input */
-	if (cru->is_csi)
+	if (cru->is_csi) {
+		/* Initializing DPHY */
+		ret = rzg2l_cru_init_csi_dphy(sd);
+		if (ret)
+			return ret;
+
 		rzg2l_cru_write(cru, CRUnCTRL, CRUnCTRL_VINSEL(0));
-	else
+	} else
 		rzg2l_cru_write(cru, CRUnCTRL, CRUnCTRL_VINSEL(1));
 
 	/* Cancel the software reset for image processing block */
@@ -801,7 +806,7 @@ static int rzg2l_cru_set_stream(struct rzg2l_cru_dev *cru, int on)
 
 	/* Disable and clear the interrupt before using */
 	rzg2l_cru_write(cru, CRUnIE, 0);
-	rzg2l_cru_write(cru, CRUnINTS, 0x001F0F0F);
+	rzg2l_cru_write(cru, CRUnINTS, 0);
 
 	/* Initialize the AXI master */
 	rzg2l_cru_initialize_axi(cru);
@@ -838,24 +843,31 @@ static void rzg2l_cru_stop_streaming(struct vb2_queue *vq)
 	u32 icnms;
 	u32 amnfifopntr, amnfifopntr_w, amnfifopntr_r_y, amnfifopntr_r_uv;
 
-
 	cru->state = STOPPING;
+
+	/* Stop the operation of image conversion */
+	rzg2l_cru_write(cru, ICnEN, 0);
 
 	rzg2l_cru_set_stream(cru, 0);
 
 	spin_lock_irqsave(&cru->qlock, flags);
 
-	/* Enable IRQ to detect frame start reception */
-	rzg2l_cru_write(cru, CRUnINTS,
-			(~rzg2l_cru_read(cru, CRUnINTS)) | CRUnINTS_SFS);
-	rzg2l_cru_write(cru, CRUnIE, CRUnIE_SFE);
+	if (!(cru->is_csi)) {
+		/* Enable IRQ to detect frame start reception */
+		rzg2l_cru_write(cru, CRUnIE, CRUnIE_SFE);
 
-	/* Wait for streaming to stop */
-	while (retries++ < 5) {
-		spin_unlock_irqrestore(&cru->qlock, flags);
-		msleep(100);
-		spin_lock_irqsave(&cru->qlock, flags);
+		/* Wait for streaming to stop */
+		while (retries++ < 5) {
+			spin_unlock_irqrestore(&cru->qlock, flags);
+			msleep(100);
+			spin_lock_irqsave(&cru->qlock, flags);
+		}
+
 	}
+
+	/* Disable and clear the interrupt */
+	rzg2l_cru_write(cru, CRUnIE, 0);
+	rzg2l_cru_write(cru, CRUnINTS, 0);
 
 	icnms = rzg2l_cru_read(cru, ICnMS) & ICnMS_IA;
 
@@ -871,13 +883,6 @@ static void rzg2l_cru_stop_streaming(struct vb2_queue *vq)
 	/* Stop the test pattern generator if using */
 	if (test_pattern)
 		rzg2l_cru_write(cru, ICnTICTRL1, 0);
-
-	/* Stop the operation of image conversion */
-	rzg2l_cru_write(cru, ICnEN, 0);
-
-	/* Disable and clear the interrupt */
-	rzg2l_cru_write(cru, CRUnIE, 0);
-	rzg2l_cru_write(cru, CRUnINTS, 0x001F0F0F);
 
 	/* Wait until the FIFO becomes empty */
 	for (retries = 5; retries > 0; retries--) {
@@ -927,15 +932,15 @@ static void rzg2l_cru_stop_streaming(struct vb2_queue *vq)
 	/* Cancel the AXI bus stop request */
 	rzg2l_cru_write(cru, AMnAXISTP, 0);
 
+	/* Set reset state */
+	reset_control_assert(cru->rstc.aresetn);
+
 	/* Resets the image processing module */
 	rzg2l_cru_write(cru, CRUnRST, 0);
 
-	spin_unlock_irqrestore(&cru->qlock, flags);
-
-	/* Set reset state */
-	reset_control_assert(cru->rstc.cmn_rstb);
 	reset_control_assert(cru->rstc.presetn);
-	reset_control_assert(cru->rstc.aresetn);
+
+	spin_unlock_irqrestore(&cru->qlock, flags);
 
 	/* Free scratch buffer */
 	dma_free_coherent(cru->dev, cru->format.sizeimage, cru->scratch,
@@ -949,7 +954,6 @@ static int rzg2l_cru_start_streaming(struct vb2_queue *vq, unsigned int count)
 	int ret;
 
 	/* Release reset state */
-	reset_control_deassert(cru->rstc.cmn_rstb);
 	reset_control_deassert(cru->rstc.presetn);
 	reset_control_deassert(cru->rstc.aresetn);
 
@@ -1027,7 +1031,7 @@ void rzg2l_cru_suspend_stop_streaming(struct rzg2l_cru_dev *cru)
 
 	/* Disable and clear the interrupt */
 	rzg2l_cru_write(cru, CRUnIE, 0);
-	rzg2l_cru_write(cru, CRUnINTS, 0x001F0F0F);
+	rzg2l_cru_write(cru, CRUnINTS, 0);
 
 	/* Stop the operation of image conversion */
 	rzg2l_cru_write(cru, ICnEN, 0);

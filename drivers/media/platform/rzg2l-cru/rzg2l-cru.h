@@ -211,7 +211,6 @@ struct rzg2l_cru_dev {
 	v4l2_std_id std;
 
 	struct {
-		struct reset_control *cmn_rstb;
 		struct reset_control *presetn;
 		struct reset_control *aresetn;
 	} rstc;
@@ -265,4 +264,6 @@ const struct rzg2l_cru_video_format
 
 void rzg2l_cru_resume_start_streaming(struct work_struct *work);
 void rzg2l_cru_suspend_stop_streaming(struct rzg2l_cru_dev *cru);
+
+int rzg2l_cru_init_csi_dphy(struct v4l2_subdev *sd);
 #endif
