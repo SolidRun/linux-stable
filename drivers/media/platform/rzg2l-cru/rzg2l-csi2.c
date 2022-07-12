@@ -23,6 +23,8 @@
 #include <media/v4l2-mc.h>
 #include <media/v4l2-subdev.h>
 
+#include "rzg2l-cru.h"
+
 /* LINK registers */
 /* Module Configuration Register */
 #define CSI2nMCG			0x0
@@ -161,6 +163,9 @@ struct rzg2l_csi2 {
 	struct v4l2_mbus_framefmt mf;
 
 	struct clk *vclk;
+	struct clk *sysclk;
+
+	struct reset_control *cmn_rstb;
 
 	struct mutex lock;
 	int stream_count;
@@ -221,8 +226,6 @@ static int rzg2l_csi2_dphy_setting(struct rzg2l_csi2 *priv, bool on)
 	if (on) {
 		u32 dphytim0, dphytim1;
 
-		mdelay(1);
-
 		/* Set DPHY timing parameters */
 		if (priv->hsfreq <= 80) {
 			dphy_timing.tclk_settle = 23;
@@ -264,7 +267,18 @@ static int rzg2l_csi2_dphy_setting(struct rzg2l_csi2 *priv, bool on)
 
 		/* Delay 10us to be stable */
 		udelay(10);
+
+		/* Turn on the DPHY Clock */
+		ret = clk_prepare_enable(priv->sysclk);
+		if (ret)
+			return ret;
 	} else {
+		/* Reset DPHY */
+		reset_control_assert(priv->cmn_rstb);
+
+		/* Stop the DPHY clock */
+		clk_disable_unprepare(priv->sysclk);
+
 		/* Cancel the EN_LDO1200 register setting */
 		rzg2l_csi2_clr(priv, CSIDPHYCTRL0, CSIDPHYCTRL0_EN_LDO1200);
 
@@ -304,14 +318,27 @@ static int rzg2l_csi2_calc_mbps(struct rzg2l_csi2 *priv, unsigned int bpp)
 	return mbps;
 }
 
+int rzg2l_cru_init_csi_dphy(struct v4l2_subdev *sd)
+{
+	struct rzg2l_csi2 *priv = sd_to_csi2(sd);
+	int ret;
+
+	mutex_lock(&priv->lock);
+
+	ret = rzg2l_csi2_dphy_setting(priv, 1);
+
+	mutex_unlock(&priv->lock);
+
+	return ret;
+}
+
 static int rzg2l_csi2_start(struct rzg2l_csi2 *priv)
 {
 	const struct rzg2l_csi2_format *format;
 	int mbps;
 	int lanes;
 	u32 frrskw, frrclk, frrskw_coeff, frrclk_coeff;
-	int ret;
-	int count;
+	int ret, count;
 
 	dev_dbg(priv->dev, "Input size (%ux%u%c)\n",
 		priv->mf.width, priv->mf.height,
@@ -325,11 +352,6 @@ static int rzg2l_csi2_start(struct rzg2l_csi2 *priv)
 		return mbps;
 
 	priv->hsfreq = mbps;
-
-	/* Initialize DPHY */
-	ret = rzg2l_csi2_dphy_setting(priv, 1);
-	if (ret)
-		return ret;
 
 	/* Initialize LINK */
 	/* Checking the maximum lanes support for CSI2 module */
@@ -362,7 +384,6 @@ static int rzg2l_csi2_start(struct rzg2l_csi2 *priv)
 	rzg2l_csi2_write(priv, CSI2nDTEH, 0x00ffff1f);
 
 	clk_disable_unprepare(priv->vclk);
-
 	for (count = 0; count < 5; count++) {
 		if (!(__clk_is_enabled(priv->vclk)))
 			break;
@@ -387,6 +408,12 @@ static int rzg2l_csi2_start(struct rzg2l_csi2 *priv)
 
 	if (count == 5)
 		return -ETIMEDOUT;
+
+	/* Release reset state for DPHY */
+	reset_control_deassert(priv->cmn_rstb);
+
+	/* Waiting for releasing reset */
+	mdelay(1);
 
 	return 0;
 }
@@ -647,6 +674,18 @@ static int rzg2l_csi2_probe(struct platform_device *pdev)
 	if (IS_ERR(priv->vclk)) {
 		dev_err(priv->dev, "failed to get VCLK clock\n");
 		return PTR_ERR(priv->vclk);
+	}
+
+	priv->sysclk = devm_clk_get(priv->dev, "sysclk");
+	if (IS_ERR(priv->sysclk)) {
+		dev_err(priv->dev, "failed to get SYSCLK clock\n");
+		return PTR_ERR(priv->sysclk);
+	}
+
+	priv->cmn_rstb = devm_reset_control_get(&pdev->dev, "cmn_rstb");
+	if (IS_ERR(priv->cmn_rstb)) {
+		dev_err(&pdev->dev, "failed to get CMN_RSTB reset\n");
+		return PTR_ERR(priv->cmn_rstb);
 	}
 
 	ret = rzg2l_csi2_parse_dt(priv);
