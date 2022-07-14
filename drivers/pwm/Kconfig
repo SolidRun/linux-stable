@@ -389,7 +389,6 @@ config GPT_RZG2L
 	  To compile this driver as a module, choose M here: the module
 	  will be called gpt-rzg2l.
 
-
 config PWM_RCAR
 	tristate "Renesas R-Car PWM support"
 	depends on ARCH_RENESAS || COMPILE_TEST
