@@ -47,6 +47,7 @@
 #define PIN_CFG_IO_VMC_QSPI		BIT(7)
 #define PIN_CFG_IO_VMC_ETH0		BIT(8)
 #define PIN_CFG_IO_VMC_ETH1		BIT(9)
+#define PIN_CFG_IO_VMC_ETH		(PIN_CFG_IO_VMC_ETH0 | PIN_CFG_IO_VMC_ETH1)
 #define PIN_CFG_FILONOFF		BIT(10)
 #define PIN_CFG_FILNUM			BIT(11)
 #define PIN_CFG_FILCLKSEL		BIT(12)
@@ -95,15 +96,20 @@
 #define PWPR			(0x3014)
 #define SD_CH(n)		(0x3000 + (n) * 4)
 #define QSPI			(0x3008)
+#define ETH_CH(n)		(0x300C + (n) * 4)
 
 #define PVDD_1800		1	/* I/O domain voltage <= 1.8V */
 #define PVDD_3300		0	/* I/O domain voltage >= 3.3V */
+#define ETH_PVDD_2500		BIT(1)	/* Ether I/O voltage 2.5V */
+#define ETH_PVDD_1800		BIT(0)	/* Ether I/O voltage 1.8V */
+#define ETH_PVDD_3300		0	/* Ether I/O voltage 3.3V */
 
 #define PWPR_B0WI		BIT(7)	/* Bit Write Disable */
 #define PWPR_PFCWE		BIT(6)	/* PFC Register Write Enable */
 
 #define PM_MASK			0x03
 #define PVDD_MASK		0x01
+#define ETH_PVDD_MASK		0x03
 #define PFC_MASK		0x07
 #define IEN_MASK		0x01
 #define IOLH_MASK		0x03
@@ -481,9 +487,19 @@ static int rzg2l_dt_subnode_to_map(struct pinctrl_dev *pctldev,
 		goto remove_group;
 	}
 
-	maps[idx].type = PIN_MAP_TYPE_MUX_GROUP;
 	maps[idx].data.mux.group = np->name;
 	maps[idx].data.mux.function = np->name;
+
+	if (num_configs) {
+		ret = rzg2l_map_add_config(&maps[idx], np->name,
+					   PIN_MAP_TYPE_CONFIGS_GROUP,
+					   configs, num_configs);
+		if (ret < 0)
+			goto remove_group;
+	} else {
+		maps[idx].type = PIN_MAP_TYPE_MUX_GROUP;
+	}
+
 	idx++;
 
 	dev_dbg(pctrl->dev, "Parsed %pOF with %d pins\n", np, num_pinmux);
@@ -657,12 +673,23 @@ static int rzg2l_pinctrl_pinconf_get(struct pinctrl_dev *pctldev,
 			pwr_reg = SD_CH(1);
 		else if (cfg & PIN_CFG_IO_VMC_QSPI)
 			pwr_reg = QSPI;
+		else if (cfg & PIN_CFG_IO_VMC_ETH0)
+			pwr_reg = ETH_CH(0);
+		else if (cfg & PIN_CFG_IO_VMC_ETH1)
+			pwr_reg = ETH_CH(1);
 		else
 			return -EINVAL;
 
 		spin_lock_irqsave(&pctrl->lock, flags);
 		addr = pctrl->base + pwr_reg;
-		arg = (readl(addr) & PVDD_MASK) ? 1800 : 3300;
+		if (cfg & PIN_CFG_IO_VMC_ETH) {
+			arg = (readl(addr) & ETH_PVDD_MASK);
+			arg = arg ?
+			      ((arg == ETH_PVDD_1800) ? 1800 : 2500) :
+			      3300;
+		} else {
+			arg = (readl(addr) & PVDD_MASK) ? 1800 : 3300;
+		}
 		spin_unlock_irqrestore(&pctrl->lock, flags);
 		break;
 	}
@@ -749,7 +776,8 @@ static int rzg2l_pinctrl_pinconf_set(struct pinctrl_dev *pctldev,
 			u32 pwr_reg = 0x0;
 
 			if (mV != 1800 && mV != 3300)
-				return -EINVAL;
+				if (!((mV == 2500) && (cfg & PIN_CFG_IO_VMC_ETH)))
+					return -EINVAL;
 
 			if (cfg & PIN_CFG_IO_VMC_SD0)
 				pwr_reg = SD_CH(0);
@@ -757,12 +785,22 @@ static int rzg2l_pinctrl_pinconf_set(struct pinctrl_dev *pctldev,
 				pwr_reg = SD_CH(1);
 			else if (cfg & PIN_CFG_IO_VMC_QSPI)
 				pwr_reg = QSPI;
+			else if (cfg & PIN_CFG_IO_VMC_ETH0)
+				pwr_reg = ETH_CH(0);
+			else if (cfg & PIN_CFG_IO_VMC_ETH1)
+				pwr_reg = ETH_CH(1);
 			else
 				return -EINVAL;
 
 			addr = pctrl->base + pwr_reg;
 			spin_lock_irqsave(&pctrl->lock, flags);
-			writel((mV == 1800) ? PVDD_1800 : PVDD_3300, addr);
+			if (cfg & PIN_CFG_IO_VMC_ETH)
+				writel((mV == 3300) ? ETH_PVDD_3300 :
+				      ((mV == 2500) ? ETH_PVDD_2500 :
+						      ETH_PVDD_1800), addr);
+			else
+				writel((mV == 1800) ? PVDD_1800 :
+						      PVDD_3300, addr);
 			spin_unlock_irqrestore(&pctrl->lock, flags);
 			break;
 		}
