@@ -1169,21 +1169,24 @@ rcar_du_crtc_mode_valid(struct drm_crtc *crtc,
 	if (interlaced && !rcar_du_has(rcdu, RCAR_DU_FEATURE_INTERLACED))
 		return MODE_NO_INTERLACE;
 
-	/*
-	 * The hardware requires a minimum combined horizontal sync and back
-	 * porch of 20 pixels (when CMM isn't used) or 45 pixels (when CMM is
-	 * used), and a minimum vertical back porch of 3 lines.
-	 */
-	min_sync_porch = 20;
-	if (rcrtc->group->cmms_mask & BIT(rcrtc->index % 2))
-		min_sync_porch += 25;
+	if (!rcar_du_has(rcdu, RCAR_DU_FEATURE_RZG2L)) {
+		/*
+		 * The hardware requires a minimum combined horizontal sync and
+		 * back porch of 20 pixels (when CMM isn't used) or 45 pixels
+		 * (when CMM is used), and a minimum vertical back porch of
+		 * 3 lines.
+		 */
+		min_sync_porch = 20;
+		if (rcrtc->group->cmms_mask & BIT(rcrtc->index % 2))
+			min_sync_porch += 25;
 
-	if (mode->htotal - mode->hsync_start < min_sync_porch)
-		return MODE_HBLANK_NARROW;
+		if (mode->htotal - mode->hsync_start < min_sync_porch)
+			return MODE_HBLANK_NARROW;
 
-	vbp = (mode->vtotal - mode->vsync_end) / (interlaced ? 2 : 1);
-	if (vbp < 3)
-		return MODE_VBLANK_NARROW;
+		vbp = (mode->vtotal - mode->vsync_end) / (interlaced ? 2 : 1);
+		if (vbp < 3)
+			return MODE_VBLANK_NARROW;
+	}
 
 	return MODE_OK;
 }
