@@ -1066,6 +1066,58 @@
 				};
 			};
 		};
+
+		cru: video@10830000 {
+			compatible = "renesas,cru-r9a07g044";
+			reg = <0 0x10830000 0 0x400>;
+			clocks = <&cpg CPG_MOD R9A07G044_CRU_SYSCLK>,
+				 <&cpg CPG_MOD R9A07G044_CRU_VCLK>,
+				 <&cpg CPG_MOD R9A07G044_CRU_PCLK>,
+				 <&cpg CPG_MOD R9A07G044_CRU_ACLK>;
+			clock-names = "sysclk", "vclk", "pclk", "aclk";
+			interrupts = <GIC_SPI 167 IRQ_TYPE_LEVEL_HIGH>;
+			resets = <&cpg R9A07G044_CRU_CMN_RSTB>,
+				 <&cpg R9A07G044_CRU_PRESETN>,
+				 <&cpg R9A07G044_CRU_ARESETN>;
+			reset-names = "cmn_rstb", "presetn", "aresetn";
+			power-domains = <&cpg>;
+			status = "disabled";
+
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				port@1 {
+					reg = <1>;
+
+					cru_to_csi2: endpoint {
+						remote-endpoint =
+								<&csi2_to_cru>;
+					};
+				};
+			};
+		};
+
+		csi2: csi2@10830400 {
+			compatible = "renesas,r9a07g044-csi2";
+			reg = <0 0x10830400 0 0xc00>;
+			interrupts = <GIC_SPI 166 IRQ_TYPE_LEVEL_HIGH>;
+			status = "disabled";
+
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				port@1 {
+					reg = <1>;
+
+					csi2_to_cru: endpoint {
+						remote-endpoint =
+								<&cru_to_csi2>;
+					};
+				};
+			};
+		};
 	};
 
 	thermal-zones {
