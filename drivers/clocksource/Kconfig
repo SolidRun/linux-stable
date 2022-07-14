@@ -542,6 +542,13 @@ config RENESAS_TIMER_MTU3
 	  the hardware module which could be available on Renesas SoCs.
 	  This hardware has eight 16-bit timer channels and 1 32-bit timer channel.
 
+config RENESAS_POE3
+	bool "Renesas POE3 driver"
+	depends on RENESAS_TIMER_MTU3
+	help
+	  This enables build of port output enable 3 (POE3) for placing
+	  output pins of MTU3 in high-impedance state.
+
 config RENESAS_OSTM
 	bool "Renesas OSTM timer driver"
 	depends on ARCH_RENESAS || COMPILE_TEST
