@@ -530,6 +530,13 @@ config SH_TIMER_MTU2
 	  Timer Pulse Unit 2 (MTU2) hardware available on SoCs from Renesas.
 	  This hardware comes with 16-bit timer registers.
 
+config RENESAS_POE3
+	bool "Renesas POE3 driver"
+	depends on RZ_MTU3
+	help
+	  This enables build of port output enable 3 (POE3) for placing
+	  output pins of MTU3 in high-impedance state.
+
 config RENESAS_OSTM
 	bool "Renesas OSTM timer driver"
 	depends on ARCH_RENESAS || COMPILE_TEST
