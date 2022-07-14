@@ -389,6 +389,17 @@ config GPT_RZG2L
 	  To compile this driver as a module, choose M here: the module
 	  will be called gpt-rzg2l.
 
+config POEG_RZG2L
+	tristate "RZ/G2L poeg support"
+	depends on ARCH_R9A07G044
+	depends on HAS_IOMEM
+	help
+	  This driver exposes the General Port Output Enable for PWM found
+	  in RZ/G2L.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called poeg-rzg2l.
+
 config PWM_RCAR
 	tristate "Renesas R-Car PWM support"
 	depends on ARCH_RENESAS || COMPILE_TEST
