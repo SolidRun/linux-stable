@@ -497,6 +497,9 @@ config SPRD_TIMER
 config SYS_SUPPORTS_SH_MTU2
 	bool
 
+config SYS_SUPPORTS_RENESAS_MTU3
+	bool
+
 config SYS_SUPPORTS_SH_TMU
 	bool
 
@@ -529,6 +532,15 @@ config SH_TIMER_MTU2
 	  This enables build of a clockevent driver for the Multi-Function
 	  Timer Pulse Unit 2 (MTU2) hardware available on SoCs from Renesas.
 	  This hardware comes with 16-bit timer registers.
+
+config RENESAS_TIMER_MTU3
+	bool "Renesas MTU3 timer driver"
+	depends on HAS_IOMEM && OF
+	default SYS_SUPPORTS_RENESAS_MTU3
+	help
+	  This enables to build driver of Multi-Function Timer Pulse Unit 3 (MTU3a),
+	  the hardware module which could be available on Renesas SoCs.
+	  This hardware has eight 16-bit timer channels and 1 32-bit timer channel.
 
 config RENESAS_OSTM
 	bool "Renesas OSTM timer driver"
