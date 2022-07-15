@@ -1,0 +1,74 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Device Tree Source for the iWave-RZ/G1H Qseven board development
+ * platform with camera daughter board
+ *
+ * Copyright (C) 2020 Renesas Electronics Corp.
+ */
+
+#include "r8a7742-iwg21d-q7-dbcm-ca.dts"
+
+/ {
+	model = "iWave Systems RZ/G1H Qseven development platform with camera add-on";
+	compatible = "iwave,g21d", "iwave,g21m", "renesas,r8a7742";
+
+	panel_hdmi: panel@1 {
+		compatible = "simple-panel";
+
+		width-mm = <200>;
+		height-mm = <150>;
+
+		port {
+			panel_hdmi_in: endpoint {
+				remote-endpoint = <&du_out_lvds1>;
+			};
+		};
+
+		panel-timing {
+			clock-frequency = <65000000>;
+			hactive = <1024>;
+			vactive = <768>;
+			hfront-porch = <24>;
+			hback-porch = <296>;
+			hsync-len = <19>;
+			vfront-porch = <19>;
+			vback-porch = <32>;
+			vsync-len = <6>;
+		};
+	};
+};
+
+&du {
+	ports {
+		port@2 {
+			 endpoint {
+				remote-endpoint = <&panel_hdmi_in>;
+			};
+		};
+	};
+};
+
+&i2c0 {
+	/delete-node/ rtc@51;
+	rtc@68 {
+		compatible = "ti,bq32000";
+		reg = <0x68>;
+		interrupt-parent = <&gpio1>;
+		interrupts = <1 IRQ_TYPE_EDGE_FALLING>;
+	};
+};
+
+&i2c2 {
+	ch7036@76 {
+		compatible = "cil,ch7036";
+		reg = <0x76>;
+	};
+
+};
+
+&qspi {
+	flash@0 {
+		compatible = "sst,sst25vf016b", "jedec,spi-nor";
+		spi-max-frequency = <50000000>;
+	};
+};
