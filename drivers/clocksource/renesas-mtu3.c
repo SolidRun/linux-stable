@@ -51,6 +51,7 @@ struct mtu3_pwm_device {
 	u32 period_ns;
 	u32 duty_ns;
 	u32 deadtime_ns;
+	bool is_enabled;
 };
 
 static const struct pwm_ops mtu3_pwm_ops;
@@ -899,6 +900,8 @@ static int renesas_mtu3_pwm_enable(struct pwm_chip *chip,
 		renesas_mtu3_pwm_output_setup(ch1, mtu3->pwms[pwm->hwpwm].output,
 					pwm->state.polarity);
 		renesas_mtu3_start_stop_ch(ch1, true);
+
+		mtu3->pwms[pwm->hwpwm].is_enabled = true;
 	} else if (ch1->function == MTU3_PWM_COMPLEMENTARY) {
 		ch2 = &mtu3->channels[mtu3->pwms[pwm->hwpwm].ch2];
 		renesas_mtu3_8bit_ch_reg_write(ch1, TMDR1, TMDR_MD_PWM_COMP_BOTH);
@@ -909,6 +912,8 @@ static int renesas_mtu3_pwm_enable(struct pwm_chip *chip,
 					pwm->state.polarity);
 		renesas_mtu3_start_stop_ch(ch1, true);
 		renesas_mtu3_start_stop_ch(ch2, true);
+
+		mtu3->pwms[pwm->hwpwm].is_enabled = true;
 	}
 
 	return 0;
@@ -935,6 +940,8 @@ static void renesas_mtu3_pwm_disable(struct pwm_chip *chip,
 			TIOR_OC_RETAIN);
 
 		renesas_mtu3_start_stop_ch(ch1, false);
+
+		mtu3->pwms[pwm->hwpwm].is_enabled = false;
 	} else if (ch1->function == MTU3_PWM_COMPLEMENTARY) {
 		ch2 = &mtu3->channels[mtu3->pwms[pwm->hwpwm].ch2];
 		renesas_mtu3_8bit_ch_reg_write(ch2, TMDR1, TMDR_MD_NORMAL);
@@ -971,6 +978,8 @@ static void renesas_mtu3_pwm_disable(struct pwm_chip *chip,
 
 		renesas_mtu3_start_stop_ch(ch1, false);
 		renesas_mtu3_start_stop_ch(ch2, false);
+
+		mtu3->pwms[pwm->hwpwm].is_enabled = false;
 	}
 
 }
@@ -1118,6 +1127,16 @@ static int renesas_mtu3_pwm_config(struct pwm_chip *chip,
 			renesas_mtu3_shared_reg_write(mtu3, TCDRB, period);
 			renesas_mtu3_shared_reg_write(mtu3, TCBRB, period);
 			renesas_mtu3_shared_reg_write(mtu3, TDDRB, deadtime);
+		}
+
+		/*
+		 * Workaround: Restart PWM to update PWM waveform on runtime
+		 * when deadtime = 0 and PWM output is enabled.
+		 */
+		if (!(mtu3->pwms[pwm->hwpwm].deadtime_ns) &&
+			mtu3->pwms[pwm->hwpwm].is_enabled) {
+			renesas_mtu3_pwm_disable(chip, pwm);
+			renesas_mtu3_pwm_enable(chip, pwm);
 		}
 
 		/* Reset to Complementary PWM mode.*/
