@@ -210,8 +210,6 @@
 
 &hsusb {
 	status = "okay";
-	pinctrl-0 = <&usb0_pins>;
-	pinctrl-names = "default";
 };
 
 &i2c2 {
@@ -263,8 +261,6 @@
 
 &pci0 {
 	status = "okay";
-	pinctrl-0 = <&usb0_pins>;
-	pinctrl-names = "default";
 };
 
 &pcie_bus_clk {

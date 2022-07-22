@@ -324,8 +324,6 @@
 };
 
 &hsusb {
-	pinctrl-0 = <&usb0_pins>;
-	pinctrl-names = "default";
 	status = "okay";
 };
 
@@ -378,8 +376,6 @@
 };
 
 &pci0 {
-	pinctrl-0 = <&usb0_pins>;
-	pinctrl-names = "default";
 	/* Disable hsusb to enable USB2.0 host mode support on J2 */
 	status = "okay";
 };
