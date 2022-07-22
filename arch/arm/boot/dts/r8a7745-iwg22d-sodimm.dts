@@ -185,8 +185,6 @@
 
 &hsusb {
 	status = "okay";
-	pinctrl-0 = <&usb0_pins>;
-	pinctrl-names = "default";
 };
 
 &i2c5 {
