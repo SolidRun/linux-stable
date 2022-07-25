@@ -24,6 +24,18 @@ Required Properties:
 
  - clock-names: must contain "fck" for the functional clock.
 
+Example 1: Add configuration for MTU3 of R9A07G044L2 (RZ/G2L) SoC.
+
+	mtu3: timer@10001200 {
+		compatible = "renesas,rzg2l-mtu3";
+		reg = <0 0x10001200 0 0xB00>;
+		interrupts =
+			<GIC_SPI 170 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "tgi0a";
+		clocks = <&cpg CPG_MOD R9A07G044L_CLK_MTU>;
+		clock-names = "fck";
+	};
+
 Optional properties:
 
  - pwm_mode1: Assign pwm mode1 for each timer channel with its output pin
@@ -39,34 +51,53 @@ Optional properties:
  - pwm_complementary: Assign complementary pwm for each timer channel with its output pin
    and expose pwm controller through sysfs. Format is:
 
-   pwm_complementary = <channel output deadtime>, ..;
+   pwm_complementary = <channel output>, ..;
 
    Where:
 	- channel is number of timer channels outputing complementary pwm. Channels which
 	  support complementary pwm are 3, 4, 6, 7.
 	- output is number of output pins. output = 0 exports complementary pwm in
-	  MTIOCA and MTIOCC pins, output = 1 use MTIOCB and MTIOCD.
-	- deadtime is the time when 2 pwm signals have a same level in a cycles. The unit
-	  of deadtime is nanoseconds.
+	  MTIOCA and MTIOCC pins, output = 1 means MTIOCB and MTIOCD.
 
-Example 1: Add configuration for MTU3 of R9A07G044L2 (RZ/G2L) SoC.
-
-	mtu3: timer@10001200 {
-		compatible = "renesas,rzg2l-mtu3";
-		reg = <0 0x10001200 0 0xB00>;
-		interrupts =
-			<GIC_SPI 170 IRQ_TYPE_LEVEL_HIGH>;
-		interrupt-names = "tgi0a";
-		clocks = <&cpg CPG_MOD R9A07G044L_CLK_MTU>;
-		clock-names = "fck";
-	};
-
-Example 2: Add optional properties for pwm_mode1 and pwm_complementary of MTU3.
+Example 2: Add optional properties for pwm_mode1 (MTIOC2A) and pwm_complementary (MTIOC3B-MTIOC3D
+	   and MTIOC7A-MTIOC7C).
 
 	&mtu3 {
 		pinctrl-0 = <&mtu2_pins>, <&mtu3_pins>, <&mtu7_pins>;
 		pinctrl-names = "default";
 		pwm_mode1 = <2 0>;
-		pwm_complementary = <3 1 100000>, <7 0 50000>;
+		pwm_complementary = <3 1>, <7 0>;
 		status = "okay";
 	};
+
+ - 16-bit_phase_counting: Assign 16-bit A/B phase counting for MTU3 channel1 and channel2, and
+   expose IIO sysfs to interact with. Use this function along with MTLCK pins setting to count
+   when signals change on these pins. Format is:
+
+   16-bit_phase_counting = <indexes of MTU3 channels>;
+
+Example 3: Add A/B phase counters by using channel1 and channel2 of MTU3.
+
+	&mtu3 {
+		16-bit_phase_counting = <1 2>;
+	};
+
+- 32-bit_phase_counting: Assign 32-bit phase counting for both MTU3 channel1 and channel2 at a
+  same time, and expose IIO sysfs to interact with. Use this function along with MTLCK pins to
+  count A/B signals and MTIOC1A pin to capture Z-phase to clear counter. To enable this property,
+  add below line to MTU3 node in devicetree.
+
+  32-bit_phase_counting;
+
+NOTE: The order of priority of MTU3's properties decides the mode will be selected,
+if 1 channel is assigned for more than 1 functions at a same time.
+
+ 1. 32-bit phase counter (32-bit_phase_counting).
+ 2. 16-bit phase counter (16-bit_phase_counting).
+ 3. PWM mode 1 (pwm_mode1).
+ 4. Complementary PWM functions (pwm_complementary).
+ 5. Clocksource and clockevent (these 2 functions will be automatically supported by the smallest
+    index channels which have not been assgined for any special functions).
+
+For example: If MTU3 channel1 is set for 16-bit phase counting and pwm mode 1 at a same time,
+driver will assign phase counting function for this channel.
