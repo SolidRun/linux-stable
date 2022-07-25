@@ -48,6 +48,8 @@ struct mtu3_pwm_device {
 	u8 ch1;
 	u8 ch2;
 	u8 output;
+	u32 period_ns;
+	u32 duty_ns;
 	u32 deadtime_ns;
 };
 
@@ -225,6 +227,8 @@ struct renesas_mtu3_device {
 #define TCR_TPSC_CH34_TCLKA	(6 << 0)
 #define TCR_TPSC_CH34_TCLKB	(7 << 0)
 #define TCR_TPSC_MASK		(7 << 0)
+
+#define TDER_EN			(1 << 0)
 
 #define TMDR_BFE		(1 << 6)
 #define TMDR_BFB		(1 << 5)
@@ -888,7 +892,6 @@ static int renesas_mtu3_pwm_enable(struct pwm_chip *chip,
 {
 	struct renesas_mtu3_device *mtu3 = pwm_chip_to_mtu3_device(chip);
 	struct renesas_mtu3_channel *ch1, *ch2;
-	unsigned int val;
 
 	ch1 = &mtu3->channels[mtu3->pwms[pwm->hwpwm].ch1];
 	if (ch1->function == MTU3_PWM_MODE_1) {
@@ -900,8 +903,7 @@ static int renesas_mtu3_pwm_enable(struct pwm_chip *chip,
 		ch2 = &mtu3->channels[mtu3->pwms[pwm->hwpwm].ch2];
 		renesas_mtu3_8bit_ch_reg_write(ch1, TMDR1, TMDR_MD_PWM_COMP_BOTH);
 		renesas_mtu3_8bit_ch_reg_write(ch2, TMDR1, TMDR_MD_PWM_COMP_BOTH);
-		val = renesas_mtu3_shared_reg_read(mtu3, TDDRA);
-		renesas_mtu3_16bit_ch_reg_write(ch1, TCNT, val);
+		renesas_mtu3_16bit_ch_reg_write(ch1, TCNT, 0);
 		renesas_mtu3_16bit_ch_reg_write(ch2, TCNT, 0);
 		renesas_mtu3_pwm_output_setup(ch1, mtu3->pwms[pwm->hwpwm].output,
 					pwm->state.polarity);
@@ -982,13 +984,12 @@ static int renesas_mtu3_pwm_config(struct pwm_chip *chip,
 	struct renesas_mtu3_channel *ch1, *ch2;
 	static const unsigned int prescalers[] = { 1, 4, 16, 64 };
 	unsigned int prescaler;
-	u32 clk_rate, period, duty, deadtime;
+	u32 clk_rate, period, duty, deadtime, val;
 
 	ch1 = &mtu3->channels[mtu3->pwms[pwm->hwpwm].ch1];
 	clk_rate = clk_get_rate(mtu3->clk);
 
 	if (ch1->function == MTU3_PWM_MODE_1) {
-
 		for (prescaler = 0; prescaler < ARRAY_SIZE(prescalers);
 			++prescaler) {
 			period = clk_rate / prescalers[prescaler]
@@ -1023,27 +1024,15 @@ static int renesas_mtu3_pwm_config(struct pwm_chip *chip,
 			renesas_mtu3_16bit_ch_reg_write(ch1, TGRC, period);
 		}
 	} else if (ch1->function == MTU3_PWM_COMPLEMENTARY) {
-
-		for (prescaler = 0; prescaler < ARRAY_SIZE(prescalers);
-			++prescaler) {
+		for (prescaler = 0; prescaler < ARRAY_SIZE(prescalers); ++prescaler) {
 			period = clk_rate / prescalers[prescaler]
 				/ (NSEC_PER_SEC / (period_ns/2));
-			if (!!(mtu3->pwms[pwm->hwpwm].deadtime_ns))
-				deadtime = clk_rate / prescalers[prescaler]
-				/ (NSEC_PER_SEC
-				/ mtu3->pwms[pwm->hwpwm].deadtime_ns);
-			else {
+
+			if ((!mtu3->pwms[pwm->hwpwm].deadtime_ns))
 				deadtime = 1;
-				/* Suppress dead time */
-				if ((ch1->index == 3 || ch1->index == 4) &&
-				    renesas_mtu3_shared_reg_read(mtu3, TDERA))
-					renesas_mtu3_shared_reg_write(mtu3,
-								TDERA, 0);
-				else if ((ch1->index == 6 || ch1->index == 7) &&
-					renesas_mtu3_shared_reg_read(mtu3, TDERB))
-					renesas_mtu3_shared_reg_write(mtu3,
-								TDERB, 0);
-			}
+			else
+				deadtime = clk_rate / prescalers[prescaler]
+				/ (NSEC_PER_SEC / mtu3->pwms[pwm->hwpwm].deadtime_ns);
 
 			if (period + deadtime <= 0xffff)
 				break;
@@ -1051,18 +1040,17 @@ static int renesas_mtu3_pwm_config(struct pwm_chip *chip,
 
 		if (prescaler == ARRAY_SIZE(prescalers) || period == 0) {
 			dev_err(&ch1->mtu->pdev->dev, "clock rate mismatch\n");
-			return -ENOTSUPP;
+			return -EINVAL;
 		}
 
 		/* Make sure defined deadtime value will not go to 0 */
-		if (!!(mtu3->pwms[pwm->hwpwm].deadtime_ns) && (deadtime == 0)) {
+		if (deadtime == 0) {
 			dev_err(&ch1->mtu->pdev->dev, "period mismatch with deadtime\n");
-			return -ENOTSUPP;
+			return -EINVAL;
 		}
 
 		if (duty_ns) {
-			duty = clk_rate / prescalers[prescaler]
-				/ (NSEC_PER_SEC / (duty_ns/2));
+			duty = clk_rate / prescalers[prescaler] / (NSEC_PER_SEC / (duty_ns/2));
 			if (duty > period)
 				return -EINVAL;
 		} else {
@@ -1075,66 +1063,202 @@ static int renesas_mtu3_pwm_config(struct pwm_chip *chip,
 		renesas_mtu3_8bit_ch_reg_write(ch2, TCR,
 					TCR_CKEG_RISING | prescaler);
 
-		if (ch1->index == 3 || ch1->index == 4) {
-			renesas_mtu3_shared_reg_write(mtu3, TDDRA, deadtime);
-			renesas_mtu3_shared_reg_write(mtu3, TCDRA, period);
-		} else if (ch1->index == 6 || ch1->index == 7) {
-			renesas_mtu3_shared_reg_write(mtu3, TDDRB, deadtime);
-			renesas_mtu3_shared_reg_write(mtu3, TCDRB, period);
+		if (ch1->index == 3 || ch1->index == 6) {
+			renesas_mtu3_16bit_ch_reg_write(ch1, TGRC, period + deadtime);
+			renesas_mtu3_16bit_ch_reg_write(ch1, TGRA, period + deadtime);
+			renesas_mtu3_16bit_ch_reg_write(ch1, TGRB, duty);
+			renesas_mtu3_16bit_ch_reg_write(ch2, TGRA, duty);
+			renesas_mtu3_16bit_ch_reg_write(ch2, TGRB, duty);
+			renesas_mtu3_16bit_ch_reg_write(ch1, TGRD, duty);
+			renesas_mtu3_16bit_ch_reg_write(ch2, TGRC, duty);
+			renesas_mtu3_16bit_ch_reg_write(ch2, TGRD, duty);
+			renesas_mtu3_16bit_ch_reg_write(ch1, TCNT, deadtime);
+			renesas_mtu3_16bit_ch_reg_write(ch2, TCNT, 0);
+		} else {
+			renesas_mtu3_16bit_ch_reg_write(ch2, TGRC, period + deadtime);
+			renesas_mtu3_16bit_ch_reg_write(ch2, TGRA, period + deadtime);
+			renesas_mtu3_16bit_ch_reg_write(ch2, TGRB, duty);
+			renesas_mtu3_16bit_ch_reg_write(ch1, TGRA, duty);
+			renesas_mtu3_16bit_ch_reg_write(ch1, TGRB, duty);
+			renesas_mtu3_16bit_ch_reg_write(ch2, TGRD, duty);
+			renesas_mtu3_16bit_ch_reg_write(ch1, TGRC, duty);
+			renesas_mtu3_16bit_ch_reg_write(ch1, TGRD, duty);
+			renesas_mtu3_16bit_ch_reg_write(ch2, TCNT, deadtime);
+			renesas_mtu3_16bit_ch_reg_write(ch1, TCNT, 0);
 		}
 
-		if (ch1->index == 4 || ch1->index == 7) {
-			if (mtu3->pwms[pwm->hwpwm].output == 0) {
-				renesas_mtu3_16bit_ch_reg_write(ch2,
-								TGRB, duty);
-				renesas_mtu3_16bit_ch_reg_write(ch2, TGRA,
-							period + deadtime);
-			} else if (mtu3->pwms[pwm->hwpwm].output == 1) {
-				renesas_mtu3_16bit_ch_reg_write(ch2,
-								TGRD, duty);
-				renesas_mtu3_16bit_ch_reg_write(ch2, TGRC,
-							period + deadtime);
-			}
-		} else {
-			if (mtu3->pwms[pwm->hwpwm].output == 0) {
-				renesas_mtu3_16bit_ch_reg_write(ch1,
-								TGRB, duty);
-				renesas_mtu3_16bit_ch_reg_write(ch1, TGRA,
-							period + deadtime);
-			} else if (mtu3->pwms[pwm->hwpwm].output == 1) {
-				renesas_mtu3_16bit_ch_reg_write(ch1,
-								TGRD, duty);
-				renesas_mtu3_16bit_ch_reg_write(ch1, TGRC,
-							period + deadtime);
-			}
+		/*
+		 * According to HW manuals, Complementary PWM mode should be cleared before
+		 * updating deadtime registers, so we temporarily move to normal mode.
+		 */
+		renesas_mtu3_8bit_ch_reg_write(ch1, TMDR1, TMDR_MD_NORMAL);
+		renesas_mtu3_8bit_ch_reg_write(ch2, TMDR1, TMDR_MD_NORMAL);
+
+		if (ch1->index == 3 || ch1->index == 4) {
+			val = renesas_mtu3_shared_reg_read(mtu3, TDERA);
+			if (!(mtu3->pwms[pwm->hwpwm].deadtime_ns) && val)
+				renesas_mtu3_shared_reg_write(mtu3, TDERA,
+								val & !TDER_EN);
+			else if (!!(mtu3->pwms[pwm->hwpwm].deadtime_ns) && !val)
+				renesas_mtu3_shared_reg_write(mtu3, TDERA,
+								val | TDER_EN);
+
+			renesas_mtu3_shared_reg_write(mtu3, TCDRA, period);
+			renesas_mtu3_shared_reg_write(mtu3, TCBRA, period);
+			renesas_mtu3_shared_reg_write(mtu3, TDDRA, deadtime);
+		} else if (ch1->index == 6 || ch1->index == 7) {
+			val = renesas_mtu3_shared_reg_read(mtu3, TDERB);
+			if (!(mtu3->pwms[pwm->hwpwm].deadtime_ns) && val)
+				renesas_mtu3_shared_reg_write(mtu3, TDERB,
+								val & !TDER_EN);
+			else if (!!(mtu3->pwms[pwm->hwpwm].deadtime_ns) && !val)
+				renesas_mtu3_shared_reg_write(mtu3, TDERB,
+								val | TDER_EN);
+
+			renesas_mtu3_shared_reg_write(mtu3, TCDRB, period);
+			renesas_mtu3_shared_reg_write(mtu3, TCBRB, period);
+			renesas_mtu3_shared_reg_write(mtu3, TDDRB, deadtime);
 		}
+
+		/* Reset to Complementary PWM mode.*/
+		renesas_mtu3_8bit_ch_reg_write(ch1, TMDR1, TMDR_MD_PWM_COMP_BOTH);
+		renesas_mtu3_8bit_ch_reg_write(ch2, TMDR1, TMDR_MD_PWM_COMP_BOTH);
 	}
+
+	mtu3->pwms[pwm->hwpwm].period_ns = period_ns;
+	mtu3->pwms[pwm->hwpwm].duty_ns = duty_ns;
 
 	return 0;
 }
 
+static int renesas_mtu3_pwm_set_polarity(struct pwm_chip *chip,
+					struct pwm_device *pwm,
+					enum pwm_polarity polarity)
+{
+	struct renesas_mtu3_device *mtu3 = pwm_chip_to_mtu3_device(chip);
+	struct renesas_mtu3_channel *ch1;
+
+	ch1 = &mtu3->channels[mtu3->pwms[pwm->hwpwm].ch1];
+	if (ch1->function == MTU3_PWM_COMPLEMENTARY) {
+		dev_err(&mtu3->pdev->dev,
+			"Switching polarity is not supported for complementary PWM\n");
+		return -EPERM;
+	}
+
+	pwm->state.polarity = polarity;
+	return 0;
+}
+
+static const struct pwm_ops mtu3_pwm_ops = {
+	.request        = renesas_mtu3_pwm_request,
+	.free		= renesas_mtu3_pwm_free,
+	.enable         = renesas_mtu3_pwm_enable,
+	.disable        = renesas_mtu3_pwm_disable,
+	.config         = renesas_mtu3_pwm_config,
+	.set_polarity	= renesas_mtu3_pwm_set_polarity,
+};
+
+static ssize_t mtu34_pwm_deadtime_store(struct device *dev,
+			struct device_attribute *attr, const char *buf, size_t size)
+{
+	struct platform_device *pdev =  to_platform_device(dev);
+	struct renesas_mtu3_device *mtu3 =  platform_get_drvdata(pdev);
+	unsigned int deadtime_ns;
+	int i, ret;
+
+	for (i = 0; i < mtu3->pwm_chip.npwm; i++)
+		if ((mtu3->pwms[i].ch1 == 3) || (mtu3->pwms[i].ch1 == 4))
+			break;
+
+	ret = kstrtouint(buf, 0, &deadtime_ns);
+	if (ret)
+		return ret;
+
+	mtu3->pwms[i].deadtime_ns = deadtime_ns;
+
+	ret = renesas_mtu3_pwm_config(&mtu3->pwm_chip, &mtu3->pwm_chip.pwms[i],
+				mtu3->pwms[i].duty_ns, mtu3->pwms[i].period_ns);
+
+	return ret ? : size;
+}
+
+static ssize_t mtu34_pwm_deadtime_show(struct device *dev,
+			struct device_attribute *attr, char *buf)
+{
+	struct platform_device *pdev =  to_platform_device(dev);
+	struct renesas_mtu3_device *mtu3 =  platform_get_drvdata(pdev);
+	int i;
+
+	for (i = 0; i < mtu3->pwm_chip.npwm; i++)
+		if ((mtu3->pwms[i].ch1 == 3) || (mtu3->pwms[i].ch1 == 4))
+			break;
+
+	return snprintf(buf, PAGE_SIZE, "%u ns\n", mtu3->pwms[i].deadtime_ns);
+}
+
+static DEVICE_ATTR_RW(mtu34_pwm_deadtime);
+
+static ssize_t mtu67_pwm_deadtime_store(struct device *dev,
+			struct device_attribute *attr, const char *buf, size_t size)
+{
+	struct platform_device *pdev =  to_platform_device(dev);
+	struct renesas_mtu3_device *mtu3 =  platform_get_drvdata(pdev);
+	unsigned int deadtime_ns;
+	int i, ret;
+
+	for (i = 0; i < mtu3->pwm_chip.npwm; i++)
+		if ((mtu3->pwms[i].ch1 == 6) || (mtu3->pwms[i].ch1 == 7))
+			break;
+
+	ret = kstrtouint(buf, 0, &deadtime_ns);
+	if (ret)
+		return ret;
+
+	mtu3->pwms[i].deadtime_ns = deadtime_ns;
+
+	ret = renesas_mtu3_pwm_config(&mtu3->pwm_chip, &mtu3->pwm_chip.pwms[i],
+				mtu3->pwms[i].duty_ns, mtu3->pwms[i].period_ns);
+
+	return ret ? : size;
+}
+
+static ssize_t mtu67_pwm_deadtime_show(struct device *dev,
+			struct device_attribute *attr, char *buf)
+{
+	struct platform_device *pdev =  to_platform_device(dev);
+	struct renesas_mtu3_device *mtu3 =  platform_get_drvdata(pdev);
+	int i;
+
+	for (i = 0; i < mtu3->pwm_chip.npwm; i++)
+		if ((mtu3->pwms[i].ch1 == 6) || (mtu3->pwms[i].ch1 == 7))
+			break;
+
+	return snprintf(buf, PAGE_SIZE, "%u ns\n", mtu3->pwms[i].deadtime_ns);
+}
+
+static DEVICE_ATTR_RW(mtu67_pwm_deadtime);
+
 static int renesas_mtu3_register_pwm(struct renesas_mtu3_device *mtu,
 				   struct device_node *np)
 {
-	u32 tmp, ch_num, num_pwm, num_args;
+	u32 tmp, ch_num, num_pwm;
 	int offset, ret, i, j;
 
 	/* Setting for pwm mode 1*/
 	j = 0;
 	ret = 0;
-	num_args = 2;
 
 	if (!of_get_property(np, "pwm_mode1", &tmp)) {
 		ret = 1;
 		goto pwm_complementary_setting;
 	}
 
-	num_pwm = tmp/(sizeof(u32)*num_args);
+	num_pwm = tmp/(sizeof(u32)*2);
 	mtu->pwms = kzalloc(sizeof(mtu->pwms), GFP_KERNEL);
 	mtu->pwm_chip.npwm = 0;
 
 	for (i = 0; i < num_pwm; i++) {
-		offset =  i*num_args;
+		offset =  i*2;
 		of_property_read_u32_index(np, "pwm_mode1", offset, &ch_num);
 
 		/*
@@ -1179,15 +1303,14 @@ pwm_complementary_setting:
 		goto add_pwm_chip;
 	}
 
-	num_args = 3;
-	num_pwm = tmp/(sizeof(u32)*num_args);
+	num_pwm = tmp/(sizeof(u32)*2);
 	if (ret == 1) {
 		mtu->pwms = kzalloc(sizeof(mtu->pwms), GFP_KERNEL);
 		mtu->pwm_chip.npwm = 0;
 	}
 
 	for (i = 0; i < num_pwm; i++) {
-		offset =  i*num_args;
+		offset =  i*2;
 		of_property_read_u32_index(np, "pwm_complementary",
 					   offset, &ch_num);
 
@@ -1230,24 +1353,32 @@ pwm_complementary_setting:
 				ch_num = 0;
 		} else
 			ch_num = 0;
+
+		if (ch_num == 3 || ch_num == 4)
+			ret = device_create_file(&mtu->pdev->dev,
+					&dev_attr_mtu34_pwm_deadtime);
+		else if (ch_num == 6 || ch_num == 7)
+			ret = device_create_file(&mtu->pdev->dev,
+					&dev_attr_mtu67_pwm_deadtime);
+
+
 		if (!!ch_num) {
-			of_property_read_u32_index(np, "pwm_complementary",
-					offset + 2, &tmp);
-			mtu->pwms[j].deadtime_ns = tmp;
-			renesas_mtu3_setup_channel(
-				&mtu->channels[mtu->pwms[j].ch1],
-				mtu->pwms[j].ch1, mtu);
-			renesas_mtu3_setup_channel(
-				&mtu->channels[mtu->pwms[j].ch2],
-				mtu->pwms[j].ch2, mtu);
+			renesas_mtu3_setup_channel(&mtu->channels[mtu->pwms[j].ch1],
+						mtu->pwms[j].ch1, mtu);
+			renesas_mtu3_setup_channel(&mtu->channels[mtu->pwms[j].ch2],
+						mtu->pwms[j].ch2, mtu);
+
+			mtu->pwms[j].period_ns = 0;
+			mtu->pwms[j].duty_ns = 0;
+			mtu->pwms[j].deadtime_ns = 0;
+
 			mtu->pwm_chip.npwm += 1;
+
 			dev_info(&mtu->pdev->dev, "ch%u and ch%u: used for "
 				 "complementary pwm output at pins "
-				 "MTIOC%u%s with deadtime = %uns\n",
+				 "MTIOC%u%s\n",
 				 mtu->pwms[j].ch1, mtu->pwms[j].ch2, ch_num,
-				 mtu->pwms[j].output ? "B and D" :
-				 "A and C",
-				 mtu->pwms[j].deadtime_ns);
+				 mtu->pwms[j].output ? "B and D" : "A and C");
 			j++;
 		}
 	}
@@ -1264,23 +1395,6 @@ add_pwm_chip:
 
 	return ret;
 }
-
-static int renesas_mtu3_pwm_set_polarity(struct pwm_chip *chip,
-					struct pwm_device *pwm,
-					enum pwm_polarity polarity)
-{
-	pwm->state.polarity = polarity;
-	return 0;
-}
-
-static const struct pwm_ops mtu3_pwm_ops = {
-	.request        = renesas_mtu3_pwm_request,
-	.free		= renesas_mtu3_pwm_free,
-	.enable         = renesas_mtu3_pwm_enable,
-	.disable        = renesas_mtu3_pwm_disable,
-	.config         = renesas_mtu3_pwm_config,
-	.set_polarity	= renesas_mtu3_pwm_set_polarity,
-};
 
 /* Counter APIs*/
 static int iio_chan_to_mtu3_chan(const struct iio_chan_spec *chan,
