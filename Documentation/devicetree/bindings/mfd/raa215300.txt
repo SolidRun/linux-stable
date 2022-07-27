@@ -25,7 +25,10 @@ Required properties:
  - reg			: I2C slave address.
 
 Optional properties:
-- rtc-enable		: Enables the RTC IP (which is disabled by default).
+- rtc-enable			: Enables the RTC IP (which is disabled by default).
+- charger-enable		: Example enable support battery charger
+- charger-current-level		: Example property battery charger
+- charger-termination-voltage	: Example property battery charger
 
 Example:
 
@@ -34,4 +37,8 @@ Example:
 		reg = <0x12>;
 
 		rtc-enable;
+
+		charger-enable;
+		charger-current-level = <60>;
+		charger-termination-voltage = <3000>;
 	};
