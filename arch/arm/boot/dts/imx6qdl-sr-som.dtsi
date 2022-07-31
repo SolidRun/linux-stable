@@ -104,9 +104,13 @@
 			qca,smarteee-tw-us-1g = <24>;
 		};
 
-		/* Analog devices PHY */
+		/*
+		 * ADIN1300 (som rev 1.9 or later) is always at address 1. It
+		 * will be enabled automatically by U-Boot if detected.
+		 */
 		ethernet-phy@1 {
 			reg = <1>;
+			adi,phy-output-clock = "125mhz-free-running";
 		};
 	};
 };
