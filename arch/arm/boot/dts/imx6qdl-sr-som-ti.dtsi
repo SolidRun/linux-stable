@@ -154,6 +154,7 @@
 	keep-power-in-suspend;
 	mmc-pwrseq = <&pwrseq_ti_wifi>;
 	cap-power-off-card;
+	no-1-8-v;
 	non-removable;
 	vmmc-supply = <&vcc_3v3>;
 	/* vqmmc-supply = <&nvcc_sd1>; - MMC layer doesn't like it! */

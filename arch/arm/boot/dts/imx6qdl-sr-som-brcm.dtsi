@@ -125,9 +125,20 @@
 /* UART4 - Connected to optional BRCM Wifi/BT/FM */
 &uart4 {
 	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_microsom_brcm_bt &pinctrl_microsom_uart4>;
+	pinctrl-0 = <&pinctrl_microsom_uart4>;
 	uart-has-rtscts;
 	status = "okay";
+
+	bluetooth {
+		compatible = "brcm,bcm43438-bt";
+		clocks = <&clk_brcm>;
+		clock-names = "ext_clock";
+		device-wakeup-gpios = <&gpio6 1 GPIO_ACTIVE_HIGH>;
+		shutdown-gpios = <&gpio6 5 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_microsom_brcm_bt>;
+		max-speed = <3000000>;
+	};
 };
 
 /* USDHC1 - Connected to optional BRCM Wifi/BT/FM */
@@ -141,4 +152,16 @@
 	non-removable;
 	vmmc-supply = <&reg_brcm>;
 	status = "okay";
+
+	brcmf: wifi@1 {
+		compatible = "brcm,bcm4329-fmac";
+		reg = <1>;
+/*
+                pinctrl-names = "default";
+                pinctrl-0 = <&pinctrl_microsom_brcm_wifi_irq>;
+		OOB Interrupts are broken on BCM4330 with the brcmfmac driver
+                interrupt-parent = <&gpio5>;
+                interrupts = <20 IRQ_TYPE_LEVEL_LOW>;
+*/
+	};
 };
