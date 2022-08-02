@@ -59,3 +59,5 @@ dtb-$(CONFIG_ARCH_R8A779A0) += r8a779a0-falcon.dtb
 
 dtb-$(CONFIG_ARCH_R9A07G044) += r9a07g044c2-smarc.dtb
 dtb-$(CONFIG_ARCH_R9A07G044) += r9a07g044l2-smarc.dtb
+
+dtb-$(CONFIG_ARCH_R9A07G054) += r9a07g054l2-smarc.dtb
