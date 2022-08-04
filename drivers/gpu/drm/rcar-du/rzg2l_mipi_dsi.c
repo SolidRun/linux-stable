@@ -32,6 +32,8 @@
 #include "rzg2l_mipi_dsi_regs.h"
 #include "rzg2l_mipi_dsi.h"
 
+#define RZ_G2L_MIPI_DSI_MAX_DATA_LANES	4
+
 struct rzg2l_mipi_dsi {
 	struct device *dev;
 	void __iomem *link_mmio;
@@ -63,7 +65,6 @@ struct rzg2l_mipi_dsi {
 	} rstc;
 
 	enum mipi_dsi_pixel_format format;
-	unsigned int num_data_lanes;
 	unsigned int lanes;
 	unsigned long mode_flags;
 
@@ -95,6 +96,8 @@ static void rzg2l_mipi_dsi_clr(void __iomem *mem, u32 reg, u32 clr)
 {
 	rzg2l_mipi_dsi_write(mem, reg, rzg2l_mipi_dsi_read(mem, reg) & ~clr);
 }
+
+static int rzg2l_mipi_dsi_find_panel_or_bridge(struct rzg2l_mipi_dsi *mipi_dsi);
 
 /* -----------------------------------------------------------------------------
  * Hardware Setup
@@ -559,6 +562,10 @@ static int rzg2l_mipi_dsi_attach(struct drm_bridge *bridge,
 	struct drm_encoder *encoder = bridge->encoder;
 	int ret;
 
+	ret = rzg2l_mipi_dsi_find_panel_or_bridge(mipi_dsi);
+	if (ret < 0)
+		return ret;
+
 	/* If we have a next bridge just attach it. */
 	if (mipi_dsi->next_bridge)
 		return drm_bridge_attach(bridge->encoder,
@@ -728,7 +735,7 @@ static int rzg2l_mipi_dsi_host_attach(struct mipi_dsi_host *host,
 {
 	struct rzg2l_mipi_dsi *mipi_dsi = host_to_rzg2l_mipi_dsi(host);
 
-	if (device->lanes > mipi_dsi->num_data_lanes)
+	if (device->lanes > RZ_G2L_MIPI_DSI_MAX_DATA_LANES)
 		return -EINVAL;
 
 	mipi_dsi->lanes = device->lanes;
@@ -752,16 +759,14 @@ static const struct mipi_dsi_host_ops rzg2l_mipi_dsi_host_ops = {
 /* -----------------------------------------------------------------------------
  * Probe & Remove
  */
-static int rzg2l_mipi_dsi_parse_dt(struct rzg2l_mipi_dsi *mipi_dsi)
+static int rzg2l_mipi_dsi_find_panel_or_bridge(struct rzg2l_mipi_dsi *mipi_dsi)
 {
 	struct device_node *local_output = NULL;
 	struct device_node *remote_input = NULL;
 	struct device_node *remote = NULL;
 	struct device_node *node;
-	struct property *prop;
 	bool is_bridge = false;
 	int ret = 0;
-	int len, num_lanes;
 
 	local_output = of_graph_get_endpoint_by_regs(mipi_dsi->dev->of_node,
 						     1, 0);
@@ -816,22 +821,6 @@ static int rzg2l_mipi_dsi_parse_dt(struct rzg2l_mipi_dsi *mipi_dsi)
 			goto done;
 		}
 	}
-
-	prop = of_find_property(local_output, "data-lanes", &len);
-	if (!prop) {
-		mipi_dsi->num_data_lanes = 4;
-		dev_dbg(mipi_dsi->dev, "Using default data lanes\n");
-		goto done;
-	}
-
-	num_lanes = len / sizeof(u32);
-	if (num_lanes < 1 || num_lanes > 4) {
-		dev_err(mipi_dsi->dev, "data lanes definition is not correct\n");
-		ret = -EINVAL;
-		goto done;
-	}
-
-	mipi_dsi->num_data_lanes = num_lanes;
 
 done:
 	of_node_put(local_output);
@@ -924,10 +913,6 @@ static int rzg2l_mipi_dsi_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, mipi_dsi);
 	mipi_dsi->dev = dev;
-
-	ret = rzg2l_mipi_dsi_parse_dt(mipi_dsi);
-	if (ret < 0)
-		return ret;
 
 	/* Init bridge */
 	mipi_dsi->bridge.driver_private = mipi_dsi;
