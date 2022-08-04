@@ -706,6 +706,10 @@ int rzg2l_mipi_dsi_clk_enable(struct drm_bridge *bridge)
 	if (ret < 0)
 		return ret;
 
+	ret = clk_prepare_enable(mipi_dsi->clocks.lpclk);
+	if (ret < 0)
+		return ret;
+
 	return 0;
 }
 EXPORT_SYMBOL_GPL(rzg2l_mipi_dsi_clk_enable);
@@ -719,6 +723,7 @@ void rzg2l_mipi_dsi_clk_disable(struct drm_bridge *bridge)
 	clk_disable_unprepare(mipi_dsi->clocks.aclk);
 	clk_disable_unprepare(mipi_dsi->clocks.pclk);
 	clk_disable_unprepare(mipi_dsi->clocks.vclk);
+	clk_disable_unprepare(mipi_dsi->clocks.lpclk);
 
 	reset_control_assert(mipi_dsi->rstc.cmn_rstb);
 	reset_control_assert(mipi_dsi->rstc.areset_n);
