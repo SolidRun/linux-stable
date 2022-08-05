@@ -34,6 +34,15 @@
 			1800000 0>;
 	};
 
+	reg_1p8v: 1p8v {
+		compatible = "regulator-fixed";
+		regulator-name = "1P8V";
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		regulator-always-on;
+		regulator-boot-on;
+	};
+
 	reg_3p3v: 3p3v {
 		compatible = "regulator-fixed";
 		regulator-name = "3P3V";
@@ -52,6 +61,13 @@
 	mmcif0_pins: mmc {
 		groups = "mmc_data8_b", "mmc_ctrl";
 		function = "mmc";
+		power-source = <3300>;
+	};
+
+	mmcif0_pins_uhs: mmc {
+		groups = "mmc_data8_b", "mmc_ctrl";
+		function = "mmc";
+		power-source = <1800>;
 	};
 
 	qspi_pins: qspi {
@@ -73,10 +89,11 @@
 };
 
 &mmcif0 {
-	pinctrl-0 = <&mmcif0_pins>;
-	pinctrl-names = "default";
+	pinctrl-0 = <&mmcif0_pins>, <&mmcif0_pins_uhs>;
+	pinctrl-names = "default", "state_uhs";
 
 	vmmc-supply = <&reg_3p3v>;
+	vqmmc-supply = <&reg_1p8v>;
 	bus-width = <8>;
 	non-removable;
 	status = "okay";
