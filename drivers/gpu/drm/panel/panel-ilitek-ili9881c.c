@@ -906,7 +906,12 @@ static int ili9881c_dsi_probe(struct mipi_dsi_device *dsi)
 
 	dsi->mode_flags = ctx->desc->mode_flags;
 	dsi->format = MIPI_DSI_FMT_RGB888;
-	dsi->lanes = 4;
+
+	ret = of_property_read_u32(dsi->dev.of_node, "dsi-lanes", &dsi->lanes);
+	if (ret) {
+		dev_info(&dsi->dev, "Failed to get dsi-lanes property using default of 4\n");
+		dsi->lanes = 4;
+	}
 
 	return mipi_dsi_attach(dsi);
 }
