@@ -191,6 +191,29 @@
 			status = "disabled";
 		};
 
+		intc_ex: intc_ex@0x110A0000 {
+			compatible = "renesas,rzg2l-irqc";
+			#interrupt-cells = <2>;
+			interrupt-controller;
+			reg = <0x0 0x110A0000 0 0x10000>;
+			interrupts = <GIC_SPI 1 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 2 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 3 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 4 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 5 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 6 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 7 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 8 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 0 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "irq0", "irq1", "irq2", "irq3",
+				"irq4", "irq5", "irq6", "irq7", "nmi";
+			clocks = <&cpg CPG_MOD R9A07G044_IA55_CLK>;
+			resets = <&cpg R9A07G044_IA55_RESETN>;
+			power-domains = <&cpg>;
+			status = "disabled";
+		};
+
+
 		ssi0: ssi@10049c00 {
 			compatible = "renesas,r9a07g044-ssi",
 				     "renesas,rz-ssi";
