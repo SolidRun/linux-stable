@@ -176,7 +176,6 @@ static void reset_device(struct gpio_desc *gpio)
 	}
 	gpiod_set_value_cansleep(gpio, 0);
 	usleep_range(5000, 10000);
-	gpiod_direction_input(gpio);
 }
 
 static void renesas_reset(struct hci_uart *hu)
