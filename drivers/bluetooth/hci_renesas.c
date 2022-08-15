@@ -246,7 +246,7 @@ static int renesas_load_firmware(struct hci_dev *hdev, const char *name)
 
 		switch(rdata->state) {
 			case STATE_FW_INIT:
-				bt_dev_dbg(hdev, "Firmware request, expecting %d bytes", 
+				bt_dev_dbg(hdev, "Firmware request, expecting %lu bytes", 
 					fw->size);
 
 				set_bit(STATE_FW_ACK_PENDING, &rdata->flags);
