@@ -332,11 +332,13 @@ static int renesas_setup(struct hci_uart *hu)
 	hci_uart_set_flow_control(hu, true);
 
 	err = renesas_load_firmware(hu->hdev, FIRMWARE_DA14531);
-	if (err)
-		return err;
-
-	/* wait for HCI application to start */
-	usleep_range(8000, 10000);
+	if (err) {
+		bt_dev_warn(hu->hdev, "Continuing despite being unable to "
+			    "load the firmware");
+	} else {
+		/* wait for HCI application to start */
+		usleep_range(8000, 10000);
+	}
 
 	rdata->state = STATE_FW_BOOTED;
 
