@@ -20,6 +20,7 @@ properties:
           - enum:
               - renesas,usbhs-r7s9210   # RZ/A2
               - renesas,usbhs-r9a07g044 # RZ/G2{L,LC}
+              - renesas,usbhs-r9a07g054 # RZ/V2L
           - const: renesas,rza2-usbhs
 
       - items:
@@ -121,7 +122,9 @@ allOf:
       properties:
         compatible:
           contains:
-            const: renesas,usbhs-r9a07g044
+            enum:
+              - renesas,usbhs-r9a07g044
+              - renesas,usbhs-r9a07g054
     then:
       properties:
         interrupts:
