@@ -590,6 +590,18 @@ static void sci_start_tx(struct uart_port *port)
 
 	if (s->chan_tx && !uart_circ_empty(&s->port.state->xmit) &&
 	    dma_submit_error(s->cookie_tx)) {
+
+		/* Disable SCIF interrupt while transfer DMA */
+		ctrl = serial_port_in(port, SCSCR);
+		serial_port_out(port, SCSCR, ctrl & ~SCSCR_TIE);
+		/* Disable Transmit interrupt, Transmit end interrupt */
+		disable_irq(s->irqs[SCIx_TXI_IRQ]);
+		disable_irq(s->irqs[SCIx_TEI_IRQ]);
+
+		/* DMA need TIE enable */
+		ctrl = serial_port_in(port, SCSCR);
+		serial_port_out(port, SCSCR, ctrl | SCSCR_TIE);
+
 		s->cookie_tx = 0;
 		schedule_work(&s->work_tx);
 	}
@@ -1203,6 +1215,7 @@ static void sci_dma_tx_complete(void *arg)
 	struct uart_port *port = &s->port;
 	struct circ_buf *xmit = &port->state->xmit;
 	unsigned long flags;
+	unsigned short ctrl;
 
 	dev_dbg(port->dev, "%s(%d)\n", __func__, port->line);
 
@@ -1221,10 +1234,20 @@ static void sci_dma_tx_complete(void *arg)
 		schedule_work(&s->work_tx);
 	} else {
 		s->cookie_tx = -EINVAL;
+		s->chan_tx = NULL;
 		if (port->type == PORT_SCIFA || port->type == PORT_SCIFB) {
 			u16 ctrl = serial_port_in(port, SCSCR);
 			serial_port_out(port, SCSCR, ctrl & ~SCSCR_TIE);
 		}
+
+		/* Stop DMA transfer */
+		dmaengine_pause(s->chan_tx_saved);
+
+		/* Re enable SCIF interrupt after DMA transfer complete */
+		ctrl = serial_port_in(port, SCSCR);
+		serial_port_out(port, SCSCR, ctrl & ~SCSCR_TIE);
+		enable_irq(s->irqs[SCIx_TXI_IRQ]);
+		enable_irq(s->irqs[SCIx_TEI_IRQ]);
 	}
 
 	spin_unlock_irqrestore(&port->lock, flags);
