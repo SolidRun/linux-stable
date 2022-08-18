@@ -1585,13 +1585,6 @@ static int rzg2l_gpio_register(struct rzg2l_pinctrl *pctrl)
 	pctrl->gpio_range.npins = chip->ngpio;
 	pctrl->gpio_range.name = chip->label;
 	pctrl->gpio_range.gc = chip;
-	ret = devm_gpiochip_add_data(pctrl->dev, chip, pctrl);
-	if (ret) {
-		dev_err(pctrl->dev, "failed to add GPIO controller\n");
-		return ret;
-	}
-
-	dev_dbg(pctrl->dev, "Registered gpio controller\n");
 
 	irq_chip->name = dev_name(pctrl->dev);
 	irq_chip->irq_shutdown = rzg2l_gpio_irq_shutdown;
@@ -1608,6 +1601,14 @@ static int rzg2l_gpio_register(struct rzg2l_pinctrl *pctrl)
 	}
 
 	dev_dbg(pctrl->dev, "Registered interrupt controller\n");
+
+	ret = devm_gpiochip_add_data(pctrl->dev, chip, pctrl);
+	if (ret) {
+		dev_err(pctrl->dev, "failed to add GPIO controller\n");
+		return ret;
+	}
+
+	dev_dbg(pctrl->dev, "Registered gpio controller\n");
 
 	return 0;
 }
