@@ -69,7 +69,7 @@ static struct rzf_pma_plat pma_area[3];
 
 DEFINE_PER_CPU(struct andesv5_cache_info, cpu_cache_info) = {
 	.init_done = 0,
-	.dcache_line_size = SZ_32
+	.dcache_line_size = SZ_64
 };
 
 static uint32_t cpu_get_mcache_ctl_status(void)
@@ -527,6 +527,7 @@ static void cpu_l2c_of_to_plat(struct v5l2_plat *priv,
 	pma_area[2].id = 2;
 	cpu_nocache_area_set(pma_area[i].start, pma_area[i].size, \
 						pma_area[i].vaddr, pma_area[i].id);
+	cpu_l2c_enable(priv);
 
 no_cma:
 	pr_info("L2CACHE: prefetch: %u\n", priv->iprefetch);
