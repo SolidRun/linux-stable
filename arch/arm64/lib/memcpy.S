@@ -36,12 +36,8 @@
 #define D_h	x13
 #define E_l	x14
 #define E_h	x15
-#define F_l	x16
-#define F_h	x17
-#define G_l	count
-#define G_h	dst
-#define H_l	src
-#define H_h	srcend
+#define F_l	count
+#define F_h	dst
 #define tmp1	x14
 
 /* This implementation handles overlaps and supports both memcpy and memmove
@@ -60,10 +56,10 @@
 SYM_FUNC_START(__pi_memcpy)
 	add	srcend, src, count
 	add	dstend, dstin, count
-	cmp	count, 128
+	cmp	count, 96
 	b.hi	L(copy_long)
 	cmp	count, 32
-	b.hi	L(copy32_128)
+	b.hi	L(copy32_96)
 
 	/* Small copies: 0..32 bytes.  */
 	cmp	count, 16
@@ -107,14 +103,14 @@ L(copy0):
 	ret
 
 	.p2align 4
-	/* Medium copies: 33..128 bytes.  */
-L(copy32_128):
+	/* Medium copies: 33..96 bytes.  */
+L(copy32_96):
 	ldp	A_l, A_h, [src]
 	ldp	B_l, B_h, [src, 16]
 	ldp	C_l, C_h, [srcend, -32]
 	ldp	D_l, D_h, [srcend, -16]
 	cmp	count, 64
-	b.hi	L(copy128)
+	b.hi	L(copy96)
 	stp	A_l, A_h, [dstin]
 	stp	B_l, B_h, [dstin, 16]
 	stp	C_l, C_h, [dstend, -32]
@@ -122,17 +118,10 @@ L(copy32_128):
 	ret
 
 	.p2align 4
-	/* Copy 65..128 bytes.  */
-L(copy128):
+	/* Copy 65..96 bytes.  */
+L(copy96):
 	ldp	E_l, E_h, [src, 32]
 	ldp	F_l, F_h, [src, 48]
-	cmp	count, 96
-	b.ls	L(copy96)
-	ldp	G_l, G_h, [srcend, -64]
-	ldp	H_l, H_h, [srcend, -48]
-	stp	G_l, G_h, [dstend, -64]
-	stp	H_l, H_h, [dstend, -48]
-L(copy96):
 	stp	A_l, A_h, [dstin]
 	stp	B_l, B_h, [dstin, 16]
 	stp	E_l, E_h, [dstin, 32]
@@ -161,7 +150,8 @@ L(copy_long):
 	stp	D_l, D_h, [dstin]
 	ldp	B_l, B_h, [src, 32]
 	ldp	C_l, C_h, [src, 48]
-	ldp	D_l, D_h, [src, 64]!
+	ldp	D_l, D_h, [src, 64]
+	add	src, src, 64
 	subs	count, count, 128 + 16	/* Test and readjust count.  */
 	b.ls	L(copy64_from_end)
 
@@ -173,7 +163,8 @@ L(loop64):
 	stp	C_l, C_h, [dst, 48]
 	ldp	C_l, C_h, [src, 48]
 	stp	D_l, D_h, [dst, 64]!
-	ldp	D_l, D_h, [src, 64]!
+	ldp	D_l, D_h, [src, 64]
+	add	src, src, 64
 	subs	count, count, 64
 	b.hi	L(loop64)
 
@@ -206,7 +197,8 @@ L(copy_long_backwards):
 	stp	D_l, D_h, [dstend, -16]
 	ldp	B_l, B_h, [srcend, -32]
 	ldp	C_l, C_h, [srcend, -48]
-	ldp	D_l, D_h, [srcend, -64]!
+	ldp	D_l, D_h, [srcend, -64]
+	sub	srcend, srcend, 64
 	sub	dstend, dstend, tmp1
 	subs	count, count, 128
 	b.ls	L(copy64_from_start)
@@ -219,13 +211,14 @@ L(loop64_backwards):
 	stp	C_l, C_h, [dstend, -48]
 	ldp	C_l, C_h, [srcend, -48]
 	stp	D_l, D_h, [dstend, -64]!
-	ldp	D_l, D_h, [srcend, -64]!
+	ldp	D_l, D_h, [srcend, -64]
+	sub	srcend, srcend, 64
 	subs	count, count, 64
 	b.hi	L(loop64_backwards)
 
 	/* Write the last iteration and copy 64 bytes from the start.  */
 L(copy64_from_start):
-	ldp	G_l, G_h, [src, 48]
+	ldp	F_l, F_h, [src, 48]
 	stp	A_l, A_h, [dstend, -16]
 	ldp	A_l, A_h, [src, 32]
 	stp	B_l, B_h, [dstend, -32]
@@ -233,10 +226,10 @@ L(copy64_from_start):
 	stp	C_l, C_h, [dstend, -48]
 	ldp	C_l, C_h, [src]
 	stp	D_l, D_h, [dstend, -64]
-	stp	G_l, G_h, [dstin, 48]
-	stp	A_l, A_h, [dstin, 32]
-	stp	B_l, B_h, [dstin, 16]
 	stp	C_l, C_h, [dstin]
+	stp	B_l, B_h, [dstin, 16]
+	stp	A_l, A_h, [dstin, 32]
+	stp	F_l, F_h, [dstin, 48]
 	ret
 SYM_FUNC_END(__pi_memcpy)
 
