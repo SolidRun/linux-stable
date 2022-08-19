@@ -245,6 +245,7 @@ static int rzg2l_cru_parallel_init(struct rzg2l_cru_dev *cru)
 {
 	int ret;
 
+	v4l2_async_notifier_init(&cru->notifier);
 	ret = v4l2_async_notifier_parse_fwnode_endpoints_by_port(
 				cru->dev, &cru->notifier,
 				sizeof(struct rzg2l_cru_parallel_entity),
