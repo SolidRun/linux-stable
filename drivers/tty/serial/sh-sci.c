@@ -1318,10 +1318,13 @@ static void sci_dma_rx_reenable_irq(struct sci_port *s)
 
 	/* Direct new serial port interrupts back to CPU */
 	scr = serial_port_in(port, SCSCR);
-	if (port->type == PORT_SCIFA || port->type == PORT_SCIFB) {
+	if (port->type == PORT_SCIFA || port->type == PORT_SCIFB)
 		scr &= ~SCSCR_RDRQE;
-		enable_irq(s->irqs[SCIx_RXI_IRQ]);
-	}
+
+	enable_irq(s->irqs[SCIx_RXI_IRQ]);
+
+	scif_set_rtrg(port, s->rx_trigger);
+
 	serial_port_out(port, SCSCR, scr | SCSCR_RIE);
 }
 
@@ -1740,14 +1743,19 @@ static irqreturn_t sci_rx_interrupt(int irq, void *ptr)
 
 		/* Disable future Rx interrupts */
 		if (port->type == PORT_SCIFA || port->type == PORT_SCIFB) {
-			disable_irq_nosync(irq);
+			disable_irq_nosync(s->irqs[SCIx_RXI_IRQ]);
 			scr |= SCSCR_RDRQE;
 		} else {
 			if (sci_dma_rx_submit(s, false) < 0)
 				goto handle_pio;
 
-			scr &= ~SCSCR_RIE;
+			disable_irq_nosync(s->irqs[SCIx_RXI_IRQ]);
+			/* DMA need RIE enable */
+			scr |= SCSCR_RIE;
 		}
+
+		scif_set_rtrg(port, 1);
+
 		serial_port_out(port, SCSCR, scr);
 		/* Clear current interrupt */
 		serial_port_out(port, SCxSR,
