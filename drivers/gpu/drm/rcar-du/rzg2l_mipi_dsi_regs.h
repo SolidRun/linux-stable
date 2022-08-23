@@ -82,6 +82,23 @@
 #define RSTSR_SWRSTLP			(1 << 1)
 #define RSTSR_SWRSTHS			(1 << 0)
 
+/* Tx Packet Payload Data x Register */
+
+#define TXPPDxR(x)			(0x160 + (x) * 4)
+
+/* Rx Result Save Slot 0 Register */
+#define RXRSS0R				0x240
+#define RXRSS0R_RXSUC			BIT(25)
+#define RXRSS0R_FMT			BIT(24)
+#define RXRSS0R_VC			GENMASK(23, 22)
+#define RXRSS0R_DT			GENMASK(21, 16)
+#define RXRSS0R_DATA1			GENMASK(15, 8)
+#define RXRSS0R_DATA0			GENMASK(7, 0)
+#define RXRSS0R_DATA			(RXRSS0R_DATA1 | RXRSS0R_DATA0)
+
+/* Rx Packet Payload Data x Register */
+#define RXPPDxR(x)			(0x2C0 + (x) * 4)
+
 /* Clock Lane Stop Time Set Register */
 #define CLSTPTSETR			0x314
 #define CLSTPTSETR_CLKKPT(x)		((x) << 24)
@@ -152,5 +169,49 @@
 #define VICH1HPSETR			0x434
 #define VICH1HPSETR_HFP(x)		(((x) & 0x1fff) << 16)
 #define VICH1HPSETR_HBP(x)		(((x) & 0x1fff) << 0)
+
+/* Sequence Channel 0 Set 0 Register */
+#define SQCH0SET0R			0x5C0
+#define SQCH0SET0R_START		BIT(0)
+
+/* Sequence Channel 0 Set 1 Register */
+#define SQCH0SET1R			0x5C4
+
+/* Sequence Channel 0 Status Register */
+#define SQCH0SR				0x5D0
+#define SQCH0SR_RUNNING			BIT(2)
+#define SQCH0SR_ADESFIN			BIT(8)
+
+/* Sequence Channel 0 Status Clear Register */
+#define SQCH0SCR			0x5D4
+#define SQCH0SCR_ADESFIN		BIT(8)
+
+/* Sequence Channel 0 Descriptor 00-A Register */
+#define SQCH0DSC00AR			0x780
+#define SQCH0DSC00AR_NXACT_TERM		(0 << 28)
+#define SQCH0DSC00AR_NXACT_OPER		(1 << 28)
+#define SQCH0DSC00AR_BTA_NO_BTA		(0 << 26)
+#define SQCH0DSC00AR_BTA_NON_READ_BTA	(1 << 26)
+#define SQCH0DSC00AR_BTA_READ_BTA	(2 << 26)
+#define SQCH0DSC00AR_BTA_ONLY_BTA	(3 << 26)
+#define SQCH0DSC00AR_SPD_HIGH		(0 << 25)
+#define SQCH0DSC00AR_SPD_LOW		(1 << 25)
+#define SQCH0DSC00AR_FMT_SHORT		(0 << 24)
+#define SQCH0DSC00AR_FMT_LONG		(1 << 24)
+#define SQCH0DSC00AR_VC_DT(x)		((x) << 16)
+#define SQCH0DSC00AR_DATA0(x)		(x)
+#define SQCH0DSC00AR_DATA1(x)		((x) << 8)
+
+/* Sequence Channel 0 Descriptor 00-B Register */
+#define SQCH0DSC00BR			0x784
+#define SQCH0DSC00BR_DTSEL_PAYLOAD_SIZE	(0 << 24)
+#define SQCH0DSC00BR_DTSEL_MEM_SPACE	(1 << 24)
+
+/* Sequence Channel 0 Descriptor 00-C Register */
+#define SQCH0DSC00CR			0x788
+#define SQCH0DSC00CR_FINACT		BIT(0)
+
+/* Sequence Channel 0 Descriptor 00-D Register */
+#define SQCH0DSC00DR			0x78C
 
 #endif /* __RZG2L_MIPI_DSI_REGS_H__ */
