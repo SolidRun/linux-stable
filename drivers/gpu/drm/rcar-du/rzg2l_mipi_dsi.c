@@ -28,6 +28,7 @@
 #include <drm/drm_of.h>
 #include <drm/drm_modeset_helper_vtables.h>
 #include <drm/drm_print.h>
+#include <video/mipi_display.h>
 
 #include "rzg2l_mipi_dsi_regs.h"
 #include "rzg2l_mipi_dsi.h"
@@ -615,6 +616,11 @@ static void rzg2l_mipi_dsi_enable(struct drm_bridge *bridge)
 
 	rzg2l_mipi_dsi_set_display_timing(mipi_dsi);
 
+	if (mipi_dsi->panel) {
+		drm_panel_prepare(mipi_dsi->panel);
+		drm_panel_enable(mipi_dsi->panel);
+	}
+
 	ret = rzg2l_mipi_dsi_start_hs_clock(mipi_dsi);
 	if (ret < 0)
 		return;
@@ -622,11 +628,6 @@ static void rzg2l_mipi_dsi_enable(struct drm_bridge *bridge)
 	ret = rzg2l_mipi_dsi_start_video(mipi_dsi);
 	if (ret < 0)
 		return;
-
-	if (mipi_dsi->panel) {
-		drm_panel_prepare(mipi_dsi->panel);
-		drm_panel_enable(mipi_dsi->panel);
-	}
 }
 
 static void rzg2l_mipi_dsi_disable(struct drm_bridge *bridge)
@@ -634,14 +635,14 @@ static void rzg2l_mipi_dsi_disable(struct drm_bridge *bridge)
 	struct rzg2l_mipi_dsi *mipi_dsi = bridge_to_rzg2l_mipi_dsi(bridge);
 	int ret;
 
+	ret = rzg2l_mipi_dsi_stop_video(mipi_dsi);
+	if (ret < 0)
+		return;
+
 	if (mipi_dsi->panel) {
 		drm_panel_disable(mipi_dsi->panel);
 		drm_panel_unprepare(mipi_dsi->panel);
 	}
-
-	ret = rzg2l_mipi_dsi_stop_video(mipi_dsi);
-	if (ret < 0)
-		return;
 
 	ret = rzg2l_mipi_dsi_stop_hs_clock(mipi_dsi);
 	if (ret < 0)
@@ -756,9 +757,219 @@ static int rzg2l_mipi_dsi_host_detach(struct mipi_dsi_host *host,
 	return 0;
 }
 
+/* Based on MIPI Alliance Specification for DSI */
+static const char * const error_report[16] = {
+	"SoT Error",
+	"SoT Sync Error",
+	"EoT Sync Error",
+	"Escape Mode Entry Command Error",
+	"Low-Power Transmit Sync Error",
+	"Peripheral Timeout Error",
+	"False Control Error",
+	"Contention Detected",
+	"ECC Error, single-bit",
+	"ECC Error, multi-bit",
+	"Checksum Error",
+	"DSI Data Type Not Recognized",
+	"DSI VC ID Invalid",
+	"Invalid Transmission Length",
+	"Reserved",
+	"DSI Protocol Violation",
+};
+
+static ssize_t rzg2l_mipi_dsi_host_transfer(struct mipi_dsi_host *host,
+					    const struct mipi_dsi_msg *msg)
+{
+	struct rzg2l_mipi_dsi *mipi_dsi = host_to_rzg2l_mipi_dsi(host);
+	struct mipi_dsi_packet packet;
+	bool is_long = mipi_dsi_packet_format_is_long(msg->type);
+	bool is_need_bta = false;
+	ssize_t err = 0;
+	u32 sqch0dsc00ar, sqch0dsc00br, status;
+	unsigned int timeout;
+	unsigned int count;
+	unsigned int i, j;
+	u32 tx_data, rx_data;
+
+	err = mipi_dsi_create_packet(&packet, msg);
+	if (err < 0)
+		return err;
+
+	/* Temporarily support maximum 16 bytes payload and RX data */
+	if ((packet.payload_length > 16) || (msg->rx_len > 16))
+		return -ENOSPC;
+
+	if ((msg->flags & MIPI_DSI_MSG_REQ_ACK) ||
+	   ((msg->type & MIPI_DSI_GENERIC_READ_REQUEST_0_PARAM ||
+	     msg->type & MIPI_DSI_GENERIC_READ_REQUEST_1_PARAM ||
+	     msg->type & MIPI_DSI_GENERIC_READ_REQUEST_2_PARAM ||
+	     msg->type & MIPI_DSI_DCS_READ) &&
+	    (msg->rx_buf && msg->rx_len > 0)))
+		is_need_bta = true;
+	else
+		sqch0dsc00ar = SQCH0DSC00AR_BTA_NO_BTA;
+
+	/* Terminate Operation after this descriptor finished */
+	sqch0dsc00ar |= SQCH0DSC00AR_NXACT_TERM;
+
+	/* High speed transmission */
+	if (msg->flags & MIPI_DSI_MSG_USE_LPM)
+		sqch0dsc00ar |= SQCH0DSC00AR_SPD_LOW;
+	else
+		sqch0dsc00ar |= SQCH0DSC00AR_SPD_HIGH;
+
+	/* Write TX Packet Header */
+	sqch0dsc00ar |= (SQCH0DSC00AR_VC_DT(packet.header[0]) |
+			 SQCH0DSC00AR_DATA0(packet.header[1]) |
+			 SQCH0DSC00AR_DATA1(packet.header[2]));
+
+	/* Sending non-read packets */
+	if (is_long) {
+		/* Count the amount of TXPPDxR will be used */
+		count = ((packet.payload_length - 1) / 4) + 1;
+		/* Long packet transmission */
+		sqch0dsc00ar |= SQCH0DSC00AR_FMT_LONG;
+		/* Write TX Packet Payload Data */
+		for (i = 0; i < count; i++) {
+			tx_data = 0;
+			for (j = 0; j < 4; j++) {
+				if (packet.payload_length == (4 * i + j))
+					break;
+
+				tx_data |= (packet.payload[4 * i + j] << (8 * j));
+			}
+
+			rzg2l_mipi_dsi_write(mipi_dsi->link_mmio, TXPPDxR(i),
+					     tx_data);
+		}
+	} else {
+		/* Short packet transmission */
+		sqch0dsc00ar |= SQCH0DSC00AR_FMT_SHORT;
+	}
+
+	if (is_need_bta) {
+		if (msg->flags & MIPI_DSI_MSG_REQ_ACK)
+			sqch0dsc00ar |= SQCH0DSC00AR_BTA_NON_READ_BTA;
+		else
+			sqch0dsc00ar |= SQCH0DSC00AR_BTA_READ_BTA;
+
+	}
+
+	rzg2l_mipi_dsi_write(mipi_dsi->link_mmio, SQCH0DSC00AR, sqch0dsc00ar);
+
+	/* Packet Payload Data register is used to data select */
+	sqch0dsc00br = SQCH0DSC00BR_DTSEL_PAYLOAD_SIZE;
+	rzg2l_mipi_dsi_write(mipi_dsi->link_mmio, SQCH0DSC00BR, sqch0dsc00br);
+
+	/* Indicate rx result save slot number 0 */
+	rzg2l_mipi_dsi_write(mipi_dsi->link_mmio, SQCH0DSC00CR,
+						  SQCH0DSC00CR_FINACT);
+	/* Start Sequence 0 Operation */
+	rzg2l_mipi_dsi_write(mipi_dsi->link_mmio, SQCH0SET0R,
+			rzg2l_mipi_dsi_read(mipi_dsi->link_mmio, SQCH0SET0R) |
+			SQCH0SET0R_START);
+
+	for (timeout = 10; timeout > 0; --timeout) {
+		status = rzg2l_mipi_dsi_read(mipi_dsi->link_mmio, SQCH0SR);
+		if (status & SQCH0SR_ADESFIN) {
+			/* Clear the status bit */
+			rzg2l_mipi_dsi_write(mipi_dsi->link_mmio, SQCH0SCR,
+					     SQCH0SCR_ADESFIN);
+
+			break;
+		}
+
+		usleep_range(1000, 2000);
+	}
+
+	if (!timeout) {
+		err = -ETIMEDOUT;
+		goto stop_sequence;
+
+	}
+
+	if (is_need_bta) {
+		u8 *msg_rx = msg->rx_buf;
+		size_t size = 0;
+		u32 datatype, errors;
+
+		status = rzg2l_mipi_dsi_read(mipi_dsi->link_mmio, RXRSS0R);
+		if (status & RXRSS0R_RXSUC) {
+			datatype = (status & RXRSS0R_DT) >> 16;
+
+			switch (datatype & 0x3f) {
+			case 0:
+				dev_dbg(mipi_dsi->dev, "ACK\n");
+				break;
+			case MIPI_DSI_RX_END_OF_TRANSMISSION:
+				dev_dbg(mipi_dsi->dev, "EoTp\n");
+				break;
+			case MIPI_DSI_RX_ACKNOWLEDGE_AND_ERROR_REPORT:
+				errors = status & RXRSS0R_DATA;
+
+				dev_dbg(mipi_dsi->dev,
+					"Acknowledge and error report: %04x\n",
+					errors);
+
+				for (i = 0; i < ARRAY_SIZE(error_report); i++)
+					if (errors & BIT(i))
+						dev_dbg(mipi_dsi->dev,
+							"  %2u: %s\n",
+							i, error_report[i]);
+				break;
+			case MIPI_DSI_RX_DCS_SHORT_READ_RESPONSE_1BYTE:
+			case MIPI_DSI_RX_GENERIC_SHORT_READ_RESPONSE_1BYTE:
+				msg_rx[0] = (status & RXRSS0R_DATA0);
+				break;
+			case MIPI_DSI_RX_DCS_SHORT_READ_RESPONSE_2BYTE:
+			case MIPI_DSI_RX_GENERIC_SHORT_READ_RESPONSE_2BYTE:
+				msg_rx[0] = (status & RXRSS0R_DATA0);
+				msg_rx[1] = (status & RXRSS0R_DATA1) >> 8;
+				break;
+			case MIPI_DSI_RX_GENERIC_LONG_READ_RESPONSE:
+			case MIPI_DSI_RX_DCS_LONG_READ_RESPONSE:
+				size = (status & (RXRSS0R_DATA0 | RXRSS0R_DATA1));
+				count = ((size - 1) / 4) + 1;
+				/* Read RX Packet Payload Data */
+				for (i = 0; i < count; i++) {
+					rx_data = rzg2l_mipi_dsi_read(mipi_dsi->link_mmio,
+								      RXPPDxR(i));
+					for (j = 0; j < 4; j++) {
+						if (size == (4 * i + j))
+							break;
+						msg_rx[4 * i + j] = (rx_data >> (8 * j)) & 0xff;
+					}
+				}
+				break;
+			default:
+				dev_err(mipi_dsi->dev,
+					"unhandled response type: %02x\n",
+					datatype & 0x3f);
+
+				err = -EPROTO;
+				goto stop_sequence;
+			}
+		} else {
+			err = -EPROTO;
+			goto stop_sequence;
+		}
+	}
+
+	err = 1;
+
+stop_sequence:
+	/* Stop Sequence 0 Operation */
+	rzg2l_mipi_dsi_write(mipi_dsi->link_mmio, SQCH0SET0R,
+			rzg2l_mipi_dsi_read(mipi_dsi->link_mmio, SQCH0SET0R) &
+			(~SQCH0SET0R_START));
+
+	return err;
+}
+
 static const struct mipi_dsi_host_ops rzg2l_mipi_dsi_host_ops = {
 	.attach = rzg2l_mipi_dsi_host_attach,
 	.detach = rzg2l_mipi_dsi_host_detach,
+	.transfer = rzg2l_mipi_dsi_host_transfer,
 };
 
 /* -----------------------------------------------------------------------------
