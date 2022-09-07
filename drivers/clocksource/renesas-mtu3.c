@@ -845,6 +845,23 @@ static int renesas_mtu3_pwm_output_setup(struct renesas_mtu3_channel *ch,
 	u8 output_mode, val;
 
 	if (ch->function == MTU3_PWM_MODE_1) {
+		/* MTIOC4A/C and MTIOC7A/C need setting of TOERA and TOERB to output pwm. */
+		if (ch->index == 4) {
+			if (output == 0)
+				val = renesas_mtu3_shared_reg_read(ch->mtu, TOERA) | 0x02;
+			else if (output == 1)
+				val = renesas_mtu3_shared_reg_read(ch->mtu, TOERA) | 0x10;
+
+			renesas_mtu3_shared_reg_write(ch->mtu, TOERA, val);
+		} else if (ch->index == 7) {
+			if (output == 0)
+				val = renesas_mtu3_shared_reg_read(ch->mtu, TOERB) | 0x02;
+			else if (output == 1)
+				val = renesas_mtu3_shared_reg_read(ch->mtu, TOERB) | 0x10;
+
+			renesas_mtu3_shared_reg_write(ch->mtu, TOERB, val);
+		}
+
 		if (polarity == PWM_POLARITY_INVERSED)
 			output_mode = TIOR_OC_1_L_COMP_MATCH;
 		else if (polarity == PWM_POLARITY_NORMAL)
