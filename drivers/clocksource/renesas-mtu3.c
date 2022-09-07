@@ -283,6 +283,13 @@ struct renesas_mtu3_device {
 #define TSR_TGFA		(1 << 0)
 #define TSR_TGIA		(1 << 0)
 
+#define TOER_MTIOC36B_EN	(1 << 0)
+#define TOER_MTIOC47A_EN	(1 << 1)
+#define TOER_MTIOC47B_EN	(1 << 2)
+#define TOER_MTIOC36D_EN	(1 << 3)
+#define TOER_MTIOC47C_EN	(1 << 4)
+#define TOER_MTIOC47D_EN	(1 << 5)
+
 /* private flags */
 #define FLAG_CLOCKEVENT (1 << 0)
 #define FLAG_CLOCKSOURCE (1 << 1)
@@ -839,8 +846,8 @@ static void renesas_mtu3_pwm_free(struct pwm_chip *chip,
 	pm_runtime_put_sync(chip->dev);
 }
 
-static int renesas_mtu3_pwm_output_setup(struct renesas_mtu3_channel *ch,
-				u8 output, enum pwm_polarity polarity)
+static int renesas_mtu3_waveform_output_enable(struct renesas_mtu3_channel *ch,
+						u8 output, enum pwm_polarity polarity)
 {
 	u8 output_mode, val;
 
@@ -848,16 +855,24 @@ static int renesas_mtu3_pwm_output_setup(struct renesas_mtu3_channel *ch,
 		/* MTIOC4A/C and MTIOC7A/C need setting of TOERA and TOERB to output pwm. */
 		if (ch->index == 4) {
 			if (output == 0)
-				val = renesas_mtu3_shared_reg_read(ch->mtu, TOERA) | 0x02;
+				val = renesas_mtu3_shared_reg_read(ch->mtu, TOERA) |
+								TOER_MTIOC47A_EN;
 			else if (output == 1)
-				val = renesas_mtu3_shared_reg_read(ch->mtu, TOERA) | 0x10;
+				val = renesas_mtu3_shared_reg_read(ch->mtu, TOERA) |
+								TOER_MTIOC47C_EN;
+			else
+				return -EINVAL;
 
 			renesas_mtu3_shared_reg_write(ch->mtu, TOERA, val);
 		} else if (ch->index == 7) {
 			if (output == 0)
-				val = renesas_mtu3_shared_reg_read(ch->mtu, TOERB) | 0x02;
+				val = renesas_mtu3_shared_reg_read(ch->mtu, TOERB) |
+								TOER_MTIOC47A_EN;
 			else if (output == 1)
-				val = renesas_mtu3_shared_reg_read(ch->mtu, TOERB) | 0x10;
+				val = renesas_mtu3_shared_reg_read(ch->mtu, TOERB) |
+								TOER_MTIOC47C_EN;
+			else
+				return -EINVAL;
 
 			renesas_mtu3_shared_reg_write(ch->mtu, TOERB, val);
 		}
@@ -876,27 +891,89 @@ static int renesas_mtu3_pwm_output_setup(struct renesas_mtu3_channel *ch,
 	} else if (ch->function == MTU3_PWM_COMPLEMENTARY) {
 		if (ch->index == 3) {
 			val = renesas_mtu3_shared_reg_read(ch->mtu, TOERA) |
-							0x09;
+						(TOER_MTIOC36B_EN | TOER_MTIOC36D_EN);
 			renesas_mtu3_shared_reg_write(ch->mtu, TOERA, val);
 		} else if (ch->index == 4 && output == 0) {
 			val = renesas_mtu3_shared_reg_read(ch->mtu, TOERA) |
-							(0x09 << 1);
+						(TOER_MTIOC47A_EN | TOER_MTIOC47C_EN);
 			renesas_mtu3_shared_reg_write(ch->mtu, TOERA, val);
 		} else if (ch->index == 4 && output == 1) {
 			val = renesas_mtu3_shared_reg_read(ch->mtu, TOERA) |
-							(0x09 << 2);
+						(TOER_MTIOC47B_EN | TOER_MTIOC47D_EN);
 			renesas_mtu3_shared_reg_write(ch->mtu, TOERA, val);
 		} else if (ch->index == 6) {
 			val = renesas_mtu3_shared_reg_read(ch->mtu, TOERB) |
-							0x09;
+						(TOER_MTIOC36B_EN | TOER_MTIOC36D_EN);
 			renesas_mtu3_shared_reg_write(ch->mtu, TOERB, val);
 		} else if (ch->index == 7 && output == 0) {
 			val = renesas_mtu3_shared_reg_read(ch->mtu, TOERB) |
-							(0x09 << 1);
+						(TOER_MTIOC47A_EN | TOER_MTIOC47C_EN);
 			renesas_mtu3_shared_reg_write(ch->mtu, TOERB, val);
 		} else if (ch->index == 7 && output == 1) {
 			val = renesas_mtu3_shared_reg_read(ch->mtu, TOERB) |
-							(0x09 << 2);
+						(TOER_MTIOC47B_EN | TOER_MTIOC47D_EN);
+			renesas_mtu3_shared_reg_write(ch->mtu, TOERB, val);
+		} else
+			return -EINVAL;
+	} else
+		return -ENODEV;
+	return 0;
+}
+
+static int renesas_mtu3_waveform_output_disable(struct renesas_mtu3_channel *ch,
+						u8 output)
+{
+	u8 val;
+
+	if (ch->function == MTU3_PWM_MODE_1) {
+		if (output == 0)
+			renesas_mtu3_8bit_ch_reg_write(ch, TIORH, TIOR_OC_RETAIN);
+		else if (output == 1)
+			renesas_mtu3_8bit_ch_reg_write(ch, TIORL, TIOR_OC_RETAIN);
+		else
+			return -EINVAL;
+
+		if (ch->index == 4) {
+			if (output == 0)
+				val = renesas_mtu3_shared_reg_read(ch->mtu, TOERA) &
+									~TOER_MTIOC47A_EN;
+			else if (output == 1)
+				val = renesas_mtu3_shared_reg_read(ch->mtu, TOERA) &
+									~TOER_MTIOC47C_EN;
+			renesas_mtu3_shared_reg_write(ch->mtu, TOERA, val);
+		} else if (ch->index == 7) {
+			if (output == 0)
+				val = renesas_mtu3_shared_reg_read(ch->mtu, TOERB) &
+									~TOER_MTIOC47A_EN;
+			else if (output == 1)
+				val = renesas_mtu3_shared_reg_read(ch->mtu, TOERB) &
+									~TOER_MTIOC47C_EN;
+			renesas_mtu3_shared_reg_write(ch->mtu, TOERB, val);
+		}
+	} else if (ch->function == MTU3_PWM_COMPLEMENTARY) {
+		if (ch->index == 3) {
+			val = renesas_mtu3_shared_reg_read(ch->mtu, TOERA) &
+						~(TOER_MTIOC36B_EN | TOER_MTIOC36D_EN);
+			renesas_mtu3_shared_reg_write(ch->mtu, TOERA, val);
+		} else if (ch->index == 4 && output == 0) {
+			val = renesas_mtu3_shared_reg_read(ch->mtu, TOERA) &
+						~(TOER_MTIOC47A_EN | TOER_MTIOC47C_EN);
+			renesas_mtu3_shared_reg_write(ch->mtu, TOERA, val);
+		} else if (ch->index == 4 && output == 1) {
+			val = renesas_mtu3_shared_reg_read(ch->mtu, TOERA) &
+						~(TOER_MTIOC47B_EN | TOER_MTIOC47D_EN);
+			renesas_mtu3_shared_reg_write(ch->mtu, TOERA, val);
+		} else if (ch->index == 6) {
+			val = renesas_mtu3_shared_reg_read(ch->mtu, TOERB) &
+						~(TOER_MTIOC36B_EN | TOER_MTIOC36D_EN);
+			renesas_mtu3_shared_reg_write(ch->mtu, TOERB, val);
+		} else if (ch->index == 7 && output == 0) {
+			val = renesas_mtu3_shared_reg_read(ch->mtu, TOERB) &
+						~(TOER_MTIOC47A_EN | TOER_MTIOC47C_EN);
+			renesas_mtu3_shared_reg_write(ch->mtu, TOERB, val);
+		} else if (ch->index == 7 && output == 1) {
+			val = renesas_mtu3_shared_reg_read(ch->mtu, TOERB) &
+						~(TOER_MTIOC47B_EN | TOER_MTIOC47D_EN);
 			renesas_mtu3_shared_reg_write(ch->mtu, TOERB, val);
 		} else
 			return -EINVAL;
@@ -914,8 +991,8 @@ static int renesas_mtu3_pwm_enable(struct pwm_chip *chip,
 	ch1 = &mtu3->channels[mtu3->pwms[pwm->hwpwm].ch1];
 	if (ch1->function == MTU3_PWM_MODE_1) {
 		renesas_mtu3_8bit_ch_reg_write(ch1, TMDR1, TMDR_MD_PWM_1);
-		renesas_mtu3_pwm_output_setup(ch1, mtu3->pwms[pwm->hwpwm].output,
-					pwm->state.polarity);
+		renesas_mtu3_waveform_output_enable(ch1, mtu3->pwms[pwm->hwpwm].output,
+							pwm->state.polarity);
 		renesas_mtu3_start_stop_ch(ch1, true);
 
 		mtu3->pwms[pwm->hwpwm].is_enabled = true;
@@ -925,8 +1002,8 @@ static int renesas_mtu3_pwm_enable(struct pwm_chip *chip,
 		renesas_mtu3_8bit_ch_reg_write(ch2, TMDR1, TMDR_MD_PWM_COMP_BOTH);
 		renesas_mtu3_16bit_ch_reg_write(ch1, TCNT, 0);
 		renesas_mtu3_16bit_ch_reg_write(ch2, TCNT, 0);
-		renesas_mtu3_pwm_output_setup(ch1, mtu3->pwms[pwm->hwpwm].output,
-					pwm->state.polarity);
+		renesas_mtu3_waveform_output_enable(ch1, mtu3->pwms[pwm->hwpwm].output,
+							pwm->state.polarity);
 		renesas_mtu3_start_stop_ch(ch1, true);
 		renesas_mtu3_start_stop_ch(ch2, true);
 
@@ -941,21 +1018,15 @@ static void renesas_mtu3_pwm_disable(struct pwm_chip *chip,
 {
 	struct renesas_mtu3_device *mtu3 = pwm_chip_to_mtu3_device(chip);
 	struct renesas_mtu3_channel *ch1, *ch2;
-	u8 val;
 
 	ch1 = &mtu3->channels[mtu3->pwms[pwm->hwpwm].ch1];
-	/* Return to normal mode and disable output pins of MTU3 channel */
+
+	/* Disable output pwm signals. */
+	renesas_mtu3_waveform_output_disable(ch1, mtu3->pwms[pwm->hwpwm].output);
+
 	renesas_mtu3_8bit_ch_reg_write(ch1, TMDR1, TMDR_MD_NORMAL);
 
-	/* Disable output waveform of MTU3 pins */
 	if (ch1->function == MTU3_PWM_MODE_1) {
-		if (mtu3->pwms[pwm->hwpwm].output == 0)
-			renesas_mtu3_8bit_ch_reg_write(ch1, TIORH,
-			TIOR_OC_RETAIN);
-		else if (mtu3->pwms[pwm->hwpwm].output == 1)
-			renesas_mtu3_8bit_ch_reg_write(ch1, TIORL,
-			TIOR_OC_RETAIN);
-
 		renesas_mtu3_start_stop_ch(ch1, false);
 
 		mtu3->pwms[pwm->hwpwm].is_enabled = false;
@@ -963,42 +1034,11 @@ static void renesas_mtu3_pwm_disable(struct pwm_chip *chip,
 		ch2 = &mtu3->channels[mtu3->pwms[pwm->hwpwm].ch2];
 		renesas_mtu3_8bit_ch_reg_write(ch2, TMDR1, TMDR_MD_NORMAL);
 
-		if (ch1->index == 3) {
-			val = renesas_mtu3_shared_reg_read(ch1->mtu, TOERA) &
-							0x06;
-			renesas_mtu3_shared_reg_write(ch1->mtu, TOERA, val);
-		} else if (ch1->index == 4 &&
-				mtu3->pwms[pwm->hwpwm].output == 0) {
-			val = renesas_mtu3_shared_reg_read(ch1->mtu, TOERA) &
-							(0x06 << 1);
-			renesas_mtu3_shared_reg_write(ch1->mtu, TOERA, val);
-		} else if (ch1->index == 4 &&
-				mtu3->pwms[pwm->hwpwm].output == 1) {
-			val = renesas_mtu3_shared_reg_read(ch1->mtu, TOERA) &
-							(0x06 << 2);
-			renesas_mtu3_shared_reg_write(ch1->mtu, TOERA, val);
-		} else if (ch1->index == 6) {
-			val = renesas_mtu3_shared_reg_read(ch1->mtu, TOERB) &
-							0x06;
-			renesas_mtu3_shared_reg_write(ch1->mtu, TOERB, val);
-		} else if (ch1->index == 7 &&
-				mtu3->pwms[pwm->hwpwm].output == 0) {
-			val = renesas_mtu3_shared_reg_read(ch1->mtu, TOERB) &
-							(0x06 << 1);
-			renesas_mtu3_shared_reg_write(ch1->mtu, TOERB, val);
-		} else if (ch1->index == 7 &&
-				mtu3->pwms[pwm->hwpwm].output == 1) {
-			val = renesas_mtu3_shared_reg_read(ch1->mtu, TOERB) &
-							(0x06 << 2);
-			renesas_mtu3_shared_reg_write(ch1->mtu, TOERB, val);
-		}
-
 		renesas_mtu3_start_stop_ch(ch1, false);
 		renesas_mtu3_start_stop_ch(ch2, false);
 
 		mtu3->pwms[pwm->hwpwm].is_enabled = false;
 	}
-
 }
 
 
