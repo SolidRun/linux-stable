@@ -736,6 +736,13 @@ EXPORT_SYMBOL_GPL(rzg2l_mipi_dsi_clk_disable);
  * Host setting
  */
 
+int rzg2l_mipi_dsi_get_data_lanes(struct drm_bridge *bridge)
+{
+	struct rzg2l_mipi_dsi *mipi_dsi = bridge_to_rzg2l_mipi_dsi(bridge);
+
+	return mipi_dsi->lanes;
+}
+
 static int rzg2l_mipi_dsi_host_attach(struct mipi_dsi_host *host,
 				      struct mipi_dsi_device *device)
 {
