@@ -58,6 +58,9 @@ stack_protector_prepare: prepare0
 					include/generated/asm-offsets.h))
 endif
 
+asm-cpu := cortex-a72+crc+crypto
+asm-arch := armv8-a+crc+crypto
+
 ifeq ($(CONFIG_AS_HAS_ARMV8_2), y)
 # make sure to pass the newest target architecture to -march.
 asm-arch := armv8.2-a
@@ -99,7 +102,7 @@ asm-arch := armv8.5-a
 endif
 
 ifdef asm-arch
-KBUILD_CFLAGS	+= -Wa,-march=$(asm-arch) \
+KBUILD_CFLAGS	+= -Wa,-mcpu=$(asm-cpu) \
 		   -DARM64_ASM_ARCH='"$(asm-arch)"'
 endif
 
