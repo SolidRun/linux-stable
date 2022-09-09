@@ -1668,7 +1668,13 @@ endif # ARMV8_DEPRECATED
 
 endif # COMPAT
 
+config ARM64_MAX_ISA
+	int "ARMv8 Max ISA version (0-7)"
+	range 0 7
+	default "7"
+
 menu "ARMv8.1 architectural features"
+depends on ARM64_MAX_ISA > 0
 
 config ARM64_HW_AFDBM
 	bool "Support for hardware updates of the Access and Dirty page flags"
@@ -1730,6 +1736,7 @@ config ARM64_USE_LSE_ATOMICS
 endmenu # "ARMv8.1 architectural features"
 
 menu "ARMv8.2 architectural features"
+depends on ARM64_MAX_ISA > 1
 
 config AS_HAS_ARMV8_2
 	def_bool $(cc-option,-Wa$(comma)-march=armv8.2-a)
@@ -1782,6 +1789,7 @@ config ARM64_CNP
 endmenu # "ARMv8.2 architectural features"
 
 menu "ARMv8.3 architectural features"
+depends on ARM64_MAX_ISA > 2
 
 config ARM64_PTR_AUTH
 	bool "Enable support for pointer authentication"
@@ -1845,6 +1853,7 @@ config AS_HAS_CFI_NEGATE_RA_STATE
 endmenu # "ARMv8.3 architectural features"
 
 menu "ARMv8.4 architectural features"
+depends on ARM64_MAX_ISA > 3
 
 config ARM64_AMU_EXTN
 	bool "Enable support for the Activity Monitors Unit CPU extension"
@@ -1886,6 +1895,7 @@ config ARM64_TLB_RANGE
 endmenu # "ARMv8.4 architectural features"
 
 menu "ARMv8.5 architectural features"
+depends on ARM64_MAX_ISA > 4
 
 config AS_HAS_ARMV8_5
 	def_bool $(cc-option,-Wa$(comma)-march=armv8.5-a)
@@ -1988,6 +1998,7 @@ config ARM64_MTE
 endmenu # "ARMv8.5 architectural features"
 
 menu "ARMv8.7 architectural features"
+depends on ARM64_MAX_ISA > 5
 
 config ARM64_EPAN
 	bool "Enable support for Enhanced Privileged Access Never (EPAN)"
