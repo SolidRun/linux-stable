@@ -109,10 +109,12 @@ struct rz_dmac {
  * Registers
  */
 
+#define CRTB				0x0020
 #define CHSTAT				0x0024
 #define CHCTRL				0x0028
 #define CHCFG				0x002c
 #define NXLA				0x0038
+#define CRLA				0x003C
 
 #define DCTRL				0x0000
 
@@ -533,11 +535,18 @@ rz_dmac_prep_slave_sg(struct dma_chan *chan, struct scatterlist *sgl,
 static int rz_dmac_terminate_all(struct dma_chan *chan)
 {
 	struct rz_dmac_chan *channel = to_rz_dmac_chan(chan);
+	struct rz_lmdesc *lmdesc = channel->lmdesc.base;
 	unsigned long flags;
+	unsigned int i;
+
 	LIST_HEAD(head);
 
 	rz_dmac_disable_hw(channel);
 	spin_lock_irqsave(&channel->vc.lock, flags);
+
+	for (i = 0; i < DMAC_NR_LMDESC; i++)
+		lmdesc[i].header = 0;
+
 	list_splice_tail_init(&channel->ld_active, &channel->ld_free);
 	list_splice_tail_init(&channel->ld_queue, &channel->ld_free);
 	spin_unlock_irqrestore(&channel->vc.lock, flags);
@@ -645,6 +654,179 @@ static void rz_dmac_device_synchronize(struct dma_chan *chan)
 		dev_warn(dmac->dev, "DMA Timeout");
 
 	rz_dmac_set_dmars_register(dmac, channel->index, 0);
+}
+
+static unsigned int calculate_total_byte_number_in_virtual_desc(struct rz_dmac_desc *desc)
+{
+	struct scatterlist *sg, *sgl = desc->sg;
+	unsigned int i, size, sg_len = desc->sgcount;
+
+	for (i = 0, size = 0, sg = sgl; i < sg_len; i++, sg = sg_next(sg))
+		size += sg_dma_len(sg);
+
+	return size;
+}
+
+static unsigned int calculate_residue_byte_number_in_virtual_desc(struct rz_dmac_chan *channel)
+{
+	struct rz_lmdesc *lmdesc = channel->lmdesc.head;
+	struct dma_chan *chan = &channel->vc.chan;
+	struct rz_dmac *dmac = to_rz_dmac(chan->device);
+	unsigned int residue = 0, i = 0;
+	unsigned int crla;
+
+	/* Searching for where is current lmdesc */
+	crla = rz_dmac_ch_readl(channel, CRLA, 1);
+
+	while (!(lmdesc->nxla == crla)) {
+		lmdesc++;
+		if (lmdesc >= (channel->lmdesc.base + DMAC_NR_LMDESC))
+			lmdesc = channel->lmdesc.base;
+		i++;
+		/* Not found current lmdesc */
+		if (i > DMAC_NR_LMDESC)
+			return 0;
+	}
+
+	/* Point to current processing lmdesc in hardware */
+	lmdesc++;
+	if (lmdesc >= (channel->lmdesc.base + DMAC_NR_LMDESC))
+		lmdesc = channel->lmdesc.base;
+
+	/* Calculate residue from next lmdesc to end of virtual desc*/
+	while (lmdesc->chcfg & CHCFG_DEM) {
+		lmdesc++;
+		if (lmdesc >= (channel->lmdesc.base + DMAC_NR_LMDESC))
+			lmdesc = channel->lmdesc.base;
+		residue += lmdesc->tb;
+	}
+
+	dev_dbg(dmac->dev, "%s: Getting residue is %d\n", __func__, residue);
+
+	return residue;
+}
+
+static unsigned int rz_dmac_chan_get_residue(struct rz_dmac_chan *channel,
+						dma_cookie_t cookie)
+{
+	struct rz_dmac_desc *current_desc, *desc;
+	enum dma_status status;
+	unsigned int residue = 0;
+	unsigned int crla;
+	unsigned int crtb;
+	unsigned int i;
+
+	/* Get current processing virtual descriptor */
+	current_desc = list_first_entry(&channel->ld_active, struct rz_dmac_desc, node);
+	if (!current_desc)
+		return 0;
+
+	/*
+	 * If the cookie corresponds to a descriptor that has been completed
+	 * there is no residue. The same check has already been performed by the
+	 * caller but without holding the channel lock, so the descriptor could
+	 * now be complete.
+	 */
+	status = dma_cookie_status(&channel->vc.chan, cookie, NULL);
+	if (status == DMA_COMPLETE)
+		return 0;
+
+	/*
+	 * If the cookie doesn't correspond to the currently processing virtual descriptor
+	 * then the descriptor hasn't been processed yet, and the residue is
+	 * equal to the full descriptor size.
+	 * Also, a client driver is possible to call this function before
+	 * rz_dmac_irq_handler_thread() runs. In this case, the running descriptor
+	 * will be the next descriptor, and the done list will appear. So, if
+	 * the argument cookie matches the done list's cookie, we can assume
+	 * the residue is zero.
+	 */
+
+	if (cookie != current_desc->vd.tx.cookie) {
+		list_for_each_entry(desc, &channel->ld_free, node) {
+			if (cookie == desc->vd.tx.cookie)
+				return 0;
+		}
+
+		list_for_each_entry(desc, &channel->ld_queue, node) {
+			if (cookie == desc->vd.tx.cookie)
+				return calculate_total_byte_number_in_virtual_desc(desc);
+		}
+
+		list_for_each_entry(desc, &channel->ld_active, node) {
+			if (cookie == desc->vd.tx.cookie)
+				return calculate_total_byte_number_in_virtual_desc(desc);
+		}
+
+		/*
+		 * No descriptor found for the cookie, there's thus no residue.
+		 * This shouldn't happen if the calling driver passes a correct
+		 * cookie value.
+		 */
+		WARN(1, "No descriptor for cookie!");
+		return 0;
+	}
+
+	/*
+	 * Correspond to the currently processing virtual descriptor
+	 *
+	 * Make sure the hardware does not move to next lmdesc
+	 * while reading the counter.
+	 * Trying it 3 times should be enough: Initial read, retry, retry
+	 * for the paranoid.
+	 * The current lmdesc running in hardware is channel.lmdesc.head
+	 */
+
+	for (i = 0; i < 3; i++) {
+		crla = rz_dmac_ch_readl(channel, CRLA, 1);
+		crtb = rz_dmac_ch_readl(channel, CRTB, 1);
+		/* Still the same? */
+		if (crla == rz_dmac_ch_readl(channel, CRLA, 1))
+			break;
+	}
+	WARN_ONCE(i >= 3, "residue might be not continuous!");
+
+	/* Calculate number of byte transferred in processing virtual descriptor */
+	/* One virtual descriptor can have many lmdesc */
+
+	residue += calculate_residue_byte_number_in_virtual_desc(channel);
+	residue += crtb;
+
+	return residue;
+}
+
+static enum dma_status rz_dmac_tx_status(struct dma_chan *chan,
+	dma_cookie_t cookie, struct dma_tx_state *txstate)
+{
+	struct rz_dmac_chan *channel = to_rz_dmac_chan(chan);
+	enum dma_status status;
+	unsigned long flags;
+	unsigned int residue;
+
+	status = dma_cookie_status(chan, cookie, txstate);
+	if (status == DMA_COMPLETE || !txstate)
+		return status;
+
+	spin_lock_irqsave(&channel->vc.lock, flags);
+	residue = rz_dmac_chan_get_residue(channel, cookie);
+	spin_unlock_irqrestore(&channel->vc.lock, flags);
+
+	/* if there's no residue, the cookie is complete */
+	if (!residue)
+		return DMA_COMPLETE;
+
+	dma_set_residue(txstate, residue);
+
+	return status;
+}
+
+static int rz_dmac_device_pause(struct dma_chan *chan)
+{
+	struct rz_dmac_chan *channel = to_rz_dmac_chan(chan);
+	struct rz_dmac *dmac = to_rz_dmac(chan->device);
+
+	rz_dmac_set_dmars_register(dmac, channel->index, 0);
+	return 0;
 }
 
 /*
@@ -929,13 +1111,14 @@ static int rz_dmac_probe(struct platform_device *pdev)
 
 	engine->device_alloc_chan_resources = rz_dmac_alloc_chan_resources;
 	engine->device_free_chan_resources = rz_dmac_free_chan_resources;
-	engine->device_tx_status = dma_cookie_status;
+	engine->device_tx_status = rz_dmac_tx_status;
 	engine->device_prep_slave_sg = rz_dmac_prep_slave_sg;
 	engine->device_prep_dma_memcpy = rz_dmac_prep_dma_memcpy;
 	engine->device_config = rz_dmac_config;
 	engine->device_terminate_all = rz_dmac_terminate_all;
 	engine->device_issue_pending = rz_dmac_issue_pending;
 	engine->device_synchronize = rz_dmac_device_synchronize;
+	engine->device_pause = rz_dmac_device_pause;
 
 	engine->copy_align = DMAENGINE_ALIGN_1_BYTE;
 	dma_set_max_seg_size(engine->dev, U32_MAX - 1);
