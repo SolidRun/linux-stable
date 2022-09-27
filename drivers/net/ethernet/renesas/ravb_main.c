@@ -1280,7 +1280,7 @@ static int ravb_poll(struct napi_struct *napi, int budget)
 	/* Processing TX Descriptor Ring */
 	spin_lock_irqsave(&priv->lock, flags);
 	/* Timestamp updated */
-	if (q == RAVB_NC)
+	if ((q == RAVB_NC) && (ravb_read(ndev, TIS) & mask))
 		ravb_get_tx_tstamp(ndev);
 
 	/* Clear TX interrupt */
