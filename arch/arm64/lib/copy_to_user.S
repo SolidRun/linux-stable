@@ -214,7 +214,8 @@ U_L56(	sttr	C_h, [dst, 56])
 U_L64(	sttr	D_l, [dst, 64])
 U_L72(	sttr	D_h, [dst, 72])
 	add	dst, dst, #64
-	ldp	D_l, D_h, [src, 64]!
+	ldp	D_l, D_h, [src, 64]
+	add	src, src, #64
 	subs	count, count, 64
 	b.hi	L(loop64)
 
