@@ -1671,7 +1671,7 @@ endif # COMPAT
 config ARM64_MAX_ISA
 	int "ARMv8 Max ISA version (0-7)"
 	range 0 7
-	default "7"
+	default "0"
 
 menu "ARMv8.1 architectural features"
 depends on ARM64_MAX_ISA > 0
