@@ -1064,6 +1064,10 @@
 			};
 		};
 
+		dsi0: dsi@10860000 {
+			/* Place holder to avoid devicetree compile issue */
+		};
+
 		cru: video@10830000 {
 			compatible = "renesas,cru-r9a07g043";
 			reg = <0 0x10830000 0 0x400>;
