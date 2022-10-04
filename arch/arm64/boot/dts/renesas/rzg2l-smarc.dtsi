@@ -16,6 +16,11 @@
 		serial1 = &scif2;
 		i2c3 = &i2c3;
 	};
+
+	sound_card {
+		compatible = "audio-graph-card";
+		dais = <&i2s2_port0>;
+	};
 };
 
 &cpu_dai {
@@ -58,6 +63,22 @@
 	pinctrl-names = "default";
 
 	status = "okay";
+};
+
+&ssi1 {
+	pinctrl-0 = <&ssi1_pins>;
+	pinctrl-names = "default";
+
+	status = "okay";
+
+	ports {
+		i2s2_port0: port@0 {
+			i2s2_cpu_endpoint: endpoint {
+				remote-endpoint = <&codec_endpoint>;
+				dai-format = "i2s";
+			};
+		};
+	};
 };
 
 &vccq_sdhi1 {
