@@ -757,7 +757,13 @@ static int rzg2l_mod_clock_is_enabled(struct clk_hw *hw)
 	if (clock->mstop) {
 		mstop_val = readl(priv->base + MSTOP_OFF(clock->mstop));
 		mstop_val &= MSTOP_BIT(clock->mstop);
-		return ((value & bitmask) != 0) || (mstop_val == 0);
+
+		if ((mstop_val == 0) && ((value & bitmask) == 0)) {
+			mstop_val = MSTOP_BIT(clock->mstop) << 16
+				  | MSTOP_BIT(clock->mstop);
+
+			writel(mstop_val, priv->base + MSTOP_OFF(clock->mstop));
+		}
 	}
 
 	return value & bitmask;
