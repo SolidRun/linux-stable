@@ -24,6 +24,7 @@
 #if (SW_SCIF_CAN)
 /* Due to HW routing, SW_RSPI_CAN is always 0 when SW_SCIF_CAN is set to 1 */
 #define SW_RSPI_CAN	0
+#define SCIF1_GPT3	1 /* Enable GPT3 when SCIF1 disabled */
 #else
 /* Please set SW_RSPI_CAN. Default value is 1 */
 #define SW_RSPI_CAN	1
@@ -42,9 +43,14 @@
 /* comment the #define statement to disable SCIF1 (SER0) on PMOD1 (CN7) */
 #define PMOD1_SER0	1
 
+/* Select function support POEGD (1: enabled, 0 : disabled) */
+#define POEGD_SUPPORT	1
+
 / {
 	aliases {
+#if (!SW_SCIF_CAN && PMOD1_SER0 && !SCIF1_GPT3)
 		serial1 = &scif1;
+#endif
 #if (!SW_I2S0_I2S1)
 		i2c2 = &i2c2;
 #endif
@@ -107,7 +113,7 @@
  * SW3 should be at position 2->3 so that SER0_RX line is activated
  * SW4 should be at position 2->3 so that SER0_RTS# line is activated
  */
-#if (!SW_SCIF_CAN && PMOD1_SER0)
+#if (!SW_SCIF_CAN && PMOD1_SER0 && !SCIF1_GPT3)
 &scif1 {
 	pinctrl-0 = <&scif1_pins>;
 	pinctrl-names = "default";
@@ -156,3 +162,21 @@
 	interrupt-parent = <&pinctrl>;
 	interrupts = <RZG2L_GPIO(43, 1) IRQ_TYPE_EDGE_FALLING>;
 };
+
+#if (POEGD_SUPPORT)
+&poegd {
+	status = "okay";
+};
+#endif
+
+#if (SCIF1_GPT3)
+&gpt3 {
+	pinctrl-0 = <&gpt3_pins>;
+	pinctrl-names = "default";
+	channel = "both_AB";
+#if (POEGD_SUPPORT)
+	poeg = <&poegd>;
+#endif
+	status = "okay";
+};
+#endif
