@@ -130,5 +130,10 @@
 		pinmux = <RZG2L_PORT_PINMUX(42, 0, 1)>, /* VBUS */
 			 <RZG2L_PORT_PINMUX(42, 1, 1)>; /* OVC */
 	};
+
+	gpt4_pins: gpt4 {
+		pinmux = <RZG2L_PORT_PINMUX(43, 0, 2)>, /* Channel A */
+			 <RZG2L_PORT_PINMUX(43, 1, 2)>; /* Channel B */
+	};
 };
 
