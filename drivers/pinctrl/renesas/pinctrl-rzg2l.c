@@ -129,6 +129,8 @@
 #define TITSR1		0x8 /* TINT detection method selection register 1 */
 #define TSSR(n)		(0x10 + (n) * 4) /* TINT source selection register */
 
+#define TMSK		0x0 /* TINT interrupt mask control register */
+
 #define RISING_EDGE	0
 #define FALLING_EDGE	1
 #define HIGH_LEVEL	2
@@ -248,6 +250,7 @@ struct rzg2l_pinctrl_data {
 	unsigned int n_dedicated_pins;
 	const unsigned int *pin_info;
 	unsigned int ngpioints;
+	bool irq_mask;
 };
 
 struct rzg2l_pinctrl {
@@ -258,6 +261,7 @@ struct rzg2l_pinctrl {
 	const struct rzg2l_pinctrl_data	*data;
 	void __iomem			*base;
 	void __iomem			*base_tint;
+	void __iomem			*tint_irq_mask;
 	struct device			*dev;
 	struct clk			*clk;
 
@@ -1721,6 +1725,18 @@ static int rzg2l_pinctrl_probe(struct platform_device *pdev)
 	if (IS_ERR(pctrl->base_tint))
 		return PTR_ERR(pctrl->base_tint);
 
+	if (pctrl->data->irq_mask) {
+		res = platform_get_resource(pdev, IORESOURCE_MEM, 2);
+		if (!res) {
+			dev_err(&pdev->dev, "missing IO resource\n");
+			return -ENXIO;
+		}
+
+		pctrl->tint_irq_mask = ioremap(res->start, resource_size(res));
+		if (IS_ERR(pctrl->tint_irq_mask))
+			return PTR_ERR(pctrl->tint_irq_mask);
+	}
+
 	for (i = 0; i < TINT_MAX; i++) {
 		char *irqstr[TINT_MAX];
 
@@ -1767,6 +1783,10 @@ static int rzg2l_pinctrl_probe(struct platform_device *pdev)
 	if (ret)
 		return ret;
 
+	/* Unmask all TINT interrupts mask if TMSK is existed */
+	if (pctrl->data->irq_mask)
+		writel(0, pctrl->tint_irq_mask + TMSK);
+
 	dev_info(pctrl->dev, "%s support registered\n", DRV_NAME);
 	return 0;
 }
@@ -1779,6 +1799,9 @@ static int rzg2l_pinctrl_remove(struct platform_device *pdev)
 
 	iounmap(pctrl->base_tint);
 
+	if (pctrl->data->irq_mask)
+		iounmap(pctrl->tint_irq_mask);
+
 	return 0;
 }
 
@@ -1790,6 +1813,18 @@ static struct rzg2l_pinctrl_data r9a07g043_data = {
 	.n_dedicated_pins = ARRAY_SIZE(rzg2l_dedicated_pins.common),
 	.pin_info = rzg2ul_pin_info,
 	.ngpioints = ARRAY_SIZE(rzg2ul_pin_info),
+	.irq_mask = false,
+};
+
+static struct rzg2l_pinctrl_data r9a07g043f_data = {
+	.port_pins = rzg2l_gpio_names,
+	.port_pin_configs = r9a07g043_gpio_configs,
+	.dedicated_pins = rzg2l_dedicated_pins.common,
+	.n_port_pins = ARRAY_SIZE(r9a07g043_gpio_configs) * RZG2L_PINS_PER_PORT,
+	.n_dedicated_pins = ARRAY_SIZE(rzg2l_dedicated_pins.common),
+	.pin_info = rzg2ul_pin_info,
+	.ngpioints = ARRAY_SIZE(rzg2ul_pin_info),
+	.irq_mask = true,
 };
 
 static struct rzg2l_pinctrl_data r9a07g044_data = {
@@ -1801,6 +1836,7 @@ static struct rzg2l_pinctrl_data r9a07g044_data = {
 		ARRAY_SIZE(rzg2l_dedicated_pins.rzg2l_pins),
 	.pin_info = rzg2l_pin_info,
 	.ngpioints = ARRAY_SIZE(rzg2l_pin_info),
+	.irq_mask = false,
 };
 
 static const struct of_device_id rzg2l_pinctrl_of_table[] = {
@@ -1810,7 +1846,7 @@ static const struct of_device_id rzg2l_pinctrl_of_table[] = {
 	},
 	{
 		.compatible = "renesas,r9a07g043f-pinctrl",
-		.data = &r9a07g043_data,
+		.data = &r9a07g043f_data,
 	},
 	{
 		.compatible = "renesas,r9a07g044-pinctrl",
