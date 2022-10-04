@@ -867,6 +867,45 @@
 			power-domains = <&cpg>;
 			status = "disabled";
 		};
+
+		vspd0: vsp@10870000 {
+			compatible = "renesas,vsp2";
+			reg = <0 0x10870000 0 0x10000>;
+			interrupts = <GIC_SPI 149 IRQ_TYPE_LEVEL_HIGH>;
+			power-domains = <&cpg>;
+			renesas,fcp = <&fcpvd0>;
+		};
+
+		fcpvd0: fcp@10880000 {
+			compatible = "renesas,fcpv";
+			reg = <0 0x10880000 0 0x10000>;
+			power-domains = <&cpg>;
+		};
+
+		du: display@10890000 {
+			compatible = "renesas,du-rzg2ul";
+			reg = <0 0x10890000 0 0x10000>;
+			interrupts = <GIC_SPI 152 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD R9A07G043_LCDC_CLK_A>,
+				 <&cpg CPG_MOD R9A07G043_LCDC_CLK_P>,
+				 <&cpg CPG_MOD R9A07G043_LCDC_CLK_D>;
+			clock-names = "aclk", "pclk", "dclk";
+			resets = <&cpg R9A07G043_LCDC_RESET_N>;
+			vsps = <&vspd0 0>;
+			power-domains = <&cpg>;
+			status = "disabled";
+
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				port@0 {
+					reg = <0>;
+					du_out_rgb: endpoint {
+					};
+				};
+			};
+		};
 	};
 
 	thermal-zones {
