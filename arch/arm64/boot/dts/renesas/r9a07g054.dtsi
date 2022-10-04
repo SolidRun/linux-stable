@@ -470,6 +470,22 @@
 			status = "disabled";
 		};
 
+		poe3: poe3@10049800 {
+			compatible = "renesas,r9a07g054-poe3",
+				     "renesas,rz-poe3";
+			reg = <0 0x10049800 0 0x18>;
+			interrupts = <GIC_SPI 214 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 215 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 216 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 217 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "oei1", "oei2", "oei3", "oei4";
+			clocks = <&cpg CPG_MOD R9A07G054_POE3_CLKM_POE>;
+			clock-names = "fck";
+			resets = <&cpg R9A07G054_POE3_RST_M_REG>;
+			power-domains = <&cpg>;
+			status = "disabled";
+		};
+
 		ssi0: ssi@10049c00 {
 			compatible = "renesas,r9a07g054-ssi",
 				     "renesas,rz-ssi";
