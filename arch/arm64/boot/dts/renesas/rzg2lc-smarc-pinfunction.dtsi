@@ -55,12 +55,14 @@
 			 <RZG2L_PORT_PINMUX(38, 1, 1)>;	/* RxD */
 	};
 
+#if (!SCIF1_GPT3)
 	scif1_pins: scif1 {
 		pinmux = <RZG2L_PORT_PINMUX(40, 0, 1)>, /* TxD */
 			 <RZG2L_PORT_PINMUX(40, 1, 1)>, /* RxD */
 			 <RZG2L_PORT_PINMUX(41, 0, 1)>, /* CTS# */
 			 <RZG2L_PORT_PINMUX(41, 1, 1)>; /* RTS# */
 	};
+#endif
 
 	sd1-pwr-en-hog {
 		gpio-hog;
@@ -131,9 +133,11 @@
 			 <RZG2L_PORT_PINMUX(42, 1, 1)>; /* OVC */
 	};
 
-	gpt4_pins: gpt4 {
-		pinmux = <RZG2L_PORT_PINMUX(43, 0, 2)>, /* Channel A */
-			 <RZG2L_PORT_PINMUX(43, 1, 2)>; /* Channel B */
+#if (SCIF1_GPT3)
+	gpt3_pins: gpt3 {
+		pinmux = <RZG2L_PORT_PINMUX(41, 0, 4)>, /* Channel A */
+			 <RZG2L_PORT_PINMUX(41, 1, 4)>; /* Channel B */
 	};
+#endif
 };
 
