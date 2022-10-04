@@ -21,6 +21,19 @@
 #define CPG_PL5_SDIV		(0x420)
 #define CPG_OTHERFUNC1_REG	(0xBE8)
 
+#define ACPU_MSTOP		(0xB60)
+#define MCPU1_MSTOP		(0xB64)
+#define MCPU2_MSTOP		(0xB68)
+#define PERI_COM_MSTOP		(0xB6C)
+#define PERI_CPU_MSTOP		(0xB70)
+#define PERI_DDR_MSTOP		(0xB74)
+#define PERI_VIDEO_MSTOP	(0xB78)
+#define REG0_MSTOP		(0xB7C)
+#define REG1_MSTOP		(0xB80)
+#define TZCDDR_MSTOP		(0xB84)
+#define MHU_MSTOP		(0xB88)
+#define PERI_STP_MSTOP		(0xB8C)
+
 #define CPG_CLKSTATUS_SELSDHI0_STS	BIT(28)
 #define CPG_CLKSTATUS_SELSDHI1_STS	BIT(29)
 
@@ -54,6 +67,10 @@
 
 #define SEL_SDHI0	DDIV_PACK(CPG_PL2SDHI_DSEL, 0, 2)
 #define SEL_SDHI1	DDIV_PACK(CPG_PL2SDHI_DSEL, 4, 2)
+
+#define MSTOP(off, bit)	((off & 0xffff) << 16 | bit)
+#define MSTOP_OFF(val)	((val >> 16) & 0xffff)
+#define MSTOP_BIT(val)	(val & 0xffff)
 
 /**
  * Definitions of CPG Core Clocks
@@ -141,24 +158,27 @@ struct rzg2l_mod_clk {
 	unsigned int parent;
 	u16 off;
 	u8 bit;
+	u32 mstop;
 	bool is_coupled;
 };
 
-#define DEF_MOD_BASE(_name, _id, _parent, _off, _bit, _is_coupled)	\
+#define DEF_MOD_BASE(_name, _id, _parent, _off, _bit, _mstop, _is_coupled)	\
 	{ \
 		.name = _name, \
 		.id = MOD_CLK_BASE + (_id), \
 		.parent = (_parent), \
 		.off = (_off), \
 		.bit = (_bit), \
+		.mstop = (_mstop), \
 		.is_coupled = (_is_coupled), \
 	}
 
-#define DEF_MOD(_name, _id, _parent, _off, _bit)	\
-	DEF_MOD_BASE(_name, _id, _parent, _off, _bit, false)
 
-#define DEF_COUPLED(_name, _id, _parent, _off, _bit)	\
-	DEF_MOD_BASE(_name, _id, _parent, _off, _bit, true)
+#define DEF_MOD(_name, _id, _parent, _off, _bit, _mstop)	\
+	DEF_MOD_BASE(_name, _id, _parent, _off, _bit, _mstop, false)
+
+#define DEF_COUPLED(_name, _id, _parent, _off, _bit, _mstop)	\
+	DEF_MOD_BASE(_name, _id, _parent, _off, _bit, _mstop, true)
 
 /**
  * struct rzg2l_reset - Reset definitions
