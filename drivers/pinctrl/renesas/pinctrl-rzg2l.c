@@ -128,10 +128,9 @@
 #define IRQ_MASK	0x3
 
 #define TINT_MAX       32	/* Maximum 32 Interrupts can be supported */
-#define TINT_GPIO_MAX  123	/* Maximum 123 gpio pins can be used for IRQs */
 
 #define RZG2L_PIN_INFO(p, b)	(((p) << 16) | (b))
-static const int rzg2l_pin_info[TINT_GPIO_MAX] = {
+static const int rzg2l_pin_info[] = {
 	RZG2L_PIN_INFO(0,  0), RZG2L_PIN_INFO(0,  1),
 	RZG2L_PIN_INFO(1,  0), RZG2L_PIN_INFO(1,  1),
 	RZG2L_PIN_INFO(2,  0), RZG2L_PIN_INFO(2,  1),
@@ -190,6 +189,44 @@ static const int rzg2l_pin_info[TINT_GPIO_MAX] = {
 	RZG2L_PIN_INFO(48, 3), RZG2L_PIN_INFO(48, 4),
 };
 
+static const int rzg2ul_pin_info[] = {
+	RZG2L_PIN_INFO(0,  0), RZG2L_PIN_INFO(0,  1), RZG2L_PIN_INFO(0,  2),
+	RZG2L_PIN_INFO(0,  3),
+	RZG2L_PIN_INFO(1,  0), RZG2L_PIN_INFO(1,  1), RZG2L_PIN_INFO(1,  2),
+	RZG2L_PIN_INFO(1,  3), RZG2L_PIN_INFO(1,  4),
+	RZG2L_PIN_INFO(2,  0), RZG2L_PIN_INFO(2,  1), RZG2L_PIN_INFO(2,  2),
+	RZG2L_PIN_INFO(2,  3),
+	RZG2L_PIN_INFO(3,  0), RZG2L_PIN_INFO(3,  1), RZG2L_PIN_INFO(3,  2),
+	RZG2L_PIN_INFO(3,  3),
+	RZG2L_PIN_INFO(4,  0), RZG2L_PIN_INFO(4,  1), RZG2L_PIN_INFO(4,  2),
+	RZG2L_PIN_INFO(4,  3), RZG2L_PIN_INFO(4,  4), RZG2L_PIN_INFO(4,  5),
+	RZG2L_PIN_INFO(5,  0), RZG2L_PIN_INFO(5,  1), RZG2L_PIN_INFO(5,  2),
+	RZG2L_PIN_INFO(5,  3), RZG2L_PIN_INFO(5,  4),
+	RZG2L_PIN_INFO(6,  0), RZG2L_PIN_INFO(6,  1), RZG2L_PIN_INFO(6,  2),
+	RZG2L_PIN_INFO(6,  3), RZG2L_PIN_INFO(6,  4),
+	RZG2L_PIN_INFO(7,  0), RZG2L_PIN_INFO(7,  1), RZG2L_PIN_INFO(7,  2),
+	RZG2L_PIN_INFO(7,  3), RZG2L_PIN_INFO(7,  4),
+	RZG2L_PIN_INFO(8,  0), RZG2L_PIN_INFO(8,  1), RZG2L_PIN_INFO(8,  2),
+	RZG2L_PIN_INFO(8,  3), RZG2L_PIN_INFO(8,  4),
+	RZG2L_PIN_INFO(9,  0), RZG2L_PIN_INFO(9,  1), RZG2L_PIN_INFO(9,  2),
+	RZG2L_PIN_INFO(9,  3),
+	RZG2L_PIN_INFO(10, 0), RZG2L_PIN_INFO(10, 1), RZG2L_PIN_INFO(10, 2),
+	RZG2L_PIN_INFO(10, 3), RZG2L_PIN_INFO(10, 4),
+	RZG2L_PIN_INFO(11, 0), RZG2L_PIN_INFO(11, 1), RZG2L_PIN_INFO(11, 2),
+	RZG2L_PIN_INFO(11, 3),
+	RZG2L_PIN_INFO(12, 0), RZG2L_PIN_INFO(12, 1),
+	RZG2L_PIN_INFO(13, 0), RZG2L_PIN_INFO(13, 1), RZG2L_PIN_INFO(13, 2),
+	RZG2L_PIN_INFO(13, 3), RZG2L_PIN_INFO(13, 4),
+	RZG2L_PIN_INFO(14, 0), RZG2L_PIN_INFO(14, 1), RZG2L_PIN_INFO(14, 2),
+	RZG2L_PIN_INFO(15, 0), RZG2L_PIN_INFO(15, 1), RZG2L_PIN_INFO(15, 2),
+	RZG2L_PIN_INFO(15, 3),
+	RZG2L_PIN_INFO(16, 0), RZG2L_PIN_INFO(16, 1),
+	RZG2L_PIN_INFO(17, 0), RZG2L_PIN_INFO(17, 1), RZG2L_PIN_INFO(17, 2),
+	RZG2L_PIN_INFO(17, 3),
+	RZG2L_PIN_INFO(18, 0), RZG2L_PIN_INFO(18, 1), RZG2L_PIN_INFO(18, 2),
+	RZG2L_PIN_INFO(18, 3), RZG2L_PIN_INFO(18, 4), RZG2L_PIN_INFO(18, 5),
+};
+
 struct rzg2l_dedicated_configs {
 	const char *name;
 	u32 config;
@@ -201,6 +238,8 @@ struct rzg2l_pinctrl_data {
 	struct rzg2l_dedicated_configs *dedicated_pins;
 	unsigned int n_port_pins;
 	unsigned int n_dedicated_pins;
+	const unsigned int *pin_info;
+	unsigned int ngpioints;
 };
 
 struct rzg2l_pinctrl {
@@ -853,8 +892,8 @@ static int rzg2l_gpio_irq_validate_id(struct rzg2l_pinctrl *pctrl, u32 port,
 	int i;
 	u32 pin_info = (port << 16) | bit;
 
-	for (i = 0; i < TINT_GPIO_MAX ; i++) {
-		if (pin_info == rzg2l_pin_info[i])
+	for (i = 0; i < pctrl->data->ngpioints ; i++) {
+		if (pin_info == pctrl->data->pin_info[i])
 			break;
 	}
 
@@ -900,7 +939,7 @@ static void rzg2l_gpio_irq_disable(struct irq_data *d)
 	u32 reg32;
 
 	gpioint = rzg2l_gpio_irq_validate_id(pctrl, port, bit);
-	if (gpioint == TINT_GPIO_MAX)
+	if (gpioint == pctrl->data->ngpioints)
 		return;
 
 	tint_slot = rzg2l_gpio_irq_check_tint_slot(pctrl, gpioint);
@@ -936,7 +975,7 @@ static void rzg2l_gpio_irq_enable(struct irq_data *d)
 	u32 reg32;
 
 	gpioint = rzg2l_gpio_irq_validate_id(pctrl, port, bit);
-	if (gpioint == TINT_GPIO_MAX)
+	if (gpioint == pctrl->data->ngpioints)
 		return;
 
 	tint_slot = rzg2l_gpio_irq_check_tint_slot(pctrl, hw_irq);
@@ -971,7 +1010,7 @@ static int rzg2l_gpio_irq_set_type(struct irq_data *d, unsigned int type)
 	u8 reg8;
 
 	gpioint = rzg2l_gpio_irq_validate_id(pctrl, port, bit);
-	if (gpioint == TINT_GPIO_MAX)
+	if (gpioint == pctrl->data->ngpioints)
 		return -EINVAL;
 
 	tint_slot = rzg2l_gpio_irq_request_tint_slot(pctrl);
@@ -1623,6 +1662,8 @@ static struct rzg2l_pinctrl_data r9a07g043_data = {
 	.dedicated_pins = rzg2l_dedicated_pins.common,
 	.n_port_pins = ARRAY_SIZE(r9a07g043_gpio_configs) * RZG2L_PINS_PER_PORT,
 	.n_dedicated_pins = ARRAY_SIZE(rzg2l_dedicated_pins.common),
+	.pin_info = rzg2ul_pin_info,
+	.ngpioints = ARRAY_SIZE(rzg2ul_pin_info),
 };
 
 static struct rzg2l_pinctrl_data r9a07g044_data = {
@@ -1632,6 +1673,8 @@ static struct rzg2l_pinctrl_data r9a07g044_data = {
 	.n_port_pins = ARRAY_SIZE(rzg2l_gpio_names),
 	.n_dedicated_pins = ARRAY_SIZE(rzg2l_dedicated_pins.common) +
 		ARRAY_SIZE(rzg2l_dedicated_pins.rzg2l_pins),
+	.pin_info = rzg2l_pin_info,
+	.ngpioints = ARRAY_SIZE(rzg2l_pin_info),
 };
 
 static const struct of_device_id rzg2l_pinctrl_of_table[] = {
