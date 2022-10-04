@@ -16,57 +16,10 @@
 		serial1 = &scif2;
 		i2c3 = &i2c3;
 	};
-
-	hdmi-out {
-		compatible = "hdmi-connector";
-		type = "d";
-
-		port {
-			hdmi_con_out: endpoint {
-				remote-endpoint = <&adv7535_out>;
-			};
-		};
-	};
 };
 
 &cpu_dai {
 	sound-dai = <&ssi0>;
-};
-
-&i2c1 {
-	adv7535: hdmi@3d {
-		compatible = "adi,adv7535";
-		reg = <0x3d>;
-
-		avdd-supply = <&reg_1p8v>;
-		dvdd-supply = <&reg_1p8v>;
-		pvdd-supply = <&reg_1p8v>;
-		a2vdd-supply = <&reg_1p8v>;
-		v3p3-supply = <&reg_3p3v>;
-		v1p2-supply = <&reg_1p8v>;
-
-		adi,dsi-lanes = <4>;
-		#sound-dai-cells = <0>;
-
-		ports {
-			#address-cells = <1>;
-			#size-cells = <0>;
-
-			port@0 {
-				reg = <0>;
-				adv7535_in: endpoint@0 {
-					remote-endpoint = <&dsi0_out>;
-				};
-			};
-
-			port@1 {
-				reg = <1>;
-				adv7535_out: endpoint@1 {
-					remote-endpoint = <&hdmi_con_out>;
-				};
-			};
-		};
-	};
 };
 
 &i2c3 {
@@ -109,21 +62,4 @@
 
 &vccq_sdhi1 {
 	gpios = <&pinctrl RZG2L_GPIO(39, 1) GPIO_ACTIVE_HIGH>;
-};
-
-&dsi0 {
-	status = "okay";
-
-	ports {
-		port@1 {
-			dsi0_out: endpoint {
-				remote-endpoint = <&adv7535_in>;
-				data-lanes = <1 2 3 4>;
-			};
-		};
-	};
-};
-
-&du {
-	status = "okay";
 };
