@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-2.0
 /*
  * Device Tree Source for the Silicon Linux RZ/G2E evaluation kit (EK874)
- * Rev.[D,E], connected to an Advantech IDK-2121WR 21.5" LVDS panel
+ * Rev.C, connected to an Advantech IDK-2121WR 21.5" LVDS panel
  *
  * Copyright (C) 2019 Renesas Electronics Corp.
  */
 
-#include "r8a774c0-ek874.dts"
+#include "r8a774c0-ek874-revc.dts"
 
 / {
 	backlight: backlight {
@@ -17,7 +17,7 @@
 		default-brightness-level = <6>;
 
 		power-supply = <&reg_12p0v>;
-		enable-gpios = <&gpio3 15 GPIO_ACTIVE_HIGH>;
+		enable-gpios = <&gpio6 12 GPIO_ACTIVE_HIGH>;
 	};
 
 	panel-lvds {
@@ -60,6 +60,19 @@
 				};
 			};
 		};
+	};
+};
+
+&gpio0 {
+	/*
+	 * When GP0_17 is low LVDS[01] are connected to the LVDS connector
+	 * When GP0_17 is high LVDS[01] are connected to the LT8918L
+	 */
+	lvds-connector-en-gpio{
+		gpio-hog;
+		gpios = <17 GPIO_ACTIVE_HIGH>;
+		output-low;
+		line-name = "lvds-connector-en-gpio";
 	};
 };
 
