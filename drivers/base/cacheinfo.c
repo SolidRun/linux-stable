@@ -291,13 +291,15 @@ static __maybe_unused void cache_shared_cpu_map_remove(unsigned int cpu)
 
 static void free_cache_attributes(unsigned int cpu)
 {
-	/* if (!per_cpu_cacheinfo(cpu))
+#ifndef CONFIG_ARCH_R9A07G043F
+	if (!per_cpu_cacheinfo(cpu))
 		return;
 
 	cache_shared_cpu_map_remove(cpu);
 
 	kfree(per_cpu_cacheinfo(cpu));
-	per_cpu_cacheinfo(cpu) = NULL; */
+	per_cpu_cacheinfo(cpu) = NULL;
+#endif
 }
 
 int __weak init_cache_level(unsigned int cpu)

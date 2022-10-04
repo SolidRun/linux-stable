@@ -368,7 +368,10 @@ static int __init rmem_dma_setup(struct reserved_mem *rmem)
 		dma_reserved_default_memory = rmem;
 	}
 #endif
+
+#ifdef CONFIG_ARCH_R9A07G043F
 	dma_reserved_default_memory = rmem;
+#endif
 	rmem->ops = &rmem_dma_ops;
 	pr_info("Reserved memory: created DMA memory pool at %pa, size %ld MiB\n",
 		&rmem->base, (unsigned long)rmem->size / SZ_1M);
