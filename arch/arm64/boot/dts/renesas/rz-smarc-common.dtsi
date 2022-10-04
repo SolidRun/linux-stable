@@ -217,6 +217,13 @@
 					remote-endpoint = <&hdmi_con_out>;
 				};
 			};
+
+			port@2 {
+				reg = <2>;
+				codec_endpoint: endpoint {
+					remote-endpoint = <&i2s2_cpu_endpoint>;
+				};
+			};
 		};
 	};
 };
