@@ -1508,6 +1508,8 @@
 			compatible = "renesas,r9a07g044-csi2";
 			reg = <0 0x10830400 0 0xc00>;
 			interrupts = <GIC_SPI 166 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD R9A07G044_CRU_VCLK>;
+			clock-names = "vclk";
 			status = "disabled";
 
 			ports {
