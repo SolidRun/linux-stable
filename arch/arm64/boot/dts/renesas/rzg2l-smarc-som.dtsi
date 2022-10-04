@@ -410,6 +410,18 @@
 };
 
 #if (POEGD_SUPPORT)
+&poega {
+	status = "okay";
+};
+
+&poegb {
+	status = "okay";
+};
+
+&poegc {
+	status = "okay";
+};
+
 &poegd {
 	status = "okay";
 };
@@ -420,7 +432,7 @@
 	pinctrl-names = "default";
 	channel = "both_AB";
 #if (POEGD_SUPPORT)
-	poeg = <&poegd>;
+	poeg = <&poega &poegb &poegc &poegd>;
 #endif
 	status = "okay";
 };
