@@ -122,6 +122,8 @@
 #if (CN12)
 		ethernet1 = &eth1;
 #endif
+		mmc0 = &sdhi0;
+		mmc1 = &sdhi1;
 	};
 
 	chosen {
