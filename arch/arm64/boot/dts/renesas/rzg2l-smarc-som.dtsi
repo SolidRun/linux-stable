@@ -22,6 +22,31 @@
 
 #define POEGD_SUPPORT           1
 
+/*
+ * MTU3 macros are created to support setting pinctrl and properties in order
+ * to use MTU3 functions. However, their pins on PMODs are mixed with SCIF2
+ * and SPI1, so we must disable these modules to avoid conflict.
+ * - MTU3_PWM_SUPPORT: Disable SPI1 to support PWM of channel3. By default, PWM
+ *   mode 1 of MTIOC3A will be selected.
+ * - MTU3_PWM_COMPLEMENTARY_SELECT: Enable this macro to select complementary PWM
+ *   mode of MTU3 channel3 instead of PWM mode 1. This mode depends on macro
+ *   MTU3_PWM_SUPPORT.
+ * - MTU3_PHASE_COUNTING_SUPPORT: Disable SCIF2 to support phase counting functions.
+ * - MTU3_32BIT_PHASE_COUNTING_SELECT: Select 32-bit phase counting mode.
+ *   This mode depends on macro MTU3_PHASE_COUNTING_SUPPORT.
+ */
+#define MTU3_PWM_SUPPORT			0
+#define MTU3_PWM_COMPLEMENTARY_SELECT		0
+#define MTU3_PHASE_COUNTING_SUPPORT		0
+#define MTU3_32BIT_PHASE_COUNTING_SELECT	0
+
+/*
+ * POE3_SUPPORT is used to enable POE3 to control Hi-Z state of complementary PWM
+ * signals at MTIOC3B-MTIOC3D. Note: This macro must be enabled along with macros
+ * MTU3_PWM_SUPPORT and MTU3_PWM_COMPLEMENTARY_SELECT to fully take effect.
+ */
+#define POE3_SUPPORT				0
+
 / {
 	aliases {
 		i2c3 = &i2c3;

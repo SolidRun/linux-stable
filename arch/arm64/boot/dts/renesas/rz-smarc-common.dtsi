@@ -255,6 +255,7 @@
 	status = "okay";
 };
 
+#if (!MTU3_PWM_SUPPORT)
 &spi1 {
 	pinctrl-0 = <&spi1_pins>;
 	pinctrl-names = "default";
@@ -263,6 +264,7 @@
 
 	status = "okay";
 };
+#endif
 
 &usb2_phy0 {
 	pinctrl-0 = <&usb0_pins>;
