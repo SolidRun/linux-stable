@@ -53,17 +53,39 @@
 			 <RZG2L_PORT_PINMUX(18, 1, 3)>; /* SCL */
 	};
 
+#if (MTU3_PWM_SUPPORT || MTU3_PHASE_COUNTING_SUPPORT)
+	mtu3_pins: mtu3 {
+		pinmux =
+#if MTU3_PHASE_COUNTING_SUPPORT
+			<RZG2L_PORT_PINMUX(48, 0, 4)>, /* MTCLKA */
+#if (!MTU3_PWM_SUPPORT)
+			<RZG2L_PORT_PINMUX(48, 1, 4)>; /* MTLCKB */
+#else
+			<RZG2L_PORT_PINMUX(48, 1, 4)>, /* MTLCKB */
+#endif
+#endif
+#if MTU3_PWM_SUPPORT
+			<RZG2L_PORT_PINMUX(44, 0, 4)>, /* MTIOC3A */
+			<RZG2L_PORT_PINMUX(44, 1, 4)>, /* MTIOC3B */
+			<RZG2L_PORT_PINMUX(44, 2, 4)>, /* MTIOC3C */
+			<RZG2L_PORT_PINMUX(44, 3, 4)>; /* MTIOC3D */
+#endif
+	};
+#endif
+
 	scif0_pins: scif0 {
 		pinmux = <RZG2L_PORT_PINMUX(38, 0, 1)>,	/* TxD */
 			 <RZG2L_PORT_PINMUX(38, 1, 1)>;	/* RxD */
 	};
 
+#if (!MTU3_PHASE_COUNTING_SUPPORT)
 	scif2_pins: scif2 {
 		pinmux = <RZG2L_PORT_PINMUX(48, 0, 1)>, /* TxD */
 			 <RZG2L_PORT_PINMUX(48, 1, 1)>, /* RxD */
 			 <RZG2L_PORT_PINMUX(48, 3, 1)>, /* CTS# */
 			 <RZG2L_PORT_PINMUX(48, 4, 1)>; /* RTS# */
 	};
+#endif
 
 	sd1-pwr-en-hog {
 		gpio-hog;
@@ -109,12 +131,14 @@
 		input-enable;
 	};
 
+#if (!MTU3_PWM_SUPPORT)
 	spi1_pins: spi1 {
 		pinmux = <RZG2L_PORT_PINMUX(44, 0, 1)>, /* CK */
 			 <RZG2L_PORT_PINMUX(44, 1, 1)>, /* MOSI */
 			 <RZG2L_PORT_PINMUX(44, 2, 1)>, /* MISO */
 			 <RZG2L_PORT_PINMUX(44, 3, 1)>; /* SSL */
 	};
+#endif
 
 	ssi0_pins: ssi0 {
 		pinmux = <RZG2L_PORT_PINMUX(45, 0, 1)>, /* BCK */
