@@ -8,6 +8,26 @@
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/pinctrl/rzg2l-pinctrl.h>
 
+/*
+ * MTU3 macros are created to support setting pinctrl and properties in order
+ * to use MTU3 functions. However, their pins on PMOD0 are mixed with SPI1,
+ * so we must disable this module to avoid conflict.
+ * - MTU3_PWM_SUPPORT: Disable SPI1 to support PWM functions of channel3.
+ *   By default, PWM mode 1 of MTIOC3C will be selected.
+ * - MTU3_PWM_COMPLEMENTARY_SELECT: Enable this macro to select complementary PWM
+ *   mode of MTIOC3B and MTIOC3D instead of PWM mode 1. This mode depends on macro
+ *   MTU3_PWM_SUPPORT.
+ */
+#define MTU3_PWM_SUPPORT			0
+#define MTU3_PWM_COMPLEMENTARY_SELECT		0
+
+/*
+ * POE3_SUPPORT is used to enable POE3 to control Hi-Z state of complementary PWM
+ * signals at MTIOC3B-MTIOC3D. Note: This macro must be enabled along with macros
+ * MTU3_PWM_SUPPORT and MTU3_PWM_COMPLEMENTARY_SELECT to fully take effect.
+ */
+#define POE3_SUPPORT				0
+
 / {
 	aliases {
 		ethernet0 = &eth0;
