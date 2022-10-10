@@ -129,6 +129,13 @@
 #define MTU3_PHASE_COUNTING_SUPPORT		0
 #define MTU3_32BIT_PHASE_COUNTING_SELECT	0
 
+/*
+ * POE3_SUPPORT is used to enable POE3 to control Hi-Z state of complementary PWM
+ * signals at MTIOC3B-MTIOC3D. Note: This macro must be enabled along with macros
+ * MTU3_PWM_SUPPORT and MTU3_PWM_COMPLEMENTARY_SELECT to fully take effect.
+ */
+#define POE3_SUPPORT				0
+
 / {
 	aliases {
 		serial0 = &scif0;
@@ -608,6 +615,25 @@
 #else
 			<RZG2L_PORT_PINMUX(44, 3, 4)>; /* MTIOC3D */
 #endif
+#endif
+	};
+#endif
+
+	/* POE3 input capture can be tested via Mainboard CN4 in 2 cases:
+	 * 1. Use CAN subboard. Test POE0#(CP7) and POE10#(CP11).
+	 * 2. Use CN-G PMOD subboard. Test POE0#(TH22), POE4#(TH18),
+	 *    POE8#(TH23), and POE10#(TH19).
+	 */
+#if POE3_SUPPORT
+	poe3_pins: poe3 {
+#if CAN_SUPPORT
+		pinmux = <RZG2L_PORT_PINMUX(12, 0, 3)>, /* POE0# */
+			 <RZG2L_PORT_PINMUX(13, 1, 3)>; /* POE10# */
+#elif !DISP_PARALLEL
+		pinmux = <RZG2L_PORT_PINMUX(12, 0, 3)>, /* POE0# */
+			 <RZG2L_PORT_PINMUX(12, 1, 3)>, /* POE4# */
+			 <RZG2L_PORT_PINMUX(13, 0, 3)>, /* POE8# */
+			 <RZG2L_PORT_PINMUX(13, 1, 3)>; /* POE10# */
 #endif
 	};
 #endif
@@ -1093,6 +1119,26 @@
 &ohci1 {
 	status = "okay";
 };
+
+#if (MTU3_PWM_SUPPORT && MTU3_PWM_COMPLEMENTARY_SELECT && POE3_SUPPORT)
+&poe3 {
+#if (CAN_SUPPORT || !DISP_PARALLEL)
+	pinctrl-0 = <&poe3_pins>;
+	pinctrl-names = "default";
+	poe3_pins_mode = <0 0>, <4 0>, <8 0>, <10 0>;
+#endif
+	status = "okay";
+
+	mtu3_ch34 {
+#if CAN_SUPPORT
+		addition_poe3_inputs = <0>, <10>;
+#elif !DISP_PARALLEL
+		addition_poe3_inputs = <0>, <4>, <8>, <10>;
+#endif
+		mtu3_outputs = <0>; /* MTIOC3B-MTIOC3D */
+	};
+};
+#endif
 
 &hsusb {
 	dr_mode = "otg";
