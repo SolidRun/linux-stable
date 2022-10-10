@@ -15,6 +15,14 @@
 #define SW_SW0_DEV_SEL	1
 #define SW_ET0_EN_N	1
 
+/*
+ * MTU3 macros are created to support setting pinctrl and properties in order
+ * to use MTU3 functions.
+ * - MTU3_PWM_SUPPORT: Support PWM of MTU3. PWM mode 1 of MTIOC2A will be selected
+ *   and disable rspi1 due to conflict between MTIOC2A and RSPI1_CK when ETH0 disabled.
+ */
+#define MTU3_PWM_SUPPORT	0
+
 #include "rzg2ul-smarc-som.dtsi"
 #include "rzg2ul-smarc-pinfunction.dtsi"
 #include "rz-smarc-common.dtsi"
@@ -138,6 +146,21 @@
 
 	status = "okay";
 };
+
+#if MTU3_PWM_SUPPORT
+&spi1 {
+	/delete-property/ pinctrl-0;
+	/delete-property/ pinctrl-names;
+	status = "disabled";
+};
+
+&mtu3 {
+	pinctrl-0 = <&mtu3_pins>;
+	pinctrl-names = "default";
+
+	pwm_mode1 = <2 0>;
+};
+#endif
 #else
 &snd_rzg2l {
 	status = "disabled";
