@@ -5,6 +5,14 @@
  * Copyright (C) 2022 Renesas Electronics Corp.
  */
 
+/*
+ * MTU3 macros are created to support setting pinctrl and properties in order
+ * to use MTU3 functions.
+ * - MTU3_PWM_SUPPORT: Support PWM of MTU3. PWM mode 1 of MTIOC2A will be selected
+ *   and disable rspi1 due to conflict between MTIOC2A and RSPI1_CK when ETH0 disabled.
+ */
+#define MTU3_PWM_SUPPORT	0
+
 #include <dt-bindings/pinctrl/rzg2l-pinctrl.h>
 #include <dt-bindings/gpio/gpio.h>
 
@@ -449,12 +457,18 @@
 	};
 
 #if (SW_ET0_EN_N)
+#if !MTU3_PWM_SUPPORT
 	spi1_pins: rspi1 {
 		pinmux = <RZG2L_PORT_PINMUX(4, 0, 2)>, /* CK */
 			 <RZG2L_PORT_PINMUX(4, 1, 2)>, /* MOSI */
 			 <RZG2L_PORT_PINMUX(4, 2, 2)>, /* MISO */
 			 <RZG2L_PORT_PINMUX(4, 3, 2)>; /* SSL */
 	};
+#else
+	mtu3_pins: mtu3 {
+		pinmux = <RZG2L_PORT_PINMUX(4, 0, 4)>; /* MTIOC2A */
+	};
+#endif
 #endif
 };
 
@@ -511,6 +525,12 @@
 };
 
 &mtu3 {
+#if (SW_ET0_EN_N && MTU3_PWM_SUPPORT)
+	pinctrl-0 = <&mtu3_pins>;
+	pinctrl-names = "default";
+
+	pwm_mode1 = <2 0>;
+#endif
 	status = "okay";
 };
 
@@ -599,10 +619,10 @@
 	status = "okay";
 };
 
+#if (SW_ET0_EN_N && !MTU3_PWM_SUPPORT)
 &spi1 {
-#if SW_ET0_EN_N
         pinctrl-0 = <&spi1_pins>;
         pinctrl-names = "default";
-#endif
         status = "okay";
 };
+#endif
