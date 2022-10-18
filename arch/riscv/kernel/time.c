@@ -35,9 +35,11 @@ void __init time_init(void)
 
 void clocksource_arch_init(struct clocksource *cs)
 {
+#ifndef CONFIG_ARCH_R9A07G043F
 #ifdef CONFIG_GENERIC_GETTIMEOFDAY
 	cs->vdso_clock_mode = VDSO_CLOCKMODE_ARCHTIMER;
 #else
 	cs->vdso_clock_mode = VDSO_CLOCKMODE_NONE;
+#endif
 #endif
 }
