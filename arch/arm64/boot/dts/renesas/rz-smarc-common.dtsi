@@ -34,12 +34,6 @@
 		stdout-path = "serial0:115200n8";
 	};
 
-	audio_mclock: audio_mclock {
-		compatible = "fixed-clock";
-		#clock-cells = <0>;
-		clock-frequency = <11289600>;
-	};
-
 	snd_rzg2l: sound {
 		compatible = "simple-audio-card";
 		simple-audio-card,format = "i2s";
@@ -57,7 +51,6 @@
 		};
 
 		codec_dai: simple-audio-card,codec {
-			clocks = <&audio_mclock>;
 			sound-dai = <&wm8978>;
 		};
 	};
