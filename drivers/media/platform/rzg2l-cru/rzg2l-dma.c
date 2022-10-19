@@ -760,6 +760,46 @@ static int rzg2l_cru_initialize_image_conv(struct rzg2l_cru_dev *cru)
 	return 0;
 }
 
+static int rzg2l_cru_start(struct rzg2l_cru_dev *cru, struct v4l2_subdev *sd)
+{
+	int ret;
+
+	/* Select a video input */
+	if (cru->is_csi) {
+		/* Initializing DPHY */
+		ret = rzg2l_cru_init_csi_dphy(sd);
+		if (ret)
+			return ret;
+
+		rzg2l_cru_write(cru, CRUnCTRL, CRUnCTRL_VINSEL(0));
+	} else
+		rzg2l_cru_write(cru, CRUnCTRL, CRUnCTRL_VINSEL(1));
+
+	/* Cancel the software reset for image processing block */
+	rzg2l_cru_write(cru, CRUnRST, CRUnRST_VRESETN);
+
+	/* Disable and clear the interrupt before using */
+	rzg2l_cru_write(cru, CRUnIE, 0);
+	rzg2l_cru_write(cru, CRUnINTS, 0);
+
+	/* Initialize the AXI master */
+	rzg2l_cru_initialize_axi(cru);
+
+	/* Initialize image convert */
+	ret = rzg2l_cru_initialize_image_conv(cru);
+	if (ret) {
+		return ret;
+	}
+
+	/* Enable interrupt */
+	rzg2l_cru_write(cru, CRUnIE, CRUnIE_EFE);
+
+	/* Enable AXI master & image_conv reception */
+	rzg2l_cru_write(cru, ICnEN, ICnEN_ICEN);
+
+	return 0;
+}
+
 static int rzg2l_cru_set_stream(struct rzg2l_cru_dev *cru, int on)
 {
 	struct media_pipeline *pipe;
@@ -790,41 +830,12 @@ static int rzg2l_cru_set_stream(struct rzg2l_cru_dev *cru, int on)
 
 	spin_lock_irqsave(&cru->qlock, flags);
 
-	/* Select a video input */
-	if (cru->is_csi) {
-		/* Initializing DPHY */
-		ret = rzg2l_cru_init_csi_dphy(sd);
-		if (ret)
-			return ret;
-
-		rzg2l_cru_write(cru, CRUnCTRL, CRUnCTRL_VINSEL(0));
-	} else
-		rzg2l_cru_write(cru, CRUnCTRL, CRUnCTRL_VINSEL(1));
-
-	/* Cancel the software reset for image processing block */
-	rzg2l_cru_write(cru, CRUnRST, CRUnRST_VRESETN);
-
-	/* Disable and clear the interrupt before using */
-	rzg2l_cru_write(cru, CRUnIE, 0);
-	rzg2l_cru_write(cru, CRUnINTS, 0);
-
-	/* Initialize the AXI master */
-	rzg2l_cru_initialize_axi(cru);
-
-	/* Initialize image convert */
-	ret = rzg2l_cru_initialize_image_conv(cru);
-	if (ret) {
-		spin_unlock_irqrestore(&cru->qlock, flags);
-		return ret;
-	}
-
-	/* Enable interrupt */
-	rzg2l_cru_write(cru, CRUnIE, CRUnIE_EFE);
-
-	/* Enable AXI master & image_conv reception */
-	rzg2l_cru_write(cru, ICnEN, ICnEN_ICEN);
+	ret = rzg2l_cru_start(cru, sd);
 
 	spin_unlock_irqrestore(&cru->qlock, flags);
+
+	if (ret)
+		return ret;
 
 	ret = v4l2_subdev_call(sd, video, s_stream, 1);
 	if (ret == -ENOIOCTLCMD)
@@ -834,24 +845,14 @@ static int rzg2l_cru_set_stream(struct rzg2l_cru_dev *cru, int on)
 
 	return ret;
 }
-
-static void rzg2l_cru_stop_streaming(struct vb2_queue *vq)
+static void rzg2l_cru_stop(struct rzg2l_cru_dev *cru)
 {
-	struct rzg2l_cru_dev *cru = vb2_get_drv_priv(vq);
-	unsigned long flags;
 	int retries = 0;
 	u32 icnms;
 	u32 amnfifopntr, amnfifopntr_w, amnfifopntr_r_y, amnfifopntr_r_uv;
-
-	cru->state = STOPPING;
-
-	/* Stop the operation of image conversion */
-	rzg2l_cru_write(cru, ICnEN, 0);
-
-	rzg2l_cru_set_stream(cru, 0);
+	unsigned long flags;
 
 	spin_lock_irqsave(&cru->qlock, flags);
-
 	if (!(cru->is_csi)) {
 		/* Enable IRQ to detect frame start reception */
 		rzg2l_cru_write(cru, CRUnIE, CRUnIE_SFE);
@@ -862,7 +863,6 @@ static void rzg2l_cru_stop_streaming(struct vb2_queue *vq)
 			msleep(100);
 			spin_lock_irqsave(&cru->qlock, flags);
 		}
-
 	}
 
 	/* Disable and clear the interrupt */
@@ -910,9 +910,6 @@ static void rzg2l_cru_stop_streaming(struct vb2_queue *vq)
 	if (!retries)
 		cru_err(cru, "Failed to empty FIFO\n");
 
-	/* Release all active buffers */
-	return_all_buffers(cru, VB2_BUF_STATE_ERROR);
-
 	/* Stop AXI bus */
 	rzg2l_cru_write(cru, AMnAXISTP, AMnAXISTP_AXI_STOP);
 
@@ -941,6 +938,23 @@ static void rzg2l_cru_stop_streaming(struct vb2_queue *vq)
 	reset_control_assert(cru->rstc.presetn);
 
 	spin_unlock_irqrestore(&cru->qlock, flags);
+}
+
+static void rzg2l_cru_stop_streaming(struct vb2_queue *vq)
+{
+	struct rzg2l_cru_dev *cru = vb2_get_drv_priv(vq);
+
+	cru->state = STOPPING;
+
+	/* Stop the operation of image conversion */
+	rzg2l_cru_write(cru, ICnEN, 0);
+
+	rzg2l_cru_set_stream(cru, 0);
+
+	rzg2l_cru_stop(cru);
+
+	/* Release all active buffers */
+	return_all_buffers(cru, VB2_BUF_STATE_ERROR);
 
 	/* Free scratch buffer */
 	dma_free_coherent(cru->dev, cru->format.sizeimage, cru->scratch,
