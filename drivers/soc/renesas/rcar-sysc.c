@@ -11,6 +11,7 @@
 #include <dt-bindings/power/r8a7795-sysc.h>
 #include <dt-bindings/power/r8a7796-sysc.h>
 #include <dt-bindings/power/r8a77965-sysc.h>
+#include <dt-bindings/power/r8a774a1-sysc.h>
 #include <linux/clk/renesas.h>
 #include <linux/delay.h>
 #include <linux/err.h>
@@ -95,6 +96,12 @@ const struct soc_device_attribute rcar_sysc_quirks_match[] __initconst = {
 			| BIT(R8A7796_PD_A2VC0) | BIT(R8A7796_PD_A2VC1)
 			| BIT(R8A7796_PD_A3IR) | BIT(R8A7796_PD_3DG_A)
 			| BIT(R8A7796_PD_3DG_B)),
+	},
+	{
+		.soc_id = "r8a774a1", .revision = "ES1.*",
+		.data = (void *)(BIT(R8A774A1_PD_A3VC)
+			| BIT(R8A774A1_PD_A2VC0) | BIT(R8A774A1_PD_A2VC1)
+			| BIT(R8A774A1_PD_3DG_A) | BIT(R8A774A1_PD_3DG_B)),
 	},
 	{ /* sentinel */ }
 };
