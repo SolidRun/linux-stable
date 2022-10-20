@@ -191,6 +191,7 @@ struct rspi_data {
 	u8 spsr;
 	u8 sppcr;
 	int rx_irq, tx_irq;
+	int bits_per_word;
 	const struct spi_ops *ops;
 
 	unsigned dma_callbacked:1;
@@ -222,20 +223,29 @@ static u16 rspi_read16(const struct rspi_data *rspi, u16 offset)
 	return ioread16(rspi->addr + offset);
 }
 
+static u32 rspi_read32(const struct rspi_data *rspi, u16 offset)
+{
+	return ioread32(rspi->addr + offset);
+}
+
 static void rspi_write_data(const struct rspi_data *rspi, u16 data)
 {
-	if (rspi->byte_access)
+	if (rspi->bits_per_word == 8)
 		rspi_write8(rspi, data, RSPI_SPDR);
-	else /* 16 bit */
+	else if (rspi->bits_per_word == 16)
 		rspi_write16(rspi, data, RSPI_SPDR);
+	else
+		rspi_write32(rspi, data, RSPI_SPDR);
 }
 
 static u16 rspi_read_data(const struct rspi_data *rspi)
 {
-	if (rspi->byte_access)
+	if (rspi->bits_per_word == 8)
 		return rspi_read8(rspi, RSPI_SPDR);
-	else /* 16 bit */
+	else if (rspi->bits_per_word == 16)
 		return rspi_read16(rspi, RSPI_SPDR);
+	else
+		return rspi_read32(rspi, RSPI_SPDR);
 }
 
 /* optional functions */
@@ -295,7 +305,7 @@ static int rspi_set_config_register(struct rspi_data *rspi, int access_size)
 
 	/* Resets sequencer */
 	rspi_write8(rspi, 0, RSPI_SPSCR);
-	rspi->spcmd |= SPCMD_SPB_8_TO_16(access_size);
+	rspi->spcmd |= SPCMD_SPB_8_TO_16(rspi->bits_per_word);
 	rspi_write16(rspi, rspi->spcmd, RSPI_SPCMD0);
 
 	/* Sets RSPI mode */
@@ -316,8 +326,12 @@ static int rspi_rz_set_config_register(struct rspi_data *rspi, int access_size)
 	rspi_set_rate(rspi);
 
 	/* Disable dummy transmission, set byte access */
-	rspi_write8(rspi, SPDCR_SPLBYTE, RSPI_SPDCR);
-	rspi->byte_access = 1;
+	if (rspi->bits_per_word == 8)
+		rspi_write8(rspi, SPDCR_SPLBYTE, RSPI_SPDCR);
+	else if (rspi->bits_per_word == 16)
+		rspi_write8(rspi, SPDCR_SPLWORD, RSPI_SPDCR);
+	else
+		rspi_write8(rspi, SPDCR_SPLLWORD, RSPI_SPDCR);
 
 	/* Sets RSPCK, SSL, next-access delay value */
 	rspi_write8(rspi, 0x00, RSPI_SPCKD);
@@ -326,7 +340,10 @@ static int rspi_rz_set_config_register(struct rspi_data *rspi, int access_size)
 
 	/* Resets sequencer */
 	rspi_write8(rspi, 0, RSPI_SPSCR);
-	rspi->spcmd |= SPCMD_SPB_8_TO_16(access_size);
+	if (rspi->bits_per_word == 8 || rspi->bits_per_word == 16)
+		rspi->spcmd |= SPCMD_SPB_8_TO_16(rspi->bits_per_word);
+	else
+		rspi->spcmd |= SPCMD_SPB_32BIT;
 	rspi_write16(rspi, rspi->spcmd, RSPI_SPCMD0);
 
 	/* Sets RSPI mode */
@@ -374,9 +391,9 @@ static int qspi_set_config_register(struct rspi_data *rspi, int access_size)
 	rspi_write8(rspi, 0x00, RSPI_SPND);
 
 	/* Data Length Setting */
-	if (access_size == 8)
+	if (rspi->bits_per_word == 8)
 		rspi->spcmd |= SPCMD_SPB_8BIT;
-	else if (access_size == 16)
+	else if (rspi->bits_per_word == 16)
 		rspi->spcmd |= SPCMD_SPB_16BIT;
 	else
 		rspi->spcmd |= SPCMD_SPB_32BIT;
@@ -993,6 +1010,7 @@ static int rspi_prepare_message(struct spi_controller *ctlr,
 	list_for_each_entry(xfer, &msg->transfers, transfer_list) {
 		if (xfer->speed_hz < rspi->speed_hz)
 			rspi->speed_hz = xfer->speed_hz;
+		rspi->bits_per_word = xfer->bits_per_word;
 	}
 
 	if (!spi_controller_is_slave(rspi->ctlr))
@@ -1013,7 +1031,7 @@ static int rspi_prepare_message(struct spi_controller *ctlr,
 	if (spi->mode & SPI_LOOP)
 		rspi->sppcr |= SPPCR_SPLP;
 
-	rspi->ops->set_config_register(rspi, 8);
+	rspi->ops->set_config_register(rspi, rspi->bits_per_word);
 
 	if (msg->spi->mode &
 	    (SPI_TX_DUAL | SPI_TX_QUAD | SPI_RX_DUAL | SPI_RX_QUAD)) {
