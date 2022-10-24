@@ -220,6 +220,8 @@ struct rzg2l_cru_dev {
 	wait_queue_head_t setup_wait;
 	bool suspend;
 	bool is_frame_skip;
+
+	struct task_struct *retry_thread;
 };
 
 #define cru_to_source(cru)		((cru)->parallel->subdev)
