@@ -270,6 +270,7 @@ struct rzg2l_pinctrl {
 
 	struct irq_chip			irq_chip;
 	unsigned int			irq_start;
+	atomic_t			wakeup_path;
 
 	/* This array will store GPIO IDs for TINT[0-32] with value:
 	 * - [15-0] bits: store GPIO IDs (ID = port * 8 + bit).
@@ -1215,6 +1216,26 @@ static int rzg2l_gpio_irq_set_type(struct irq_data *d, unsigned int type)
 	return 0;
 }
 
+static int rzg2l_gpio_irq_set_wake(struct irq_data *d, unsigned int on)
+{
+	struct gpio_chip *chip = irq_data_get_irq_chip_data(d);
+	struct rzg2l_pinctrl *pctrl = gpiochip_get_data(chip);
+	int hw_irq = irqd_to_hwirq(d);
+	u32 tint_slot;
+
+	tint_slot = rzg2l_gpio_irq_check_tint_slot(pctrl, hw_irq);
+	if (tint_slot ==  TINT_MAX)
+		return -EINVAL;
+
+	irq_set_irq_wake(pctrl->irq_start + tint_slot, on);
+	if (on)
+		atomic_inc(&pctrl->wakeup_path);
+	else
+		atomic_dec(&pctrl->wakeup_path);
+
+	return 0;
+}
+
 static irqreturn_t rzg2l_pinctrl_irq_handler(int irq, void *dev_id)
 {
 	struct rzg2l_pinctrl *pctrl = dev_id;
@@ -1624,7 +1645,8 @@ static int rzg2l_gpio_register(struct rzg2l_pinctrl *pctrl)
 	irq_chip->irq_mask = rzg2l_gpio_irq_mask;
 	irq_chip->irq_unmask = rzg2l_gpio_irq_unmask;
 	irq_chip->irq_set_type = rzg2l_gpio_irq_set_type;
-	irq_chip->flags = IRQCHIP_SET_TYPE_MASKED;
+	irq_chip->irq_set_wake = rzg2l_gpio_irq_set_wake;
+	irq_chip->flags = IRQCHIP_SET_TYPE_MASKED | IRQCHIP_MASK_ON_SUSPEND;
 
 	ret = gpiochip_irqchip_add(chip, irq_chip, 0, handle_level_irq,
 				   IRQ_TYPE_NONE);
@@ -1834,6 +1856,18 @@ static int rzg2l_pinctrl_remove(struct platform_device *pdev)
 	return 0;
 }
 
+static int __maybe_unused rzg2l_pinctrl_suspend(struct device *dev)
+{
+	struct rzg2l_pinctrl *pctrl = dev_get_drvdata(dev);
+
+	if (atomic_read(&pctrl->wakeup_path))
+		device_set_wakeup_path(dev);
+
+	return 0;
+}
+
+static SIMPLE_DEV_PM_OPS(rzg2l_pinctrl_pm_ops, rzg2l_pinctrl_suspend, NULL);
+
 static struct rzg2l_pinctrl_data r9a07g043_data = {
 	.port_pins = rzg2l_gpio_names,
 	.port_pin_configs = r9a07g043_gpio_configs,
@@ -1888,6 +1922,7 @@ static struct platform_driver rzg2l_pinctrl_driver = {
 	.driver = {
 		.name = DRV_NAME,
 		.of_match_table = of_match_ptr(rzg2l_pinctrl_of_table),
+		.pm = &rzg2l_pinctrl_pm_ops,
 	},
 	.probe = rzg2l_pinctrl_probe,
 	.remove = rzg2l_pinctrl_remove,
