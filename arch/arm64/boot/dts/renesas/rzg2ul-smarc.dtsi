@@ -10,10 +10,17 @@
  * 1 : High; 0: Low
  * SW1-2 : SW_SD0_DEV_SEL	(0: uSD; 1: eMMC)
  * SW1-3 : SW_ET0_EN_N		(0: ETHER0; 1: CAN0, CAN1, SSI1, RSPI1)
+ * SW7	 : SW_CAN0_STB_PMOD	(0: GPIO8_PMOD; 1:CAN0)
+ * SW8	 : SW_CAN1_STB_PMOD	(0: GPIO9_PMOD; 1:CAN1)
  * Please change below macros according to SW1 setting
  */
 #define SW_SW0_DEV_SEL	1
 #define SW_ET0_EN_N	1
+#define	SW_CAN0_STB_PMOD	1
+#define	SW_CAN1_STB_PMOD	1
+#if (SW_CAN0_STB_PMOD ^ SW_CAN1_STB_PMOD)
+#error "SW_CAN0_STB_PMOD and SW_CAN1_STB_PMOD must be same value!!!"
+#endif
 
 /*
  * MTU3 macros are created to support setting pinctrl and properties in order
@@ -56,7 +63,15 @@
 	};
 };
 
-#if (!SW_ET0_EN_N)
+#if ((SW_ET0_EN_N) && !(SW_CAN0_STB_PMOD && SW_CAN1_STB_PMOD))
+&sci0 {
+	pinctrl-0 = <&sci0_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+#endif
+
+#if (!SW_ET0_EN_N) || !(SW_CAN0_STB_PMOD && SW_CAN1_STB_PMOD)
 &canfd {
 	/delete-property/ pinctrl-0;
 	/delete-property/ pinctrl-names;
