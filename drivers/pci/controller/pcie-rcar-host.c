@@ -777,7 +777,7 @@ static int rcar_pcie_enable_msi(struct rcar_pcie_host *host)
 
 	/* Two irqs are for MSI, but they are also used for non-MSI irqs */
 	err = devm_request_irq(dev, msi->irq1, rcar_pcie_msi_irq,
-			       IRQF_SHARED | IRQF_NO_THREAD | IRQF_ONESHOT,
+			       IRQF_SHARED | IRQF_NO_THREAD,
 			       rcar_msi_irq_chip.name, host);
 	if (err < 0) {
 		dev_err(dev, "failed to request IRQ: %d\n", err);
@@ -785,7 +785,7 @@ static int rcar_pcie_enable_msi(struct rcar_pcie_host *host)
 	}
 
 	err = devm_request_irq(dev, msi->irq2, rcar_pcie_msi_irq,
-			       IRQF_SHARED | IRQF_NO_THREAD | IRQF_ONESHOT,
+			       IRQF_SHARED | IRQF_NO_THREAD,
 			       rcar_msi_irq_chip.name, host);
 	if (err < 0) {
 		dev_err(dev, "failed to request IRQ: %d\n", err);
