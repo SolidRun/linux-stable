@@ -50,6 +50,7 @@ static const struct soc_device_attribute ls2088a_soc[] = {
 
 static const struct soc_device_attribute lx2160a_soc[] = {
 	{.family = "QorIQ LX2160A"},
+	{.soc_id = "jep106:0015:8736"},
 	{ /* sentinel */ }
 };
 
