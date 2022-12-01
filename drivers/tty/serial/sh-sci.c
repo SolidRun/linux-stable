@@ -157,6 +157,7 @@ struct sci_port {
 
 	bool has_rtscts;
 	bool autorts;
+	bool is_rz_sci;
 };
 
 #define SCI_NPORTS CONFIG_SERIAL_SH_SCI_NR_UARTS
@@ -184,6 +185,7 @@ static const struct sci_port_params sci_port_params[SCIx_NR_REGTYPES] = {
 			[SCxTDR]	= { 0x03,  8 },
 			[SCxSR]		= { 0x04,  8 },
 			[SCxRDR]	= { 0x05,  8 },
+			[SCIGSEMR]	= { 0x07,  8 },
 		},
 		.fifosize = 1,
 		.overrun_reg = SCxSR,
@@ -596,6 +598,15 @@ static void sci_start_tx(struct uart_port *port)
 	if (!s->chan_tx || port->type == PORT_SCIFA || port->type == PORT_SCIFB) {
 		/* Set TIE (Transmit Interrupt Enable) bit in SCSCR */
 		ctrl = serial_port_in(port, SCSCR);
+
+		/*
+		 * For SCIg, TE (transmit enable) must be set after setting TIE
+		 * (transmit interrupt enable) or in the same instruction to
+		 * start the transmitting process.
+		 */
+		if (s->is_rz_sci)
+			ctrl |= SCSCR_TE;
+
 		serial_port_out(port, SCSCR, ctrl | SCSCR_TIE);
 	}
 }
@@ -2395,6 +2406,10 @@ static void sci_set_termios(struct uart_port *port, struct ktermios *termios,
 	int best_clk = -1;
 	unsigned long flags;
 
+	/* Set the start bit condition of SCIg from logic LOW to FAILLING EDGE. */
+	if (s->is_rz_sci)
+		serial_port_out(port, SCIGSEMR, SCIGSEMR_RXDESEL);
+
 	if ((termios->c_cflag & CSIZE) == CS7) {
 		smr_val |= SCSMR_CHR;
 	} else {
@@ -2640,8 +2655,10 @@ done:
 		sci_set_mctrl(port, port->mctrl);
 	}
 
-	scr_val |= SCSCR_RE | SCSCR_TE |
+	scr_val |= SCSCR_RE |
 		   (s->cfg->scscr & ~(SCSCR_CKE1 | SCSCR_CKE0));
+	if (!s->is_rz_sci)
+		scr_val |= SCSCR_TE;
 	serial_port_out(port, SCSCR, scr_val | s->hscif_tot);
 	if ((srr + 1 == 5) &&
 	    (port->type == PORT_SCIFA || port->type == PORT_SCIFB)) {
@@ -3016,7 +3033,7 @@ static int sci_init_single(struct platform_device *dev,
 	port->flags		= UPF_FIXED_PORT | UPF_BOOT_AUTOCONF | p->flags;
 	port->fifosize		= sci_port->params->fifosize;
 
-	if (port->type == PORT_SCI) {
+	if ((port->type == PORT_SCI) && (!sci_port->is_rz_sci)) {
 		if (sci_port->reg_size >= 0x20)
 			port->regshift = 2;
 		else
@@ -3266,6 +3283,9 @@ static const struct of_device_id of_sci_match[] = {
 		.compatible = "renesas,sci",
 		.data = SCI_OF_DATA(PORT_SCI, SCIx_SCI_REGTYPE),
 	}, {
+		.compatible = "renesas,rz-sci",
+		.data = SCI_OF_DATA(PORT_SCI, SCIx_SCI_REGTYPE),
+	}, {
 		/* Terminator */
 	},
 };
@@ -3424,6 +3444,9 @@ static int sci_probe(struct platform_device *dev)
 
 	sp = &sci_ports[dev_id];
 	platform_set_drvdata(dev, sp);
+
+	if (of_device_is_compatible(dev->dev.of_node, "renesas,rz-sci"))
+		sp->is_rz_sci = 1;
 
 	ret = sci_probe_single(dev, dev_id, p, sp);
 	if (ret)
