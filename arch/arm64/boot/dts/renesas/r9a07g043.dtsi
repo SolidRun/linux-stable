@@ -451,7 +451,7 @@
 		};
 
 		sci0: serial@1004d000 {
-			compatible = "renesas,r9a07g043-sci", "renesas,sci";
+			compatible = "renesas,r9a07g043-sci", "renesas,rz-sci";
 			reg = <0 0x1004d000 0 0x400>;
 			interrupts = <GIC_SPI 405 IRQ_TYPE_LEVEL_HIGH>,
 				     <GIC_SPI 406 IRQ_TYPE_EDGE_RISING>,
@@ -466,7 +466,7 @@
 		};
 
 		sci1: serial@1004d400 {
-			compatible = "renesas,r9a07g043-sci", "renesas,sci";
+			compatible = "renesas,r9a07g043-sci", "renesas,rz-sci";
 			reg = <0 0x1004d400 0 0x400>;
 			interrupts = <GIC_SPI 409 IRQ_TYPE_LEVEL_HIGH>,
 				     <GIC_SPI 410 IRQ_TYPE_EDGE_RISING>,
