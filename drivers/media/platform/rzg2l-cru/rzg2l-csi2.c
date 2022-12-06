@@ -321,7 +321,17 @@ static int rzg2l_csi2_calc_mbps(struct rzg2l_csi2 *priv, unsigned int bpp)
 int rzg2l_cru_init_csi_dphy(struct v4l2_subdev *sd)
 {
 	struct rzg2l_csi2 *priv = sd_to_csi2(sd);
-	int ret;
+	const struct rzg2l_csi2_format *format;
+	int ret, mbps;
+
+	/* Code is validated in set_fmt. */
+	format = rzg2l_csi2_code_to_fmt(priv->mf.code);
+
+	mbps = rzg2l_csi2_calc_mbps(priv, format->bpp);
+	if (mbps < 0)
+		return mbps;
+
+        priv->hsfreq = mbps;
 
 	mutex_lock(&priv->lock);
 
@@ -334,8 +344,6 @@ int rzg2l_cru_init_csi_dphy(struct v4l2_subdev *sd)
 
 static int rzg2l_csi2_start(struct rzg2l_csi2 *priv)
 {
-	const struct rzg2l_csi2_format *format;
-	int mbps;
 	int lanes;
 	u32 frrskw, frrclk, frrskw_coeff, frrclk_coeff;
 	int ret, count;
@@ -343,15 +351,6 @@ static int rzg2l_csi2_start(struct rzg2l_csi2 *priv)
 	dev_dbg(priv->dev, "Input size (%ux%u%c)\n",
 		priv->mf.width, priv->mf.height,
 		priv->mf.field == V4L2_FIELD_NONE ? 'p' : 'i');
-
-	/* Code is validated in set_fmt. */
-	format = rzg2l_csi2_code_to_fmt(priv->mf.code);
-
-	mbps = rzg2l_csi2_calc_mbps(priv, format->bpp);
-	if (mbps < 0)
-		return mbps;
-
-	priv->hsfreq = mbps;
 
 	/* Initialize LINK */
 	/* Checking the maximum lanes support for CSI2 module */
