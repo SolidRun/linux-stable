@@ -431,6 +431,8 @@ config BUILTIN_DTB
 
 menu "Power management options"
 
+source "drivers/cpufreq/Kconfig"
+
 source "kernel/power/Kconfig"
 
 endmenu
