@@ -1791,7 +1791,7 @@
 		};
 
 		vsp@fe920000 {
-			compatible = "renesas,vsp1";
+			compatible = "renesas,vspm-vspr", "renesas-vspm";
 			reg = <0 0xfe920000 0 0x8000>;
 			interrupts = <GIC_SPI 266 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&cpg CPG_MOD 130>;
@@ -1800,7 +1800,7 @@
 		};
 
 		vsp@fe928000 {
-			compatible = "renesas,vsp1";
+			compatible = "renesas,vspm-vsps", "renesas-vspm";
 			reg = <0 0xfe928000 0 0x8000>;
 			interrupts = <GIC_SPI 267 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&cpg CPG_MOD 131>;
