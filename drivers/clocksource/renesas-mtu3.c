@@ -290,6 +290,8 @@ struct renesas_mtu3_device {
 #define TOER_MTIOC47C_EN	(1 << 4)
 #define TOER_MTIOC47D_EN	(1 << 5)
 
+#define TSTR_PWM_COMP_EN	(3 << 6)
+
 /* private flags */
 #define FLAG_CLOCKEVENT (1 << 0)
 #define FLAG_CLOCKSOURCE (1 << 1)
@@ -987,6 +989,7 @@ static int renesas_mtu3_pwm_enable(struct pwm_chip *chip,
 {
 	struct renesas_mtu3_device *mtu3 = pwm_chip_to_mtu3_device(chip);
 	struct renesas_mtu3_channel *ch1, *ch2;
+	u8 val;
 
 	ch1 = &mtu3->channels[mtu3->pwms[pwm->hwpwm].ch1];
 	if (ch1->function == MTU3_PWM_MODE_1) {
@@ -1004,8 +1007,15 @@ static int renesas_mtu3_pwm_enable(struct pwm_chip *chip,
 		renesas_mtu3_16bit_ch_reg_write(ch2, TCNT, 0);
 		renesas_mtu3_waveform_output_enable(ch1, mtu3->pwms[pwm->hwpwm].output,
 							pwm->state.polarity);
-		renesas_mtu3_start_stop_ch(ch1, true);
-		renesas_mtu3_start_stop_ch(ch2, true);
+
+		/* It is important to start 2 channels of complementary pwm simultaneously */
+		if ((ch1->index == 3) || (ch1->index == 4)) {
+			val = renesas_mtu3_shared_reg_read(mtu3, TSTRA) | TSTR_PWM_COMP_EN;
+			renesas_mtu3_shared_reg_write(mtu3, TSTRA, val);
+		} else {
+			val = renesas_mtu3_shared_reg_read(mtu3, TSTRB) | TSTR_PWM_COMP_EN;
+			renesas_mtu3_shared_reg_write(mtu3, TSTRB, val);
+		}
 
 		mtu3->pwms[pwm->hwpwm].is_enabled = true;
 	}
@@ -1018,6 +1028,7 @@ static void renesas_mtu3_pwm_disable(struct pwm_chip *chip,
 {
 	struct renesas_mtu3_device *mtu3 = pwm_chip_to_mtu3_device(chip);
 	struct renesas_mtu3_channel *ch1, *ch2;
+	u8 val;
 
 	ch1 = &mtu3->channels[mtu3->pwms[pwm->hwpwm].ch1];
 
@@ -1034,8 +1045,14 @@ static void renesas_mtu3_pwm_disable(struct pwm_chip *chip,
 		ch2 = &mtu3->channels[mtu3->pwms[pwm->hwpwm].ch2];
 		renesas_mtu3_8bit_ch_reg_write(ch2, TMDR1, TMDR_MD_NORMAL);
 
-		renesas_mtu3_start_stop_ch(ch1, false);
-		renesas_mtu3_start_stop_ch(ch2, false);
+		/* It is important to stop 2 channels of complementary pwm simultaneously */
+		if ((ch1->index == 3) || (ch1->index == 4)) {
+			val = renesas_mtu3_shared_reg_read(mtu3, TSTRA) & ~TSTR_PWM_COMP_EN;
+			renesas_mtu3_shared_reg_write(mtu3, TSTRA, val);
+		} else {
+			val = renesas_mtu3_shared_reg_read(mtu3, TSTRB) & ~TSTR_PWM_COMP_EN;
+			renesas_mtu3_shared_reg_write(mtu3, TSTRB, val);
+		}
 
 		mtu3->pwms[pwm->hwpwm].is_enabled = false;
 	}
