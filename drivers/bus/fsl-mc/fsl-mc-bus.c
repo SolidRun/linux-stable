@@ -819,6 +819,9 @@ int fsl_mc_device_add(struct fsl_mc_obj_desc *obj_desc,
 
 	mc_dev->obj_desc = *obj_desc;
 	mc_dev->mc_io = mc_io;
+	mc_dev->dma_mask = FSL_MC_DEFAULT_DMA_MASK;
+	mc_dev->dev.dma_mask = &mc_dev->dma_mask;
+	mc_dev->dev.coherent_dma_mask = mc_dev->dma_mask;
 	device_initialize(&mc_dev->dev);
 	mc_dev->dev.parent = parent_dev;
 	mc_dev->dev.bus = &fsl_mc_bus_type;
@@ -872,9 +875,6 @@ int fsl_mc_device_add(struct fsl_mc_obj_desc *obj_desc,
 		 * parent's ICID and interrupt domain.
 		 */
 		mc_dev->icid = parent_mc_dev->icid;
-		mc_dev->dma_mask = FSL_MC_DEFAULT_DMA_MASK;
-		mc_dev->dev.dma_mask = &mc_dev->dma_mask;
-		mc_dev->dev.coherent_dma_mask = mc_dev->dma_mask;
 		dev_set_msi_domain(&mc_dev->dev,
 				   dev_get_msi_domain(&parent_mc_dev->dev));
 	}
