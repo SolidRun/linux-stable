@@ -429,6 +429,9 @@ static int adin_config_init(struct phy_device *phydev)
 	if (rc < 0)
 		return rc;
 
+	# Disable PHY referance clock (GE_REF_CLK_EN=0)
+	phy_modify_mmd(phydev, 30, 0xff1f, 0b000111111, 0);
+
 	phydev_dbg(phydev, "PHY is using mode '%s'\n",
 		   phy_modes(phydev->interface));
 
