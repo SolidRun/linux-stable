@@ -13,6 +13,7 @@
 #include <linux/spi/spi-mem.h>
 
 #include <memory/renesas-rpc-if.h>
+#include <memory/renesas-xspi-if.h>
 
 #include <asm/unaligned.h>
 
@@ -58,7 +59,7 @@ static void rpcif_spi_mem_prepare(struct spi_device *spi_dev,
 		rpc_op.data.dir = RPCIF_NO_DATA;
 	}
 
-	rpcif_prepare(rpc, &rpc_op, offs, len);
+	rpc->ops->prepare(rpc, &rpc_op, offs, len);
 }
 
 static bool rpcif_spi_mem_supports_op(struct spi_mem *mem,
@@ -86,7 +87,7 @@ static ssize_t rpcif_spi_mem_dirmap_read(struct spi_mem_dirmap_desc *desc,
 
 	rpcif_spi_mem_prepare(desc->mem->spi, &desc->info.op_tmpl, &offs, &len);
 
-	return rpcif_dirmap_read(rpc, offs, len, buf);
+	return rpc->ops->dirmap_read(rpc, offs, len, buf);
 }
 
 static int rpcif_spi_mem_dirmap_create(struct spi_mem_dirmap_desc *desc)
@@ -117,7 +118,7 @@ static int rpcif_spi_mem_exec_op(struct spi_mem *mem,
 
 	rpcif_spi_mem_prepare(mem->spi, op, NULL, NULL);
 
-	return rpcif_manual_xfer(rpc);
+	return rpc->ops->manual_xfer(rpc);
 }
 
 static const struct spi_controller_mem_ops rpcif_spi_mem_ops = {
@@ -125,6 +126,20 @@ static const struct spi_controller_mem_ops rpcif_spi_mem_ops = {
 	.exec_op	= rpcif_spi_mem_exec_op,
 	.dirmap_create	= rpcif_spi_mem_dirmap_create,
 	.dirmap_read	= rpcif_spi_mem_dirmap_read,
+};
+
+static const struct rpcif_ops rpc_ops = {
+	.hw_init	= rpcif_hw_init,
+	.prepare	= rpcif_prepare,
+	.manual_xfer	= rpcif_manual_xfer,
+	.dirmap_read	= rpcif_dirmap_read,
+};
+
+static const struct rpcif_ops xspi_ops = {
+	.hw_init	= xspi_hw_init,
+	.prepare	= xspi_prepare,
+	.manual_xfer	= xspi_manual_xfer,
+	.dirmap_read	= xspi_dirmap_read,
 };
 
 static int rpcif_spi_probe(struct platform_device *pdev)
@@ -143,6 +158,11 @@ static int rpcif_spi_probe(struct platform_device *pdev)
 	if (error)
 		return error;
 
+	if (rpc->type == XSPI_RZ_G3S)
+		rpc->ops = &xspi_ops;
+	else
+		rpc->ops = &rpc_ops;
+
 	platform_set_drvdata(pdev, ctlr);
 
 	ctlr->dev.of_node = parent->of_node;
@@ -156,7 +176,7 @@ static int rpcif_spi_probe(struct platform_device *pdev)
 	ctlr->mode_bits = SPI_CPOL | SPI_CPHA | SPI_TX_QUAD | SPI_RX_QUAD;
 	ctlr->flags = SPI_CONTROLLER_HALF_DUPLEX;
 
-	error = rpcif_hw_init(rpc, false);
+	error = rpc->ops->hw_init(rpc, false);
 	if (error)
 		goto out_disable_rpm;
 
