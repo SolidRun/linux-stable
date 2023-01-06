@@ -206,6 +206,14 @@ config RENESAS_RPCIF
 	  host or HyperFlash. You'll have to select individual components
 	  under the corresponding menu.
 
+config RENESAS_XSPI
+	tristate "Renesas xSPI driver"
+	depends on ARCH_RENESAS || COMPILE_TEST
+	select REGMAP_MMIO
+	help
+	  This supports Renesas xSPI which provides SPI host. You'll have
+	  to select individual components under the corresponding menu.
+
 config STM32_FMC2_EBI
 	tristate "Support for FMC2 External Bus Interface on STM32MP SoCs"
 	depends on MACH_STM32MP157 || COMPILE_TEST
