@@ -400,7 +400,7 @@ static irqreturn_t rcar_can_interrupt(int irq, void *dev_id)
 {
 	struct net_device *ndev = dev_id;
 	struct rcar_can_priv *priv = netdev_priv(ndev);
-	u8 isr;
+	u8 isr, cc;
 
 	isr = readb(&priv->regs->isr);
 	if (!(isr & priv->ier))
@@ -412,7 +412,8 @@ static irqreturn_t rcar_can_interrupt(int irq, void *dev_id)
 	if (isr & RCAR_CAN_ISR_TXFF)
 		rcar_can_tx_done(ndev);
 
-	if (isr & RCAR_CAN_ISR_RXFF) {
+	cc = readb(&priv->regs->ier);
+	if (isr & RCAR_CAN_ISR_RXFF && cc & RCAR_CAN_IER_RXFIE) {
 		if (napi_schedule_prep(&priv->napi)) {
 			/* Disable Rx FIFO interrupts */
 			priv->ier &= ~RCAR_CAN_IER_RXFIE;
