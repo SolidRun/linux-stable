@@ -15,6 +15,7 @@
 
 #include <memory/renesas-rpc-if.h>
 
+int xspi_sw_init(struct rpcif *rpc, struct device *dev);
 int xspi_hw_init(struct rpcif *rpc, bool hyperflash);
 void xspi_prepare(struct rpcif *rpc, const struct rpcif_op *op, u64 *offs,
 		   size_t *len);

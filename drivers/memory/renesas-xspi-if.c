@@ -287,9 +287,43 @@ static const struct regmap_config xspi_regmap_config = {
 	.volatile_table	= &xspi_volatile_table,
 };
 
+int xspi_sw_init(struct rpcif *xspi, struct device *dev)
+{
+	struct platform_device *pdev = to_platform_device(dev);
+	struct resource *res;
+
+	xspi->dev = dev;
+
+	xspi->base = devm_platform_ioremap_resource_byname(pdev, "regs");
+	if (IS_ERR(xspi->base))
+		return PTR_ERR(xspi->base);
+
+	xspi->regmap = devm_regmap_init(&pdev->dev, NULL, xspi, &xspi_regmap_config);
+	if (IS_ERR(xspi->regmap)) {
+		dev_err(&pdev->dev,
+			"failed to init regmap for rpcif, error %ld\n",
+			PTR_ERR(xspi->regmap));
+		return	PTR_ERR(xspi->regmap);
+	}
+
+	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "dirmap");
+	xspi->dirmap = devm_ioremap_resource(&pdev->dev, res);
+	if (IS_ERR(xspi->dirmap))
+		return PTR_ERR(xspi->dirmap);
+	xspi->size = resource_size(res);
+
+	xspi->type = (uintptr_t)of_device_get_match_data(dev);
+	xspi->rstc = devm_reset_control_array_get_exclusive(&pdev->dev);
+
+	return PTR_ERR_OR_ZERO(xspi->rstc);
+}
+EXPORT_SYMBOL(xspi_sw_init);
+
 int xspi_hw_init(struct rpcif *xspi, bool hyperflash)
 {
 	pm_runtime_get_sync(xspi->dev);
+
+	reset_control_reset(xspi->rstc);
 
 	regmap_write(xspi->regmap, XSPI_WRAPCFG, 0x0);
 
@@ -533,7 +567,7 @@ static int xspi_probe(struct platform_device *pdev)
 	}
 
 	if (of_device_is_compatible(flash, "jedec,spi-nor")) {
-		name = "xspi-if-spi";
+		name = "rpc-if-spi";
 	} else	{
 		of_node_put(flash);
 		dev_warn(&pdev->dev, "unknown flash type\n");

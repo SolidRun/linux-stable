@@ -69,7 +69,7 @@ struct rpcif {
 	void __iomem *dirmap;
 	struct regmap *regmap;
 	struct reset_control *rstc;
-	struct rpcif_ops *ops;
+	const struct rpcif_ops *ops;
 	size_t size;
 	enum rpcif_type type;
 	enum rpcif_data_dir dir;
@@ -88,6 +88,7 @@ struct rpcif {
 };
 
 struct rpcif_ops {
+	int (*sw_init)(struct rpcif *rpc, struct device *dev);
 	int (*hw_init)(struct rpcif *rpc, bool hyperflash);
 	void (*prepare)(struct rpcif *rpc, const struct rpcif_op *op, u64 *offs,
 			   size_t *len);
