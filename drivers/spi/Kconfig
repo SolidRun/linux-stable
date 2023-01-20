@@ -647,7 +647,7 @@ config SPI_RB4XX
 
 config SPI_RPCIF
 	tristate "Renesas RPC-IF SPI driver"
-	depends on RENESAS_RPCIF
+	depends on RENESAS_RPCIF || RENESAS_XSPI
 	help
 	  SPI driver for Renesas R-Car Gen3 RPC-IF.
 

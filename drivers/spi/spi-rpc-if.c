@@ -7,6 +7,7 @@
 // Copyright (C) 2019 - 2020 Cogent Embedded, Inc.
 //
 
+#include <linux/of.h>
 #include <linux/module.h>
 #include <linux/platform_device.h>
 #include <linux/spi/spi.h>
@@ -129,6 +130,7 @@ static const struct spi_controller_mem_ops rpcif_spi_mem_ops = {
 };
 
 static const struct rpcif_ops rpc_ops = {
+	.sw_init	= rpcif_sw_init,
 	.hw_init	= rpcif_hw_init,
 	.prepare	= rpcif_prepare,
 	.manual_xfer	= rpcif_manual_xfer,
@@ -136,6 +138,7 @@ static const struct rpcif_ops rpc_ops = {
 };
 
 static const struct rpcif_ops xspi_ops = {
+	.sw_init	= xspi_sw_init,
 	.hw_init	= xspi_hw_init,
 	.prepare	= xspi_prepare,
 	.manual_xfer	= xspi_manual_xfer,
@@ -154,14 +157,15 @@ static int rpcif_spi_probe(struct platform_device *pdev)
 		return -ENOMEM;
 
 	rpc = spi_controller_get_devdata(ctlr);
-	error = rpcif_sw_init(rpc, parent);
-	if (error)
-		return error;
 
-	if (rpc->type == XSPI_RZ_G3S)
+	if (of_device_is_compatible(parent->of_node, "renesas,g3s-xspi-if"))
 		rpc->ops = &xspi_ops;
 	else
 		rpc->ops = &rpc_ops;
+
+	error = rpc->ops->sw_init(rpc, parent);
+	if (error)
+		return error;
 
 	platform_set_drvdata(pdev, ctlr);
 
