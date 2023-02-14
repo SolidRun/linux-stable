@@ -849,6 +849,10 @@
 	status = "okay";
 };
 
+&phyrst {
+	status = "okay";
+};
+
 &ohci0 {
 	dr_mode = "otg";
 	status = "okay";
