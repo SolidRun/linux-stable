@@ -392,7 +392,7 @@ static void rcar_du_crtc_set_display_timing(struct rcar_du_crtc *rcrtc)
 			 (paramPtr[index].dsi_div_a << 0) |
 			 (paramPtr[index].dsi_div_b << 8));
 		/* CPG_PLL5_CLK1: POSTDIV1, POSTDIV2, REFDIV */
-		reg_write(cpg_base + 0x0144, 0x01110000 |
+		reg_write(cpg_base + 0x0144,
 			 (paramPtr[index].pl5_postdiv1 << 0) |
 			 (paramPtr[index].pl5_postdiv2 << 4) |
 			 (paramPtr[index].pl5_refdiv << 8));
