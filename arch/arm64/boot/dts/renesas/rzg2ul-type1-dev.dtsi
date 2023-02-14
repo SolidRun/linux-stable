@@ -257,6 +257,10 @@
 	status = "okay";
 };
 
+&phyrst {
+	status = "okay";
+};
+
 #if (CN11_ETHER0)
 &eth0 {
 	pinctrl-0 = <&ether0_pins>;
