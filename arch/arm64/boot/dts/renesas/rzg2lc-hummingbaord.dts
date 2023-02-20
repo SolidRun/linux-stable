@@ -1,0 +1,312 @@
+// SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+/*
+ * Device Tree Source for the RZ/G2LC Solidrun SOM
+ *
+ * Copyright (C) 2021 Renesas Electronics Corp.
+ */
+
+/dts-v1/;
+//#include "rzg2lc-sr-som.dtsi"
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/pinctrl/rzg2l-pinctrl.h>
+
+/*
+/ {
+	model = "Solidrun RZ/G2LC SOM";
+	compatible = "renesas,r9a07g044c2", "renesas,r9a07g044";
+};
+*/
+
+/* ==========================================================================*/
+//#include "r9a07g044c2.dtsi" //> SoC
+/* ==========================================================================*/
+
+/* ==========================================================================*/
+//#include "rzg2lc-smarc.dtsi"
+
+/*
+ * DIP-Switch SW1 setting on SoM
+ * 1 : High; 0: Low
+ * SW1-2 : SW_SD0_DEV_SEL	(1: eMMC; 0: uSD)
+ * SW1-3 : SW_SCIF_CAN		(1: CAN1; 0: SCIF1)
+ * SW1-4 : SW_RSPI_CAN		(1: CAN1; 0: RSPI1)
+ * SW1-5 : SW_I2S0_I2S1		(1: I2S2 (HDMI audio); 0: I2S0)
+ * Please change below macros according to SW1 setting
+ */
+
+#define SW_SD0_DEV_SEL	1
+
+#define SW_SCIF_CAN	0
+#if (SW_SCIF_CAN)
+/* Due to HW routing, SW_RSPI_CAN is always 0 when SW_SCIF_CAN is set to 1 */
+#define SW_RSPI_CAN	0
+#define SCIF1_GPT3	1 /* Enable GPT3 when SCIF1 disabled */
+#else
+/* Please set SW_RSPI_CAN. Default value is 1 */
+#define SW_RSPI_CAN	1
+#endif
+
+#if (SW_SCIF_CAN & SW_RSPI_CAN)
+#error "Can not set 1 to both SW_SCIF_CAN and SW_RSPI_CAN due to HW routing"
+#endif
+
+#define SW_I2S0_I2S1   1
+
+#include "rzg2lc-sr-som.dtsi"
+#include "rzg2lc-sr-pinfunction.dtsi"
+
+/* comment the #define statement to disable SCIF1 (SER0) on PMOD1 (CN7) */
+#define PMOD1_SER0	1
+
+/* Select function support POEGD (1: enabled, 0 : disabled) */
+#define POEGD_SUPPORT	1
+
+/ {
+	aliases {
+#if (!SW_SCIF_CAN && PMOD1_SER0 && !SCIF1_GPT3)
+		serial1 = &scif1;
+#endif
+#if (!SW_I2S0_I2S1)
+		i2c2 = &i2c2;
+#endif
+	};
+
+#if (SW_I2S0_I2S1)
+	/delete-node/ sound;
+
+	sound_card {
+		compatible = "audio-graph-card";
+		dais = <&i2s2_port0>;
+	};
+#endif
+	x1_clk: x1-clock {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <24000000>;
+	};
+};
+
+#if ((SW_SCIF_CAN || SW_RSPI_CAN) && !MTU3_PWM_SUPPORT)
+&canfd {
+	pinctrl-0 = <&can1_pins>;
+	/delete-node/ channel0;
+};
+#else
+&canfd {
+	/delete-property/ pinctrl-0;
+	/delete-property/ pinctrl-names;
+	status = "disabled";
+};
+#endif
+
+#if (!SW_I2S0_I2S1)
+&codec_dai {
+	clocks = <&versa3 3>;
+};
+
+&cpu_dai {
+	sound-dai = <&ssi0>;
+};
+
+/*
+&i2c0 {
+
+  adv7535: hdmi@3d {
+		compatible = "adi,adv7535";
+		reg = <0x3d>;
+
+		avdd-supply = <&reg_1p8v>;
+		dvdd-supply = <&reg_1p8v>;
+		pvdd-supply = <&reg_1p8v>;
+		a2vdd-supply = <&reg_1p8v>;
+		v3p3-supply = <&reg_3p3v>;
+		v1p2-supply = <&reg_1p8v>;
+
+		adi,dsi-lanes = <4>;
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+				adv7535_in: endpoint@0 {
+					remote-endpoint = <&dsi0_out>;
+				};
+			};
+
+			port@1 {
+				reg = <1>;
+				adv7535_out: endpoint@1 {
+					remote-endpoint = <&hdmi_con_out>;
+				};
+			};
+
+			port@2 {
+				reg = <2>;
+				codec_endpoint: endpoint {
+					remote-endpoint = <&i2s2_cpu_endpoint>;
+				};
+			};
+		};
+	};
+};
+*/
+
+&i2c2 {
+	pinctrl-0 = <&i2c2_pins>;
+	pinctrl-names = "default";
+	clock-frequency = <400000>;
+
+	status = "okay";
+
+	versa3: versa3@68 {
+		compatible = "renesas,5p35023";
+		reg = <0x68>;
+		#clock-cells = <1>;
+		clocks = <&x1_clk>;
+		clock-names = "x1";
+		assigned-clocks = <&versa3 0>,
+				   <&versa3 1>,
+				   <&versa3 2>,
+				   <&versa3 3>,
+				   <&versa3 4>,
+				   <&versa3 5>;
+		assigned-clock-rates =	<12288000>, <25000000>,
+					<12000000>, <11289600>,
+					<11289600>, <24000000>;
+		clock-divider-read-only = <1>, <1>, <1>, <1>, <1>;
+		clock-flags = <2176>, <2176>, <2176>, <2052>, <2176>, <2048>;
+	};
+
+	wm8978: codec@1a {
+		compatible = "wlf,wm8978";
+		#sound-dai-cells = <0>;
+		reg = <0x1a>;
+	};
+};
+
+&adv7535 {
+	/delete-property/ #sound-dai-cells;
+	ports {
+		/delete-node/ port@2;
+	};
+};
+#endif
+
+/*
+ * To enable SCIF1 (SER0) on PMOD1 (CN7), On connector board
+ * SW1 should be at position 2->3 so that SER0_CTS# line is activated
+ * SW2 should be at position 2->3 so that SER0_TX line is activated
+ * SW3 should be at position 2->3 so that SER0_RX line is activated
+ * SW4 should be at position 2->3 so that SER0_RTS# line is activated
+ */
+#if (!SW_SCIF_CAN && PMOD1_SER0 && !SCIF1_GPT3)
+&scif1 {
+	pinctrl-0 = <&scif1_pins>;
+	pinctrl-names = "default";
+
+	//uart-has-rtscts;
+	status = "okay";
+};
+#endif
+
+&ssi0 {
+	pinctrl-0 = <&ssi0_pins>;
+	pinctrl-names = "default";
+
+	status = "okay";
+
+#if (SW_I2S0_I2S1)
+	ports {
+		i2s2_port0: port@0 {
+			i2s2_cpu_endpoint: endpoint {
+				remote-endpoint = <&codec_endpoint>;
+				dai-format = "i2s";
+			};
+		};
+	};
+#endif
+};
+
+#if (SW_RSPI_CAN)
+&spi1 {
+	/delete-property/ pinctrl-0;
+	/delete-property/ pinctrl-names;
+	status = "disabled";
+};
+#endif
+
+&vccq_sdhi1 {
+	gpios = <&pinctrl RZG2L_GPIO(39, 1) GPIO_ACTIVE_HIGH>;
+};
+
+&adv7535 {
+	interrupt-parent = <&pinctrl>;
+	interrupts = <RZG2L_GPIO(43, 1) IRQ_TYPE_EDGE_FALLING>;
+};
+
+#if (POEGD_SUPPORT)
+&poega {
+	status = "okay";
+};
+
+&poegb {
+	status = "okay";
+};
+
+&poegc {
+	status = "okay";
+};
+
+&poegd {
+	status = "okay";
+};
+#endif
+
+#if (SCIF1_GPT3)
+&gpt3 {
+	pinctrl-0 = <&gpt3_pins>;
+	pinctrl-names = "default";
+	channel = "both_AB";
+#if (POEGD_SUPPORT)
+	poeg = <&poega &poegb &poegc &poegd>;
+#endif
+	status = "okay";
+};
+#endif
+
+#if (MTU3_PWM_SUPPORT || MTU3_PHASE_COUNTING_SUPPORT)
+&mtu3 {
+	pinctrl-0 = <&mtu3_pins>;
+	pinctrl-names = "default";
+
+#if MTU3_PWM_SUPPORT
+	/* MTU3 PWM functions setting. */
+#if MTU3_PWM_COMPLEMENTARY_SELECT
+	/* Enable PWM complementary for MTIOC3B and MTIOC3D pins. */
+	pwm_complementary = <3 1>;
+#else
+	/* Enable PWM mode 1 out for MTIOC3C pins. */
+	pwm_mode1 = <3 1>;
+#endif
+#endif
+};
+#endif
+
+#if (MTU3_PWM_SUPPORT && MTU3_PWM_COMPLEMENTARY_SELECT && POE3_SUPPORT)
+&poe3 {
+	status = "okay";
+
+	mtu3_ch34 {
+		mtu3_outputs = <0>; /* MTIOC3B-MTIOC3D */
+	};
+};
+#endif
+
+
+
+
+
+/* ==========================================================================*/
