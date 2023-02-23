@@ -414,6 +414,12 @@ int xspi_manual_xfer(struct rpcif *xspi)
 
 	regmap_write(xspi->regmap, XSPI_CDABUF0, 0);
 
+	regmap_update_bits(xspi->regmap, XSPI_CDTBUF0,
+			XSPI_CDTBUF_ADDSIZE(0x7),
+			XSPI_CDTBUF_ADDSIZE(xspi->addr_nbytes));
+
+	regmap_write(xspi->regmap, XSPI_CDABUF0, xspi->smadr);
+
 	switch (xspi->dir) {
 	case RPCIF_DATA_OUT:
 		while (pos < xspi->xferlen) {
@@ -501,8 +507,17 @@ int xspi_manual_xfer(struct rpcif *xspi)
 				XSPI_CDCTL0_TRREQ, 0);
 		break;
 	default:
-		dev_err(xspi->dev, "Wrong xSPI direction\n");
-		goto err_out;
+		regmap_update_bits(xspi->regmap, XSPI_CDTBUF0,
+				XSPI_CDTBUF_TRTYPE, XSPI_CDTBUF_TRTYPE);
+		regmap_update_bits(xspi->regmap, XSPI_CDCTL0,
+				XSPI_CDCTL0_TRREQ, XSPI_CDCTL0_TRREQ);
+
+		ret = wait_msg_xfer_end(xspi);
+		if (ret)
+			goto err_out;
+
+		regmap_update_bits(xspi->regmap, XSPI_INTC,
+				XSPI_INTC_CMDCMPC, XSPI_INTC_CMDCMPC);
 	}
 
 exit:
