@@ -930,6 +930,49 @@ static struct dma_chan *rz_dmac_of_xlate(struct of_phandle_args *dma_spec,
 	return dma_request_channel(mask, rz_dmac_chan_filter, dma_spec);
 }
 
+static int rz_dmac_init(struct rz_dmac *dmac)
+{
+	int i;
+
+	for (i = 0; i < dmac->n_channels; i++)
+		rz_dmac_ch_writel(&dmac->channels[i], CHCTRL_DEFAULT, CHCTRL, 1);
+
+	return 0;
+}
+
+/* -----------------------------------------------------------------------------
+ * Power management
+ */
+
+static int __maybe_unused rz_dmac_suspend(struct device *dev)
+{
+	struct rz_dmac *dmac = dev_get_drvdata(dev);
+
+	reset_control_assert(dmac->rstc);
+	pm_runtime_put(dev);
+
+	return 0;
+}
+
+static int __maybe_unused rz_dmac_resume(struct device *dev)
+{
+	struct rz_dmac *dmac = dev_get_drvdata(dev);
+
+	pm_runtime_get_sync(dev);
+	reset_control_deassert(dmac->rstc);
+	return rz_dmac_init(dmac);
+}
+
+static const struct dev_pm_ops rz_dmac_pm = {
+	/*
+	 * TODO for system sleep/resume:
+	 *   - Wait for the current transfer to complete and stop the device,
+	 *   - Resume transfers, if any.
+	 */
+	SET_NOIRQ_SYSTEM_SLEEP_PM_OPS(rz_dmac_suspend,
+				      rz_dmac_resume)
+};
+
 /*
  * -----------------------------------------------------------------------------
  * Probe and remove
@@ -1184,6 +1227,7 @@ static struct platform_driver rz_dmac_driver = {
 	.driver		= {
 		.name	= "rz-dmac",
 		.of_match_table = of_rz_dmac_match,
+		.pm	= &rz_dmac_pm,
 	},
 	.probe		= rz_dmac_probe,
 	.remove		= rz_dmac_remove,
