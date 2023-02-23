@@ -97,6 +97,7 @@
 #define ICnMC_ICTHR			BIT(0)
 #define ICnMC_DECTHR			BIT(1)
 #define ICnMC_CLPTHR			BIT(2)
+#define ICnMC_DEMTHR			BIT(3)
 #define ICnMC_CSCTHR			BIT(5)
 #define ICnMC_LUTTHR			(0 << 6)
 #define ICnMC_CLP_NOY_CLPUV		(0 << 12)
@@ -119,6 +120,11 @@
 #define ICnMC_INF_USER			(0x30 << 16)
 #define ICnMC_VCSEL(x)			((x) << 22)
 #define ICnMC_INF_MASK			GENMASK(21, 16)
+#define ICnMC_RAWSTTYP_RGRG		0
+#define ICnMC_RAWSTTYP_GRGR		BIT(24)
+#define ICnMC_RAWSTTYP_GBGB		BIT(25)
+#define ICnMC_RAWSTTYP_BGBG		(BIT(25) | BIT(24))
+#define ICnMC_RAWSTTYP_MASK		(BIT(25) | BIT(24))
 
 /* CRU Image Clipping Start Line Register */
 #define ICnSLPrC			0x210
@@ -647,7 +653,7 @@ static void rzg2l_cru_parallel_setup(struct rzg2l_cru_dev *cru)
 
 static int rzg2l_cru_initialize_image_conv(struct rzg2l_cru_dev *cru)
 {
-	u32 icndmr;
+	u32 icndmr, icnmc;
 
 	/* Currently we do not support:
 	 * - Frame subsampling
@@ -749,20 +755,72 @@ static int rzg2l_cru_initialize_image_conv(struct rzg2l_cru_dev *cru)
 	}
 
 	/*
-	 * CRU can perform colorspace conversion: YUV <=> RGB.
-	 * If other formats, do bypass mode.
+	 * CRU can perform:
+	 * - Colorspace coversion: YUV <=> RGB.
+	 * - Demosaicing from RAW data to RGB.
+	 * To output YUV color format from RAW data input, we must process
+	 * demosaicing and colorspace conversion.
+	 * Do bypass mode for the remained mode.
 	 */
+	icnmc = rzg2l_cru_read(cru, ICnMC);
 	if (cru->output_fmt == cru->input_fmt)
-		rzg2l_cru_write(cru, ICnMC,
-				rzg2l_cru_read(cru, ICnMC) | ICnMC_CSCTHR);
+		rzg2l_cru_write(cru, ICnMC, icnmc | ICnMC_CSCTHR |
+				ICnMC_DEMTHR);
 	else if (((cru->output_fmt == YUV) && (cru->input_fmt == RGB)) ||
 		 ((cru->output_fmt == RGB) && (cru->input_fmt == YUV)))
 		rzg2l_cru_write(cru, ICnMC,
-				rzg2l_cru_read(cru, ICnMC) & (~ICnMC_CSCTHR));
+				(icnmc | ICnMC_DEMTHR) & ~ICnMC_CSCTHR);
+	else if ((cru->input_fmt == BAYER_RAW) && (cru->output_fmt == RGB))
+		rzg2l_cru_write(cru, ICnMC, icnmc & ~ICnMC_DEMTHR);
+	else if ((cru->input_fmt == BAYER_RAW) && (cru->output_fmt == YUV))
+		rzg2l_cru_write(cru, ICnMC, icnmc &
+				~(ICnMC_CSCTHR | ICnMC_DEMTHR));
 	else {
 		cru_err(cru, "Not support color space conversion for (0x%x)\n",
 			cru->format.pixelformat);
 		return -ENOEXEC;
+	}
+
+	icnmc = rzg2l_cru_read(cru, ICnMC);
+	if (!(icnmc & ICnMC_DEMTHR)) {
+		icnmc &= ~ICnMC_RAWSTTYP_MASK;
+
+		switch (cru->mbus_code) {
+		case MEDIA_BUS_FMT_SRGGB8_1X8:
+		case MEDIA_BUS_FMT_SRGGB10_1X10:
+		case MEDIA_BUS_FMT_SRGGB12_1X12:
+		case MEDIA_BUS_FMT_SRGGB14_1X14:
+		case MEDIA_BUS_FMT_SRGGB16_1X16:
+			rzg2l_cru_write(cru, ICnMC, icnmc |
+					ICnMC_RAWSTTYP_RGRG);
+			break;
+		case MEDIA_BUS_FMT_SGRBG8_1X8:
+		case MEDIA_BUS_FMT_SGRBG10_1X10:
+		case MEDIA_BUS_FMT_SGRBG12_1X12:
+		case MEDIA_BUS_FMT_SGRBG14_1X14:
+		case MEDIA_BUS_FMT_SGRBG16_1X16:
+			rzg2l_cru_write(cru, ICnMC, icnmc |
+					ICnMC_RAWSTTYP_GRGR);
+			break;
+		case MEDIA_BUS_FMT_SGBRG8_1X8:
+		case MEDIA_BUS_FMT_SGBRG10_1X10:
+		case MEDIA_BUS_FMT_SGBRG12_1X12:
+		case MEDIA_BUS_FMT_SGBRG14_1X14:
+		case MEDIA_BUS_FMT_SGBRG16_1X16:
+			rzg2l_cru_write(cru, ICnMC, icnmc |
+					ICnMC_RAWSTTYP_GBGB);
+			break;
+		case MEDIA_BUS_FMT_SBGGR8_1X8:
+		case MEDIA_BUS_FMT_SBGGR10_1X10:
+		case MEDIA_BUS_FMT_SBGGR12_1X12:
+		case MEDIA_BUS_FMT_SBGGR14_1X14:
+		case MEDIA_BUS_FMT_SBGGR16_1X16:
+			rzg2l_cru_write(cru, ICnMC, icnmc |
+					ICnMC_RAWSTTYP_BGBG);
+			break;
+		default:
+			break;
+		}
 	}
 
 	/* Set output data format */
