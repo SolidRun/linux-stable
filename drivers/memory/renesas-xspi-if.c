@@ -421,7 +421,7 @@ int xspi_manual_xfer(struct rpcif *xspi)
 			u32 nbytes, data[2], *p = data;
 
 			regmap_update_bits(xspi->regmap, XSPI_CDTBUF0,
-					XSPI_CDTBUF_TRTYPE, 0);
+					XSPI_CDTBUF_TRTYPE, XSPI_CDTBUF_TRTYPE);
 
 			/* nbytes may only be 1, 2, 4, or 8 */
 			nbytes = bytes_left >= max ? max : (1 << ilog2(bytes_left));
@@ -461,7 +461,7 @@ int xspi_manual_xfer(struct rpcif *xspi)
 			u32 nbytes, data[2], *p = data;
 
 			regmap_update_bits(xspi->regmap, XSPI_CDTBUF0,
-					XSPI_CDTBUF_TRTYPE, XSPI_CDTBUF_TRTYPE);
+					XSPI_CDTBUF_TRTYPE, ~XSPI_CDTBUF_TRTYPE);
 
 			/* nbytes may only be 1, 2, 4, or 8 */
 			nbytes = bytes_left >= max ? max : (1 << ilog2(bytes_left));
@@ -472,7 +472,7 @@ int xspi_manual_xfer(struct rpcif *xspi)
 
 			regmap_update_bits(xspi->regmap, XSPI_CDTBUF0,
 					XSPI_CDTBUF_ADDSIZE(0x7),
-					XSPI_CDTBUF_ADDSIZE(xspi->smadr));
+					XSPI_CDTBUF_ADDSIZE(xspi->addr_nbytes));
 
 			xspi->xfer_size = nbytes;
 
