@@ -438,7 +438,7 @@ int xspi_manual_xfer(struct rpcif *xspi)
 
 			memcpy(data, xspi->buffer + pos, nbytes);
 			regmap_write(xspi->regmap, XSPI_CDD0BUF0, *p);
-			regmap_write(xspi->regmap, XSPI_CDABUF0, xspi->smadr);
+			regmap_write(xspi->regmap, XSPI_CDABUF0, xspi->smadr + pos);
 
 			regmap_update_bits(xspi->regmap, XSPI_CDCTL0,
 					XSPI_CDCTL0_TRREQ, XSPI_CDCTL0_TRREQ);
@@ -477,7 +477,7 @@ int xspi_manual_xfer(struct rpcif *xspi)
 			xspi->xfer_size = nbytes;
 
 			if (xspi->addr_nbytes)
-				regmap_write(xspi->regmap, XSPI_CDABUF0, xspi->smadr);
+				regmap_write(xspi->regmap, XSPI_CDABUF0, xspi->smadr + pos);
 
 			regmap_update_bits(xspi->regmap, XSPI_CDTBUF0,
 					XSPI_CDTBUF_LATE(0x1f), xspi->dummy);
