@@ -52,6 +52,7 @@ static int rzg2l_usbphy_ctrl_assert(struct reset_controller_dev *rcdev,
 	val |= id ? PHY_RESET_PORT2 : PHY_RESET_PORT1;
 	if (port_mask == (val & port_mask))
 		val |= RESET_PLLRESET;
+
 	writel(val, base + RESET);
 	spin_unlock_irqrestore(&priv->lock, flags);
 
@@ -71,6 +72,7 @@ static int rzg2l_usbphy_ctrl_deassert(struct reset_controller_dev *rcdev,
 
 	val |= RESET_SEL_PLLRESET;
 	val &= ~(RESET_PLLRESET | (id ? PHY_RESET_PORT2 : PHY_RESET_PORT1));
+
 	writel(val, base + RESET);
 	spin_unlock_irqrestore(&priv->lock, flags);
 
@@ -87,6 +89,42 @@ static int rzg2l_usbphy_ctrl_status(struct reset_controller_dev *rcdev,
 
 	return !!(readl(priv->base + RESET) & port_mask);
 }
+
+static int __maybe_unused rzg2l_usbphy_ctrl_suspend(struct device *dev)
+{
+	struct rzg2l_usbphy_ctrl_priv *priv = dev_get_drvdata(dev);
+
+	rzg2l_usbphy_ctrl_assert(&priv->rcdev, 0);
+	rzg2l_usbphy_ctrl_assert(&priv->rcdev, 1);
+
+	reset_control_assert(priv->rstc);
+	pm_runtime_put(dev);
+
+	return 0;
+}
+
+static int __maybe_unused rzg2l_usbphy_ctrl_resume(struct device *dev)
+{
+	struct rzg2l_usbphy_ctrl_priv *priv = dev_get_drvdata(dev);
+	u32 val;
+
+	pm_runtime_get_sync(dev);
+	reset_control_deassert(priv->rstc);
+
+	val = readl(priv->base + RESET);
+	val |= RESET_SEL_PLLRESET | RESET_PLLRESET | PHY_RESET_PORT2 | PHY_RESET_PORT1;
+	writel(val, priv->base + RESET);
+
+	rzg2l_usbphy_ctrl_deassert(&priv->rcdev, 0);
+	rzg2l_usbphy_ctrl_deassert(&priv->rcdev, 1);
+
+	return 0;
+}
+
+static const struct dev_pm_ops rzg2l_usbphy_ctrl_pm = {
+	SET_NOIRQ_SYSTEM_SLEEP_PM_OPS(rzg2l_usbphy_ctrl_suspend,
+				      rzg2l_usbphy_ctrl_resume)
+};
 
 static const struct of_device_id rzg2l_usbphy_ctrl_match_table[] = {
 	{ .compatible = "renesas,rzg2l-usbphy-ctrl" },
@@ -171,6 +209,7 @@ static struct platform_driver rzg2l_usbphy_ctrl_driver = {
 	.driver = {
 		.name		= "rzg2l_usbphy_ctrl",
 		.of_match_table	= rzg2l_usbphy_ctrl_match_table,
+		.pm	= &rzg2l_usbphy_ctrl_pm,
 	},
 	.probe	= rzg2l_usbphy_ctrl_probe,
 	.remove	= rzg2l_usbphy_ctrl_remove,
