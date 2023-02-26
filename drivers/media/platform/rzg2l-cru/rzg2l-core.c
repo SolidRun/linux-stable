@@ -464,23 +464,32 @@ static int rzg2l_cru_s_ctrl(struct v4l2_ctrl *ctrl)
 						 ctrl_handler);
 	int ret = 0;
 
-	switch (ctrl->id) {
-	case V4L2_CID_MIN_BUFFERS_FOR_CAPTURE:
-		if ((cru->state == STOPPED) || (cru->state == STOPPING))
+	if ((cru->state == STOPPED) || (cru->state == STOPPING)) {
+		switch (ctrl->id) {
+		case V4L2_CID_MIN_BUFFERS_FOR_CAPTURE:
 			cru->num_buf = ctrl->val;
-		else
-			ret = -EBUSY;
-
-		break;
-	case V4L2_CID_CRU_FRAME_SKIP:
-		if ((cru->state == STOPPED) || (cru->state == STOPPING))
+			break;
+		case V4L2_CID_CRU_FRAME_SKIP:
 			cru->is_frame_skip = ctrl->val;
-		else
-			ret = -EBUSY;
-		break;
-	default:
-		ret = -EINVAL;
-		break;
+			break;
+		case V4L2_CID_CRU_STATISTICS:
+			cru->is_statistics = ctrl->val;
+			break;
+		case V4L2_CID_CRU_SD_BLKSIZE:
+			cru->sd_blksize = ctrl->val;
+			break;
+		case V4L2_CID_CRU_SD_STHPOS:
+			cru->sd_sthpos = ctrl->val;
+			break;
+		case V4L2_CID_CRU_SD_STSADPOS:
+			cru->sd_stsadpos = ctrl->val;
+			break;
+		default:
+			ret = -EINVAL;
+			break;
+		}
+	} else {
+		ret = -EBUSY;
 	}
 
 	return ret;
@@ -496,6 +505,7 @@ static int rzg2l_cru_probe(struct platform_device *pdev)
 	struct resource *mem;
 	int irq, ret, i;
 	struct v4l2_ctrl *ctrl;
+	int num_ctrls;
 
 	cru = devm_kzalloc(&pdev->dev, sizeof(*cru), GFP_KERNEL);
 	if (!cru)
@@ -543,14 +553,15 @@ static int rzg2l_cru_probe(struct platform_device *pdev)
 		goto error_dma_unregister;
 
 	/* Add the control about minimum amount of buffers */
-	v4l2_ctrl_handler_init(&cru->ctrl_handler, 2);
+	num_ctrls = ARRAY_SIZE(rzg2l_cru_ctrls);
+	v4l2_ctrl_handler_init(&cru->ctrl_handler, num_ctrls + 1);
 	ctrl = v4l2_ctrl_new_std(&cru->ctrl_handler, &rzg2l_cru_ctrl_ops,
 			  V4L2_CID_MIN_BUFFERS_FOR_CAPTURE,
 			  2, HW_BUFFER_MAX, 1, HW_BUFFER_DEFAULT);
 
 	ctrl->flags &= ~V4L2_CTRL_FLAG_READ_ONLY;
 
-	for (i = 0; i < V4L2_CID_CRU_LIMIT; i++)
+	for (i = 0; i < num_ctrls; i++)
 		v4l2_ctrl_new_custom(&cru->ctrl_handler,
 				     &rzg2l_cru_ctrls[i], NULL);
 
