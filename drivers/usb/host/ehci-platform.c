@@ -443,6 +443,8 @@ static int __maybe_unused ehci_platform_suspend(struct device *dev)
 	if (pdata->power_suspend)
 		pdata->power_suspend(pdev);
 
+	reset_control_assert(priv->rsts);
+
 	return ret;
 }
 
@@ -453,6 +455,11 @@ static int __maybe_unused ehci_platform_resume(struct device *dev)
 	struct platform_device *pdev = to_platform_device(dev);
 	struct ehci_platform_priv *priv = hcd_to_ehci_priv(hcd);
 	struct device *companion_dev;
+	int ret;
+
+	ret = reset_control_deassert(priv->rsts);
+	if (ret)
+		return ret;
 
 	if (pdata->power_on) {
 		int err = pdata->power_on(pdev);
