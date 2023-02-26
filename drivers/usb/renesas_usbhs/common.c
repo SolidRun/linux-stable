@@ -821,6 +821,8 @@ static __maybe_unused int usbhsc_suspend(struct device *dev)
 		usbhs_mod_change(priv, -1);
 	}
 
+	reset_control_assert(priv->rsts);
+
 	if (mod || !usbhs_get_dparam(priv, runtime_pwctrl))
 		usbhsc_power_ctrl(priv, 0);
 
@@ -831,6 +833,8 @@ static __maybe_unused int usbhsc_resume(struct device *dev)
 {
 	struct usbhs_priv *priv = dev_get_drvdata(dev);
 	struct platform_device *pdev = usbhs_priv_to_pdev(priv);
+
+	reset_control_deassert(priv->rsts);
 
 	if (!usbhs_get_dparam(priv, runtime_pwctrl)) {
 		usbhsc_power_ctrl(priv, 1);
