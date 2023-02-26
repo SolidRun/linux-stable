@@ -208,6 +208,9 @@ static void rzg2l_cru_format_align(struct rzg2l_cru_dev *cru,
 	pix->bytesperline = rzg2l_cru_format_bytesperline(pix);
 	pix->sizeimage = rzg2l_cru_format_sizeimage(pix);
 
+	if (cru->is_statistics)
+		pix->sizeimage *= 2;
+
 	cru_dbg(cru, "Format %ux%u bpl: %u size: %u\n",
 		pix->width, pix->height, pix->bytesperline, pix->sizeimage);
 }

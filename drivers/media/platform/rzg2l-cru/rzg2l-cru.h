@@ -40,14 +40,25 @@
 
 #define V4L2_CID_USER_CRU_BASE	(V4L2_CID_USER_BASE + 0x10e0)
 
-/* V4L2 private controls */
-#define V4L2_CID_CRU_FRAME_SKIP	(V4L2_CID_USER_CRU_BASE + 0)
-
-#define V4L2_CID_CRU_LIMIT	1
+/* CRU V4L2 private controls */
+enum rzg2l_cru_v4l2_priv_ctrls {
+	V4L2_CID_CRU_FRAME_SKIP = V4L2_CID_USER_CRU_BASE,
+	V4L2_CID_CRU_STATISTICS,
+	V4L2_CID_CRU_SD_BLKSIZE,
+	V4L2_CID_CRU_SD_STHPOS,
+	V4L2_CID_CRU_SD_STSADPOS,
+};
 
 static const struct v4l2_ctrl_ops rzg2l_cru_ctrl_ops;
 
-static const struct v4l2_ctrl_config rzg2l_cru_ctrls[V4L2_CID_CRU_LIMIT] = {
+static const char * const cru_statistics_blksize_menu[] = {
+	"16x16",
+	"32x32",
+	"64x64",
+	"128x128",
+};
+
+static const struct v4l2_ctrl_config rzg2l_cru_ctrls[] = {
 	{
 		.id = V4L2_CID_CRU_FRAME_SKIP,
 		.type = V4L2_CTRL_TYPE_BOOLEAN,
@@ -58,7 +69,51 @@ static const struct v4l2_ctrl_config rzg2l_cru_ctrls[V4L2_CID_CRU_LIMIT] = {
 		.step = 1,
 		.def = 0,
 		.is_private = 1,
-	}
+	},
+	{
+		.id = V4L2_CID_CRU_STATISTICS,
+		.type = V4L2_CTRL_TYPE_BOOLEAN,
+		.ops = &rzg2l_cru_ctrl_ops,
+		.name = "Statistics Data Enable/Disable",
+		.max = 1,
+		.min = 0,
+		.step = 1,
+		.def = 0,
+		.is_private = 1,
+	},
+	{
+		.id = V4L2_CID_CRU_SD_BLKSIZE,
+		.type = V4L2_CTRL_TYPE_MENU,
+		.ops = &rzg2l_cru_ctrl_ops,
+		.name = "Statistics Data Unit Blocksize",
+		.max = 3,
+		.min = 0,
+		.def = 0,
+		.is_private = 1,
+		.qmenu = cru_statistics_blksize_menu,
+	},
+	{
+		.id = V4L2_CID_CRU_SD_STHPOS,
+		.type = V4L2_CTRL_TYPE_INTEGER,
+		.ops = &rzg2l_cru_ctrl_ops,
+		.name = "Statistics Horizontal Start Position",
+		.max = 376,
+		.min = 0,
+		.step = 1,
+		.def = 0,
+		.is_private = 1,
+	},
+	{
+		.id = V4L2_CID_CRU_SD_STSADPOS,
+		.type = V4L2_CTRL_TYPE_INTEGER,
+		.ops = &rzg2l_cru_ctrl_ops,
+		.name = "Statistics Input Data Bit Position",
+		.max = 8,
+		.min = 0,
+		.step = 1,
+		.def = 0,
+		.is_private = 1,
+	},
 };
 
 /* Minimum skipping frame for camera sensors stability */
@@ -222,6 +277,11 @@ struct rzg2l_cru_dev {
 	bool is_frame_skip;
 
 	struct task_struct *retry_thread;
+
+	bool is_statistics;
+	int sd_blksize;
+	int sd_sthpos;
+	int sd_stsadpos;
 };
 
 #define cru_to_source(cru)		((cru)->parallel->subdev)
