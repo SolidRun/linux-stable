@@ -274,6 +274,7 @@ static int ohci_platform_suspend(struct device *dev)
 	struct usb_hcd *hcd = dev_get_drvdata(dev);
 	struct usb_ohci_pdata *pdata = dev->platform_data;
 	struct platform_device *pdev = to_platform_device(dev);
+	struct ohci_platform_priv *priv = hcd_to_ohci_priv(hcd);
 	bool do_wakeup = device_may_wakeup(dev);
 	int ret;
 
@@ -284,6 +285,8 @@ static int ohci_platform_suspend(struct device *dev)
 	if (pdata->power_suspend)
 		pdata->power_suspend(pdev);
 
+	reset_control_assert(priv->resets);
+
 	return ret;
 }
 
@@ -292,6 +295,12 @@ static int ohci_platform_resume_common(struct device *dev, bool hibernated)
 	struct usb_hcd *hcd = dev_get_drvdata(dev);
 	struct usb_ohci_pdata *pdata = dev_get_platdata(dev);
 	struct platform_device *pdev = to_platform_device(dev);
+	struct ohci_platform_priv *priv = hcd_to_ohci_priv(hcd);
+	int ret;
+
+	ret = reset_control_deassert(priv->resets);
+	if (ret)
+		return ret;
 
 	if (pdata->power_on) {
 		int err = pdata->power_on(pdev);
