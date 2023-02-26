@@ -6,22 +6,11 @@
  */
 
 /dts-v1/;
-// RZ/G2LC R9A07G044C2 SoC
+/* RZ/G2LC R9A07G044C2 SoC */
 #include "r9a07g044c2.dtsi"
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/pinctrl/rzg2l-pinctrl.h>
-
-
-// Debug DTS
-#define T1 1
-#define T2 1
-//TEST-1
-#if T1
-
-/*======================================================================*/
-// #include "rzg2lc-smarc-som.dtsi" ->
-/*======================================================================*/
 
 /*
  * MTU3 macros are created to support setting pinctrl and properties in order
@@ -125,6 +114,38 @@
 		gpios = <&pinctrl RZG2L_GPIO(39, 0) GPIO_ACTIVE_HIGH>;
 		regulator-always-on;
 	};
+
+  chosen {
+    stdout-path = "serial0:115200n8";
+  };
+
+  usb0_vbus_otg: regulator-usb0-vbus-otg {
+    compatible = "regulator-fixed";
+
+    regulator-name = "USB0_VBUS_OTG";
+    regulator-min-microvolt = <5000000>;
+    regulator-max-microvolt = <5000000>;
+  };
+
+  vccq_sdhi1: regulator-vccq-sdhi1 {
+    compatible = "regulator-gpio";
+    regulator-name = "SDHI1 VccQ";
+    regulator-min-microvolt = <1800000>;
+    regulator-max-microvolt = <3300000>;
+    gpios-states = <1>;
+    states = <3300000 1>, <1800000 0>;
+  };
+
+  hdmi-out {
+    compatible = "hdmi-connector";
+    type = "d";
+
+    port {
+      hdmi_con_out: endpoint {
+        remote-endpoint = <&adv7535_out>;
+      };
+    };
+  };
 };
 
 &eth0 {
@@ -212,6 +233,7 @@
 	 * SW1[2] should be at OFF position to enable 64 GB eMMC
 	 * SW1[2] should be at position ON to enable uSD card CN3
 	 */
+
 	gpio-sd0-dev-sel-hog {
 		gpio-hog;
 		gpios = <RZG2L_GPIO(40, 2) GPIO_ACTIVE_HIGH>;
@@ -413,98 +435,9 @@
 		compatible = "isil,isl1208";
 		reg = <0x6f>;
 
-		external-oscillator;
-	};
-};
-
-/*======================================================================*/
-// #include "rzg2lc-smarc-som.dtsi" ^^^
-/*======================================================================*/
-//TEST-1
-#endif
-
-
-
-//TEST-2
-#if T2
-
-/*======================================================================*/
-// #include "rz-smarc-common.dtsi" ->
-/*======================================================================*/
-
-/ {
-
-/*
-	aliases {
-		serial0 = &scif0;
-		i2c0 = &i2c0;
-		i2c1 = &i2c1;
-		mmc0 = &sdhi0;
-		mmc1 = &sdhi1;
-	};
-*/
-
-	chosen {
-		stdout-path = "serial0:115200n8";
+		//external-oscillator;
 	};
 
-	snd_rzg2l: sound {
-		compatible = "simple-audio-card";
-		simple-audio-card,format = "i2s";
-		simple-audio-card,bitclock-master = <&cpu_dai>;
-		simple-audio-card,frame-master = <&cpu_dai>;
-		simple-audio-card,mclk-fs = <256>;
-
-		simple-audio-card,widgets = "Microphone", "Microphone Jack";
-		simple-audio-card,routing =
-			    "L2", "Mic Bias",
-			    "R2", "Mic Bias",
-			    "Mic Bias", "Microphone Jack";
-
-		cpu_dai: simple-audio-card,cpu {
-		};
-
-		codec_dai: simple-audio-card,codec {
-			sound-dai = <&wm8978>;
-		};
-	};
-
-	usb0_vbus_otg: regulator-usb0-vbus-otg {
-		compatible = "regulator-fixed";
-
-		regulator-name = "USB0_VBUS_OTG";
-		regulator-min-microvolt = <5000000>;
-		regulator-max-microvolt = <5000000>;
-	};
-
-	vccq_sdhi1: regulator-vccq-sdhi1 {
-		compatible = "regulator-gpio";
-		regulator-name = "SDHI1 VccQ";
-		regulator-min-microvolt = <1800000>;
-		regulator-max-microvolt = <3300000>;
-		gpios-states = <1>;
-		states = <3300000 1>, <1800000 0>;
-	};
-
-	hdmi-out {
-		compatible = "hdmi-connector";
-		type = "d";
-
-		port {
-			hdmi_con_out: endpoint {
-				remote-endpoint = <&adv7535_out>;
-			};
-		};
-	};
-
-};
-
-&audio_clk1{
-	clock-frequency = <11289600>;
-};
-
-&audio_clk2{
-	clock-frequency = <12288000>;
 };
 
 &canfd {
@@ -538,48 +471,7 @@
 &i2c0 {
 	pinctrl-0 = <&i2c0_pins>;
 	pinctrl-names = "default";
-
 	status = "okay";
-
-  adv7535: hdmi@3d {
-		compatible = "adi,adv7535";
-		reg = <0x3d>;
-
-		avdd-supply = <&reg_1p8v>;
-		dvdd-supply = <&reg_1p8v>;
-		pvdd-supply = <&reg_1p8v>;
-		a2vdd-supply = <&reg_1p8v>;
-		v3p3-supply = <&reg_3p3v>;
-		v1p2-supply = <&reg_1p8v>;
-
-		adi,dsi-lanes = <4>;
-
-		ports {
-			#address-cells = <1>;
-			#size-cells = <0>;
-
-			port@0 {
-				reg = <0>;
-				adv7535_in: endpoint@0 {
-					remote-endpoint = <&dsi0_out>;
-				};
-			};
-
-			port@1 {
-				reg = <1>;
-				adv7535_out: endpoint@1 {
-					remote-endpoint = <&hdmi_con_out>;
-				};
-			};
-
-			port@2 {
-				reg = <2>;
-				codec_endpoint: endpoint {
-					remote-endpoint = <&i2s2_cpu_endpoint>;
-				};
-			};
-		};
-	};
 };
 
 &i2c1 {
@@ -680,15 +572,6 @@
 
 &dsi0 {
 	status = "okay";
-
-	ports {
-		port@1 {
-			dsi0_out: endpoint {
-				remote-endpoint = <&adv7535_in>;
-				data-lanes = <1 2 3 4>;
-			};
-		};
-	};
 };
 
 &cru {
@@ -698,9 +581,3 @@
 &mtu3 {
 	status = "okay";
 };
-
-/*======================================================================*/
-// #include "rzg2lc-smarc-common.dtsi" ^^^
-/*======================================================================*/
-//TEST-2
-#endif
