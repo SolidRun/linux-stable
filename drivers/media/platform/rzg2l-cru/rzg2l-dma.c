@@ -129,6 +129,7 @@
 #define ICnMC_DECTHR			BIT(1)
 #define ICnMC_CLPTHR			BIT(2)
 #define ICnMC_DEMTHR			BIT(3)
+#define ICnMC_LMXTHR			BIT(4)
 #define ICnMC_CSCTHR			BIT(5)
 #define ICnMC_LUTTHR			(0 << 6)
 #define ICnMC_STITHR			BIT(7)
@@ -169,6 +170,39 @@
 
 /* CRU Image Clipping End Pixel Register */
 #define ICnEPPrC			0x21C
+
+/* CRU Linear Matrix Offset register */
+#define ICnLMXOF			0x224
+#define ICnLMXOF_ROF(x)			(((x) & GENMASK(7, 0)) << 0)
+#define ICnLMXOF_GOF(x)			(((x) & GENMASK(7, 0)) << 8)
+#define ICnLMXOF_BOF(x)			(((x) & GENMASK(7, 0)) << 16)
+
+/* CRU Linear Matrix R Coefficient 1 Register */
+#define ICnLMXRC1			0x228
+#define ICnLMXRC1_RR(x)			(((x) & GENMASK(12, 0)) << 0)
+
+/* CRU Linear Matrix R Coefficient 2 Register */
+#define ICnLMXRC2			0x22C
+#define ICnLMXRC2_RG(x)			(((x) & GENMASK(12, 0)) << 0)
+#define ICnLMXRC2_RB(x)			(((x) & GENMASK(12, 0)) << 16)
+
+/* CRU Linear Matrix G Coefficient 1 Register */
+#define ICnLMXGC1			0x230
+#define ICnLMXGC1_GR(x)			(((x) & GENMASK(12, 0)) << 0)
+
+/* CRU Linear Matrix G Coefficient 2 Register */
+#define ICnLMXGC2			0x234
+#define ICnLMXGC2_GG(x)			(((x) & GENMASK(12, 0)) << 0)
+#define ICnLMXGC2_GB(x)			(((x) & GENMASK(12, 0)) << 16)
+
+/* CRU Linear Matrix B Coefficient 1 Register */
+#define ICnLMXBC1			0x238
+#define ICnLMXBC1_BR(x)			(((x) & GENMASK(12, 0)) << 0)
+
+/* CRU Linear Matrix B Coefficient 2 Register */
+#define ICnLMXBC2			0x23C
+#define ICnLMXBC2_BG(x)			(((x) & GENMASK(12, 0)) << 0)
+#define ICnLMXBC2_BB(x)			(((x) & GENMASK(12, 0)) << 16)
 
 /* CRU Statistics Control 1 Register */
 #define ICnSTIC1			0x240
@@ -921,6 +955,39 @@ static int rzg2l_cru_initialize_image_conv(struct rzg2l_cru_dev *cru)
 	} else {
 		rzg2l_cru_write(cru, ICnMC,
 				rzg2l_cru_read(cru, ICnMC) | ICnMC_STITHR);
+	}
+
+	/* Linear Matrix Processing support */
+	if (((cru->input_fmt == RGB) || (cru->input_fmt == BAYER_RAW)) &&
+	     (cru->is_linear_matrix_enable)) {
+		rzg2l_cru_write(cru, ICnMC,
+				rzg2l_cru_read(cru, ICnMC) & (~ICnMC_LMXTHR));
+
+		rzg2l_cru_write(cru, ICnLMXOF,
+				ICnLMXOF_ROF(cru->linear_matrix_rgb_offset[0]) |
+				ICnLMXOF_GOF(cru->linear_matrix_rgb_offset[1]) |
+				ICnLMXOF_BOF(cru->linear_matrix_rgb_offset[2]));
+
+		rzg2l_cru_write(cru, ICnLMXRC1,
+				ICnLMXRC1_RR(cru->linear_matrix_r[0]));
+		rzg2l_cru_write(cru, ICnLMXRC2,
+				ICnLMXRC2_RG(cru->linear_matrix_r[1]) |
+				ICnLMXRC2_RB(cru->linear_matrix_r[2]));
+
+		rzg2l_cru_write(cru, ICnLMXGC1,
+				ICnLMXGC1_GR(cru->linear_matrix_g[0]));
+		rzg2l_cru_write(cru, ICnLMXGC2,
+				ICnLMXGC2_GG(cru->linear_matrix_g[1]) |
+				ICnLMXGC2_GB(cru->linear_matrix_g[2]));
+
+		rzg2l_cru_write(cru, ICnLMXBC1,
+				ICnLMXBC1_BR(cru->linear_matrix_b[0]));
+		rzg2l_cru_write(cru, ICnLMXBC2,
+				ICnLMXBC2_BG(cru->linear_matrix_b[1]) |
+				ICnLMXBC2_BB(cru->linear_matrix_b[2]));
+	} else {
+		rzg2l_cru_write(cru, ICnMC,
+				rzg2l_cru_read(cru, ICnMC) | ICnMC_LMXTHR);
 	}
 
 	/* Set output data format */
