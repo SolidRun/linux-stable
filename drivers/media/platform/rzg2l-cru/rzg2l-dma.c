@@ -88,6 +88,37 @@
 #define AMnAXISTPACK			0x178
 #define AMnAXISTPACK_AXI_STOP_ACK	BIT(0)
 
+/* Memory Bank Base Address (Lower) Register for CRU Statistics Data */
+#define AMnSDMBxADDRL(x)		(0x190 + ((x) * 8))
+
+/* Memory Bank Base Address (Higher) Register for CRU Statistics Data */
+#define AMnSDMBxADDRH(x)		(0x194 + ((x) * 8))
+
+/* Memory Bank Enable Register for CRU Image Data */
+#define AMnSDMBVALID			0x1D0
+#define AMnSDMBVALID_SDMBVALID(x)	GENMASK(x, 0)
+
+/* Memory Bank Status Register for CRU Image Data */
+#define AMnSDMBS			0x1D4
+#define AMnSDMBS_SDMBSTS		0x7
+
+/* AXI Master Transfer Constant Register for CRU Statistics data */
+#define AMnSDAXIATTR			0x1D8
+#define AMnSDAXIATTR_SDAXILEN(x)	(x)
+
+/* AXI Master FIFO Pointer Register for CRU Statistics Data */
+#define AMnSDFIFOPNTR			0x1E8
+#define AMnSDFIFOPNTR_SDFIFOWPNTR	GENMASK(4, 0)
+#define AMnSDFIFOPNTR_SDFIFORPNTR	GENMASK(20, 16)
+
+/* AXI Master Transfer Stop Register for CRU Image Data */
+#define AMnSDAXISTP			0x1F4
+#define AMnSDAXISTP_SDAXI_STOP		BIT(0)
+
+/* AXI Master Transfer Stop Status Register for CRU Image Data */
+#define AMnSDAXISTPACK			0x1F8
+#define AMnSDAXISTPACK_SDAXI_STOP_ACK	BIT(0)
+
 /* CRU Image Processing Enable Register */
 #define ICnEN				0x200
 #define ICnEN_ICEN			BIT(0)
@@ -100,6 +131,7 @@
 #define ICnMC_DEMTHR			BIT(3)
 #define ICnMC_CSCTHR			BIT(5)
 #define ICnMC_LUTTHR			(0 << 6)
+#define ICnMC_STITHR			BIT(7)
 #define ICnMC_CLP_NOY_CLPUV		(0 << 12)
 #define ICnMC_CLP_YUV			(1 << 12)
 #define ICnMC_CLP_NOY_CLPUV_128		(2 << 12)
@@ -137,6 +169,16 @@
 
 /* CRU Image Clipping End Pixel Register */
 #define ICnEPPrC			0x21C
+
+/* CRU Statistics Control 1 Register */
+#define ICnSTIC1			0x240
+#define ICnSTIC1_STUNIT_MASK		0x3
+#define ICnSTIC1_STUNIT(x)		(x)
+#define ICnSTIC1_STSADPOS(x)		((x) << 16)
+
+/* CRU Statistics Control 2 Register */
+#define ICnSTIC2			0x244
+#define ICnSTIC2_STHPOS(x)		(x)
 
 /* CRU Parallel I/F Control Register */
 #define ICnPIFC				0x250
@@ -417,6 +459,13 @@ static void rzg2l_cru_set_slot_addr(struct rzg2l_cru_dev *cru,
 	/* Currently, we just use the buffer in 32 bits address */
 	rzg2l_cru_write(cru, AMnMBxADDRL(slot), offset);
 	rzg2l_cru_write(cru, AMnMBxADDRH(slot), 0);
+
+	/* Statistic data memory address is located next to Image data area */
+	if (cru->is_statistics) {
+		rzg2l_cru_write(cru, AMnSDMBxADDRL(slot),
+			offset + cru->format.bytesperline * cru->format.height);
+		rzg2l_cru_write(cru, AMnSDMBxADDRH(slot), 0);
+	}
 }
 
 /*
@@ -464,12 +513,26 @@ static void rzg2l_cru_initialize_axi(struct rzg2l_cru_dev *cru)
 	 */
 	rzg2l_cru_write(cru, AMnMBVALID, AMnMBVALID_MBVALID(cru->num_buf - 1));
 
+	/* Set Statistics data memory banks */
+	if (cru->is_statistics)
+		rzg2l_cru_write(cru, AMnSDMBVALID,
+				AMnSDMBVALID_SDMBVALID(cru->num_buf - 1));
+
 	if (cru->retry_thread) {
 		for (slot = 0; slot < cru->num_buf; slot++) {
 			rzg2l_cru_write(cru, AMnMBxADDRL(slot),
 					amnmbxaddrl[slot]);
 			rzg2l_cru_write(cru, AMnMBxADDRH(slot),
 					amnmbxaddrh[slot]);
+
+			if (cru->is_statistics) {
+				rzg2l_cru_write(cru, AMnSDMBxADDRL(slot),
+						amnmbxaddrl[slot] +
+						cru->format.bytesperline *
+						cru->format.height);
+				rzg2l_cru_write(cru, AMnSDMBxADDRH(slot),
+						amnmbxaddrh[slot]);
+			}
 		}
 	} else {
 		for (slot = 0; slot < cru->num_buf; slot++)
@@ -823,6 +886,43 @@ static int rzg2l_cru_initialize_image_conv(struct rzg2l_cru_dev *cru)
 		}
 	}
 
+	/* Statistics Data can be enabled if input format is BAYER RAW */
+	if (cru->is_statistics) {
+		u32 icnstic1, icnstic2;
+		int tmp;
+
+		if (cru->input_fmt == BAYER_RAW)
+			rzg2l_cru_write(cru, ICnMC,
+				rzg2l_cru_read(cru, ICnMC) & ~ICnMC_STITHR);
+		else
+			return -EINVAL;
+
+		/*
+		 * Validate condition about STHPOS and STUNIT based on formula:
+		 * ((HSIZE-STHPOS)>>(4+STUNIT)) * (VSIZE>>(4+STUNIT)) * 4 > 512
+		 * before setting control for Statistics Data
+		 */
+		tmp = (cru->format.height - cru->sd_sthpos);
+		tmp >>= (4 + cru->sd_blksize);
+		tmp *= (cru->format.width >> (4 + cru->sd_blksize)) * 4;
+
+		if (tmp > 512) {
+			icnstic1 = ICnSTIC1_STUNIT(cru->sd_blksize) |
+				   ICnSTIC1_STSADPOS(cru->sd_stsadpos);
+			icnstic2 = ICnSTIC2_STHPOS(cru->sd_sthpos);
+
+			rzg2l_cru_write(cru, ICnSTIC1, icnstic1);
+			rzg2l_cru_write(cru, ICnSTIC2, icnstic2);
+		} else {
+			cru_err(cru, "Invalid STUNIT and STHPOS setting");
+			return -EINVAL;
+		}
+
+	} else {
+		rzg2l_cru_write(cru, ICnMC,
+				rzg2l_cru_read(cru, ICnMC) | ICnMC_STITHR);
+	}
+
 	/* Set output data format */
 	rzg2l_cru_write(cru, ICnDMR, icndmr);
 
@@ -1002,6 +1102,46 @@ static void rzg2l_cru_stop(struct rzg2l_cru_dev *cru)
 
 	/* Cancel the AXI bus stop request */
 	rzg2l_cru_write(cru, AMnAXISTP, 0);
+
+	/* Stop AXI bus for Statistic Data */
+	if (cru->is_statistics) {
+		u32 amnsdfifopntr, amnsdfifopntr_w, amnsdfifopntr_r;
+
+		/* Wait until the FIFO becomes empty */
+		for (retries = 5; retries > 0; retries--) {
+			amnsdfifopntr = rzg2l_cru_read(cru, AMnSDFIFOPNTR);
+			amnsdfifopntr_w = amnfifopntr & AMnSDFIFOPNTR_SDFIFOWPNTR;
+			amnsdfifopntr_r = (amnfifopntr & AMnSDFIFOPNTR_SDFIFORPNTR) >> 16;
+
+			if (amnsdfifopntr_w == amnsdfifopntr_r)
+				break;
+
+			udelay(10);
+		}
+
+		/* Notify that FIFO is not empty here */
+		if (!retries)
+			cru_err(cru, "Failed to empty FIFO for Statistics\n");
+
+		/* Stop AXI bus */
+		rzg2l_cru_write(cru, AMnSDAXISTP, AMnSDAXISTP_SDAXI_STOP);
+
+		/* Wait until the AXI bus stop */
+		for (retries = 5; retries > 0; retries--) {
+			if (rzg2l_cru_read(cru, AMnSDAXISTPACK) &
+					   AMnSDAXISTPACK_SDAXI_STOP_ACK)
+				break;
+
+			udelay(10);
+		};
+
+		/* Notify that AXI bus can not stop here */
+		if (!retries)
+			cru_err(cru, "Failed to stop AXI bus for Statistics\n");
+
+		/* Cancel the AXI bus stop request */
+		rzg2l_cru_write(cru, AMnSDAXISTP, 0);
+	}
 
 	/* Set reset state */
 	reset_control_assert(cru->rstc.aresetn);
