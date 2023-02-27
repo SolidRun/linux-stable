@@ -248,13 +248,6 @@
     line-name = "gpio_sd1_bt_reg_on";
   };
 
-  gpio-sd1-wl_reg_on {
-    gpio-hog;
-    gpios = <RZG2L_GPIO(23, 0) GPIO_ACTIVE_HIGH>;
-    output-high;
-    line-name = "gpio_sd1_wl_reg_on";
-  };
-
 	sdhi0_emmc_pins: sd0emmc {
 		sd0_emmc_data {
 			pins = "SD0_DATA0", "SD0_DATA1", "SD0_DATA2", "SD0_DATA3",
@@ -507,37 +500,43 @@
 
   bluetooth {
     pinctrl-names = "default";
-    //compatible = "brcm,bcm43439-bt";
-    compatible = "brcm,bcm43430a0-bt";
+    compatible = "brcm,bcm43439-bt";
     //host-wakeup-gpios = <&gpio1 28 0>;
     max-speed = <4000000>;
   };
 };
 
-/* WiFi */
+/* WiFi - CYW43439 */
 &sdhi1 {
+  #address-cells = <1>;
+  #size-cells = <0>;
 	pinctrl-0 = <&sdhi1_pins>;
 	pinctrl-1 = <&sdhi1_pins_uhs>;
 	pinctrl-names = "default", "state_uhs";
   status = "okay";
 
+  /*
+  cap-power-off-card;
+  pm-ignore-notify;
+  keep-power-in-suspend;
+  */
+  non-removable;
 	vmmc-supply = <&reg_3p3v>;
 	vqmmc-supply = <&vccq_sdhi1>;
 	bus-width = <4>;
-	sd-uhs-sdr50;
-	sd-uhs-sdr104;
-
-  //no-sd;
   max-frequency = <50000000>;
   fsl,delay-line = <12>;
   keep-power-in-suspend;
 
-  /*
-  brcmf: bcrmf@1 {
+  brcmf: wifi@1 {
           reg = <1>;
-          //compatible = "brcm,bcm4334-fmac", "brcm,bcm4329-fmac";
+          compatible = "brcm,bcm4329-fmac";
   };
-  */
+};
+
+&vccq_sdhi1 {
+  /* WL_REG_ON (P23_0) */
+  gpios = <&pinctrl RZG2L_GPIO(23, 0) GPIO_ACTIVE_HIGH>;
 };
 
 #if (!MTU3_PWM_SUPPORT)
