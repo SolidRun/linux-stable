@@ -120,11 +120,12 @@ struct renesas_mtu3_device {
 #define TRWERB		0x884 /* Timer read/write enable register B */
 #define TCSYSTR		0x082 /* Timer counter synchronous start register */
 /*
- * TMDR3 and NFCRC are unique registers supporting for operation of channels
- * which they are not belong to, so we put their offsets in shared registers.
+ * TMDR3, TIER2 and NFCRC are unique registers supporting for operation of
+ * unique channels, so we put their offsets in shared registers.
  */
 #define TMDR3		0x191 /* Timer Mode Register 3 */
 #define NFCRC		0x099 /* Noise filter control register C */
+#define TIER2		0x124 /* Timer interrupt enable register 2 */
 
 /* 16-bit shared register offset macros */
 #define TDDRA		0x016 /* Timer dead time data register A */
@@ -273,6 +274,11 @@ struct renesas_mtu3_device {
 #define TIER_TGIEC		(1 << 2)
 #define TIER_TGIEB		(1 << 1)
 #define TIER_TGIEA		(1 << 0)
+#define TIER_TGIE5U		(1 << 2)
+#define TIER_TGIE5V		(1 << 1)
+#define TIER_TGIE5W		(1 << 0)
+#define TIER2_TGIEE		(1 << 0)
+#define TIER2_TGIEF		(1 << 1)
 
 #define TSR_TCFD		(1 << 7)
 #define TSR_TCFU		(1 << 5)
@@ -302,6 +308,10 @@ struct renesas_mtu3_device {
 /* Phase counting max values */
 #define PHASE_CNT_16_BIT_MAX	(BIT(15)-1)
 #define PHASE_CNT_32_BIT_MAX	(BIT(31)-1)
+
+static const unsigned int channel_offsets[] = {
+	0x100, 0x180, 0x200, 0x000, 0x001, 0xA80, 0x800, 0x801, 0x400
+};
 
 static unsigned long renesas_mtu3_8bit_ch_reg_offs[][13] = {
 	{[TIER] = 0x4, [NFCR] = 0x70, [TCR] = 0x0, [TCR2] = 0x28, [TMDR1] = 0x1,
@@ -600,6 +610,95 @@ static irqreturn_t renesas_mtu3_interrupt(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
+static int renesas_mtu3_irq_register_by_name(const char *input_name,
+					struct renesas_mtu3_device *mtu)
+{
+	char irq_name[4];
+	int i, irq, ret;
+	u8 ch_index, tier_val;
+
+	if (strlen(input_name) != 5)
+		goto irq_setting_error;
+
+	for (i = 0; i < 4; i++)
+		irq_name[i] = input_name[i];
+
+	ch_index = input_name[4] - 48;
+
+	tier_val = renesas_mtu3_8bit_ch_reg_read(&mtu->channels[ch_index], TIER);
+	if ((ch_index <= 8) && (ch_index != 5)) {
+		if (!strcmp(irq_name, "tgia"))
+			renesas_mtu3_8bit_ch_reg_write(&mtu->channels[ch_index],
+						TIER, tier_val | TIER_TGIEA);
+		else if (!strcmp(irq_name, "tgib"))
+			renesas_mtu3_8bit_ch_reg_write(&mtu->channels[ch_index],
+						TIER, tier_val | TIER_TGIEB);
+		else if (!strcmp(irq_name, "tciv"))
+			renesas_mtu3_8bit_ch_reg_write(&mtu->channels[ch_index],
+						TIER, tier_val | TIER_TCIEV);
+		else if ((ch_index != 1) && (ch_index != 2)) {
+			if (!strcmp(irq_name, "tgic"))
+				renesas_mtu3_8bit_ch_reg_write(&mtu->channels[ch_index],
+							TIER, tier_val | TIER_TGIEC);
+			else if (!strcmp(irq_name, "tgid"))
+				renesas_mtu3_8bit_ch_reg_write(&mtu->channels[ch_index],
+							TIER, tier_val | TIER_TGIED);
+			else if (!strcmp(irq_name, "tciu") && (ch_index == 8))
+				renesas_mtu3_8bit_ch_reg_write(&mtu->channels[ch_index],
+							TIER, tier_val | TIER_TCIEU);
+			else if (ch_index == 0) {
+				tier_val = renesas_mtu3_shared_reg_read(mtu, TIER2);
+				if (!strcmp(irq_name, "tgie"))
+					renesas_mtu3_shared_reg_write(mtu, TIER2,
+								tier_val | TIER2_TGIEE);
+				else if (!strcmp(irq_name, "tgif"))
+					renesas_mtu3_shared_reg_write(mtu, TIER2,
+								tier_val | TIER2_TGIEF);
+				else
+					goto irq_setting_error;
+			} else
+				goto irq_setting_error;
+		} else if (!strcmp(irq_name, "tciu"))
+			renesas_mtu3_8bit_ch_reg_write(&mtu->channels[ch_index],
+						TIER, tier_val | TIER_TCIEU);
+		else
+			goto irq_setting_error;
+	} else if (ch_index == 5) {
+		if (!strcmp(irq_name, "tgiu"))
+			renesas_mtu3_8bit_ch_reg_write(&mtu->channels[ch_index],
+						TIER, tier_val | TIER_TGIE5U);
+		else if (!strcmp(irq_name, "tgiv"))
+			renesas_mtu3_8bit_ch_reg_write(&mtu->channels[ch_index],
+						TIER, tier_val | TIER_TGIE5V);
+		else if (!strcmp(irq_name, "tgiw"))
+			renesas_mtu3_8bit_ch_reg_write(&mtu->channels[ch_index],
+						TIER, tier_val | TIER_TGIE5W);
+		else
+			goto irq_setting_error;
+	} else
+		goto irq_setting_error;
+
+	irq = platform_get_irq_byname(mtu->pdev, input_name);
+	if (irq < 0)
+		return -EINVAL;
+
+	ret = request_irq(irq, renesas_mtu3_interrupt,
+			  IRQF_TIMER | IRQF_IRQPOLL | IRQF_NOBALANCING,
+			  input_name, &mtu->channels[ch_index]);
+
+	if (ret < 0) {
+		dev_err(&mtu->pdev->dev, "ch%u: failed to request irq %d: %d\n",
+			mtu->channels[ch_index].index, irq, ret);
+		return ret;
+	}
+
+	return 0;
+
+irq_setting_error:
+	dev_err(&mtu->pdev->dev, "Wrong irq name %s\n", input_name);
+	return -EINVAL;
+}
+
 static void renesas_mtu3_stop(struct renesas_mtu3_channel *ch, unsigned long flag)
 {
 	unsigned long flags;
@@ -765,51 +864,6 @@ static int renesas_mtu3_register_clocksource(struct renesas_mtu3_channel *ch,
 		ch->index);
 	clocksource_register_hz(cs, ch->mtu->rate);
 	return 0;
-}
-
-static int renesas_mtu3_register(struct renesas_mtu3_channel *ch,
-				const char *name)
-{
-	if (ch->function == MTU3_CLOCKEVENT)
-		renesas_mtu3_register_clockevent(ch, name);
-	else if (ch->function == MTU3_CLOCKSOURCE)
-		renesas_mtu3_register_clocksource(ch, name);
-	return 0;
-}
-
-static int renesas_mtu3_setup_channel(struct renesas_mtu3_channel *ch,
-				    unsigned int index,
-				    struct renesas_mtu3_device *mtu)
-{
-	static const unsigned int channel_offsets[] = {
-		0x100, 0x180, 0x200, 0x000, 0x001, 0xA80, 0x800, 0x801, 0x400
-	};
-	char name[6];
-	int irq;
-	int ret;
-
-	ch->mtu = mtu;
-
-	sprintf(name, "tgi%ua", index);
-	irq = platform_get_irq_byname(mtu->pdev, name);
-	if (irq < 0) {
-		/* Skip channels with no declared interrupt. */
-		return 0;
-	}
-
-	ret = request_irq(irq, renesas_mtu3_interrupt,
-			  IRQF_TIMER | IRQF_IRQPOLL | IRQF_NOBALANCING,
-			  dev_name(&ch->mtu->pdev->dev), ch);
-	if (ret) {
-		dev_err(&ch->mtu->pdev->dev, "ch%u: failed to request irq %d\n",
-			index, irq);
-		return ret;
-	}
-
-	ch->base = mtu->mapbase + channel_offsets[index];
-	ch->index = index;
-
-	return renesas_mtu3_register(ch, dev_name(&mtu->pdev->dev));
 }
 
 static int renesas_mtu3_map_memory(struct renesas_mtu3_device *mtu)
@@ -1057,7 +1111,6 @@ static void renesas_mtu3_pwm_disable(struct pwm_chip *chip,
 		mtu3->pwms[pwm->hwpwm].is_enabled = false;
 	}
 }
-
 
 static int renesas_mtu3_pwm_config(struct pwm_chip *chip,
 				 struct pwm_device *pwm,
@@ -1376,8 +1429,6 @@ static int renesas_mtu3_register_pwm(struct renesas_mtu3_device *mtu,
 				mtu->channels[ch_num].function =
 					MTU3_PWM_MODE_1;
 				mtu->pwms[j].ch1 = ch_num;
-				renesas_mtu3_setup_channel(&mtu->channels[ch_num],
-							ch_num, mtu);
 				mtu->pwm_chip.npwm += 1;
 				dev_info(&mtu->pdev->dev,
 					"ch%u: used for pwm mode 1 output at pin MTIOC%u%s\n",
@@ -1456,11 +1507,6 @@ pwm_complementary_setting:
 
 
 		if (!!ch_num) {
-			renesas_mtu3_setup_channel(&mtu->channels[mtu->pwms[j].ch1],
-						mtu->pwms[j].ch1, mtu);
-			renesas_mtu3_setup_channel(&mtu->channels[mtu->pwms[j].ch2],
-						mtu->pwms[j].ch2, mtu);
-
 			mtu->pwms[j].period_ns = 0;
 			mtu->pwms[j].duty_ns = 0;
 			mtu->pwms[j].deadtime_ns = 0;
@@ -1817,9 +1863,6 @@ static void renesas_mtu3_32bit_cnt_setting(struct iio_dev *indio_dev)
 	mtu->channels[1].function = MTU3_32BIT_PHASE_COUNTING;
 	mtu->channels[2].function = MTU3_32BIT_PHASE_COUNTING;
 
-	renesas_mtu3_setup_channel(&mtu->channels[1], 1, mtu);
-	renesas_mtu3_setup_channel(&mtu->channels[2], 2, mtu);
-
 	renesas_mtu3_shared_reg_write(mtu, TMDR3, TMDR3_32BIT_ENABLE);
 
 	/* Phase counting mode 1 is used as default in initialization. */
@@ -1843,6 +1886,7 @@ static int renesas_mtu3_probe(struct platform_device *pdev)
 					sizeof(struct renesas_mtu3_device));
 	u32 tmp, num_counters = 0;
 	int ret, i, j;
+	const char *irq_name;
 
 	if (!indio_dev) {
 		dev_err(&pdev->dev, "Cannot allocate IIO device%d\n", -ENOMEM);
@@ -1975,6 +2019,22 @@ skip_allocate_mtu_pointer:
 		goto err_unmap;
 	}
 
+	/* Initialize all channels of MTU3 */
+	for (i = 0; i < mtu->num_channels; i++) {
+		mtu->channels[i].mtu = mtu;
+		mtu->channels[i].base = mtu->mapbase + channel_offsets[i];
+		mtu->channels[i].index = i;
+	}
+
+	if (of_get_property(np, "interrupt-names", &tmp)) {
+		for (i = 0; i < tmp/sizeof(u32); i++) {
+			ret = of_property_read_string_index(np, "interrupt-names",
+							i, &irq_name);
+			if (ret == 0)
+				renesas_mtu3_irq_register_by_name(irq_name, mtu);
+		}
+	}
+
 	/* Setting MTU3 channels for phase counting functions */
 	if (num_counters > 0) {
 		if (!strcmp(renesas_mtu3_cnt_channels[0].extend_name, "32bit"))
@@ -1988,8 +2048,6 @@ skip_allocate_mtu_pointer:
 						 "mtu2"))
 					j = 2;
 				mtu->channels[j].function = MTU3_16BIT_PHASE_COUNTING;
-				renesas_mtu3_setup_channel(&mtu->channels[j],
-							   j, mtu);
 				/*
 				 * Phase counting mode 1 will be used as default
 				 * when initializing counters.
@@ -2025,17 +2083,13 @@ skip_allocate_mtu_pointer:
 			mtu->channels[i].index = i;
 			if (!(mtu->has_clocksource)) {
 				mtu->channels[i].function = MTU3_CLOCKSOURCE;
-				ret = renesas_mtu3_setup_channel(
-					&mtu->channels[i], i, mtu);
-				if (ret < 0)
-					goto err_unmap;
+				renesas_mtu3_register_clocksource(
+					&mtu->channels[i], dev_name(&pdev->dev));
 				mtu->has_clocksource = true;
 			} else if (!(mtu->has_clockevent)) {
 				mtu->channels[i].function = MTU3_CLOCKEVENT;
-				ret = renesas_mtu3_setup_channel(
-					&mtu->channels[i], i, mtu);
-				if (ret < 0)
-					goto err_unmap;
+				renesas_mtu3_register_clockevent(
+					&mtu->channels[i], dev_name(&pdev->dev));
 				mtu->has_clockevent = true;
 			}
 		}
