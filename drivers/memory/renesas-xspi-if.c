@@ -53,6 +53,7 @@
 #define XSPI_CMCFG1CS0		0x0014
 #define XSPI_CMCFG1CS1		0x0024
 #define XSPI_CMCFG1_RDCMD(val)	(((val) & 0xffff) << 0)
+#define XSPI_CMCFG1_RDCMD_UPPER_BYTE(val)	(((val) & 0xff) << 8)
 #define XSPI_CMCFG1_RDLATE(val)	(((val) & 0x1f) << 16)
 
 /* xSPI Command Map Configuration Register 2 CS(0/1) */
@@ -365,10 +366,10 @@ void xspi_prepare(struct rpcif *xspi, const struct rpcif_op *op, u64 *offs,
 	xspi->xferlen = 0;
 
 	if (op->cmd.buswidth)
-		xspi->command = XSPI_CDTBUF_CMD_FIELD(op->cmd.opcode);
+		xspi->command = op->cmd.opcode;
 
 	if (op->ocmd.buswidth)
-		xspi->command |= XSPI_CDTBUF_EXCMD_FIELD(op->ocmd.opcode);
+		xspi->command = (xspi->command << 8) | op->ocmd.opcode;
 
 	if (op->addr.buswidth) {
 		xspi->addr_nbytes = op->addr.nbytes;
@@ -379,7 +380,7 @@ void xspi_prepare(struct rpcif *xspi, const struct rpcif_op *op, u64 *offs,
 	}
 
 	if (op->dummy.buswidth)
-		xspi->dummy = XSPI_CDTBUF_LATE(op->dummy.ncycles);
+		xspi->dummy = op->dummy.ncycles;
 
 	xspi->dir = op->data.dir;
 	if (op->data.buswidth) {
@@ -410,7 +411,8 @@ int xspi_manual_xfer(struct rpcif *xspi)
 			XSPI_CDCTL0_TRREQ, 0);
 
 	regmap_write(xspi->regmap, XSPI_CDTBUF0,
-		XSPI_CDTBUF_CMDSIZE(0x1) | xspi->command);
+			XSPI_CDTBUF_CMDSIZE(0x1) |
+			XSPI_CDTBUF_CMD_FIELD(xspi->command));
 
 	regmap_write(xspi->regmap, XSPI_CDABUF0, 0);
 
@@ -486,7 +488,8 @@ int xspi_manual_xfer(struct rpcif *xspi)
 				regmap_write(xspi->regmap, XSPI_CDABUF0, xspi->smadr + pos);
 
 			regmap_update_bits(xspi->regmap, XSPI_CDTBUF0,
-					XSPI_CDTBUF_LATE(0x1f), xspi->dummy);
+					XSPI_CDTBUF_LATE(0x1f),
+					XSPI_CDTBUF_LATE(xspi->dummy));
 
 			regmap_update_bits(xspi->regmap, XSPI_CDCTL0,
 					XSPI_CDCTL0_TRREQ, XSPI_CDCTL0_TRREQ);
@@ -549,7 +552,8 @@ ssize_t xspi_dirmap_read(struct rpcif *xspi, u64 offs, size_t len, void *buf)
 
 	regmap_update_bits(xspi->regmap, XSPI_CMCFG1CS0,
 			XSPI_CMCFG1_RDCMD(0xffff) | XSPI_CMCFG1_RDLATE(0x1f),
-			xspi->command | xspi->dummy);
+			XSPI_CMCFG1_RDCMD_UPPER_BYTE(xspi->command) |
+			XSPI_CMCFG1_RDLATE(xspi->dummy));
 
 	regmap_update_bits(xspi->regmap, XSPI_BMCTL0,
 			XSPI_BMCTL0_CS0ACC(0xff), XSPI_BMCTL0_CS0ACC(0x01));
