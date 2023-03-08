@@ -21,6 +21,7 @@ void xspi_prepare(struct rpcif *rpc, const struct rpcif_op *op, u64 *offs,
 		   size_t *len);
 int xspi_manual_xfer(struct rpcif *xspi);
 ssize_t xspi_dirmap_read(struct rpcif *xspi, u64 offs, size_t len, void *buf);
+ssize_t xspi_dirmap_write(struct rpcif *xspi, u64 offs, size_t len, const void *buf);
 
 static inline void xspi_enable_rpm(struct rpcif *xspi)
 {

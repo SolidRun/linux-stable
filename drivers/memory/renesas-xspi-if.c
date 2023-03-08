@@ -60,6 +60,7 @@
 #define XSPI_CMCFG2CS0		0x0018
 #define XSPI_CMCFG2CS1		0x0028
 #define XSPI_CMCFG2_WRCMD(val)	(((val) & 0xffff) << 0)
+#define XSPI_CMCFG2_WRCMD_UPPER(val)	(((val) & 0xff) << 8)
 #define XSPI_CMCFG2_WRLATE(val)	(((val) & 0x1f) << 16)
 
 /* xSPI Link I/O Configuration Register CS(0/1) */
@@ -207,6 +208,9 @@
 #define XSPI_INTE_CAFAILCS1E	BIT(29)
 #define XSPI_INTE_CASUCCS0E	BIT(30)
 #define XSPI_INTE_CASUCCS1E	BIT(31)
+
+/* Maximum data size of MWRSIZE*/
+#define MWRSIZE_MAX		64
 
 static const struct regmap_range xspi_volatile_ranges[] = {
 	regmap_reg_range(XSPI_CDD0BUF0, XSPI_CDD0BUF0),
@@ -534,6 +538,49 @@ err_out:
 	goto exit;
 }
 EXPORT_SYMBOL(xspi_manual_xfer);
+
+ssize_t xspi_dirmap_write(struct rpcif *xspi, u64 offs, size_t len, const void *buf)
+{
+	loff_t from = offs & (xspi->size - 1);
+	size_t size = xspi->size - from;
+	u8 addsize = xspi->addr_nbytes - 1;
+	u32 writebytes;
+
+	if (len > size)
+		len = size;
+
+	if (len > MWRSIZE_MAX)
+		writebytes = MWRSIZE_MAX;
+	else
+		writebytes = len;
+
+	pm_runtime_get_sync(xspi->dev);
+
+	regmap_update_bits(xspi->regmap, XSPI_CMCFG0CS0,
+			XSPI_CMCFG0_FFMT(0x3) | XSPI_CMCFG0_ADDSIZE(0x3),
+			XSPI_CMCFG0_FFMT(0) | XSPI_CMCFG0_ADDSIZE(addsize));
+
+	regmap_update_bits(xspi->regmap, XSPI_CMCFG2CS0,
+			XSPI_CMCFG2_WRCMD_UPPER(0xff) | XSPI_CMCFG2_WRLATE(0x1f),
+			XSPI_CMCFG2_WRCMD_UPPER(xspi->command) |
+			XSPI_CMCFG2_WRLATE(xspi->dummy));
+
+	regmap_update_bits(xspi->regmap, XSPI_BMCTL0,
+			XSPI_BMCTL0_CS0ACC(0xff), XSPI_BMCTL0_CS0ACC(0x03));
+
+	regmap_update_bits(xspi->regmap, XSPI_BMCFG,
+			XSPI_BMCFG_WRMD | XSPI_BMCFG_MWRCOMB |
+			XSPI_BMCFG_MWRSIZE(0xff) | XSPI_BMCFG_PREEN,
+			0 | XSPI_BMCFG_MWRCOMB | XSPI_BMCFG_MWRSIZE(0x0f) |
+			XSPI_BMCFG_PREEN);
+
+	memcpy_toio(xspi->dirmap + from, buf, writebytes);
+
+	pm_runtime_put(xspi->dev);
+
+	return writebytes;
+}
+EXPORT_SYMBOL(xspi_dirmap_write);
 
 ssize_t xspi_dirmap_read(struct rpcif *xspi, u64 offs, size_t len, void *buf)
 {

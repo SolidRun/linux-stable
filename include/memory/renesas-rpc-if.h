@@ -94,6 +94,7 @@ struct rpcif_ops {
 			   size_t *len);
 	int (*manual_xfer)(struct rpcif *rpc);
 	ssize_t (*dirmap_read)(struct rpcif *rpc, u64 offs, size_t len, void *buf);
+	ssize_t (*dirmap_write)(struct rpcif *rpc, u64 offs, size_t len, const void *buf);
 };
 
 int rpcif_sw_init(struct rpcif *rpc, struct device *dev);

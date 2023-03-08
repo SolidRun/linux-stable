@@ -77,6 +77,20 @@ static bool rpcif_spi_mem_supports_op(struct spi_mem *mem,
 	return true;
 }
 
+static ssize_t rpcif_spi_mem_dirmap_write(struct spi_mem_dirmap_desc *desc,
+					 u64 offs, size_t len, const void *buf)
+{
+	struct rpcif *rpc =
+		spi_controller_get_devdata(desc->mem->spi->controller);
+
+	if (offs + desc->info.offset + len > U32_MAX)
+		return -EINVAL;
+
+	rpcif_spi_mem_prepare(desc->mem->spi, &desc->info.op_tmpl, &offs, &len);
+
+	return rpc->ops->dirmap_write(rpc, offs, len, buf);
+}
+
 static ssize_t rpcif_spi_mem_dirmap_read(struct spi_mem_dirmap_desc *desc,
 					 u64 offs, size_t len, void *buf)
 {
@@ -105,7 +119,8 @@ static int rpcif_spi_mem_dirmap_create(struct spi_mem_dirmap_desc *desc)
 	if (!rpc->dirmap && desc->info.op_tmpl.data.dir == SPI_MEM_DATA_IN)
 		return -ENOTSUPP;
 
-	if (desc->info.op_tmpl.data.dir == SPI_MEM_DATA_OUT)
+	if (desc->info.op_tmpl.data.dir == SPI_MEM_DATA_OUT &&
+			!rpc->ops->dirmap_write)
 		return -ENOTSUPP;
 
 	return 0;
@@ -127,6 +142,7 @@ static const struct spi_controller_mem_ops rpcif_spi_mem_ops = {
 	.exec_op	= rpcif_spi_mem_exec_op,
 	.dirmap_create	= rpcif_spi_mem_dirmap_create,
 	.dirmap_read	= rpcif_spi_mem_dirmap_read,
+	.dirmap_write   = rpcif_spi_mem_dirmap_write,
 };
 
 static const struct rpcif_ops rpc_ops = {
@@ -143,6 +159,7 @@ static const struct rpcif_ops xspi_ops = {
 	.prepare	= xspi_prepare,
 	.manual_xfer	= xspi_manual_xfer,
 	.dirmap_read	= xspi_dirmap_read,
+	.dirmap_write	= xspi_dirmap_write,
 };
 
 static int rpcif_spi_probe(struct platform_device *pdev)
