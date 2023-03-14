@@ -1271,11 +1271,11 @@ static int retry_streaming_func(void *data)
 	sd = media_entity_to_v4l2_subdev(pad->entity);
 
 	while (retry < 5) {
-		for (i = 0; i < 5; i++) {
+		for (i = 0; i < 10; i++) {
 			if (cru->state == RUNNING)
 				goto retry_done;
 
-			msleep(20);
+			msleep(50);
 		}
 
 		/* Stop CRU reception */
