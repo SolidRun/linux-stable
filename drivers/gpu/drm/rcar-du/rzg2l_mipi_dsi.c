@@ -617,14 +617,38 @@ static void rzg2l_mipi_dsi_enable(struct drm_bridge *bridge)
 	rzg2l_mipi_dsi_set_display_timing(mipi_dsi);
 
 	if (mipi_dsi->panel) {
-		drm_panel_prepare(mipi_dsi->panel);
-		drm_panel_enable(mipi_dsi->panel);
+		/*
+		 * Workaround
+		 * Each MIPI DSI panel has a different powering up flow
+		 * to transmit DCS command.
+		 * Some needs to enable highspeed clock, some in LP state.
+		 * To ensure all panels can work normally, we will try to
+		 * setup panels twice.
+		 * If failed in 1st time with LP state, enable hsclk then retry.
+		 */
+		ret = drm_panel_prepare(mipi_dsi->panel);
+		ret |= drm_panel_enable(mipi_dsi->panel);
+		if (ret < 0) {
+			ret = rzg2l_mipi_dsi_start_hs_clock(mipi_dsi);
+			if (ret < 0)
+				return;
+
+			ret = drm_panel_prepare(mipi_dsi->panel);
+			if (ret < 0)
+				return;
+
+			ret = drm_panel_enable(mipi_dsi->panel);
+			if (ret < 0)
+				return;
+
+			goto start_video;
+		}
 	}
 
 	ret = rzg2l_mipi_dsi_start_hs_clock(mipi_dsi);
 	if (ret < 0)
 		return;
-
+start_video:
 	ret = rzg2l_mipi_dsi_start_video(mipi_dsi);
 	if (ret < 0)
 		return;
