@@ -927,6 +927,8 @@ static ssize_t rzg2l_mipi_dsi_host_transfer(struct mipi_dsi_host *host,
 
 	}
 
+	err = packet.payload_length;
+
 	if (is_need_bta) {
 		u8 *msg_rx = msg->rx_buf;
 		size_t size = 0;
@@ -959,11 +961,13 @@ static ssize_t rzg2l_mipi_dsi_host_transfer(struct mipi_dsi_host *host,
 			case MIPI_DSI_RX_DCS_SHORT_READ_RESPONSE_1BYTE:
 			case MIPI_DSI_RX_GENERIC_SHORT_READ_RESPONSE_1BYTE:
 				msg_rx[0] = (status & RXRSS0R_DATA0);
+				err = 1;
 				break;
 			case MIPI_DSI_RX_DCS_SHORT_READ_RESPONSE_2BYTE:
 			case MIPI_DSI_RX_GENERIC_SHORT_READ_RESPONSE_2BYTE:
 				msg_rx[0] = (status & RXRSS0R_DATA0);
 				msg_rx[1] = (status & RXRSS0R_DATA1) >> 8;
+				err = 2;
 				break;
 			case MIPI_DSI_RX_GENERIC_LONG_READ_RESPONSE:
 			case MIPI_DSI_RX_DCS_LONG_READ_RESPONSE:
@@ -979,6 +983,7 @@ static ssize_t rzg2l_mipi_dsi_host_transfer(struct mipi_dsi_host *host,
 						msg_rx[4 * i + j] = (rx_data >> (8 * j)) & 0xff;
 					}
 				}
+				err = size;
 				break;
 			default:
 				dev_err(mipi_dsi->dev,
@@ -993,8 +998,6 @@ static ssize_t rzg2l_mipi_dsi_host_transfer(struct mipi_dsi_host *host,
 			goto stop_sequence;
 		}
 	}
-
-	err = 1;
 
 stop_sequence:
 	/* Stop Sequence 0 Operation */
