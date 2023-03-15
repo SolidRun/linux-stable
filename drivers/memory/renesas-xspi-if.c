@@ -212,6 +212,10 @@
 /* Maximum data size of MWRSIZE*/
 #define MWRSIZE_MAX		64
 
+/* xSPI Protocol mode */
+#define PROTO_1S_4S_4S		0x090
+#define PROTO_4S_4S_4S		0x092
+
 static const struct regmap_range xspi_volatile_ranges[] = {
 	regmap_reg_range(XSPI_CDD0BUF0, XSPI_CDD0BUF0),
 };
@@ -368,6 +372,7 @@ void xspi_prepare(struct rpcif *xspi, const struct rpcif_op *op, u64 *offs,
 	xspi->option = 0;
 	xspi->dummy = 0;
 	xspi->xferlen = 0;
+	xspi->proto = 0;
 
 	if (op->cmd.buswidth)
 		xspi->command = op->cmd.opcode;
@@ -398,6 +403,13 @@ void xspi_prepare(struct rpcif *xspi, const struct rpcif_op *op, u64 *offs,
 			nbytes = op->data.nbytes;
 		xspi->xferlen = nbytes;
 	}
+
+	if (op->cmd.buswidth == 1 &&
+			(op->addr.buswidth == 4 || op->data.buswidth == 4))
+		xspi->proto = PROTO_1S_4S_4S;
+	else if (op->cmd.buswidth == 4 &&
+			(op->addr.buswidth == 4 || op->data.buswidth == 4))
+		xspi->proto = PROTO_4S_4S_4S;
 }
 EXPORT_SYMBOL(xspi_prepare);
 
@@ -425,6 +437,9 @@ int xspi_manual_xfer(struct rpcif *xspi)
 			XSPI_CDTBUF_ADDSIZE(xspi->addr_nbytes));
 
 	regmap_write(xspi->regmap, XSPI_CDABUF0, xspi->smadr);
+
+	regmap_update_bits(xspi->regmap, XSPI_LIOCFGCS0, XSPI_LIOCFG_PRTMD(0x3ff),
+			XSPI_LIOCFG_PRTMD(xspi->proto));
 
 	switch (xspi->dir) {
 	case RPCIF_DATA_OUT:
@@ -574,6 +589,9 @@ ssize_t xspi_dirmap_write(struct rpcif *xspi, u64 offs, size_t len, const void *
 			0 | XSPI_BMCFG_MWRCOMB | XSPI_BMCFG_MWRSIZE(0x0f) |
 			XSPI_BMCFG_PREEN);
 
+	regmap_update_bits(xspi->regmap, XSPI_LIOCFGCS0, XSPI_LIOCFG_PRTMD(0x3ff),
+			XSPI_LIOCFG_PRTMD(xspi->proto));
+
 	memcpy_toio(xspi->dirmap + from, buf, writebytes);
 
 	/* Request to push the pending data */
@@ -615,6 +633,9 @@ ssize_t xspi_dirmap_read(struct rpcif *xspi, u64 offs, size_t len, void *buf)
 			XSPI_BMCFG_MWRSIZE(0xff) | XSPI_BMCFG_PREEN,
 			0 | XSPI_BMCFG_MWRCOMB | XSPI_BMCFG_MWRSIZE(0x0f) |
 			XSPI_BMCFG_PREEN);
+
+	regmap_update_bits(xspi->regmap, XSPI_LIOCFGCS0, XSPI_LIOCFG_PRTMD(0x3ff),
+			XSPI_LIOCFG_PRTMD(xspi->proto));
 
 	memcpy_fromio(buf, xspi->dirmap + from, len);
 

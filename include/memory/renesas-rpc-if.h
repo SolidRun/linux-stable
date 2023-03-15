@@ -76,6 +76,7 @@ struct rpcif {
 	u8 bus_size;
 	u8 xfer_size;
 	u8 addr_nbytes;
+	u32 proto;		/* Specified for xSPI */
 	void *buffer;
 	u32 xferlen;
 	u32 smcr;
