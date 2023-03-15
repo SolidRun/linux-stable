@@ -313,7 +313,14 @@ static void rcar_du_crtc_set_display_timing(struct rcar_du_crtc *rcrtc)
 	u32 escr;
 
 	if (rcar_du_has(rcdu, RCAR_DU_FEATURE_RZG2L)) {
+		struct drm_crtc *crtc = &rcrtc->crtc;
+		struct drm_device *ddev = rcrtc->crtc.dev;
+		struct drm_connector_list_iter iter;
+		struct drm_connector *connector = NULL;
+		struct drm_encoder *encoder = NULL;
+		struct drm_bridge *bridge = NULL;
 		u32 ditr0, ditr1, ditr2, ditr3, ditr4, ditr5, pbcr0;
+		u32 bus_flags = 0;
 		void __iomem *cpg_base = ioremap(0x11010000, 0x1000);
 		u32 i, index, prevIndex = 0;
 		u32 parallelOut;
@@ -407,9 +414,36 @@ static void rcar_du_crtc_set_display_timing(struct rcar_du_crtc *rcrtc)
 
 		clk_prepare_enable(rcrtc->rzg2l_clocks.dclk);
 
+		/* get encoder from crtc and figure out bus-flags */
+		drm_for_each_encoder(encoder, ddev)
+			if (encoder->crtc == crtc)
+				break;
+
+		if (encoder) {
+			/* Get bridge from encoder */
+			list_for_each_entry(bridge, &encoder->bridge_chain,
+					    chain_node)
+				if (bridge->encoder == encoder)
+					break;
+
+			/* Get the connector from encoder */
+			drm_connector_list_iter_begin(ddev, &iter);
+			drm_for_each_connector_iter(connector, &iter)
+				if (connector->encoder == encoder)
+					break;
+			drm_connector_list_iter_end(&iter);
+		}
+
+		if (bridge && bridge->timings)
+			bus_flags = bridge->timings->input_bus_flags;
+		else if (connector)
+			bus_flags = connector->display_info.bus_flags;
+
 		ditr0 = (DU_DITR0_DEMD_HIGH
 		| ((mode->flags & DRM_MODE_FLAG_PVSYNC) ? DU_DITR0_VSPOL : 0)
-		| ((mode->flags & DRM_MODE_FLAG_PHSYNC) ? DU_DITR0_HSPOL : 0));
+		| ((mode->flags & DRM_MODE_FLAG_PHSYNC) ? DU_DITR0_HSPOL : 0)
+		| ((bus_flags & DRM_BUS_FLAG_PIXDATA_DRIVE_NEGEDGE) ?
+		    DU_DITR0_DPI_CLKMD : 0));
 
 		ditr1 = DU_DITR1_VSA(mode->vsync_end - mode->vsync_start)
 		      | DU_DITR1_VACTIVE(mode->vdisplay);
