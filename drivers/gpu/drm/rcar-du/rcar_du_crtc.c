@@ -229,6 +229,16 @@ struct cpg_param {
 #define reg_write(x, a)		iowrite32(a, x)
 #define CPG_LPCLK_DIV		0
 
+struct cpg_param resolution_1_lane_param[7] = {
+	{ 25175, 1,  50,  5872025, 1, 1, 0, 0x16, 2, 5}, /* VGA 25.175MHz */
+	{ 25200, 1,  50,  6710886, 1, 1, 0, 0x16, 2, 5}, /* VGA 25.200MHz */
+	{ 27000, 1,  54,        0, 1, 1, 0, 0x16, 2, 5}, /* 480p/576p 27.000MHz */
+	{ 27000, 1,  54,   905969, 1, 1, 0, 0x16, 2, 5}, /* 480p 27.027MHz */
+	{ 27380, 1,  54, 12750684, 1, 1, 0, 0x16, 2, 5}, /* 27.38MHz */
+	{ 29605, 1,  59,  3523215, 1, 1, 0, 0x16, 2, 5}, /* WVGA 29.605MHz */
+	{ 40000, 1,  80,        0, 1, 1, 0, 0x16, 2, 5}, /* SVGA 40.00MHz */
+};
+
 struct cpg_param resolution_2_lanes_param[TABLE_MAX - 1] = {
 	{ 25175, 2,  50,  5872025, 1, 1, 0, 0x16, 1, 5}, /* VGA 25.175MHz */
 	{ 25200, 2,  50,  6710886, 1, 1, 0, 0x16, 1, 5}, /* VGA 25.200MHz */
@@ -323,6 +333,10 @@ static void rcar_du_crtc_set_display_timing(struct rcar_du_crtc *rcrtc)
 
 			parallelOut = 0;
 			switch (lanes) {
+			case 1:
+				paramPtr = resolution_1_lane_param;
+				tableMax = ARRAY_SIZE(resolution_1_lane_param);
+				break;
 			case 2:
 				paramPtr = resolution_2_lanes_param;
 				tableMax = TABLE_MAX - 1;

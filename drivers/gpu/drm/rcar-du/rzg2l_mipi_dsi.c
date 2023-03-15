@@ -662,6 +662,9 @@ rzg2l_mipi_dsi_bridge_mode_valid(struct drm_bridge *bridge,
 	if ((mipi_dsi->lanes == 2) && (mode->clock > 125000))
 		return MODE_CLOCK_HIGH;
 
+	if ((mipi_dsi->lanes == 1) && (mode->clock > 40000))
+		return MODE_CLOCK_HIGH;
+
 	return MODE_OK;
 }
 
