@@ -576,6 +576,11 @@ ssize_t xspi_dirmap_write(struct rpcif *xspi, u64 offs, size_t len, const void *
 
 	memcpy_toio(xspi->dirmap + from, buf, writebytes);
 
+	/* Request to push the pending data */
+	if (writebytes < MWRSIZE_MAX)
+		regmap_update_bits(xspi->regmap, XSPI_BMCTL1,
+				XSPI_BMCTL1_MWRPUSH, XSPI_BMCTL1_MWRPUSH);
+
 	pm_runtime_put(xspi->dev);
 
 	return writebytes;
