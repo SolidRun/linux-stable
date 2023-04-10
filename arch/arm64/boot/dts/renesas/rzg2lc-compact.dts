@@ -359,6 +359,25 @@
 	pinctrl-0 = <&i2c0_pins>;
 	pinctrl-names = "default";
 	status = "okay";
+
+  /* EEPROM CAT24AA01TDI-GT3 1-kb (128 B x 8)  */
+  eeprom: eeprom@50 {
+    compatible = "atmel,24c02";
+    reg = <0x50>;
+    pagesize = <16>;
+  };
+
+  accelerometer@1d {
+    compatible = "adi,adxl345";
+    reg = <0x1d>;
+    //interrupt-parent = <&gpio1>; //I/O Expander IO0_6
+    interrupts = <9 IRQ_TYPE_LEVEL_HIGH>;
+  };
+
+  ambient_light_sensor: isl29023@44 {
+    compatible = "isil,isl29023";
+    reg = <0x44>;
+  };
 };
 
 &i2c1 {
