@@ -77,6 +77,14 @@ static int asoc_simple_parse_dai(struct device_node *node,
 	return 0;
 }
 
+static const struct snd_soc_dapm_widget sgtl5000_dapm_widgets[] = {
+	SND_SOC_DAPM_MIC("Mic Jack", NULL),
+	SND_SOC_DAPM_LINE("Line In Jack", NULL),
+	SND_SOC_DAPM_HP("Headphone Jack", NULL),
+	SND_SOC_DAPM_SPK("Line Out Jack", NULL),
+	SND_SOC_DAPM_SPK("Ext Spk", NULL),
+};
+
 static void simple_parse_convert(struct device *dev,
 				 struct device_node *np,
 				 struct asoc_simple_data *adata)
@@ -604,6 +612,8 @@ static int asoc_simple_probe(struct platform_device *pdev)
 	card->owner		= THIS_MODULE;
 	card->dev		= dev;
 	card->probe		= simple_soc_probe;
+	card->dapm_widgets      = sgtl5000_dapm_widgets;
+	card->num_dapm_widgets  = ARRAY_SIZE(sgtl5000_dapm_widgets);
 
 	memset(&li, 0, sizeof(li));
 	simple_get_dais_count(priv, &li);
