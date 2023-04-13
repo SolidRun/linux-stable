@@ -25,6 +25,11 @@
 #include <sound/soc.h>
 #include <sound/soc-dapm.h>
 #include <sound/initval.h>
+#include <linux/err.h>
+#include <linux/irq.h>
+#include <linux/io.h>
+#include <linux/of_gpio.h>
+#include <linux/gpio.h>
 
 #include "sgtl5000.h"
 
@@ -76,6 +81,17 @@ static const struct reg_default sgtl5000_reg_defaults[] = {
 	{ SGTL5000_DAP_AVC_ATTACK,		0x0028 },
 	{ SGTL5000_DAP_AVC_DECAY,		0x0050 },
 };
+
+struct sh_sgtl5000_priv {
+	int hp_gpio;
+	int hp_active_low;
+	int mic_gpio;
+	int mic_active_low;
+	int hp_irq;
+	int mic_irq;
+};
+
+static struct sh_sgtl5000_priv card_priv;
 
 /* AVC: Threshold dB -> register: pre-calculated values */
 static const u16 avc_thr_db2reg[97] = {
@@ -283,6 +299,38 @@ static int mic_bias_event(struct snd_soc_dapm_widget *w,
 		break;
 	}
 	return 0;
+}
+
+/*
+ *Headphone Detect Handler
+ */
+static irqreturn_t hp_handler(int irq, void *dev_id)
+{
+	struct sh_sgtl5000_priv *priv = &card_priv;
+	int hp_status;
+
+	hp_status = gpio_get_value(priv->hp_gpio) ? 1 : 0;
+	if (hp_status != priv->hp_active_low)
+		pr_info("Headphone is plugged\n");
+	else
+		pr_info("Headphone is unplugged\n");
+	return IRQ_RETVAL(1);
+}
+
+/*
+ *Microphone Detect handler
+ */
+static irqreturn_t mic_handler(int irq, void *dev_id)
+{
+	struct sh_sgtl5000_priv *priv = &card_priv;
+	int mic_status;
+
+	mic_status = gpio_get_value(priv->mic_gpio) ? 1 : 0;
+	if (mic_status != priv->mic_active_low)
+		pr_info("Microphone is plugged\n");
+	else
+		pr_info("Microphone is unplugged\n");
+	return IRQ_RETVAL(1);
 }
 
 static int vag_and_mute_control(struct snd_soc_component *component,
@@ -1461,6 +1509,9 @@ static int sgtl5000_probe(struct snd_soc_component *component)
 	u16 reg;
 	struct sgtl5000_priv *sgtl5000 = snd_soc_component_get_drvdata(component);
 	unsigned int zcd_mask = SGTL5000_HP_ZCD_EN | SGTL5000_ADC_ZCD_EN;
+	struct sh_sgtl5000_priv *priv = &card_priv;
+	struct device_node *np;
+	int hp_status, mic_status;
 
 	/* power up sgtl5000 */
 	ret = sgtl5000_set_power_regs(component);
@@ -1508,6 +1559,43 @@ static int sgtl5000_probe(struct snd_soc_component *component)
 	/* Unmute DAC after start */
 	snd_soc_component_update_bits(component, SGTL5000_CHIP_ADCDAC_CTRL,
 		SGTL5000_DAC_MUTE_LEFT | SGTL5000_DAC_MUTE_RIGHT, 0);
+
+	/* Audio: HeadPhone and Mic Detect Implementation */
+	np = of_find_compatible_node(NULL, NULL, "fsl,sgtl5000");
+
+	priv->hp_gpio = of_get_named_gpio_flags(np, "hp-det-gpios", 0,
+			(enum of_gpio_flags *)&priv->hp_active_low);
+	if (gpio_is_valid(priv->hp_gpio)) {
+		gpio_request(priv->hp_gpio, "HeadPhone-Detect");
+		gpio_direction_input(priv->hp_gpio);
+		priv->hp_irq = gpio_to_irq(priv->hp_gpio);
+		hp_status = gpio_get_value(priv->hp_gpio) ? 1 : 0;
+
+		ret = request_irq(priv->hp_irq, hp_handler,
+			IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
+			"HeadPhone", 0);
+		if (ret < 0) {
+			pr_alert("Request hp_irq failed with %d\n", ret);
+			free_irq(priv->hp_irq, 0);
+		}
+	}
+
+	priv->mic_gpio = of_get_named_gpio_flags(np, "mic-det-gpios", 0,
+			(enum of_gpio_flags *)&priv->mic_active_low);
+	if (gpio_is_valid(priv->mic_gpio)) {
+		gpio_request(priv->mic_gpio, "Microphone-Detect");
+		gpio_direction_input(priv->mic_gpio);
+		priv->mic_irq = gpio_to_irq(priv->mic_gpio);
+		mic_status = gpio_get_value(priv->mic_gpio) ? 1 : 0;
+
+		ret = request_irq(priv->mic_irq, mic_handler,
+			IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
+			"MicroPhone", 0);
+		if (ret < 0) {
+			pr_alert("Request mic_irq failed with %d\n", ret);
+			free_irq(priv->mic_irq, 0);
+		}
+	}
 
 	return 0;
 
