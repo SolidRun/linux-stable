@@ -155,7 +155,7 @@ int rsnd_cmd_probe(struct rsnd_priv *priv)
 {
 	struct device *dev = rsnd_priv_to_dev(priv);
 	struct rsnd_cmd *cmd;
-	int i, nr;
+	int i, nr, ret;
 
 	/* This driver doesn't support Gen1 at this point */
 	if (rsnd_is_gen1(priv))
@@ -174,9 +174,9 @@ int rsnd_cmd_probe(struct rsnd_priv *priv)
 	priv->cmd	= cmd;
 
 	for_each_rsnd_cmd(cmd, priv, i) {
-		int ret = rsnd_mod_init(priv, rsnd_mod_get(cmd),
-					&rsnd_cmd_ops, NULL,
-					RSND_MOD_CMD, i);
+		ret = rsnd_mod_init(priv, rsnd_mod_get(cmd),
+				    &rsnd_cmd_ops, NULL, NULL,
+				    RSND_MOD_CMD, i);
 		if (ret)
 			return ret;
 	}
