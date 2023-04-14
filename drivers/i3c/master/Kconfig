@@ -21,3 +21,9 @@ config DW_I3C_MASTER
 
 	  This driver can also be built as a module.  If so, the module
 	  will be called dw-i3c-master.
+
+config RENESAS_I3C_MASTER
+	tristate "Renesas I3C master driver"
+	depends on I3C
+	depends on HAS_IOMEM
+	depends on !(ALPHA || PARISC)
