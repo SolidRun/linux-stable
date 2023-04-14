@@ -5,6 +5,7 @@
 // Copyright (c) 2015 Kuninori Morimoto <kuninori.morimoto.gx@renesas.com>
 
 #include "rsnd.h"
+#include <linux/reset.h>
 
 #define SSIU_NAME "ssiu"
 
@@ -509,6 +510,7 @@ int rsnd_ssiu_probe(struct rsnd_priv *priv)
 	struct device_node *node;
 	struct rsnd_ssiu *ssiu;
 	struct rsnd_mod_ops *ops;
+	struct reset_control *rstc;
 	const int *list = NULL;
 	int i, nr;
 
@@ -580,8 +582,12 @@ int rsnd_ssiu_probe(struct rsnd_priv *priv)
 			ssiu->id = i;
 		}
 
+		rstc = devm_reset_control_get_optional_shared(dev, "ssi-all");
+		if (IS_ERR(rstc))
+			dev_dbg(dev, "failed to get cpg reset\n");
+
 		ret = rsnd_mod_init(priv, rsnd_mod_get(ssiu),
-				    ops, NULL, RSND_MOD_SSIU, i);
+				    ops, NULL, rstc, RSND_MOD_SSIU, i);
 		if (ret)
 			return ret;
 	}

@@ -91,6 +91,7 @@
  */
 
 #include <linux/pm_runtime.h>
+#include <linux/reset.h>
 #include "rsnd.h"
 
 #define RSND_RATES SNDRV_PCM_RATE_8000_192000
@@ -102,6 +103,7 @@ static const struct of_device_id rsnd_of_match[] = {
 	{ .compatible = "renesas,rcar_sound-gen1", .data = (void *)RSND_GEN1 },
 	{ .compatible = "renesas,rcar_sound-gen2", .data = (void *)RSND_GEN2 },
 	{ .compatible = "renesas,rcar_sound-gen3", .data = (void *)RSND_GEN3 },
+	{ .compatible = "renesas,rcar_sound-r9a09g057", .data = (void *)RSND_RZV2H },
 	/* Special Handling */
 	{ .compatible = "renesas,rcar_sound-r8a77990", .data = (void *)(RSND_GEN3 | RSND_SOC_E) },
 	{},
@@ -194,10 +196,11 @@ int rsnd_mod_init(struct rsnd_priv *priv,
 		  struct rsnd_mod *mod,
 		  struct rsnd_mod_ops *ops,
 		  struct clk *clk,
+		  struct reset_control *rstc,
 		  enum rsnd_mod_type type,
 		  int id)
 {
-	int ret = clk_prepare(clk);
+	int ret = clk_prepare_enable(clk);
 
 	if (ret)
 		return ret;
@@ -206,9 +209,20 @@ int rsnd_mod_init(struct rsnd_priv *priv,
 	mod->ops	= ops;
 	mod->type	= type;
 	mod->clk	= clk;
+	mod->rstc	= rstc;
 	mod->priv	= priv;
 
-	return 0;
+	usleep_range(2000, 4000);
+
+	ret = reset_control_deassert(mod->rstc);
+	if (ret < 0)
+		return ret;
+
+	usleep_range(2000, 4000);
+
+	clk_disable(clk);
+
+	return ret;
 }
 
 void rsnd_mod_quit(struct rsnd_mod *mod)
@@ -600,7 +614,7 @@ int rsnd_dai_connect(struct rsnd_mod *mod,
 	return 0;
 }
 
-static void rsnd_dai_disconnect(struct rsnd_mod *mod,
+void rsnd_dai_disconnect(struct rsnd_mod *mod,
 				struct rsnd_dai_stream *io,
 				enum rsnd_mod_type type)
 {

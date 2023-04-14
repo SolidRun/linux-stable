@@ -22,6 +22,7 @@
  * #define RSND_DEBUG_NO_IRQ_STATUS 1
  */
 
+#include <linux/reset.h>
 #include "rsnd.h"
 
 #define SRC_NAME "src"
@@ -463,6 +464,8 @@ static int rsnd_src_init(struct rsnd_mod *mod,
 			 struct rsnd_priv *priv)
 {
 	struct rsnd_src *src = rsnd_mod_to_src(mod);
+	struct device *dev = rsnd_priv_to_dev(priv);
+	struct clk *clk;
 	int ret;
 
 	/* reset sync convert_rate */
@@ -471,6 +474,14 @@ static int rsnd_src_init(struct rsnd_mod *mod,
 	ret = rsnd_mod_power_on(mod);
 	if (ret < 0)
 		return ret;
+
+	clk = devm_clk_get_optional(dev, "scu_supply_clk");
+	if (IS_ERR(clk))
+		dev_dbg(dev, "Not use scu_supply_clk\n");
+
+	ret = clk_prepare_enable(clk);
+	if (ret < 0)
+		dev_dbg(dev, "Can not enable scu_supply_clk\n");
 
 	rsnd_src_activation(mod);
 
@@ -648,6 +659,7 @@ int rsnd_src_probe(struct rsnd_priv *priv)
 	struct device *dev = rsnd_priv_to_dev(priv);
 	struct rsnd_src *src;
 	struct clk *clk;
+	struct reset_control *rstc;
 	char name[RSND_SRC_NAME_SIZE];
 	int i, nr, ret;
 
@@ -670,6 +682,22 @@ int rsnd_src_probe(struct rsnd_priv *priv)
 		ret = -ENOMEM;
 		goto rsnd_src_probe_done;
 	}
+
+	clk = devm_clk_get_optional(dev, "scu_clk");
+	if (IS_ERR(clk))
+		dev_dbg(dev, "Not use scu_clk\n");
+
+	ret = clk_prepare_enable(clk);
+	if (ret < 0)
+		dev_dbg(dev, "Can not enable scu_clk\n");
+
+	clk = devm_clk_get_optional(dev, "scu_clkx2");
+	if (IS_ERR(clk))
+		dev_dbg(dev, "Not use scu_clkx2\n");
+
+	ret = clk_prepare_enable(clk);
+	if (ret < 0)
+		dev_dbg(dev, "Can not enable scu_clkx2\n");
 
 	priv->src_nr	= nr;
 	priv->src	= src;
@@ -705,8 +733,12 @@ int rsnd_src_probe(struct rsnd_priv *priv)
 			goto rsnd_src_probe_done;
 		}
 
+		rstc = devm_reset_control_get_optional_shared(dev, "scu");
+		if (IS_ERR(rstc))
+			dev_dbg(dev, "failed to get cpg reset\n");
+
 		ret = rsnd_mod_init(priv, rsnd_mod_get(src),
-				    &rsnd_src_ops, clk, RSND_MOD_SRC, i);
+				    &rsnd_src_ops, clk, rstc, RSND_MOD_SRC, i);
 		if (ret) {
 			of_node_put(np);
 			goto rsnd_src_probe_done;
@@ -726,10 +758,24 @@ rsnd_src_probe_done:
 
 void rsnd_src_remove(struct rsnd_priv *priv)
 {
+	struct device *dev = rsnd_priv_to_dev(priv);
 	struct rsnd_src *src;
 	int i;
+	struct clk *clk;
 
 	for_each_rsnd_src(src, priv, i) {
 		rsnd_mod_quit(rsnd_mod_get(src));
 	}
+
+	clk = devm_clk_get_optional(dev, "scu_clk");
+	if (IS_ERR(clk))
+		dev_dbg(dev, "Not use scu_clk\n");
+
+	clk_disable_unprepare(clk);
+
+	clk = devm_clk_get_optional(dev, "scu_clkx2");
+	if (IS_ERR(clk))
+		dev_dbg(dev, "Not use scu_clkx2\n");
+
+	clk_disable_unprepare(clk);
 }
