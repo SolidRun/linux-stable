@@ -677,14 +677,18 @@ struct phy_tdr_config {
  * struct phy_led: An LED driven by the PHY
  *
  * @list: List of LEDs
+ * @phydev: PHY this LED is attached to
  * @led_cdev: Standard LED class structure
  * @index: Number of the LED
  */
 struct phy_led {
 	struct list_head list;
+	struct phy_device *phydev;
 	struct led_classdev led_cdev;
 	u8 index;
 };
+
+#define to_phy_led(d) container_of(d, struct phy_led, led_cdev)
 
 /**
  * struct phy_driver - Driver structure for a particular PHY type
@@ -891,6 +895,14 @@ struct phy_driver {
 	int (*get_sqi)(struct phy_device *dev);
 	/** @get_sqi_max: Get the maximum signal quality indication */
 	int (*get_sqi_max)(struct phy_device *dev);
+	/**
+	 * @led_brightness_set: Set a PHY LED brightness. Index
+	 * indicates which of the PHYs led should be set. Value
+	 * follows the standard LED class meaning, e.g. LED_OFF,
+	 * LED_HALF, LED_FULL.
+	 */
+	int (*led_brightness_set)(struct phy_device *dev,
+				  u8 index, enum led_brightness value);
 };
 #define to_phy_driver(d) container_of(to_mdio_common_driver(d),		\
 				      struct phy_driver, mdiodrv)
