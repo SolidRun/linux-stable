@@ -561,23 +561,91 @@ static struct rsnd_mod_ops rsnd_dmapp_ops = {
  *	SCU : 0xec500000 / 0xec000000 / 0xec004000 / 0xec300000 / 0xec304000
  *	CMD : 0xec500000 /            / 0xec008000                0xec308000
  */
-#define RDMA_SSI_I_N(addr, i)	(addr ##_reg - 0x00300000 + (0x40 * i) + 0x8)
-#define RDMA_SSI_O_N(addr, i)	(addr ##_reg - 0x00300000 + (0x40 * i) + 0xc)
 
-#define RDMA_SSIU_I_N(addr, i, j) (addr ##_reg - 0x00441000 + (0x1000 * (i)) + (((j) / 4) * 0xA000) + (((j) % 4) * 0x400) - (0x4000 * ((i) / 9) * ((j) / 4)))
-#define RDMA_SSIU_O_N(addr, i, j) RDMA_SSIU_I_N(addr, i, j)
 
-#define RDMA_SSIU_I_P(addr, i, j) (addr ##_reg - 0x00141000 + (0x1000 * (i)) + (((j) / 4) * 0xA000) + (((j) % 4) * 0x400) - (0x4000 * ((i) / 9) * ((j) / 4)))
-#define RDMA_SSIU_O_P(addr, i, j) RDMA_SSIU_I_P(addr, i, j)
+/*	ex) V2H
+ *	      mod        / DMAC in    / DMAC out   / DMAC PP in / DMAC pp out
+ *	SSI : 0x13C31000 / 0x13C40000 / 0x13C40000
+ *	SSIU: 0x13C31000 / 0x13C40000 / 0x13C40000 / 0xEC400000 / 0xEC400000
+ *	SCU : 0x13C00000 / 0x13C10000 / 0x13C14000 / 0xEC300000 / 0xEC304000
+ *	CMD : 0x13C00000 /            / 0x13C18000                0xEC308000
+ */
 
-#define RDMA_SRC_I_N(addr, i)	(addr ##_reg - 0x00500000 + (0x400 * i))
-#define RDMA_SRC_O_N(addr, i)	(addr ##_reg - 0x004fc000 + (0x400 * i))
+#define RDMA_SSI_I_N_V2H(addr, i)	(addr ##_reg + 0x0000F000 + (0x1000 * i))
+#define RDMA_SSI_O_N_V2H(addr, i)	(addr ##_reg + 0x0000F000 + (0x1000 * i))
 
-#define RDMA_SRC_I_P(addr, i)	(addr ##_reg - 0x00200000 + (0x400 * i))
-#define RDMA_SRC_O_P(addr, i)	(addr ##_reg - 0x001fc000 + (0x400 * i))
+#define RDMA_SSIU_I_N_V2H(addr, i, j) (addr ##_reg + 0x0000F000 + (0x1000 * (i)) +\
+				      (((j) / 4) * 0xA000) + (((j) % 4) * 0x400) -\
+				      (0x4000 * ((i) / 9) * ((j) / 4)))
+#define RDMA_SSIU_O_N_V2H(addr, i, j) RDMA_SSIU_I_N_V2H(addr, i, j)
 
-#define RDMA_CMD_O_N(addr, i)	(addr ##_reg - 0x004f8000 + (0x400 * i))
-#define RDMA_CMD_O_P(addr, i)	(addr ##_reg - 0x001f8000 + (0x400 * i))
+#define RDMA_SSIU_I_P_V2H(addr, i, j) (addr ##_reg + 0xD87CF000 + (0x1000 * (i)) +\
+				      (((j) / 4) * 0xA000) + (((j) % 4) * 0x400) -\
+				      (0x4000 * ((i) / 9) * ((j) / 4)))
+#define RDMA_SSIU_O_P_V2H(addr, i, j) RDMA_SSIU_I_P_V2H(addr, i, j)
+
+#define RDMA_SRC_I_N_V2H(addr, i)	(addr ##_reg + 0x00010000 + (0x400 * i))
+#define RDMA_SRC_O_N_V2H(addr, i)	(addr ##_reg + 0x00014000 + (0x400 * i))
+
+#define RDMA_SRC_I_P_V2H(addr, i)	(addr ##_reg + 0xD8700000 + (0x400 * i))
+#define RDMA_SRC_O_P_V2H(addr, i)	(addr ##_reg + 0xD8704000 + (0x400 * i))
+
+#define RDMA_CMD_O_N_V2H(addr, i)	(addr ##_reg + 0x00018000 + (0x400 * i))
+#define RDMA_CMD_O_P_V2H(addr, i)	(addr ##_reg + 0xD8708000 + (0x400 * i))
+
+
+#define RDMA_SSI_I_N_RCAR(addr, i)	(addr ##_reg - 0x00300000 + (0x40 * i) + 0x8)
+#define RDMA_SSI_O_N_RCAR(addr, i)	(addr ##_reg - 0x00300000 + (0x40 * i) + 0xc)
+
+#define RDMA_SSIU_I_N_RCAR(addr, i, j) (addr ##_reg - 0x00441000 + (0x1000 * (i)) +\
+				       (((j) / 4) * 0xA000) + (((j) % 4) * 0x400) -\
+				       (0x4000 * ((i) / 9) * ((j) / 4)))
+#define RDMA_SSIU_O_N_RCAR(addr, i, j) RDMA_SSIU_I_N_RCAR(addr, i, j)
+
+#define RDMA_SSIU_I_P_RCAR(addr, i, j) (addr ##_reg - 0x00141000 + (0x1000 * (i)) +\
+				       (((j) / 4) * 0xA000) + (((j) % 4) * 0x400) -\
+				       (0x4000 * ((i) / 9) * ((j) / 4)))
+#define RDMA_SSIU_O_P_RCAR(addr, i, j) RDMA_SSIU_I_P_RCAR(addr, i, j)
+
+#define RDMA_SRC_I_N_RCAR(addr, i)	(addr ##_reg - 0x00500000 + (0x400 * i))
+#define RDMA_SRC_O_N_RCAR(addr, i)	(addr ##_reg - 0x004fc000 + (0x400 * i))
+
+#define RDMA_SRC_I_P_RCAR(addr, i)	(addr ##_reg - 0x00200000 + (0x400 * i))
+#define RDMA_SRC_O_P_RCAR(addr, i)	(addr ##_reg - 0x001fc000 + (0x400 * i))
+
+#define RDMA_CMD_O_N_RCAR(addr, i)	(addr ##_reg - 0x004f8000 + (0x400 * i))
+#define RDMA_CMD_O_P_RCAR(addr, i)	(addr ##_reg - 0x001f8000 + (0x400 * i))
+
+#define RDMA_SSI_I_N(p, addr, i)	(rsnd_is_rzv2h(p) ? RDMA_SSI_I_N_V2H(addr, i) :\
+					RDMA_SSI_I_N_RCAR(addr, i))
+#define RDMA_SSI_O_N(p, addr, i)	(rsnd_is_rzv2h(p) ? RDMA_SSI_O_N_V2H(addr, i) :\
+					RDMA_SSI_O_N_RCAR(addr, i))
+
+#define RDMA_SSIU_I_N(p, addr, i, j)	(rsnd_is_rzv2h(p) ? RDMA_SSIU_I_N_V2H(addr, i, j) :\
+					RDMA_SSIU_I_N_RCAR(addr, i, j))
+#define RDMA_SSIU_O_N(p, addr, i, j)	(rsnd_is_rzv2h(p) ? RDMA_SSIU_O_N_V2H(addr, i, j) :\
+					RDMA_SSIU_O_N_RCAR(addr, i, j))
+
+#define RDMA_SSIU_I_P(p, addr, i, j)	(rsnd_is_rzv2h(p) ? RDMA_SSIU_I_P_V2H(addr, i, j) :\
+					RDMA_SSIU_I_P_RCAR(addr, i, j))
+#define RDMA_SSIU_O_P(p, addr, i, j)	(rsnd_is_rzv2h(p) ? RDMA_SSIU_O_P_V2H(addr, i, j) :\
+					RDMA_SSIU_O_P_RCAR(addr, i, j))
+
+#define RDMA_SRC_I_N(p, addr, i)	(rsnd_is_rzv2h(p) ? RDMA_SRC_I_N_V2H(addr, i) :\
+					RDMA_SRC_I_N_RCAR(addr, i))
+#define RDMA_SRC_O_N(p, addr, i)	(rsnd_is_rzv2h(p) ? RDMA_SRC_O_N_V2H(addr, i) :\
+					RDMA_SRC_O_N_RCAR(addr, i))
+
+#define RDMA_SRC_I_P(p, addr, i)	(rsnd_is_rzv2h(p) ? RDMA_SRC_I_P_V2H(addr, i) :\
+					RDMA_SRC_I_P_RCAR(addr, i))
+#define RDMA_SRC_O_P(p, addr, i)	(rsnd_is_rzv2h(p) ? RDMA_SRC_O_P_V2H(addr, i) :\
+					RDMA_SRC_O_P_RCAR(addr, i))
+
+#define RDMA_CMD_O_N(p, addr, i)	(rsnd_is_rzv2h(p) ? RDMA_CMD_O_N_V2H(addr, i) :\
+					RDMA_CMD_O_N_RCAR(addr, i))
+#define RDMA_CMD_O_P(p, addr, i)	(rsnd_is_rzv2h(p) ? RDMA_CMD_O_P_V2H(addr, i) :\
+					RDMA_CMD_O_P_RCAR(addr, i))
+
 
 static dma_addr_t
 rsnd_gen2_dma_addr(struct rsnd_dai_stream *io,
@@ -586,8 +654,10 @@ rsnd_gen2_dma_addr(struct rsnd_dai_stream *io,
 {
 	struct rsnd_priv *priv = rsnd_io_to_priv(io);
 	struct device *dev = rsnd_priv_to_dev(priv);
-	phys_addr_t ssi_reg = rsnd_gen_get_phy_addr(priv, RSND_GEN2_SSI);
-	phys_addr_t src_reg = rsnd_gen_get_phy_addr(priv, RSND_GEN2_SCU);
+	phys_addr_t ssi_reg = rsnd_gen_get_phy_addr(priv, rsnd_is_rzv2h(priv) ?
+			      RSND_RZV2H_SSI : RSND_GEN2_SSI);
+	phys_addr_t src_reg = rsnd_gen_get_phy_addr(priv, rsnd_is_rzv2h(priv) ?
+			      RSND_RZV2H_SCU : RSND_GEN2_SCU);
 	int is_ssi = !!(rsnd_io_to_mod_ssi(io) == mod) ||
 		     !!(rsnd_io_to_mod_ssiu(io) == mod);
 	int use_src = !!rsnd_io_to_mod_src(io);
@@ -603,32 +673,32 @@ rsnd_gen2_dma_addr(struct rsnd_dai_stream *io,
 		/* SRC */
 		/* Capture */
 		{{{ 0,				0 },
-		  { RDMA_SRC_O_N(src, id),	RDMA_SRC_I_P(src, id) },
-		  { RDMA_CMD_O_N(src, id),	RDMA_SRC_I_P(src, id) } },
+		  { RDMA_SRC_O_N(priv, src, id),	RDMA_SRC_I_P(priv, src, id) },
+		  { RDMA_CMD_O_N(priv, src, id),	RDMA_SRC_I_P(priv, src, id) } },
 		 /* Playback */
 		 {{ 0,				0, },
-		  { RDMA_SRC_O_P(src, id),	RDMA_SRC_I_N(src, id) },
-		  { RDMA_CMD_O_P(src, id),	RDMA_SRC_I_N(src, id) } }
+		  { RDMA_SRC_O_P(priv, src, id),	RDMA_SRC_I_N(priv, src, id) },
+		  { RDMA_CMD_O_P(priv, src, id),	RDMA_SRC_I_N(priv, src, id) } }
 		},
 		/* SSI */
 		/* Capture */
-		{{{ RDMA_SSI_O_N(ssi, id),		0 },
-		  { RDMA_SSIU_O_P(ssi, id, busif),	0 },
-		  { RDMA_SSIU_O_P(ssi, id, busif),	0 } },
+		{{{ RDMA_SSI_O_N(priv, ssi, id),		0 },
+		  { RDMA_SSIU_O_P(priv, ssi, id, busif),	0 },
+		  { RDMA_SSIU_O_P(priv, ssi, id, busif),	0 } },
 		 /* Playback */
-		 {{ 0,			RDMA_SSI_I_N(ssi, id) },
-		  { 0,			RDMA_SSIU_I_P(ssi, id, busif) },
-		  { 0,			RDMA_SSIU_I_P(ssi, id, busif) } }
+		 {{ 0,			RDMA_SSI_I_N(priv, ssi, id) },
+		  { 0,			RDMA_SSIU_I_P(priv, ssi, id, busif) },
+		  { 0,			RDMA_SSIU_I_P(priv, ssi, id, busif) } }
 		},
 		/* SSIU */
 		/* Capture */
-		{{{ RDMA_SSIU_O_N(ssi, id, busif),	0 },
-		  { RDMA_SSIU_O_P(ssi, id, busif),	0 },
-		  { RDMA_SSIU_O_P(ssi, id, busif),	0 } },
+		{{{ RDMA_SSIU_O_N(priv, ssi, id, busif),	0 },
+		  { RDMA_SSIU_O_P(priv, ssi, id, busif),	0 },
+		  { RDMA_SSIU_O_P(priv, ssi, id, busif),	0 } },
 		 /* Playback */
-		 {{ 0,			RDMA_SSIU_I_N(ssi, id, busif) },
-		  { 0,			RDMA_SSIU_I_P(ssi, id, busif) },
-		  { 0,			RDMA_SSIU_I_P(ssi, id, busif) } } },
+		 {{ 0,			RDMA_SSIU_I_N(priv, ssi, id, busif) },
+		  { 0,			RDMA_SSIU_I_P(priv, ssi, id, busif) },
+		  { 0,			RDMA_SSIU_I_P(priv, ssi, id, busif) } } },
 	};
 
 	/*
