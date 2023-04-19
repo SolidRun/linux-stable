@@ -31,7 +31,16 @@
 #define RSND_GEN2_SSIU	2
 #define RSND_GEN2_SSI	3
 
+#define RSND_RZV2H_SCU		0
+#define RSND_RZV2H_ADG		1
+#define RSND_RZV2H_SSIU		2
+#define RSND_RZV2H_SSI		3
+
+#ifdef CONFIG_SND_SOC_RZV2H
 #define RSND_BASE_MAX	4
+#else
+#define RSND_BASE_MAX	4
+#endif
 
 /*
  *	pseudo register
@@ -148,13 +157,16 @@ enum rsnd_reg {
 	AUDIO_CLK_SEL0,
 	AUDIO_CLK_SEL1,
 	AUDIO_CLK_SEL2,
+	AUDIO_CLK_SEL3,
 
 	/* SSIU */
 	SSI_MODE,
 	SSI_MODE0,
 	SSI_MODE1,
 	SSI_MODE2,
+	SSI_MODE3,
 	SSI_CONTROL,
+	SSI_CONTROL2,
 	SSI_CTRL,
 	SSI_BUSIF0_MODE,
 	SSI_BUSIF1_MODE,
@@ -628,6 +640,7 @@ struct rsnd_priv {
 #define RSND_GEN1	(1 << 0)
 #define RSND_GEN2	(2 << 0)
 #define RSND_GEN3	(3 << 0)
+#define RSND_RZV2H	(4 << 0)
 #define RSND_SOC_MASK	(0xFF << 4)
 #define RSND_SOC_E	(1 << 4) /* E1/E2/E3 */
 
@@ -702,6 +715,7 @@ struct rsnd_priv {
 #define rsnd_is_gen1(priv)	(((priv)->flags & RSND_GEN_MASK) == RSND_GEN1)
 #define rsnd_is_gen2(priv)	(((priv)->flags & RSND_GEN_MASK) == RSND_GEN2)
 #define rsnd_is_gen3(priv)	(((priv)->flags & RSND_GEN_MASK) == RSND_GEN3)
+#define rsnd_is_rzv2h(priv)	(((priv)->flags & RSND_GEN_MASK) == RSND_RZV2H)
 #define rsnd_is_e3(priv)	(((priv)->flags & \
 					(RSND_GEN_MASK | RSND_SOC_MASK)) == \
 					(RSND_GEN3 | RSND_SOC_E))
