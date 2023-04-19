@@ -699,7 +699,7 @@ static void __rsnd_ssi_interrupt(struct rsnd_mod *mod,
 		stop = true;
 	}
 
-	stop |= rsnd_ssiu_busif_err_status_clear(mod);
+	stop |= rsnd_ssiu_busif_err_status_clear(mod, rsnd_is_rzv2h(priv) ? 2 : 4);
 
 	rsnd_ssi_status_clear(mod);
 rsnd_ssi_interrupt_out:
