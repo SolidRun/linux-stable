@@ -122,7 +122,11 @@ int rsnd_ssi_use_busif(struct rsnd_dai_stream *io)
 {
 	struct rsnd_mod *mod = rsnd_io_to_mod_ssi(io);
 	struct rsnd_ssi *ssi = rsnd_mod_to_ssi(mod);
+	struct rsnd_priv *priv = rsnd_mod_to_priv(mod);
 	int use_busif = 0;
+
+	if (rsnd_is_rzv2h(priv))
+		return 1;
 
 	if (!rsnd_ssi_is_dma_mode(mod))
 		return 0;
