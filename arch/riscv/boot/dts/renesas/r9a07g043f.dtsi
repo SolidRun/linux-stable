@@ -593,7 +593,7 @@
 				<0 0x110b0020 0 0x04>;
 			gpio-controller;
 			#gpio-cells = <2>;
-			gpio-ranges = <&pinctrl 0 0 152>;
+			gpio-ranges = <&pinctrl 0 0 232>;
 			clocks = <&cpg CPG_MOD R9A07G043F_GPIO_HCLK>;
 			power-domains = <&cpg>;
 			resets = <&cpg R9A07G043F_GPIO_RSTN>,
