@@ -535,7 +535,7 @@ static void ravb_emac_init_gbeth(struct net_device *ndev)
 	ravb_write(ndev, CSR0_TPE | CSR0_RPE, CSR0);
 
 	/* E-MAC interrupt enable register */
-	ravb_write(ndev, ECSIPR_ICDIP, ECSIPR);
+	ravb_write(ndev, ECSIPR_ICDIP | ECSIPR_LCHNGIP, ECSIPR);
 
 	if (priv->phy_interface == PHY_INTERFACE_MODE_MII) {
 		ravb_modify(ndev, CXR31, CXR31_SEL_LINK0 | CXR31_SEL_LINK1, 0);
