@@ -613,7 +613,7 @@ static irqreturn_t renesas_mtu3_interrupt(int irq, void *dev_id)
 static int renesas_mtu3_irq_register_by_name(const char *input_name,
 					struct renesas_mtu3_device *mtu)
 {
-	char irq_name[4];
+	char irq_name[5];
 	int i, irq, ret;
 	u8 ch_index, tier_val;
 
@@ -622,6 +622,7 @@ static int renesas_mtu3_irq_register_by_name(const char *input_name,
 
 	for (i = 0; i < 4; i++)
 		irq_name[i] = input_name[i];
+	irq_name[i] = '\0';
 
 	ch_index = input_name[4] - 48;
 
