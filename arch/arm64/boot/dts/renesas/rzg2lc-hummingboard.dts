@@ -63,6 +63,14 @@
 		dais = <&i2s2_port0>;
 	};
 #endif
+
+&pinctrl {
+  gpio-lte_on {
+    gpio-hog;
+    gpios = <RZG2L_GPIO(19, 1) GPIO_ACTIVE_HIGH>;
+    output-high;
+    line-name = "gpio_lte_on";
+  };
 };
 
 &i2c0 {

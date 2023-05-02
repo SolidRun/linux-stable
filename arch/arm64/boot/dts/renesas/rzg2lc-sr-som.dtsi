@@ -121,8 +121,14 @@
 
   usb0_vbus_otg: regulator-usb0-vbus-otg {
     compatible = "regulator-fixed";
-
     regulator-name = "USB0_VBUS_OTG";
+    regulator-min-microvolt = <5000000>;
+    regulator-max-microvolt = <5000000>;
+  };
+
+  usb1_vbus: regulator-usb1-vbus {
+    compatible = "regulator-fixed";
+    regulator-name = "USB1_VBUS";
     regulator-min-microvolt = <5000000>;
     regulator-max-microvolt = <5000000>;
   };
@@ -561,7 +567,7 @@
 &usb2_phy1 {
 	pinctrl-0 = <&usb1_pins>;
 	pinctrl-names = "default";
-
+  vbus-supply = <&usb1_vbus>;
 	status = "okay";
 };
 
