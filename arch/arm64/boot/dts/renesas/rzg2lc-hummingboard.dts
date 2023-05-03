@@ -65,7 +65,7 @@
 #endif
 
 &pinctrl {
-  gpio-lte_on {
+  gpio-lte_reset {
     gpio-hog;
     gpios = <RZG2L_GPIO(19, 1) GPIO_ACTIVE_HIGH>;
     output-high;
@@ -114,6 +114,14 @@
 			};
 		};
 	};
+
+  rtc@69 {
+        compatible = "abracon,abx80x";
+        reg = <0x69>;
+        abracon,tc-diode = "schottky";
+        abracon,tc-resistor = <3>;
+};
+
 };
 
 &adv7535 {
