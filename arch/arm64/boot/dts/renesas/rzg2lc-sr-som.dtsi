@@ -471,6 +471,13 @@
 	pinctrl-0 = <&i2c0_pins>;
 	pinctrl-names = "default";
 	status = "okay";
+
+  /* EEPROM CAT24AA01TDI-GT3 1-kb (128 B x 8)  */
+  eeprom: eeprom@50 {
+    compatible = "atmel,24c02";
+    reg = <0x50>;
+    pagesize = <16>;
+  };
 };
 
 &i2c1 {
