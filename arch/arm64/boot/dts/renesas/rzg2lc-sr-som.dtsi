@@ -164,6 +164,7 @@
 	phy0: ethernet-phy@0 {
     //compatible = "ethernet-phy-id0283.bc30", "ethernet-phy-ieee802.3-c22";
 		reg = <0>;
+		max-speed = <100>;  /* configure ethernet max speed for ethernet0 */
 		rxc-skew-psec = <2400>;
 		txc-skew-psec = <2400>;
 		rxdv-skew-psec = <0>;
@@ -508,7 +509,7 @@
 &scif1 {
 	pinctrl-0 = <&scif1_pins>;
 	pinctrl-names = "default";
-
+	uart-has-rtscts;
 	status = "okay";
 
   bluetooth {
