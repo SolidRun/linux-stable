@@ -518,6 +518,7 @@ struct rsnd_dai_stream {
 	int converted_chan;      /* converted channels */
 	u32 parent_ssi_status;
 	u32 flags;
+	u32 dma_buffer_pos;
 };
 
 /* flags */
