@@ -67,11 +67,73 @@ static struct rsnd_mod mem = {
 /*
  *		Audio DMAC
  */
+static void rsnd_dmaen_complete(void *data);
+
+static int rsnd_dmaen_transfer(struct rsnd_mod *mod,
+				struct rsnd_dai_stream *io)
+{
+	struct rsnd_dma *dma = rsnd_mod_to_dma(mod);
+	struct rsnd_dmaen *dmaen = rsnd_dma_to_dmaen(dma);
+	struct rsnd_priv *priv = rsnd_io_to_priv(io);
+	struct device *dev = rsnd_priv_to_dev(priv);
+	struct snd_pcm_substream *substream = io->substream;
+	struct dma_async_tx_descriptor *desc;
+	struct snd_pcm_runtime *runtime;
+	enum dma_transfer_direction dir;
+	u32 dma_paddr, dma_size;
+	int amount;
+
+	runtime = substream->runtime;
+
+	dir = rsnd_io_is_play(io) ? DMA_MEM_TO_DEV : DMA_DEV_TO_MEM;
+
+	/* Always transfer 1 period */
+	amount = runtime->period_size;
+
+	/* DMA physical address and size */
+	dma_paddr = runtime->dma_addr + frames_to_bytes(runtime,
+							io->dma_buffer_pos);
+	dma_size = frames_to_bytes(runtime, amount);
+	desc = dmaengine_prep_slave_single(dmaen->chan, dma_paddr, dma_size,
+					   dir,
+					   DMA_PREP_INTERRUPT | DMA_CTRL_ACK);
+	if (!desc) {
+		dev_err(dev, "dmaengine_prep_slave_sg() fail\n");
+		return -ENOMEM;
+	}
+
+	desc->callback		= rsnd_dmaen_complete;
+	desc->callback_param	= rsnd_mod_get(dma);
+
+	dmaen->dma_len		= snd_pcm_lib_buffer_bytes(substream);
+
+	dmaen->cookie = dmaengine_submit(desc);
+	if (dmaen->cookie < 0) {
+		dev_err(dev, "dmaengine_submit() fail\n");
+		return -EIO;
+	}
+
+	/* Update DMA pointer */
+	io->dma_buffer_pos += amount;
+	if (io->dma_buffer_pos >= runtime->buffer_size)
+		io->dma_buffer_pos = 0;
+
+	/* Start DMA */
+	dma_async_issue_pending(dmaen->chan);
+
+	return 0;
+}
+
 static void __rsnd_dmaen_complete(struct rsnd_mod *mod,
 				  struct rsnd_dai_stream *io)
 {
-	if (rsnd_io_is_working(io))
+	if (rsnd_io_is_working(io)) {
+		struct rsnd_priv *priv = rsnd_io_to_priv(io);
+
 		rsnd_dai_period_elapsed(io);
+		if (rsnd_is_rzv2h(priv))
+			rsnd_dmaen_transfer(mod, io);
+	}
 }
 
 static void rsnd_dmaen_complete(void *data)
@@ -169,7 +231,7 @@ static int rsnd_dmaen_start(struct rsnd_mod *mod,
 	struct dma_slave_config cfg = {};
 	enum dma_slave_buswidth buswidth = DMA_SLAVE_BUSWIDTH_4_BYTES;
 	int is_play = rsnd_io_is_play(io);
-	int ret;
+	int ret, i;
 
 	/*
 	 * in case of monaural data writing or reading through Audio-DMAC
@@ -209,6 +271,12 @@ static int rsnd_dmaen_start(struct rsnd_mod *mod,
 	ret = dmaengine_slave_config(dmaen->chan, &cfg);
 	if (ret < 0)
 		return ret;
+
+	if (rsnd_is_rzv2h(priv)) {
+		for (i = 0; i < 4; i++)
+			rsnd_dmaen_transfer(mod, io);
+		return 0;
+	}
 
 	desc = dmaengine_prep_dma_cyclic(dmaen->chan,
 					 substream->runtime->dma_addr,
@@ -309,6 +377,7 @@ static int rsnd_dmaen_pointer(struct rsnd_mod *mod,
 			      snd_pcm_uframes_t *pointer)
 {
 	struct snd_pcm_runtime *runtime = rsnd_io_to_runtime(io);
+	struct rsnd_priv *priv = rsnd_io_to_priv(io);
 	struct rsnd_dma *dma = rsnd_mod_to_dma(mod);
 	struct rsnd_dmaen *dmaen = rsnd_dma_to_dmaen(dma);
 	struct dma_tx_state state;
@@ -320,7 +389,11 @@ static int rsnd_dmaen_pointer(struct rsnd_mod *mod,
 		if (state.residue > 0 && state.residue <= dmaen->dma_len)
 			pos = dmaen->dma_len - state.residue;
 	}
-	*pointer = bytes_to_frames(runtime, pos);
+
+	if (rsnd_is_rzv2h(priv))
+		*pointer = io->dma_buffer_pos;
+	else
+		*pointer = bytes_to_frames(runtime, pos);
 
 	return 0;
 }
