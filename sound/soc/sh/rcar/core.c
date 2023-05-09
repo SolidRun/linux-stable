@@ -692,6 +692,7 @@ static void rsnd_dai_stream_init(struct rsnd_dai_stream *io,
 				struct snd_pcm_substream *substream)
 {
 	io->substream		= substream;
+	io->dma_buffer_pos	= 0;
 }
 
 static void rsnd_dai_stream_quit(struct rsnd_dai_stream *io)
