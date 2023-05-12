@@ -118,7 +118,7 @@ static const char * const sel_gpu2[] = { ".pll6", ".pll3_div2_2" };
 static const struct {
 	struct cpg_core_clk common[53];
 #ifdef CONFIG_CLK_R9A07G054
-	struct cpg_core_clk drp[0];
+	struct cpg_core_clk drp[1];
 #endif
 } core_clks __initconst = {
 	.common = {
@@ -204,6 +204,7 @@ static const struct {
 	},
 #ifdef CONFIG_CLK_R9A07G054
 	.drp = {
+		DEF_FIXED("DRP", R9A07G054_CLK_DRP_M, CLK_PLL3, 1, 5),
 	},
 #endif
 };
@@ -211,7 +212,7 @@ static const struct {
 static const struct {
 	struct rzg2l_mod_clk common[87];
 #ifdef CONFIG_CLK_R9A07G054
-	struct rzg2l_mod_clk drp[0];
+	struct rzg2l_mod_clk drp[5];
 #endif
 } mod_clks = {
 	.common = {
@@ -396,6 +397,16 @@ static const struct {
 	},
 #ifdef CONFIG_CLK_R9A07G054
 	.drp = {
+		DEF_MOD("drp_inclk",	R9A07G054_STPAI_INITCLK, CLK_EXTAL,
+					0x5E8, 0, 0),
+		DEF_MOD("drp_aclk_drp",	R9A07G054_STPAI_ACLK, R9A07G054_CLK_DRP_M,
+					0x5E8, 1, 0),
+		DEF_MOD("drp_mclk",	R9A07G054_STPAI_MCLK, R9A07G054_CLK_DRP_M,
+					0x5E8, 2, 0),
+		DEF_MOD("drp_dclkin",	R9A07G054_STPAI_DCLKIN, CLK_PLL3_DIV2,
+					0x5E8, 3, 0),
+		DEF_MOD("drp_aclk",	R9A07G054_STPAI_ACLK_DRP, CLK_PLL3_DIV2_4,
+					0x5E8, 4, 0),
 	},
 #endif
 };
@@ -469,6 +480,7 @@ static struct rzg2l_reset r9a07g044_resets[] = {
 	DEF_RST(R9A07G044_ADC_PRESETN, 0x8a8, 0),
 	DEF_RST(R9A07G044_ADC_ADRST_N, 0x8a8, 1),
 	DEF_RST(R9A07G044_TSU_PRESETN, 0x8ac, 0),
+	DEF_RST(R9A07G054_STPAI_ARESETN, 0x8E8, 0),
 };
 
 static const unsigned int r9a07g044_crit_mod_clks[] __initconst = {
