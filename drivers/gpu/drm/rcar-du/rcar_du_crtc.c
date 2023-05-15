@@ -222,86 +222,12 @@ struct cpg_param {
 	u32	pl5_spread;
 	u32	dsi_div_a;
 	u32	dsi_div_b;
+	u32	sel_pll5_4;
 };
 
-#define	TABLE_MAX		14
-#define	TABLE_PARALLEL_MAX	11
+#define OSCLK_HZ 24000000
 #define reg_write(x, a)		iowrite32(a, x)
 #define CPG_LPCLK_DIV		0
-
-struct cpg_param resolution_1_lane_param[7] = {
-	{ 25175, 1,  50,  5872025, 1, 1, 0, 0x16, 2, 5}, /* VGA 25.175MHz */
-	{ 25200, 1,  50,  6710886, 1, 1, 0, 0x16, 2, 5}, /* VGA 25.200MHz */
-	{ 27000, 1,  54,        0, 1, 1, 0, 0x16, 2, 5}, /* 480p/576p 27.000MHz */
-	{ 27000, 1,  54,   905969, 1, 1, 0, 0x16, 2, 5}, /* 480p 27.027MHz */
-	{ 27380, 1,  54, 12750684, 1, 1, 0, 0x16, 2, 5}, /* 27.38MHz */
-	{ 29605, 1,  59,  3523215, 1, 1, 0, 0x16, 2, 5}, /* WVGA 29.605MHz */
-	{ 40000, 1,  80,        0, 1, 1, 0, 0x16, 2, 5}, /* SVGA 40.00MHz */
-};
-
-struct cpg_param resolution_2_lanes_param[TABLE_MAX - 1] = {
-	{ 25175, 2,  50,  5872025, 1, 1, 0, 0x16, 1, 5}, /* VGA 25.175MHz */
-	{ 25200, 2,  50,  6710886, 1, 1, 0, 0x16, 1, 5}, /* VGA 25.200MHz */
-	{ 27000, 2,  54,        0, 1, 1, 0, 0x16, 1, 5}, /* 480p/576p 27.000MHz */
-	{ 27027, 2,  54,   905969, 1, 1, 0, 0x16, 1, 5}, /* 480p 27.027MHz */
-	{ 29605, 2,  59,  3523215, 1, 1, 0, 0x16, 1, 5}, /* WVGA 29.605MHz */
-	{ 40000, 2,  80,        0, 1, 1, 0, 0x16, 1, 5}, /* SVGA 40.00MHz */
-	{ 65000, 2, 130,        0, 1, 1, 0, 0x16, 1, 5}, /* XGA 65.00MHz */
-	{ 71000, 2, 142,        0, 1, 1, 0, 0x16, 1, 5}, /* WXGA 1280x800 71.0MHz */
-	{ 74176, 2, 148,  5905580, 1, 1, 0, 0x16, 1, 5}, /* 720p 74.176MHz */
-	{ 74250, 2, 148,  8388608, 1, 1, 0, 0x16, 1, 5}, /* 720p 74.25MHz */
-	{ 85500, 2, 171,        0, 1, 1, 0, 0x16, 1, 5}, /* FWXGA 1360x768 85.5MHz */
-	{ 88750, 2, 177,  8388608, 1, 1, 0, 0x16, 1, 5}, /* WXGA+ 1440x900 88.75MHz */
-	{108000, 2, 216,        0, 1, 1, 0, 0x16, 1, 5}, /* SXGA 108MHz */
-};
-
-struct cpg_param resolution_3_lanes_param[TABLE_MAX] = {
-	{ 25175, 2,  33,  9507089, 1, 1, 0, 0x16, 1, 3}, /* VGA 25.175MHz */
-	{ 25200, 2,  33, 10066329, 1, 1, 0, 0x16, 1, 3}, /* VGA 25.200MHz */
-	{ 27000, 2,  36,        0, 1, 1, 0, 0x16, 1, 3}, /* 480p/576p 27.000MHz */
-	{ 27027, 2,  36,   603979, 1, 1, 0, 0x16, 1, 3}, /* 480p 27.027MHz */
-	{ 29605, 2,  39,  7941215, 1, 1, 0, 0x16, 1, 3}, /* WVGA 29.605MHz */
-	{ 40000, 2,  53,  5592405, 1, 1, 0, 0x16, 1, 3}, /* SVGA 40.00MHz */
-	{ 65000, 2,  86, 11184810, 1, 1, 0, 0x16, 1, 3}, /* XGA 65.00MHz */
-	{ 71000, 2,  94, 11184810, 1, 1, 0, 0x16, 1, 3}, /* WXGA 1280x800 71.0MHz */
-	{ 74176, 2,  98, 15121864, 1, 1, 0, 0x16, 1, 3}, /* 720p 74.176MHz */
-	{ 74250, 2,  99,        0, 1, 1, 0, 0x16, 1, 3}, /* 720p 74.25MHz */
-	{ 85500, 2, 114,        0, 1, 1, 0, 0x16, 1, 3}, /* FWXGA 1360x768 85.5MHz */
-	{ 88750, 2, 118,  5592405, 1, 1, 0, 0x16, 1, 3}, /* WXGA+ 1440x900 88.75MHz */
-	{108000, 2, 144,        0, 1, 1, 0, 0x16, 1, 3}, /* SXGA 108MHz */
-	{148500, 2, 198,        0, 1, 1, 0, 0x16, 1, 3}, /* 1080p 148.5MHz */
-};
-
-struct cpg_param resolution_4_lanes_param[TABLE_MAX] = {
-	{ 25175, 2,  25,  2936012, 1, 1, 0, 0x16, 1, 2}, /* VGA 25.175MHz */
-	{ 25200, 2,  25,  3355443, 1, 1, 0, 0x16, 1, 2}, /* VGA 25.200MHz */
-	{ 27000, 2,  27,        0, 1, 1, 0, 0x16, 1, 2}, /* 480p/576p 27.000MHz */
-	{ 27027, 2,  27,   452984, 1, 1, 0, 0x16, 1, 2}, /* 480p 27.027MHz */
-	{ 29605, 2,  29, 10150215, 1, 1, 0, 0x16, 1, 2}, /* WVGA 29.605MHz */
-	{ 40000, 2,  40,        0, 1, 1, 0, 0x16, 1, 2}, /* SVGA 40.00MHz */
-	{ 65000, 2,  65,        0, 1, 1, 0, 0x16, 1, 2}, /* XGA 65.00MHz */
-	{ 71000, 2,  71,        0, 1, 1, 0, 0x16, 1, 2}, /* WXGA 1280x800 71.0MHz */
-	{ 74176, 2,  74,  2952790, 1, 1, 0, 0x16, 1, 2}, /* 720p 74.176MHz */
-	{ 74250, 2,  74,  4194304, 1, 1, 0, 0x16, 1, 2}, /* 720p 74.25MHz */
-	{ 85500, 2,  85,  8388608, 1, 1, 0, 0x16, 1, 2}, /* FWXGA 1360x768 85.5MHz */
-	{ 88750, 2,  88, 12582912, 1, 1, 0, 0x16, 1, 2}, /* WXGA+ 1440x900 88.75MHz */
-	{108000, 2, 108,        0, 1, 1, 0, 0x16, 1, 2}, /* SXGA 108MHz */
-	{148500, 2, 148,  8388608, 1, 1, 0, 0x16, 1, 2}, /* 1080p 148.5MHz */
-};
-
-struct cpg_param resolution_param_parallel[TABLE_PARALLEL_MAX] = {
-	{ 25175, 1, 102, 13386820, 7, 7, 0, 0x16, 1, 0}, /* VGA 25.175MHz */
-	{ 25200, 1,  73,  8388608, 7, 5, 0, 0x16, 1, 0}, /* VGA 25.200MHz */
-	{ 27000, 1,  78, 12582912, 7, 5, 0, 0x16, 1, 0}, /* 480p/576p 27.000MHz */
-	{ 27027, 1, 110,  6043992, 7, 7, 0, 0x16, 1, 0}, /* 480p 27.027MHz */
-	{ 29605, 1,  88, 13673431, 6, 6, 0, 0x16, 1, 0}, /* WVGA 29.605MHz */
-	{ 40000, 1,  70,        0, 7, 3, 0, 0x16, 1, 0}, /* SVGA 40.00MHz */
-	{ 65000, 1,  81,  4194304, 5, 3, 0, 0x16, 1, 0}, /* XGA 65.00MHz */
-	{ 71000, 1,  71,        0, 6, 2, 0, 0x16, 1, 0}, /* WXGA 1280x800 71.0MHz */
-	{ 74176, 1,  86,  9037327, 7, 2, 0, 0x16, 1, 0}, /* 720p 74.176MHz */
-	{ 74250, 1,  86, 10485760, 7, 2, 0, 0x16, 1, 0}, /* 720p 74.25MHz */
-	{ 85500, 1,  83,  8388608, 6, 2, 0, 0x16, 1, 0}, /* FWXGA 1360x768 85.5MHz */
-};
 
 static void rcar_du_crtc_set_display_timing(struct rcar_du_crtc *rcrtc)
 {
@@ -322,90 +248,166 @@ static void rcar_du_crtc_set_display_timing(struct rcar_du_crtc *rcrtc)
 		u32 ditr0, ditr1, ditr2, ditr3, ditr4, ditr5, pbcr0;
 		u32 bus_flags = 0;
 		void __iomem *cpg_base = ioremap(0x11010000, 0x1000);
-		u32 i, index, prevIndex = 0;
-		u32 parallelOut;
-		u32 tableMax;
-		struct cpg_param *paramPtr;
+		u32 i, found;
+		u32 parallel_out;
+		struct cpg_param param;
+		int lanes, bpp;
+		u32 pix_clk = mode->clock * 1000;
+		unsigned long long hs_clk;
+		unsigned long long pll5_clk;
+		unsigned long long divide_val;
+		u32 dsi_div;
+
+		/* Common settings */
+		param.frequency = 0;
+		param.pl5_refdiv = 1;
+		param.pl5_divval = 0;
+		param.pl5_spread = 0x16;
 
 		if (of_machine_is_compatible("renesas,r9a07g043")) {
-			parallelOut = 1;
-			tableMax = TABLE_PARALLEL_MAX;
-			paramPtr = resolution_param_parallel;
-		} else {
-			int lanes;
-			struct rcar_du_crtc_state *rstate = to_rcar_crtc_state(rcrtc->crtc.state);
+			parallel_out = 1;
 
-			lanes = (rstate->outputs != BIT(RCAR_DU_OUTPUT_MIPI_DSI0)) ? 4:
-				 rzg2l_mipi_dsi_get_data_lanes(rcdu->dsi[rcrtc->index]);
+			param.dsi_div_b = 0;	/* must be 0 */
+			param.dsi_div_a = 1;	/* 1:2 ratio seems the best */
 
-			parallelOut = 0;
-			switch (lanes) {
-			case 1:
-				paramPtr = resolution_1_lane_param;
-				tableMax = ARRAY_SIZE(resolution_1_lane_param);
-				break;
-			case 2:
-				paramPtr = resolution_2_lanes_param;
-				tableMax = TABLE_MAX - 1;
-				break;
-			case 3:
-				paramPtr = resolution_3_lanes_param;
-				tableMax = TABLE_MAX;
-				break;
-			case 4:
-				paramPtr = resolution_4_lanes_param;
-				tableMax = TABLE_MAX;
-				break;
-			default:
+			/* Clock frequency for RZ/G2UL is 74.25MHz.
+			 * It is equal to FullHD@30p or HD@60p.
+			 */
+			if (pix_clk > 742500000) {
+				dev_err(rcdu->dev, "Exceeded max frequency of 74.25MHz\n");
+
 				return;
 			}
 
-			/* CPG_OTHERFUNC1_REG: SEL_PLL5_3 clock */
-			reg_write(cpg_base + 0xbe8, 0x10001);
-		}
+			pll5_clk = pix_clk * 2;
 
-		for (i = 0; i < tableMax; i++) {
-			if (paramPtr[i].frequency == mode->clock) {
-				index = i;
+			/* Find a valid value for INTIN */
+			found = 0;
+			for(param.pl5_postdiv1 = 7; param.pl5_postdiv1 > 1; param.pl5_postdiv1--) {
+				for(param.pl5_postdiv2 = 7; param.pl5_postdiv2 > 1; param.pl5_postdiv2--) {
+					divide_val = pll5_clk * param.pl5_refdiv * param.pl5_postdiv1 * param.pl5_postdiv2;
+					param.pl5_intin = divide_val / OSCLK_HZ;
+					/* INTIN must be between 20 and 120 */
+					if (param.pl5_intin > 20 && param.pl5_intin < 120) {
+						found = 1;
+						break;
+					}
+				}
+				if (found)
+					break;
+			}
+
+			if (!found) {
+				/* Could not find any combinations */
+				dev_err(rcdu->dev, "Cannot calculate frequency (postdiv).\n");
+				return;
+			}
+
+			/* Denominator portion (multiplied by 16k to become an integer) */
+			/* Remove integer portion */
+			divide_val = divide_val % OSCLK_HZ;
+			/* Convert from decimal to integer */
+			divide_val = divide_val * 16 * 1024 * 1024;
+			/* Now we can divide */
+			divide_val = divide_val / OSCLK_HZ;
+			param.pl5_fracin = divide_val;
+		} else {
+			struct rcar_du_crtc_state *rstate = to_rcar_crtc_state(rcrtc->crtc.state);
+			lanes = (rstate->outputs != BIT(RCAR_DU_OUTPUT_MIPI_DSI0)) ? 4:
+				 rzg2l_mipi_dsi_get_data_lanes(rcdu->dsi[rcrtc->index]);
+			bpp = (rstate->outputs != BIT(RCAR_DU_OUTPUT_MIPI_DSI0)) ? 24:
+			       rzg2l_mipi_dsi_get_bpp(rcdu->dsi[rcrtc->index]);
+			
+			parallel_out = 0;
+
+			/* Recommended values */
+			param.pl5_postdiv1 = 1;
+			param.pl5_postdiv2 = 1;
+
+			/* Calculate MIPI DSI High Speed clock and PLL clock(16x) */
+			hs_clk = ((long long)bpp * pix_clk) / (8 * lanes);
+			pll5_clk = hs_clk * 16;
+			if (pll5_clk > 1500000000) {
+				if (pll5_clk > 3000000000) {
+					dev_err(rcdu->dev, "Exceeded max frequency\n");
+					return;
+				}
+				param.sel_pll5_4 = 0;	/* 3.0 GHz */
+			}
+			else {
+				param.sel_pll5_4 = 1;	/* 1.5 GHz */
+			}
+
+			/* Divide raw bit clock by source clock. */
+			/* Numerator portion (integer) */
+			divide_val = pll5_clk * param.pl5_refdiv * param.pl5_postdiv1 * param.pl5_postdiv2;
+			param.pl5_intin = divide_val / OSCLK_HZ;
+
+			/* Denominator portion (multiplied by 16k to become an integer) */
+			/* Remove integer portion */
+			divide_val = divide_val % OSCLK_HZ;
+			/* Convert from decimal to integer */
+			divide_val = divide_val * 16 * 1024 * 1024;
+			/* Now we can divide */
+			divide_val = divide_val / OSCLK_HZ;
+			param.pl5_fracin = divide_val;
+
+			/* How much we need to divide own our PLL */
+			dsi_div = pll5_clk / pix_clk;
+
+			/* Clock source is 3G or 1.5G? */
+			if(param.sel_pll5_4)
+				dsi_div /= 2;
+
+			/* Find possible clock divide ratios.
+			 * The equation is: dsi_div = (2 ^ dis_div_a) * (1 + dis_div_b)
+			 * With div_a fixed, we get: dis_div_b = (dsi_div / (2 ^ dis_div_a)) - 1
+			 *   div_a can be 0-4
+			 *   div_b can be 0-16 */
+			for(i = 0; i < 4; i++) {
+				param.dsi_div_a = i;
+				param.dsi_div_b = (dsi_div / (1 << i)) - 1;
+				if (param.dsi_div_b > 16)
+					continue;
 				break;
 			}
 
-			if (paramPtr[i].frequency > mode->clock) {
-				if ((paramPtr[i].frequency - mode->clock) >
-				(mode->clock - paramPtr[prevIndex].frequency))
-					index = prevIndex;
-				else
-					index = i;
-				break;
+			if (i == 4) {
+				/* Could not find any combinations */
+				dev_err(rcdu->dev, "Cannot calculate frequency.\n");
+				return;
 			}
-			prevIndex = i;
 		}
 
-		if (i == tableMax)
-			index = tableMax - 1;
+		/* CPG_PLL5_STBY: RESETB=0 */
+		reg_write(cpg_base + 0x0140, 0x00150000);
+
+		/* CPG_OTHERFUNC1_REG: SEL_PLL5_3 clock (1.5GHz or 3.0GHz)*/
+		if (!parallel_out)
+			reg_write(cpg_base + 0xbe8, 0x10000 | param.sel_pll5_4);
 
 		/* CPG_PL2_DDIV: DIV_DSI_LPCLK */
 		reg_write(cpg_base + 0x0204, 0x10000000 |
 			 (CPG_LPCLK_DIV << 12));
 		/* CPG_PL5_SDIV: DIV_DSI_A, DIV_DSI_B */
 		reg_write(cpg_base + 0x0420, 0x01010000 |
-			 (paramPtr[index].dsi_div_a << 0) |
-			 (paramPtr[index].dsi_div_b << 8));
+			 (param.dsi_div_a << 0) |
+			 (param.dsi_div_b << 8));
 		/* CPG_PLL5_CLK1: POSTDIV1, POSTDIV2, REFDIV */
 		reg_write(cpg_base + 0x0144,
-			 (paramPtr[index].pl5_postdiv1 << 0) |
-			 (paramPtr[index].pl5_postdiv2 << 4) |
-			 (paramPtr[index].pl5_refdiv << 8));
+			 (param.pl5_postdiv1 << 0) |
+			 (param.pl5_postdiv2 << 4) |
+			 (param.pl5_refdiv << 8));
 		/* CPG_PLL5_CLK3: DIVVAL=6, FRACIN */
 		reg_write(cpg_base + 0x014C,
-			 (paramPtr[index].pl5_divval << 0) |
-			 (paramPtr[index].pl5_fracin << 8));
+			 (param.pl5_divval << 0) |
+			 (param.pl5_fracin << 8));
 		/* CPG_PLL5_CLK4: INTIN */
 		reg_write(cpg_base + 0x0150, 0x000000ff |
-			 (paramPtr[index].pl5_intin << 16));
+			 (param.pl5_intin << 16));
 		/* CPG_PLL5_CLK5: SPREAD */
 		reg_write(cpg_base + 0x0154,
-			 (paramPtr[index].pl5_spread << 0));
+			 (param.pl5_intin << 16));
 
 		/* CPG_PLL5_STBY: RESETB=1 */
 		reg_write(cpg_base + 0x0140, 0x00150001);
