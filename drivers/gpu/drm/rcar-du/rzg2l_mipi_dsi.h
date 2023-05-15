@@ -14,6 +14,7 @@ struct drm_bridge;
 int rzg2l_mipi_dsi_clk_enable(struct drm_bridge *bridge);
 void rzg2l_mipi_dsi_clk_disable(struct drm_bridge *bridge);
 int rzg2l_mipi_dsi_get_data_lanes(struct drm_bridge *bridge);
+int rzg2l_mipi_dsi_get_bpp(struct drm_bridge *bridge);
 #else
 static inline int rzg2l_mipi_dsi_clk_enable(struct drm_bridge *bridge)
 {
@@ -23,6 +24,10 @@ static inline void rzg2l_mipi_dsi_clk_disable(struct drm_bridge *bridge)
 {
 }
 static inline int rzg2l_mipi_dsi_get_data_lanes(struct drm_bridge *bridge)
+{
+	return 0;
+}
+static inline int rzg2l_mipi_dsi_get_bpp(struct drm_bridge *bridge)
 {
 	return 0;
 }
