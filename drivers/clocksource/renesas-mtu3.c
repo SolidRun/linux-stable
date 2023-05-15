@@ -1123,6 +1123,9 @@ static int renesas_mtu3_pwm_config(struct pwm_chip *chip,
 	unsigned int prescaler;
 	u32 clk_rate, period, duty, deadtime, val;
 
+	if ((duty_ns < 0) || (period_ns < 0))
+		return -EINVAL;
+
 	ch1 = &mtu3->channels[mtu3->pwms[pwm->hwpwm].ch1];
 	clk_rate = clk_get_rate(mtu3->clk);
 
@@ -1140,25 +1143,31 @@ static int renesas_mtu3_pwm_config(struct pwm_chip *chip,
 			return -ENOTSUPP;
 		}
 
-		if (duty_ns) {
+		if (duty_ns == period_ns) {
+			if (period == 0xffff)
+				duty = period;
+			else
+				duty = period + 1;
+		} else {
 			duty = clk_rate / prescalers[prescaler]
 				/ (NSEC_PER_SEC / duty_ns);
 			if (duty > period)
 				return -EINVAL;
-		} else {
-			duty = 0;
 		}
 
 		if (mtu3->pwms[pwm->hwpwm].output == 0) {
 			renesas_mtu3_8bit_ch_reg_write(ch1, TCR,
 			TCR_CCLR_TGRA | TCR_CKEG_RISING | prescaler);
+			/* To set 100% duty cycle, only write duty when output is high. */
+			if (duty != period)
+				renesas_mtu3_16bit_ch_reg_write(ch1, TGRA, period);
 			renesas_mtu3_16bit_ch_reg_write(ch1, TGRB, duty);
-			renesas_mtu3_16bit_ch_reg_write(ch1, TGRA, period);
 		} else if (mtu3->pwms[pwm->hwpwm].output == 1) {
 			renesas_mtu3_8bit_ch_reg_write(ch1, TCR,
 			TCR_CCLR_TGRC | TCR_CKEG_RISING | prescaler);
+			if (duty != period)
+				renesas_mtu3_16bit_ch_reg_write(ch1, TGRC, period);
 			renesas_mtu3_16bit_ch_reg_write(ch1, TGRD, duty);
-			renesas_mtu3_16bit_ch_reg_write(ch1, TGRC, period);
 		}
 	} else if (ch1->function == MTU3_PWM_COMPLEMENTARY) {
 		for (prescaler = 0; prescaler < ARRAY_SIZE(prescalers); ++prescaler) {
@@ -1186,12 +1195,12 @@ static int renesas_mtu3_pwm_config(struct pwm_chip *chip,
 			return -EINVAL;
 		}
 
-		if (duty_ns) {
+		if (duty_ns == period_ns)
+			duty = period + deadtime;
+		else {
 			duty = clk_rate / prescalers[prescaler] / (NSEC_PER_SEC / (duty_ns/2));
 			if (duty > period)
 				return -EINVAL;
-		} else {
-			duty = 0;
 		}
 
 		ch2 = &mtu3->channels[mtu3->pwms[pwm->hwpwm].ch2];
