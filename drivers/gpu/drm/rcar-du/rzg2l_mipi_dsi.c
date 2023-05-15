@@ -775,6 +775,13 @@ int rzg2l_mipi_dsi_get_data_lanes(struct drm_bridge *bridge)
 	return mipi_dsi->lanes;
 }
 
+int rzg2l_mipi_dsi_get_bpp(struct drm_bridge *bridge)
+{
+	struct rzg2l_mipi_dsi *mipi_dsi = bridge_to_rzg2l_mipi_dsi(bridge);
+
+	return mipi_dsi_pixel_format_to_bpp(mipi_dsi->format);
+}
+
 static int rzg2l_mipi_dsi_host_attach(struct mipi_dsi_host *host,
 				      struct mipi_dsi_device *device)
 {
