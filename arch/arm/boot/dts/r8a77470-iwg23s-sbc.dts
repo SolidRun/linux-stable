@@ -99,6 +99,13 @@
 	};
 };
 
+&can0 {
+	pinctrl-0 = <&can0_pins>;
+	pinctrl-names = "default";
+	renesas,can-clock-select = <0x0>;
+	status = "okay";
+};
+
 &cmt0 {
 	status = "okay";
 };
@@ -199,6 +206,11 @@
 	du0_pins: du0 {
 		groups = "du0_rgb888", "du0_sync", "du0_disp", "du0_clk0_out";
 		function = "du0";
+	};
+
+	can0_pins: can0 {
+		groups = "can0_data_a";
+		function = "can0";
 	};
 
 	i2c4_pins: i2c4 {
