@@ -323,6 +323,46 @@
 			#power-domain-cells = <1>;
 		};
 
+		tmu1: timer@fff60000 {
+			compatible = "renesas,tmu-r8a7744", "renesas,tmu";
+			reg = <0 0xfff60000 0 0x30>;
+			interrupts = <0 128 IRQ_TYPE_LEVEL_HIGH>,
+				     <0 129 IRQ_TYPE_LEVEL_HIGH>,
+				     <0 130 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 111>;
+			clock-names = "fck";
+			power-domains = <&sysc R8A7744_PD_ALWAYS_ON>;
+			#renesas,channels = <3>;
+			status = "disabled";
+		};
+
+		tmu2: timer@fff70000 {
+			compatible = "renesas,tmu-r8a7744", "renesas,tmu";
+			reg = <0 0xfff70000 0 0x30>;
+			interrupts = <0 303 IRQ_TYPE_LEVEL_HIGH>,
+				     <0 304 IRQ_TYPE_LEVEL_HIGH>,
+				     <0 305 IRQ_TYPE_LEVEL_HIGH>,
+				     <0 306 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 122>;
+			clock-names = "fck";
+			power-domains = <&sysc R8A7744_PD_ALWAYS_ON>;
+			#renesas,channels = <3>;
+			status = "disabled";
+		};
+
+		tmu3: timer@fff80000 {
+			compatible = "renesas,tmu-r8a7744", "renesas,tmu";
+			reg = <0 0xfff80000 0 0x30>;
+			interrupts = <0 131 IRQ_TYPE_LEVEL_HIGH>,
+				     <0 132 IRQ_TYPE_LEVEL_HIGH>,
+				     <0 133 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 121>;
+			clock-names = "fck";
+			power-domains = <&sysc R8A7744_PD_ALWAYS_ON>;
+			#renesas,channels = <3>;
+			status = "disabled";
+		};
+
 		irqc: interrupt-controller@e61c0000 {
 			compatible = "renesas,irqc-r8a7744", "renesas,irqc";
 			#interrupt-cells = <2>;
