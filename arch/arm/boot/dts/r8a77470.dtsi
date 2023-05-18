@@ -25,6 +25,7 @@
 		spi2 = &msiof0;
 		spi3 = &msiof1;
 		spi4 = &msiof2;
+		vin0 = &vin0;
 	};
 
 	cpus {
