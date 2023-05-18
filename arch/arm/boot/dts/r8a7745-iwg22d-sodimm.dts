@@ -38,6 +38,8 @@
 
 	aliases {
 		ethernet0 = &avb;
+		serial1 = &scif2;
+		serial2 = &scif3;
 		serial3 = &scif4;
 		serial5 = &hscif1;
 	};
@@ -274,6 +276,16 @@
 		function = "i2c5";
 	};
 
+	scif2_pins: serial1 {
+		groups = "scif2_data";
+		function = "scif2";
+	};
+
+	scif3_pins: serial2 {
+		groups = "scif3_data";
+		function = "scif3";
+	};
+
 	scif4_pins: scif4 {
 		groups = "scif4_data_b";
 		function = "scif4";
@@ -327,6 +339,20 @@
 			capture = <&ssi4 &src4 &dvc1>;
 		};
 	};
+};
+
+&scif2 {
+	pinctrl-0 = <&scif2_pins>;
+	pinctrl-names = "default";
+
+	status = "okay";
+};
+
+&scif3 {
+	pinctrl-0 = <&scif3_pins>;
+	pinctrl-names = "default";
+
+	status = "okay";
 };
 
 &scif4 {
