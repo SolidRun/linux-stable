@@ -53,6 +53,7 @@
 		pwms = <&pwm3 0 5000000 0>;
 		brightness-levels = <0 4 8 16 32 64 128 255>;
 		default-brightness-level = <7>;
+		power-supply = <&vcc_3v3_tft1>;
 		enable-gpios = <&gpio5 14 GPIO_ACTIVE_HIGH>;
 	};
 
