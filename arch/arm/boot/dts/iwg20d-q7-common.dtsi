@@ -243,6 +243,7 @@
 		reg = <0x38>;
 		interrupt-parent = <&gpio2>;
 		interrupts = <12 IRQ_TYPE_EDGE_FALLING>;
+		reset-gpios = <&gpio2 13 GPIO_ACTIVE_LOW>;
 		vcc-supply = <&vcc_3v3_tft1>;
 	};
 };
