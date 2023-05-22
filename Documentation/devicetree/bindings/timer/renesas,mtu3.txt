@@ -16,8 +16,8 @@ Required Properties:
  - interrupts: interrupt specifiers for the timer, one for each entry in
    interrupt-names.
 
- - interrupt-names: must contain one entry named "tgiXY" where "X" is timer
-   channels and "Y" is the channel's interrupt sources.
+ - interrupt-names: must contain entry names following hardware manuals
+   corresponding to the interrupt sources.
 
  - clocks: a list of phandle + clock-specifier pairs, one for each entry
    in clock-names.
