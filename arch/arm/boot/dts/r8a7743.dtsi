@@ -1205,6 +1205,24 @@
 			status = "disabled";
 		};
 
+		sata0:sata@ee300000 {
+			compatible= "renesas,sata-r8a7743";
+			reg= <0 0xee300000 0 0x2000>;
+			interrupts= <0 105 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 815>;
+			power-domains = <&sysc R8A7743_PD_ALWAYS_ON>;
+			status= "disabled";
+		};
+
+		sata1:sata@ee500000 {
+			compatible= "renesas,sata-r8a7743";
+			reg= <0 0xee500000 0 0x2000>;
+			interrupts= <0 106 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 814>;
+			power-domains = <&sysc R8A7743_PD_ALWAYS_ON>;
+			status= "disabled";
+		};
+
 		vin0: video@e6ef0000 {
 			compatible = "renesas,vin-r8a7743",
 				     "renesas,rcar-gen2-vin";
