@@ -474,6 +474,15 @@
 		/* The memory map in the User's Manual maps the cores to
 		 * bus numbers
 		 */
+
+		tddmac@fea00000 {
+			compatible = "renesas,vspm-tddmac","renesas,vspm";
+			reg = <0 0xfea00000 0 0x200>;
+			interrupts = <0 285 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 115>;
+			power-domains = <&sysc R8A7743_PD_ALWAYS_ON>;
+		};
+
 		i2c0: i2c@e6508000 {
 			#address-cells = <1>;
 			#size-cells = <0>;
