@@ -1774,6 +1774,22 @@
 			resets = <&cpg 127>;
 		};
 
+		fdp0: fdpm@fe940000 {
+			compatible = "renesas,fdp1";
+			reg = <0 0xfe940000 0 0x2400>;
+			interrupts = <0 262 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 119>;
+			power-domains = <&sysc R8A7744_PD_ALWAYS_ON>;
+		};
+
+		fdp1: fdpm@fe944000 {
+			compatible = "renesas,fdp1";
+			reg = <0 0xfe944000 0 0x2400>;
+			interrupts = <0 263 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 118>;
+			power-domains = <&sysc R8A7744_PD_ALWAYS_ON>;
+		};
+
 		du: display@feb00000 {
 			compatible = "renesas,du-r8a7744";
 			reg = <0 0xfeb00000 0 0x40000>;
