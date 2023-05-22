@@ -8,6 +8,9 @@
 #include <dt-bindings/interrupt-controller/arm-gic.h>
 #include <dt-bindings/clock/r9a07g043f-cpg.h>
 
+/* This macro is used to enable setting of all MTU3 interrupts. */
+#define MTU3_ALL_IRQ_EN			0
+
 / {
 	compatible = "renesas,r9a07g043f";
 	#address-cells = <2>;
@@ -117,6 +120,7 @@
 		mtu3: timer@10001200 {
 			compatible = "renesas,mtu3";
 			reg = <0 0x10001200 0 0xB00>;
+#if MTU3_ALL_IRQ_EN
 			interrupts = <202 IRQ_TYPE_EDGE_RISING>,
 				     <203 IRQ_TYPE_EDGE_RISING>,
 				     <204 IRQ_TYPE_EDGE_RISING>,
@@ -175,6 +179,7 @@
 					  "tciv7",
 					  "tgia8", "tgib8", "tgic8", "tgid8",
 					  "tciv8", "tciu8";
+#endif
 			clocks = <&cpg CPG_MOD R9A07G043F_MTU_X_MCK_MTU3>;
 			clock-names = "fck";
 			power-domains = <&cpg>;
