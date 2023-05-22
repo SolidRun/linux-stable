@@ -1773,8 +1773,8 @@
 			status = "disabled";
 		};
 
-		vsp@fe928000 {
-			compatible = "renesas,vsp1";
+		vspm@fe928000 {
+			compatible = "renesas,vspm-vsps","renesas-vspm";
 			reg = <0 0xfe928000 0 0x8000>;
 			interrupts = <GIC_SPI 267 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&cpg CPG_MOD 131>;
@@ -1782,7 +1782,7 @@
 			resets = <&cpg 131>;
 		};
 
-		vsp@fe930000 {
+		vspd0: vspd0@fe930000 {
 			compatible = "renesas,vsp1";
 			reg = <0 0xfe930000 0 0x8000>;
 			interrupts = <GIC_SPI 246 IRQ_TYPE_LEVEL_HIGH>;
@@ -1791,7 +1791,7 @@
 			resets = <&cpg 128>;
 		};
 
-		vsp@fe938000 {
+		vspd1: vspd1@fe938000 {
 			compatible = "renesas,vsp1";
 			reg = <0 0xfe938000 0 0x8000>;
 			interrupts = <GIC_SPI 247 IRQ_TYPE_LEVEL_HIGH>;
@@ -1826,6 +1826,8 @@
 			resets = <&cpg 724>;
 			reset-names = "du.0";
 			status = "disabled";
+
+			vsps = <&vspd0 &vspd1>;
 
 			ports {
 				#address-cells = <1>;
