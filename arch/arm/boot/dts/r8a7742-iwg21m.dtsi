@@ -52,9 +52,9 @@
 	status = "okay";
 	clock-frequency = <400000>;
 
-	rtc@68 {
-		compatible = "ti,bq32000";
-		reg = <0x68>;
+	rtc@51 {
+		compatible = "nxp,pcf85263";
+		reg = <0x51>;
 		interrupt-parent = <&gpio1>;
 		interrupts = <1 IRQ_TYPE_EDGE_FALLING>;
 	};
@@ -94,9 +94,9 @@
 	status = "okay";
 
 	flash: flash@0 {
-		compatible = "sst,sst25vf016b", "jedec,spi-nor";
+		compatible = "issi,is25lp016d", "jedec,spi-nor";
 		reg = <0>;
-		spi-max-frequency = <50000000>;
+		spi-max-frequency = <133000000>;
 		m25p,fast-read;
 		spi-cpol;
 		spi-cpha;
