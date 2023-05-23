@@ -221,9 +221,10 @@
 	status = "okay";
 	clock-frequency = <400000>;
 
-	rtc@68 {
-		compatible = "ti,bq32000";
-		reg = <0x68>;
+	rtc@51 {
+		compatible = "nxp,pcf85263";
+		reg = <0x51>;
+
 	};
 
 	sgtl5000: codec@a {
