@@ -109,6 +109,12 @@
 			sound-dai = <&sgtl5000>;
 		};
 	};
+
+	clk_ov7725: ov7725-clock {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <26000000>;
+	};
 };
 
 &avb {
@@ -208,6 +214,32 @@
 			ov5640: endpoint {
 				bus-width = <8>;
 				pclk-sample = <1>;
+				remote-endpoint = <&vin1ep>;
+			};
+		};
+	};
+
+	ov7725@21 {
+		compatible = "ovti,ov7725";
+		reg = <0x21>;
+		remote = <&vin1>;
+		clocks = <&clk_ov7725>;
+
+		/* mark OV7725 as disabled by default
+		 * to enable, run command below under U-boot command line
+		 * 	setenv vin1_camera 'ov7725'
+		 * Note: no need to update status here
+		 */
+		status = "disabled";
+
+		port {
+			ov7725: endpoint {
+				bus-type = <6>;
+				data-shift = <2>;
+				bus-width = <8>;
+				pclk-sample = <1>;
+				hsync-active = <0>;
+				vsync-active = <0>;
 				remote-endpoint = <&vin1ep>;
 			};
 		};
