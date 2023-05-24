@@ -111,7 +111,7 @@
 		regulator-max-microvolt = <3300000>;
 		states = <3300000 1>, <1800000 0>;
 		regulator-boot-on;
-		gpios = <&pinctrl RZG2L_GPIO(39, 0) GPIO_ACTIVE_HIGH>;
+		//gpios = <&pinctrl RZG2L_GPIO(39, 0) GPIO_ACTIVE_HIGH>;
 		regulator-always-on;
 	};
 
@@ -216,7 +216,7 @@
 
 	gpio-sd0-pwr-en-hog {
 		gpio-hog;
-		gpios = <RZG2L_GPIO(18, 1) GPIO_ACTIVE_HIGH>;
+		gpios = <RZG2L_GPIO(18, 1) GPIO_ACTIVE_LOW>;
 		output-high;
 		line-name = "gpio_sd0_pwr_en";
 	};
@@ -362,8 +362,6 @@
 	vmmc-supply = <&reg_3p3v>;
 	vqmmc-supply = <&vccq_sdhi0>;
 	bus-width = <4>;
-	sd-uhs-sdr50;
-	sd-uhs-sdr104;
   max-frequency = <50000000>;
 	status = "okay";
 };
@@ -473,12 +471,12 @@
 	pinctrl-names = "default";
 	status = "okay";
 
-  /* EEPROM CAT24AA01TDI-GT3 1-kb (128 B x 8)  */
-  eeprom: eeprom@50 {
-    compatible = "atmel,24c02";
-    reg = <0x50>;
-    pagesize = <16>;
-  };
+	/* EEPROM CAT24AA01TDI-GT3 1-kb (128 B x 8)  */
+	eeprom: eeprom@50 {
+		compatible = "atmel,24c02";
+		reg = <0x50>;
+		pagesize = <16>;
+	};
 };
 
 &i2c1 {

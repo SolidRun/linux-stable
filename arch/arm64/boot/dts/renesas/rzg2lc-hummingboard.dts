@@ -18,7 +18,7 @@
  * Please change below macros according to SW1 setting
  */
 
-#define SW_SD0_DEV_SEL	1
+#define SW_SD0_DEV_SEL	0
 
 #define SW_SCIF_CAN	0
 #if (SW_SCIF_CAN)
@@ -63,9 +63,10 @@
 		dais = <&i2s2_port0>;
 	};
 #endif
+};
 
 &pinctrl {
-  gpio-lte_reset {
+  gpio-lte_on {
     gpio-hog;
     gpios = <RZG2L_GPIO(19, 1) GPIO_ACTIVE_HIGH>;
     output-high;
@@ -115,12 +116,13 @@
 		};
 	};
 
-  rtc@69 {
-        compatible = "abracon,abx80x";
-        reg = <0x69>;
-        abracon,tc-diode = "schottky";
-        abracon,tc-resistor = <3>;
-};
+	rtc@69 {
+		compatible = "abracon,abx80x";
+		reg = <0x69>;
+		abracon,tc-diode = "schottky";
+		abracon,tc-resistor = <3>;
+	};
+
 
 };
 
