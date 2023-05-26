@@ -1,0 +1,38 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Device Tree Source for the iWave-RZ/G1C single board computer R2.0
+ *
+ * Copyright (C) 2018 Renesas Electronics Corp.
+ */
+
+#include "r8a77470-iwg23s-sbc.dts"
+
+/ {
+	model = "iWave iW-RainboW-G23S single board computer R2.0 based on RZ/G1C";
+	compatible = "iwave,g23s", "renesas,r8a77470";
+};
+
+&pfc {
+	/delete-node/ i2c3;
+};
+
+&i2c3 {
+	/delete-property/ pinctrl-0;
+	/delete-property/ pinctrl-names;
+
+	status = "disabled";
+
+	/delete-node/ rtc@51; /* RTC chip is not available on R2.0 board */
+};
+
+&qspi0 {
+	/* WARNING - This device contains the bootloader. Handle with care. */
+	flash: flash@0 {
+		compatible = "sst,sst25vf016b", "jedec,spi-nor";
+		spi-max-frequency = <50000000>;
+	};
+};
+
+&sdhi1 {
+	/delete-property/ mmc-hs200-1_8v;
+};
