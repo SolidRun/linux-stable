@@ -960,6 +960,7 @@ dtb-$(CONFIG_ARCH_RENESAS) += \
 	r8a7745-iwg22d-sodimm-dbhd-ca-rev3.dtb \
 	r8a7745-sk-rzg1e.dtb \
 	r8a77470-iwg23s-sbc.dtb \
+	r8a77470-iwg23s-sbc-rev2.dtb \
 	r8a7778-bockw.dtb \
 	r8a7779-marzen.dtb \
 	r8a7790-lager.dtb \
