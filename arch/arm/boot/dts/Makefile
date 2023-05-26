@@ -950,7 +950,9 @@ dtb-$(CONFIG_ARCH_RENESAS) += \
 	r8a7742-iwg21d-q7.dtb \
 	r8a7742-iwg21d-q7-dbcm-ca.dtb \
 	r8a7743-iwg20d-q7.dtb \
+	r8a7743-iwg20d-q7-rev2.dtb \
 	r8a7743-iwg20d-q7-dbcm-ca.dtb \
+	r8a7743-iwg20d-q7-dbcm-ca-rev2.dtb \
 	r8a7743-sk-rzg1m.dtb \
 	r8a7744-iwg20d-q7.dtb \
 	r8a7744-iwg20d-q7-dbcm-ca.dtb \
