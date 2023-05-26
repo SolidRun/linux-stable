@@ -1,0 +1,66 @@
+/*
+ * Device Tree Source for the iWave-RZG1E SODIMM carrier R4.0 board
+ *
+ * Copyright (C) 2017 Renesas Electronics Corp.
+ *
+ * This file is licensed under the terms of the GNU General Public License
+ * version 2.  This program is licensed "as is" without any warranty of any
+ * kind, whether express or implied.
+ */
+
+/*
+ * SSI-SGTL5000
+ *
+ * This command is required when Playback/Capture
+ *
+ *      amixer set "DVC Out" 100%
+ *      amixer set "DVC In" 100%
+ *
+ * You can use Mute
+ *
+ *      amixer set "DVC Out Mute" on
+ *      amixer set "DVC In Mute" on
+ *
+ * You can use Volume Ramp
+ *
+ *      amixer set "DVC Out Ramp Up Rate"   "0.125 dB/64 steps"
+ *      amixer set "DVC Out Ramp Down Rate" "0.125 dB/512 steps"
+ *      amixer set "DVC Out Ramp" on
+ *      aplay xxx.wav &
+ *      amixer set "DVC Out"  80%  // Volume Down
+ *      amixer set "DVC Out" 100%  // Volume Up
+ */
+
+#include "r8a7745-iwg22d-sodimm.dts"
+
+/ {
+	model = "iWave Systems RainboW-G22D-SODIMM board R3.x based on RZ/G1E";
+	compatible = "iwave,g22d", "iwave,g22m", "renesas,r8a7745";
+};
+
+&avb {
+	/*
+	 * On some older versions of the platform (before R4.0) the phy address
+	 * may be 1 or 3. The address is fixed to 3 for R4.0 onwards.
+	 * Remove <reg> property to activate PHY autoscan function.
+	 */
+	phy3: ethernet-phy@3 {
+		/delete-property/ reg;
+	};
+};
+
+&qspi {
+	/* WARNING - This device contains the bootloader. Handle with care. */
+	flash: flash@0 {
+		compatible = "sst,sst25vf016b", "jedec,spi-nor";
+		spi-max-frequency = <50000000>;
+	};
+};
+
+&i2c3 {
+	/delete-node/ rtc@51;
+	rtc@68 {
+		compatible = "ti,bq32000";
+		reg = <0x68>;
+	};
+};

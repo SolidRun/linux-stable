@@ -1,0 +1,44 @@
+/*
+ * Device Tree Source for the iWave-RZG1E SODIMM carrier board + HDMI daughter
+ * board
+ *
+ * Copyright (C) 2017 Renesas Electronics Corp.
+ *
+ * This file is licensed under the terms of the GNU General Public License
+ * version 2.  This program is licensed "as is" without any warranty of any
+ * kind, whether express or implied.
+ */
+
+#include "r8a7745-iwg22d-sodimm-dbhd-ca.dts"
+
+/ {
+	model = "iWave RainboW-G22D-SODIMM RZ/G1E based board R3.x with HDMI add-on";
+	compatible = "iwave,g22d", "iwave,g22m", "renesas,r8a7745";
+};
+
+&avb {
+	/*
+	 * On some older versions of the platform (before R4.0) the phy address
+	 * may be 1 or 3. The address is fixed to 3 for R4.0 onwards.
+	 * Remove <reg> property to activate PHY autoscan function.
+	 */
+	phy3: ethernet-phy@3 {
+		/delete-property/ reg;
+	};
+};
+
+&qspi {
+	/* WARNING - This device contains the bootloader. Handle with care. */
+	flash: flash@0 {
+		compatible = "sst,sst25vf016b", "jedec,spi-nor";
+		spi-max-frequency = <50000000>;
+	};
+};
+
+&i2c3 {
+	/delete-node/ rtc@51;
+	rtc@68 {
+		compatible = "ti,bq32000";
+		reg = <0x68>;
+	};
+};
