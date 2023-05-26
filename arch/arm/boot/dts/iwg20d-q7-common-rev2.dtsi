@@ -1,0 +1,19 @@
+/*
+ * Device Tree Source for the iWave-RZ/G1M/G1N Qseven carrier board
+ *
+ * Copyright (C) 2017 Renesas Electronics Corp.
+ *
+ * This file is licensed under the terms of the GNU General Public License
+ * version 2.  This program is licensed "as is" without any warranty of any
+ * kind, whether express or implied.
+ */
+
+#include "iwg20d-q7-common.dtsi"
+
+&i2c2 {
+	/delete-node/ rtc@51;
+	rtc@68 {
+		compatible = "bq32000";
+		reg = <0x68>;
+	};
+};
