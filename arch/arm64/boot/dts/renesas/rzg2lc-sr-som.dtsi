@@ -241,12 +241,16 @@
 	 * SW1[2] should be at position ON to enable uSD card CN3
 	 */
 
-	gpio-sd0-dev-sel-hog {
-		gpio-hog;
-		gpios = <RZG2L_GPIO(40, 2) GPIO_ACTIVE_HIGH>;
-		output-high;
-		line-name = "gpio_sd0_dev_sel";
-	};
+	/*
+	 * TODO: implement device-selection for SolidRun SoM / Carrier
+	 *
+	 * gpio-sd0-dev-sel-hog {
+	 * 	gpio-hog;
+	 * 	gpios = <RZG2L_GPIO(22, 1) GPIO_ACTIVE_HIGH>;
+	 * 	output-high;
+	 * 	line-name = "gpio_sd0_dev_sel";
+	 * };
+	 */
 
   gpio-sd1-bt_reg_on {
     gpio-hog;
