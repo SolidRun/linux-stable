@@ -14,7 +14,6 @@
  * SW1-2 : SW_SD0_DEV_SEL	(1: eMMC; 0: uSD)
  * SW1-3 : SW_SCIF_CAN		(1: CAN1; 0: SCIF1)
  * SW1-4 : SW_RSPI_CAN		(1: CAN1; 0: RSPI1)
- * SW1-5 : SW_I2S0_I2S1		(1: I2S2 (HDMI audio); 0: I2S0)
  * Please change below macros according to SW1 setting
  */
 
@@ -34,8 +33,6 @@
 #error "Can not set 1 to both SW_SCIF_CAN and SW_RSPI_CAN due to HW routing"
 #endif
 
-#define SW_I2S0_I2S1   1
-
 /* comment the #define statement to disable SCIF1 (SER0) on PMOD1 (CN7) */
 #define PMOD1_SER0	1
 /* Select function support POEGD (1: enabled, 0 : disabled) */
@@ -54,15 +51,6 @@
 		#clock-cells = <0>;
 		clock-frequency = <24000000>;
 	};
-
-#if (SW_I2S0_I2S1)
-	/delete-node/ sound;
-
-	sound_card {
-		compatible = "audio-graph-card";
-		dais = <&i2s2_port0>;
-	};
-#endif
 };
 
 &pinctrl {
@@ -75,19 +63,16 @@
 };
 
 &i2c0 {
-
-  adv7535: hdmi@3d {
-		compatible = "adi,adv7535";
+	adv7535@3d {
+		compatible = "adi,adv7533";
 		reg = <0x3d>;
-
-		avdd-supply = <&reg_1p8v>;
-		dvdd-supply = <&reg_1p8v>;
-		pvdd-supply = <&reg_1p8v>;
-		a2vdd-supply = <&reg_1p8v>;
-		v3p3-supply = <&reg_3p3v>;
-		v1p2-supply = <&reg_1p8v>;
-
+		adi,addr-cec = <0x3c>;
 		adi,dsi-lanes = <4>;
+		adi,addr-edid = <0x3b>;
+		pd-gpios = <&pinctrl RZG2L_GPIO(40, 2) GPIO_ACTIVE_LOW>; // ADV_PD / DSI_EN J9-34 / P40_2
+		interrupt-parent = <&pinctrl>;
+		interrupts = <RZG2L_GPIO(42, 2) IRQ_TYPE_EDGE_FALLING>; // DSI_TS_nINT J5001-43 P42_2
+		status = "okay";
 
 		ports {
 			#address-cells = <1>;
@@ -110,7 +95,7 @@
 			port@2 {
 				reg = <2>;
 				codec_endpoint: endpoint {
-					remote-endpoint = <&i2s2_cpu_endpoint>;
+					/* Audio signals not connected. */
 				};
 			};
 		};
@@ -131,38 +116,17 @@
 
 };
 
-&adv7535 {
-	interrupt-parent = <&pinctrl>;
-	interrupts = <RZG2L_GPIO(43, 1) IRQ_TYPE_EDGE_FALLING>;
-};
-
 &dsi0 {
-	ports {
-		port@1 {
-			dsi0_out: endpoint {
-				remote-endpoint = <&adv7535_in>;
-				data-lanes = <1 2 3 4>;
-			};
-		};
-	};
+	status = "okay";
 };
 
-&ssi0 {
-	pinctrl-0 = <&ssi0_pins>;
-	pinctrl-names = "default";
+&dsi0_out {
+	remote-endpoint = <&adv7535_in>;
+	data-lanes = <1 2 3 4>;
+};
 
+&du {
 	status = "okay";
-
-#if (SW_I2S0_I2S1)
-	ports {
-		i2s2_port0: port@0 {
-			i2s2_cpu_endpoint: endpoint {
-				remote-endpoint = <&codec_endpoint>;
-				dai-format = "i2s";
-			};
-		};
-	};
-#endif
 };
 
 /*
