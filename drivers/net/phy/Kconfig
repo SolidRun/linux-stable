@@ -74,6 +74,11 @@ config MESON_GXL_PHY
 	help
 	  Currently has a driver for the Amlogic Meson GXL Internal PHY
 
+config MAXLINEAR_8611X_PHY
+        tristate "MaxLinear MXL86110 and MXL86111 PHYs"
+        help
+	  Supports the MXL86110 and MXL86111 PHYs.
+
 config ADIN_PHY
 	tristate "Analog Devices Industrial Ethernet PHYs"
 	help
