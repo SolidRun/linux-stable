@@ -12,26 +12,6 @@
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/pinctrl/rzg2l-pinctrl.h>
 
-/*
- * MTU3 macros are created to support setting pinctrl and properties in order
- * to use MTU3 functions. However, their pins on PMOD0 are mixed with SPI1,
- * so we must disable this module to avoid conflict.
- * - MTU3_PWM_SUPPORT: Disable SPI1 to support PWM functions of channel3.
- *   By default, PWM mode 1 of MTIOC3C will be selected.
- * - MTU3_PWM_COMPLEMENTARY_SELECT: Enable this macro to select complementary PWM
- *   mode of MTIOC3B and MTIOC3D instead of PWM mode 1. This mode depends on macro
- *   MTU3_PWM_SUPPORT.
- */
-#define MTU3_PWM_SUPPORT			0
-#define MTU3_PWM_COMPLEMENTARY_SELECT		0
-
-/*
- * POE3_SUPPORT is used to enable POE3 to control Hi-Z state of complementary PWM
- * signals at MTIOC3B-MTIOC3D. Note: This macro must be enabled along with macros
- * MTU3_PWM_SUPPORT and MTU3_PWM_COMPLEMENTARY_SELECT to fully take effect.
- */
-#define POE3_SUPPORT				0
-
 / {
 	aliases {
     serial0 = &scif0;
@@ -162,7 +142,6 @@
 	status = "okay";
 
 	phy0: ethernet-phy@0 {
-    //compatible = "ethernet-phy-id0283.bc30", "ethernet-phy-ieee802.3-c22";
 		reg = <0>;
 		max-speed = <100>;  /* configure ethernet max speed for ethernet0 */
 		rxc-skew-psec = <2400>;
@@ -234,11 +213,10 @@
 	};
 
 	/*
-	 * SD0 device selection is XOR between GPIO_SD0_DEV_SEL and SW1[2]
 	 * The below switch logic can be used to select the device between
 	 * eMMC and microSD, after setting GPIO_SD0_DEV_SEL to high in DT.
-	 * SW1[2] should be at OFF position to enable 64 GB eMMC
-	 * SW1[2] should be at position ON to enable uSD card CN3
+	 * S3[1] should be at OFF position to enable eMMC
+	 * S3[1] should be at position ON to enable uSD card
 	 */
 
 	/*
@@ -313,47 +291,7 @@
 &sbc {
 	pinctrl-0 = <&qspi0_pins>;
 	pinctrl-names = "default";
-	status = "okay";
-
-	flash@0 {
-		compatible = "micron,mt25qu512a", "jedec,spi-nor";
-		reg = <0>;
-		m25p,fast-read;
-		spi-max-frequency = <50000000>;
-		spi-rx-bus-width = <4>;
-		spi-tx-bus-width = <4>;
-
-		partitions {
-			compatible = "fixed-partitions";
-			#address-cells = <1>;
-			#size-cells = <1>;
-
-			partition@0000000 {
-				label = "u-boot";
-				reg = <0x00000000 0x80000>;
-				read-only;
-			};
-			partition@80000 {
-				label = "env";
-				reg = <0x00080000 0x40000>;
-				read-only;
-			};
-			partition@C0000 {
-				label = "dtb";
-				reg = <0x000C0000 0x40000>;
-				read-only;
-			};
-			partition@800000 {
-				label = "rootfs";
-				/* 16MB @ 8MB offset in SPI Flash */
-				reg = <0x00800000 0x01000000>;
-			};
-			partition@2000000 {
-				label = "test-area";
-				reg = <0x02000000 0x00100000>;
-			};
-		};
-	};
+	status = "disabled";
 };
 
 #if (!SW_SD0_DEV_SEL)
@@ -443,17 +381,7 @@
 };
 
 &canfd {
-	pinctrl-0 = <&can0_pins &can1_pins>;
-	pinctrl-names = "default";
-	status = "okay";
-
-	channel0 {
-		status = "okay";
-	};
-
-	channel1 {
-		status = "okay";
-	};
+	status = "disabled";
 };
 
 &ehci0 {
@@ -555,7 +483,6 @@
   gpios = <&pinctrl RZG2L_GPIO(23, 0) GPIO_ACTIVE_HIGH>;
 };
 
-#if (!MTU3_PWM_SUPPORT)
 &spi1 {
 	pinctrl-0 = <&spi1_pins>;
 	pinctrl-names = "default";
@@ -564,7 +491,6 @@
 
 	status = "okay";
 };
-#endif
 
 &usb2_phy0 {
 	pinctrl-0 = <&usb0_pins>;
