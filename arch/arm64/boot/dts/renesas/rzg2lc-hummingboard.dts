@@ -9,34 +9,12 @@
 #include <dt-bindings/pinctrl/rzg2l-pinctrl.h>
 
 /*
- * DIP-Switch SW1 setting on SoM
+ * DIP-Switch S3 setting on SoM
  * 1 : High; 0: Low
- * SW1-2 : SW_SD0_DEV_SEL	(1: eMMC; 0: uSD)
- * SW1-3 : SW_SCIF_CAN		(1: CAN1; 0: SCIF1)
- * SW1-4 : SW_RSPI_CAN		(1: CAN1; 0: RSPI1)
- * Please change below macros according to SW1 setting
+ * S3[1] : SW_SD0_DEV_SEL	(1: eMMC; 0: uSD)
  */
 
 #define SW_SD0_DEV_SEL	0
-
-#define SW_SCIF_CAN	0
-#if (SW_SCIF_CAN)
-/* Due to HW routing, SW_RSPI_CAN is always 0 when SW_SCIF_CAN is set to 1 */
-#define SW_RSPI_CAN	0
-#define SCIF1_GPT3	1 /* Enable GPT3 when SCIF1 disabled */
-#else
-/* Please set SW_RSPI_CAN. Default value is 1 */
-#define SW_RSPI_CAN	1
-#endif
-
-#if (SW_SCIF_CAN & SW_RSPI_CAN)
-#error "Can not set 1 to both SW_SCIF_CAN and SW_RSPI_CAN due to HW routing"
-#endif
-
-/* comment the #define statement to disable SCIF1 (SER0) on PMOD1 (CN7) */
-#define PMOD1_SER0	1
-/* Select function support POEGD (1: enabled, 0 : disabled) */
-#define POEGD_SUPPORT	1
 
 /dts-v1/;
 #include "rzg2lc-sr-som.dtsi"
@@ -135,14 +113,6 @@
 	status = "okay";
 };
 
-/*
- * To enable SCIF1 (SER0) on PMOD1 (CN7), On connector board
- * SW1 should be at position 2->3 so that SER0_CTS# line is activated
- * SW2 should be at position 2->3 so that SER0_TX line is activated
- * SW3 should be at position 2->3 so that SER0_RX line is activated
- * SW4 should be at position 2->3 so that SER0_RTS# line is activated
- */
-#if (!SW_SCIF_CAN && PMOD1_SER0 && !SCIF1_GPT3)
 &scif1 {
 	pinctrl-0 = <&scif1_pins>;
 	pinctrl-names = "default";
@@ -150,25 +120,15 @@
 	//uart-has-rtscts;
 	status = "okay";
 };
-#endif
 
-#if ((SW_SCIF_CAN || SW_RSPI_CAN) && !MTU3_PWM_SUPPORT)
-&canfd {
-	pinctrl-0 = <&can1_pins>;
-	/delete-node/ channel0;
-};
-#else
 &canfd {
 	/delete-property/ pinctrl-0;
 	/delete-property/ pinctrl-names;
 	status = "disabled";
 };
-#endif
 
-#if (SW_RSPI_CAN)
 &spi1 {
 	/delete-property/ pinctrl-0;
 	/delete-property/ pinctrl-names;
 	status = "disabled";
 };
-#endif
