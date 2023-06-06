@@ -27,6 +27,34 @@
 			};
 		};
 	};
+
+	clk_ov5640: ov5640-clock {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <26000000>;
+	};
+
+	clk_ov7725: ov7725-clock {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <26000000>;
+	};
+
+	reg_1p8v: 1p8v {
+		compatible = "regulator-fixed";
+		regulator-name = "1P8V";
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		regulator-always-on;
+	};
+
+	reg_2p8v: 2p8v {
+		compatible = "regulator-fixed";
+		regulator-name = "2P8V";
+		regulator-min-microvolt = <2800000>;
+		regulator-max-microvolt = <2800000>;
+		regulator-always-on;
+	};
 };
 
 &can1 {
@@ -132,11 +160,22 @@
 	ov5640@3c {
 		compatible = "ovti,ov5640";
 		reg = <0x3c>;
+		clocks = <&clk_ov5640>;
+		clock-names = "xclk";
+		AVDD-supply = <&reg_2p8v>;
+		DOVDD-supply = <&reg_2p8v>;
+		DVDD-supply = <&reg_1p8v>;
+		status = "okay";
 		remote = <&vin2>;
 
 		port {
 			ov5640: endpoint {
+				bus-type = <6>;
+				data-shift = <2>;
 				bus-width = <8>;
+				pclk-sample = <1>;
+				hsync-active = <0>;
+				vsync-active = <0>;
 				remote-endpoint = <&vin2ep>;
 			};
 		};
@@ -196,7 +235,7 @@
 	};
 
 	vin2_pins: vin2 {
-		groups = "vin2_data8", "vin2_clk";
+		groups = "vin2_data8", "vin2_sync", "vin2_field", "vin2_clk";
 		function = "vin2";
 	};
 };
