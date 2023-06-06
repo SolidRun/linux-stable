@@ -1606,6 +1606,16 @@
 			clocks = <&cpg CPG_MOD 119>;
 			power-domains = <&sysc R8A7745_PD_ALWAYS_ON>;
 		};
+		sgx@fd800000 {
+			compatible = "renesas,sgx";
+			reg = <0 0xfd800000 0 0x10000>;
+			interrupts = <0 119 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "irq_sgx";
+			clocks = <&cpg CPG_MOD 112>,
+				 <&cpg CPG_MOD 800>;
+			clock-names = "sgx_clk", "ipmmu_clk";
+			power-domains = <&sysc R8A7745_PD_SGX>;
+		};
 
 		du: display@feb00000 {
 			compatible = "renesas,du-r8a7745";
