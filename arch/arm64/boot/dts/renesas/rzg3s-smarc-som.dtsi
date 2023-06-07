@@ -183,6 +183,10 @@
 	status = "okay";
 };
 
+&vbattb {
+	status = "okay";
+};
+
 &pinctrl {
 	eth0-phy-irq-hog {
 		gpio-hog;
