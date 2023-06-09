@@ -627,21 +627,41 @@ static int rsnd_rzv2h_probe(struct rsnd_priv *priv)
 		RSND_GEN_M_REG(SSIWSR,		0x20,	0x40),
 	};
 
+	static const struct rsnd_regmap_field_conf conf_spdif[] = {
+		RSND_GEN_M_REG(SPDIF_TLCA,	0x00,	0x400),
+		RSND_GEN_M_REG(SPDIF_TRCA,	0x04,	0x400),
+		RSND_GEN_M_REG(SPDIF_TLCS,	0x08,	0x400),
+		RSND_GEN_M_REG(SPDIF_TRCS,	0x0C,	0x400),
+		RSND_GEN_M_REG(SPDIF_TUI,	0x10,	0x400),
+		RSND_GEN_M_REG(SPDIF_RLCA,	0x14,	0x400),
+		RSND_GEN_M_REG(SPDIF_RRCA,	0x18,	0x400),
+		RSND_GEN_M_REG(SPDIF_RLCS,	0x1C,	0x400),
+		RSND_GEN_M_REG(SPDIF_RRCS,	0x20,	0x400),
+		RSND_GEN_M_REG(SPDIF_RUI,	0x24,	0x400),
+		RSND_GEN_M_REG(SPDIF_CTRL,	0x28,	0x400),
+		RSND_GEN_M_REG(SPDIF_STAT,	0x2C,	0x400),
+		RSND_GEN_M_REG(SPDIF_TDAD,	0x30,	0x400),
+		RSND_GEN_M_REG(SPDIF_RDAD,	0x34,	0x400),
+	};
+
 	int ret_ssiu;
 	int ret_scu;
 	int ret_adg;
 	int ret_ssi;
+	int ret_spdif;
 
 	ret_ssiu = rsnd_gen_regmap_init(priv, 10, RSND_RZV2H_SSIU, "ssiu", conf_ssiu);
 	ret_scu = rsnd_gen_regmap_init(priv, 10, RSND_RZV2H_SCU,  "scu",  conf_scu);
 	ret_adg = rsnd_gen_regmap_init(priv, 10, RSND_RZV2H_ADG,  "adg",  conf_adg);
 	ret_ssi = rsnd_gen_regmap_init(priv, 10, RSND_RZV2H_SSI,  "ssi",  conf_ssi);
+	ret_spdif = rsnd_gen_regmap_init(priv, 10, RSND_RZV2H_SPDIF,  "spdif",  conf_spdif);
 
 	if (ret_ssiu < 0 ||
 	    ret_scu  < 0 ||
 	    ret_adg  < 0 ||
-	    ret_ssi  < 0)
-		return ret_ssiu | ret_scu | ret_adg | ret_ssi;
+	    ret_ssi  < 0 ||
+	    ret_spdif  < 0)
+		return ret_ssiu | ret_scu | ret_adg | ret_ssi | ret_spdif;
 
 	return 0;
 }
