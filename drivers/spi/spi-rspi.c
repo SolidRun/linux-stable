@@ -55,6 +55,21 @@
 
 /* RSPI on RZ only */
 #define RSPI_SPBFCR		0x20	/* Buffer Control Register */
+/* Transmit Buffer Data Triggering Number */
+#define RSPI_SPBFCR_TXTRG_7	(0 << 4)
+#define RSPI_SPBFCR_TXTRG_6	(1 << 4)
+#define RSPI_SPBFCR_TXTRG_4	(2 << 4)
+#define RSPI_SPBFCR_TXTRG_0	(3 << 4)
+/* Receive Buffer Data Triggering Number */
+#define RSPI_SPBFCR_RXTRG_1	(0)
+#define RSPI_SPBFCR_RXTRG_2	(1)
+#define RSPI_SPBFCR_RXTRG_4	(2)
+#define RSPI_SPBFCR_RXTRG_8	(3)
+#define RSPI_SPBFCR_RXTRG_16	(4)
+#define RSPI_SPBFCR_RXTRG_24	(5)
+#define RSPI_SPBFCR_RXTRG_32	(6)
+#define RSPI_SPBFCR_RXTRG_5	(7)
+
 #define RSPI_SPBFDR		0x22	/* Buffer Data Count Setting Register */
 
 /* QSPI only */
@@ -503,48 +518,93 @@ static inline int rspi_wait_for_rx_full(struct rspi_data *rspi)
 	return rspi_wait_for_interrupt(rspi, SPSR_SPRF, SPCR_SPRIE);
 }
 
-static int rspi_data_out(struct rspi_data *rspi, u8 data)
+static void rspi_data_out_8(struct rspi_data *rspi, const void *tx, int count)
 {
-	int error = rspi_wait_for_tx_empty(rspi);
-	if (error < 0) {
-		dev_err(&rspi->ctlr->dev, "transmit timeout\n");
-		return error;
-	}
-	rspi_write_data(rspi, data);
-	return 0;
+	const u8 *buf_8 = tx;
+
+	rspi_write8(rspi, buf_8[count], RSPI_SPDR);
 }
 
-static int rspi_data_in(struct rspi_data *rspi)
+static void rspi_data_out_16(struct rspi_data *rspi, const void *tx, int count)
 {
-	int error;
-	u8 data;
+	const u16 *buf_16 = tx;
 
-	error = rspi_wait_for_rx_full(rspi);
-	if (error < 0) {
-		dev_err(&rspi->ctlr->dev, "receive timeout\n");
-		return error;
-	}
-	data = rspi_read_data(rspi);
-	return data;
+	rspi_write16(rspi, buf_16[count], RSPI_SPDR);
 }
 
-static int rspi_pio_transfer(struct rspi_data *rspi, const u8 *tx, u8 *rx,
+static void rspi_data_out_32(struct rspi_data *rspi, const void *tx, int count)
+{
+	const u32 *buf_32 = tx;
+
+	rspi_write32(rspi, buf_32[count], RSPI_SPDR);
+}
+
+static void rspi_data_in_8(struct rspi_data *rspi, void *rx, int count)
+{
+	u8 *buf_8 = rx;
+
+	buf_8[count] = rspi_read8(rspi, RSPI_SPDR);
+}
+
+static void rspi_data_in_16(struct rspi_data *rspi, void *rx, int count)
+{
+	u16 *buf_16 = rx;
+
+	buf_16[count] = rspi_read16(rspi, RSPI_SPDR);
+}
+
+static void rspi_data_in_32(struct rspi_data *rspi, void *rx, int count)
+{
+	u32 *buf_32 = rx;
+
+	buf_32[count] = rspi_read32(rspi, RSPI_SPDR);
+}
+
+static int rspi_pio_transfer(struct rspi_data *rspi, const void *tx, void *rx,
 			     unsigned int n)
 {
-	while (n-- > 0) {
+	int words = n / (rspi->bits_per_word / 8);
+	void (*tx_fifo)(struct rspi_data *rspi, const void *tx, int count);
+	void (*rx_fifo)(struct rspi_data *rspi, void *rx, int count);
+	int ret, count;
+
+	switch (rspi->bits_per_word) {
+	case 8:
+		tx_fifo = rspi_data_out_8;
+		rx_fifo = rspi_data_in_8;
+		break;
+	case 16:
+		tx_fifo = rspi_data_out_16;
+		rx_fifo = rspi_data_in_16;
+		break;
+	case 32:
+		tx_fifo = rspi_data_out_32;
+		rx_fifo = rspi_data_in_32;
+		break;
+	default:
+		return -EINVAL;
+	}
+	for (count = 0; count < words; count++) {
 		if (tx) {
-			int ret = rspi_data_out(rspi, *tx++);
-			if (ret < 0)
+			ret = rspi_wait_for_tx_empty(rspi);
+			if (ret < 0) {
+				dev_err(&rspi->ctlr->dev, "transmit timeout\n");
 				return ret;
-		}
-		if (rx) {
-			int ret = rspi_data_in(rspi);
-			if (ret < 0)
-				return ret;
-			*rx++ = ret;
+			}
+			tx_fifo(rspi, tx, count);
 		}
 	}
 
+	for (count = 0; count < words; count++) {
+		if (rx) {
+			ret = rspi_wait_for_rx_full(rspi);
+			if (ret < 0) {
+				dev_err(&rspi->ctlr->dev, "receive timeout %d\n", count);
+				return ret;
+			}
+			rx_fifo(rspi, rx, count);
+		}
+	}
 	return 0;
 }
 
@@ -684,7 +744,15 @@ static void rspi_rz_receive_init(const struct rspi_data *rspi)
 {
 	rspi_receive_init(rspi);
 	rspi_write8(rspi, SPBFCR_TXRST | SPBFCR_RXRST, RSPI_SPBFCR);
-	rspi_write8(rspi, 0, RSPI_SPBFCR);
+	if (rspi->bits_per_word == 8)
+		rspi_write8(rspi, RSPI_SPBFCR_TXTRG_7
+				| RSPI_SPBFCR_RXTRG_1, RSPI_SPBFCR);
+	else if (rspi->bits_per_word == 16)
+		rspi_write8(rspi, RSPI_SPBFCR_TXTRG_6
+				| RSPI_SPBFCR_RXTRG_2, RSPI_SPBFCR);
+	else
+		rspi_write8(rspi, RSPI_SPBFCR_TXTRG_4
+				| RSPI_SPBFCR_RXTRG_4, RSPI_SPBFCR);
 }
 
 static void qspi_receive_init(const struct rspi_data *rspi)
