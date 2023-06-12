@@ -13,6 +13,7 @@
 #include <sound/pcm.h>
 #include <sound/pcm_params.h>
 #include <sound/soc.h>
+#include <linux/module.h>
 
 int snd_soc_calc_frame_size(int sample_size, int channels, int tdm_slots)
 {
@@ -146,9 +147,18 @@ static int snd_soc_dummy_probe(struct platform_device *pdev)
 	return ret;
 }
 
+#ifdef CONFIG_OF
+static const struct of_device_id soc_dummy_ids[] = {
+	{ .compatible = "linux,snd-soc-dummy", },
+	{ }
+};
+MODULE_DEVICE_TABLE(of, soc_dummy_ids);
+#endif
+
 static struct platform_driver soc_dummy_driver = {
 	.driver = {
 		.name = "snd-soc-dummy",
+		.of_match_table = of_match_ptr(soc_dummy_ids),
 	},
 	.probe = snd_soc_dummy_probe,
 };
