@@ -127,9 +127,20 @@
 		pinmux = <RZV2M_PORT_PINMUX(3, 8, 2)>, /* SDA */
 			 <RZV2M_PORT_PINMUX(3, 9, 2)>; /* SCL */
 	};
+
+	uart0_pins: uart0 {
+		pinmux = <RZV2M_PORT_PINMUX(3, 0, 2)>, /* UATX0 */
+			 <RZV2M_PORT_PINMUX(3, 1, 2)>, /* UARX0 */
+			 <RZV2M_PORT_PINMUX(3, 2, 2)>, /* UACTS0N */
+			 <RZV2M_PORT_PINMUX(3, 3, 2)>; /* UARTS0N */
+	};
 };
 
 &uart0 {
+	pinctrl-0 = <&uart0_pins>;
+	pinctrl-names = "default";
+
+	uart-has-rtscts;
 	status = "okay";
 };
 
