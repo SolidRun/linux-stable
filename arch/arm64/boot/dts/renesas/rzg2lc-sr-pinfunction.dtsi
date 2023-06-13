@@ -39,12 +39,12 @@
 			 <RZG2L_PORT_PINMUX(41, 1, 1)>; /* RTS# */
 	};
 
-	sd1-pwr-en-hog {
-		gpio-hog;
-		gpios = <RZG2L_GPIO(39, 2) GPIO_ACTIVE_HIGH>;
-		output-high;
-		line-name = "sd1_pwr_en";
-	};
+        scif2_pins: scif2 {
+                pinmux = <RZG2L_PORT_PINMUX(42, 0, 1)>, /* TxD */
+                         <RZG2L_PORT_PINMUX(42, 1, 1)>, /* RxD */
+                         <RZG2L_PORT_PINMUX(5, 1, 1)>, /* CTS# */
+                         <RZG2L_PORT_PINMUX(5, 2, 1)>; /* RTS# */
+        };
 
 	sdhi1_pins: sd1 {
 		sd1_data {
