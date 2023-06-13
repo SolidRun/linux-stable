@@ -219,6 +219,36 @@
 	 * 	line-name = "gpio_sd0_dev_sel";
 	 * };
 	 */
+ #if (!SW_SD0_DEV_SEL)
+ /* uSD */
+   gpio-sd0-dev-sel-sd-hog {
+     gpio-hog;
+     gpios = <RZG2L_GPIO(22, 1) GPIO_ACTIVE_HIGH>;
+     output-high;
+     line-name = "gpio_sd0_dev_sel_sd";
+     status = "okay";
+   };
+#endif
+
+#if SW_SD0_DEV_SEL
+/* eMMC */
+   gpio-sd0-dev-sel-emmc-hog {
+     gpio-hog;
+     gpios = <RZG2L_GPIO(22, 1) GPIO_ACTIVE_LOW>;
+     output-high;
+     line-name = "gpio_sd0_dev_sel_emmc";
+     status = "okay";
+   };
+
+   /* P39_0 - LDO_SEL1 (High: 3.3v [SD]; Low: 1.8v [eMMC]) */
+   gpio-sd0-vdd-18v-hog {
+     gpio-hog;
+     gpios = <RZG2L_GPIO(39, 0) GPIO_ACTIVE_LOW>;
+     output-high;
+     line-name = "gpio_sd0_vdd_1.8v";
+     status = "okay";
+   };
+#endif
 
   gpio-sd1-bt_reg_on {
     gpio-hog;
@@ -297,15 +327,6 @@
   max-frequency = <50000000>;
 	status = "okay";
 };
-
-gpio-sd0-dev-sel-sd-hog {
-  gpio-hog;
-  gpios = <RZG2L_GPIO(22, 1) GPIO_ACTIVE_HIGH>;
-  output-high;
-  line-name = "gpio_sd0_dev_sel_sd";
-  status = "okay";
-};
-
 #endif
 
 #if SW_SD0_DEV_SEL
@@ -322,23 +343,6 @@ gpio-sd0-dev-sel-sd-hog {
 	non-removable;
 	fixed-emmc-driver-type = <1>;
 	status = "okay";
-};
-
-gpio-sd0-dev-sel-emmc-hog {
-  gpio-hog;
-  gpios = <RZG2L_GPIO(22, 1) GPIO_ACTIVE_LOW>;
-  output-high;
-  line-name = "gpio_sd0_dev_sel_emmc";
-  status = "okay";
-};
-
-/* P39_0 - LDO_SEL1 (High: 3.3v [SD]; Low: 1.8v [eMMC]) */
-gpio-sd0-vdd-18v-hog {
-  gpio-hog;
-  gpios = <RZG2L_GPIO(39, 0) GPIO_ACTIVE_LOW>;
-  output-high;
-  line-name = "gpio_sd0_vdd_1.8v";
-  status = "okay";
 };
 #endif
 
