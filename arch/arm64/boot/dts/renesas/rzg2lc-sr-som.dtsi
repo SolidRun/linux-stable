@@ -250,13 +250,6 @@
    };
 #endif
 
-  gpio-sd1-bt_reg_on {
-    gpio-hog;
-    gpios = <RZG2L_GPIO(23, 1) GPIO_ACTIVE_HIGH>;
-    output-high;
-    line-name = "gpio_sd1_bt_reg_on";
-  };
-
 	sdhi0_emmc_pins: sd0emmc {
 		sd0_emmc_data {
 			pins = "SD0_DATA0", "SD0_DATA1", "SD0_DATA2", "SD0_DATA3",
@@ -464,18 +457,19 @@
 };
 
 &scif2 {
-        pinctrl-0 = <&scif2_pins>;
-        pinctrl-names = "default";
-        uart-has-rtscts;
-        status = "okay";
+	pinctrl-0 = <&scif2_pins>;
+	pinctrl-names = "default";
+	uart-has-rtscts;
+	status = "okay";
 
   bluetooth {
     pinctrl-names = "default";
-    compatible = "brcm,bcm43439-bt";
-    //host-wakeup-gpios = <&gpio1 28 0>;
-    max-speed = <4000000>;
+    max-speed = <460800>;
+	compatible = "brcm,bcm4329-bt";
+	shutdown-gpios = <&pinctrl RZG2L_GPIO(23, 1) GPIO_ACTIVE_HIGH>;
   };
 };
+
 
 /* WiFi - CYW43439 */
 &sdhi1 {

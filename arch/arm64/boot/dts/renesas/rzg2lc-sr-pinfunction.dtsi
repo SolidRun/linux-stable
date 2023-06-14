@@ -39,12 +39,12 @@
 			 <RZG2L_PORT_PINMUX(41, 1, 1)>; /* RTS# */
 	};
 
-        scif2_pins: scif2 {
-                pinmux = <RZG2L_PORT_PINMUX(42, 0, 1)>, /* TxD */
-                         <RZG2L_PORT_PINMUX(42, 1, 1)>, /* RxD */
-                         <RZG2L_PORT_PINMUX(5, 1, 1)>, /* CTS# */
-                         <RZG2L_PORT_PINMUX(5, 2, 1)>; /* RTS# */
-        };
+    scif2_pins: scif2 {
+        pinmux = <RZG2L_PORT_PINMUX(42, 0, 4)>, /* TxD */
+            <RZG2L_PORT_PINMUX(42, 1, 4)>, /* RxD */
+            <RZG2L_PORT_PINMUX(5, 1, 2)>, /* CTS# */
+            <RZG2L_PORT_PINMUX(5, 2, 2)>; /* RTS# */
+    };
 
 	sdhi1_pins: sd1 {
 		sd1_data {
