@@ -147,8 +147,10 @@ struct rz_dmac {
 #define CHCFG_REQD			BIT(3)
 #define CHCFG_SEL(bits)			((bits) & 0x07)
 #define CHCFG_MEM_COPY			(0x80400008)
-#define CHCFG_FILL_DDS(a)		(((a) << 16) & GENMASK(19, 16))
-#define CHCFG_FILL_SDS(a)		(((a) << 12) & GENMASK(15, 12))
+#define CHCFG_FILL_DDS_MASK		GENMASK(19, 16)
+#define CHCFG_FILL_DDS(a)		(((a) << 16) & CHCFG_FILL_DDS_MASK)
+#define CHCFG_FILL_SDS_MASK		GENMASK(15, 12)
+#define CHCFG_FILL_SDS(a)		(((a) << 12) & CHCFG_FILL_SDS_MASK)
 #define CHCFG_FILL_TM(a)		(((a) & BIT(5)) << 22)
 #define CHCFG_FILL_AM(a)		(((a) & GENMASK(4, 2)) << 6)
 #define CHCFG_FILL_LVL(a)		(((a) & BIT(1)) << 5)
@@ -619,12 +621,14 @@ static int rz_dmac_config(struct dma_chan *chan,
 		if (val == CHCFG_DS_INVALID)
 			return -EINVAL;
 
+		channel->chcfg &= ~CHCFG_FILL_SDS_MASK;
 		channel->chcfg |= CHCFG_FILL_SDS(val);
 	} else {
 		val = rz_dmac_ds_to_val_mapping(config->dst_addr_width);
 		if (val == CHCFG_DS_INVALID)
 			return -EINVAL;
 
+		channel->chcfg &= ~CHCFG_FILL_DDS_MASK;
 		channel->chcfg |= CHCFG_FILL_DDS(val);
 	}
 	return 0;
