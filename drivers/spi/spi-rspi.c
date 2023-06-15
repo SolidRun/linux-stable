@@ -783,8 +783,32 @@ static bool rspi_can_dma(struct spi_controller *ctlr, struct spi_device *spi,
 static int rspi_dma_check_then_transfer(struct rspi_data *rspi,
 					 struct spi_transfer *xfer)
 {
+	struct dma_slave_config cfg;
+	enum dma_slave_buswidth width;
+
 	if (!rspi->ctlr->can_dma || !__rspi_can_dma(rspi, xfer))
 		return -EAGAIN;
+
+	memset(&cfg, 0, sizeof(cfg));
+
+	if (rspi->bits_per_word == 8)
+		width = DMA_SLAVE_BUSWIDTH_1_BYTE;
+	else if (rspi->bits_per_word == 16)
+		width = DMA_SLAVE_BUSWIDTH_2_BYTES;
+	else
+		width = DMA_SLAVE_BUSWIDTH_4_BYTES;
+
+	cfg.dst_addr = rspi->pdev->resource->start + RSPI_SPDR;
+	cfg.src_addr = rspi->pdev->resource->start + RSPI_SPDR;
+	cfg.dst_addr_width = width;
+	cfg.src_addr_width = width;
+	cfg.direction = DMA_MEM_TO_DEV;
+
+	dmaengine_slave_config(rspi->ctlr->dma_tx, &cfg);
+
+	cfg.direction = DMA_DEV_TO_MEM;
+
+	dmaengine_slave_config(rspi->ctlr->dma_rx, &cfg);
 
 	/* rx_buf can be NULL on RSPI on SH in TX-only Mode */
 	return rspi_dma_transfer(rspi, &xfer->tx_sg,
@@ -1182,13 +1206,10 @@ static irqreturn_t rspi_irq_tx(int irq, void *_sr)
 
 static struct dma_chan *rspi_request_dma_chan(struct device *dev,
 					      enum dma_transfer_direction dir,
-					      unsigned int id,
-					      dma_addr_t port_addr)
+					      unsigned int id)
 {
 	dma_cap_mask_t mask;
 	struct dma_chan *chan;
-	struct dma_slave_config cfg;
-	int ret;
 
 	dma_cap_zero(mask);
 	dma_cap_set(DMA_SLAVE, mask);
@@ -1201,25 +1222,10 @@ static struct dma_chan *rspi_request_dma_chan(struct device *dev,
 		return NULL;
 	}
 
-	memset(&cfg, 0, sizeof(cfg));
-	cfg.dst_addr = port_addr + RSPI_SPDR;
-	cfg.src_addr = port_addr + RSPI_SPDR;
-	cfg.dst_addr_width = DMA_SLAVE_BUSWIDTH_1_BYTE;
-	cfg.src_addr_width = DMA_SLAVE_BUSWIDTH_1_BYTE;
-	cfg.direction = dir;
-
-	ret = dmaengine_slave_config(chan, &cfg);
-	if (ret) {
-		dev_warn(dev, "dmaengine_slave_config failed %d\n", ret);
-		dma_release_channel(chan);
-		return NULL;
-	}
-
 	return chan;
 }
 
-static int rspi_request_dma(struct device *dev, struct spi_controller *ctlr,
-			    const struct resource *res)
+static int rspi_request_dma(struct device *dev, struct spi_controller *ctlr)
 {
 	const struct rspi_plat_data *rspi_pd = dev_get_platdata(dev);
 	unsigned int dma_tx_id, dma_rx_id;
@@ -1236,13 +1242,11 @@ static int rspi_request_dma(struct device *dev, struct spi_controller *ctlr,
 		return 0;
 	}
 
-	ctlr->dma_tx = rspi_request_dma_chan(dev, DMA_MEM_TO_DEV, dma_tx_id,
-					     res->start);
+	ctlr->dma_tx = rspi_request_dma_chan(dev, DMA_MEM_TO_DEV, dma_tx_id);
 	if (!ctlr->dma_tx)
 		return -ENODEV;
 
-	ctlr->dma_rx = rspi_request_dma_chan(dev, DMA_DEV_TO_MEM, dma_rx_id,
-					     res->start);
+	ctlr->dma_rx = rspi_request_dma_chan(dev, DMA_DEV_TO_MEM, dma_rx_id);
 	if (!ctlr->dma_rx) {
 		dma_release_channel(ctlr->dma_tx);
 		ctlr->dma_tx = NULL;
@@ -1486,7 +1490,7 @@ static int rspi_probe(struct platform_device *pdev)
 		goto error2;
 	}
 
-	ret = rspi_request_dma(&pdev->dev, ctlr, res);
+	ret = rspi_request_dma(&pdev->dev, ctlr);
 	if (ret < 0)
 		dev_warn(&pdev->dev, "DMA not available, using PIO\n");
 
