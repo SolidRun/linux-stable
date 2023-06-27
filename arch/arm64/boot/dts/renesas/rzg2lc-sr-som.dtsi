@@ -140,8 +140,9 @@
 	phy-handle = <&phy0>;
 	phy-mode = "rgmii-id";
 	status = "okay";
+	renesas,no-ether-link;
 
-        phy0: ethernet-phy@0 {
+    phy0: ethernet-phy@0 {
 		reg = <0>;
 		max-speed = <100>;  /* configure ethernet max speed for ethernet0 */
 		/*
