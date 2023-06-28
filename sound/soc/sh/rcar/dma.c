@@ -665,6 +665,9 @@ static struct rsnd_mod_ops rsnd_dmapp_ops = {
 #define RDMA_CMD_O_N(addr, i)	(addr ##_reg + 0x00018000 + (0x400 * i))
 #define RDMA_CMD_O_P(addr, i)	(addr ##_reg + 0xD8708000 + (0x400 * i))
 
+#define RDMA_SPDIF_I_N(addr, i)	(addr ##_reg + (0x400 * i) + 0x30) /* SPDIF_TDAD */
+#define RDMA_SPDIF_O_N(addr, i)	(addr ##_reg + (0x400 * i) + 0x34) /* SPDIF_RDAD */
+
 #else
 
 #define RDMA_SSI_I_N(addr, i)	(addr ##_reg - 0x00300000 + (0x40 * i) + 0x8)
@@ -694,11 +697,12 @@ rsnd_gen2_dma_addr(struct rsnd_dai_stream *io,
 {
 	struct rsnd_priv *priv = rsnd_io_to_priv(io);
 	struct device *dev = rsnd_priv_to_dev(priv);
-	phys_addr_t ssi_reg, src_reg;
+	phys_addr_t ssi_reg, src_reg, spdif_reg;
 
 	if (rsnd_is_rzv2h(priv)) {
 		ssi_reg = rsnd_gen_get_phy_addr(priv, RSND_RZV2H_SSI);
 		src_reg = rsnd_gen_get_phy_addr(priv, RSND_RZV2H_SCU);
+		spdif_reg = rsnd_gen_get_phy_addr(priv, RSND_RZV2H_SPDIF);
 	} else {
 		ssi_reg = rsnd_gen_get_phy_addr(priv, RSND_GEN2_SSI);
 		src_reg = rsnd_gen_get_phy_addr(priv, RSND_GEN2_SCU);
@@ -706,16 +710,29 @@ rsnd_gen2_dma_addr(struct rsnd_dai_stream *io,
 
 	int is_ssi = !!(rsnd_io_to_mod_ssi(io) == mod) ||
 		     !!(rsnd_io_to_mod_ssiu(io) == mod);
+	int is_spdif = !!(rsnd_io_to_mod_spdif(io) == mod);
 	int use_src = !!rsnd_io_to_mod_src(io);
 	int use_cmd = !!rsnd_io_to_mod_dvc(io) ||
 		      !!rsnd_io_to_mod_mix(io) ||
 		      !!rsnd_io_to_mod_ctu(io);
 	int id = rsnd_mod_id(mod);
-	int busif = rsnd_mod_id_sub(rsnd_io_to_mod_ssiu(io));
 	struct dma_addr {
 		dma_addr_t out_addr;
 		dma_addr_t in_addr;
-	} dma_addrs[3][2][3] = {
+	} dma_addrs_spdif[2] = {
+		/* Capture */
+		{ RDMA_SPDIF_O_N(spdif, id),		0 },
+		/* Playback */
+		{ 0,			RDMA_SPDIF_I_N(spdif, id) }
+	};
+
+	if (is_spdif)
+		return (is_from) ?
+			dma_addrs_spdif[is_play].out_addr :
+			dma_addrs_spdif[is_play].in_addr;
+
+	int busif = rsnd_mod_id_sub(rsnd_io_to_mod_ssiu(io));
+	struct dma_addr dma_addrs[3][2][3] = {
 		/* SRC */
 		/* Capture */
 		{{{ 0,				0 },
@@ -796,6 +813,7 @@ static void rsnd_dma_of_path(struct rsnd_mod *this,
 			     struct rsnd_mod **mod_to)
 {
 	struct rsnd_mod *ssi;
+	struct rsnd_mod *spdif = rsnd_io_to_mod_spdif(io);
 	struct rsnd_mod *src = rsnd_io_to_mod_src(io);
 	struct rsnd_mod *ctu = rsnd_io_to_mod_ctu(io);
 	struct rsnd_mod *mix = rsnd_io_to_mod_mix(io);
@@ -828,7 +846,7 @@ static void rsnd_dma_of_path(struct rsnd_mod *this,
 		ssi = rsnd_io_to_mod_ssi(io);
 	}
 
-	if (!ssi)
+	if (!ssi && !spdif)
 		return;
 
 	nr = 0;
@@ -852,8 +870,14 @@ static void rsnd_dma_of_path(struct rsnd_mod *this,
 	 * -*->		Audio DMAC
 	 * -o->		Audio DMAC peri peri
 	 */
-	mod_start	= (is_play) ? NULL : ssi;
-	mod_end		= (is_play) ? ssi  : NULL;
+
+	if (ssi) {
+		mod_start	= (is_play) ? NULL : ssi;
+		mod_end		= (is_play) ? ssi  : NULL;
+	} else if (spdif) {
+		mod_start       = (is_play) ? NULL  : spdif;
+		mod_end         = (is_play) ? spdif : NULL;
+	}
 
 	idx = 0;
 	mod[idx++] = mod_start;
@@ -880,7 +904,7 @@ static void rsnd_dma_of_path(struct rsnd_mod *this,
 	 *  is_play	|  o  |  *  |
 	 * !is_play	|  *  |  o  |
 	 */
-	if ((this == ssi) == (is_play)) {
+	if (((this == ssi) || (this == spdif)) == (is_play)) {
 		*mod_from	= mod[idx - 1];
 		*mod_to		= mod[idx];
 	} else {
