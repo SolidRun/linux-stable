@@ -94,6 +94,7 @@
 #define IOLH(n)			(0x1000 + (n) * 8)
 #define SR(n)			(0x1400 + (n) * 8)
 #define IEN(n)			(0x1800 + (n) * 8)
+#define PUPD(n)			(0x1C00 + (n) * 8)
 #define ISEL(n)			(0x2C00 + (n) * 8)
 #define PWPR			(0x3014)
 #define SD_CH(n)		(0x3000 + (n) * 4)
@@ -116,6 +117,7 @@
 #define IEN_MASK		0x01
 #define SR_MASK			0x01
 #define IOLH_MASK		0x03
+#define PUPD_MASK		0x03
 
 #define PM_INPUT		0x1
 #define PM_OUTPUT		0x2
@@ -756,6 +758,23 @@ static int rzg2l_pinctrl_pinconf_get(struct pinctrl_dev *pctldev,
 		break;
 	}
 
+	case PIN_CONFIG_BIAS_DISABLE:
+	case PIN_CONFIG_BIAS_PULL_UP:
+	case PIN_CONFIG_BIAS_PULL_DOWN: {
+		unsigned int bias;
+
+		if (!(cfg & PIN_CFG_PUPD))
+			return -EINVAL;
+
+		bias = rzg2l_read_pin_config(pctrl, PUPD(port_offset), bit, PUPD_MASK);
+		if ((bias == 0 && param != PIN_CONFIG_BIAS_DISABLE) ||
+		    (bias == 0x1 && param != PIN_CONFIG_BIAS_PULL_UP) ||
+		    (bias == 0x2 && param != PIN_CONFIG_BIAS_PULL_DOWN))
+			return -EINVAL;
+
+		break;
+	}
+
 	default:
 		return -ENOTSUPP;
 	}
@@ -895,6 +914,24 @@ static int rzg2l_pinctrl_pinconf_set(struct pinctrl_dev *pctldev,
 			break;
 		}
 
+		case PIN_CONFIG_BIAS_DISABLE:
+		case PIN_CONFIG_BIAS_PULL_UP:
+		case PIN_CONFIG_BIAS_PULL_DOWN: {
+			unsigned int bias;
+
+			if (!(cfg & PIN_CFG_PUPD))
+				return -EINVAL;
+
+			if (param == PIN_CONFIG_BIAS_DISABLE)
+				bias = 0;
+			else if (param == PIN_CONFIG_BIAS_PULL_UP)
+				bias = 1;
+			else
+				bias = 2;
+			rzg2l_rmw_pin_config(pctrl, PUPD(port_offset),
+					     bit, PUPD_MASK, bias);
+			break;
+		}
 		default:
 			return -EOPNOTSUPP;
 		}
