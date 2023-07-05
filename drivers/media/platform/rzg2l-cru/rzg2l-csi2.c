@@ -95,38 +95,71 @@ struct timings {
 	u32 ths_prepare;
 };
 
+/* Minimum and Maximum MIPI CSI2 Transfer Data Rate in Mbps */
+#define RATE_RANGES(_min, _max)		{.min = (_min), .max = (_max)}
+
 struct rzg2l_csi2_format {
 	u32 code;
 	unsigned int bpp;
+	struct {
+		unsigned long min;
+		unsigned long max;
+	} rate;
 };
 
 static const struct rzg2l_csi2_format rzg2l_csi2_formats[] = {
-	{ .code = MEDIA_BUS_FMT_RGB565_2X8_LE,	.bpp = 16 },
-	{ .code = MEDIA_BUS_FMT_RGB888_1X24,	.bpp = 24 },
-	{ .code = MEDIA_BUS_FMT_UYVY8_1X16,	.bpp = 16 },
-	{ .code = MEDIA_BUS_FMT_YUYV8_1X16,	.bpp = 16 },
-	{ .code = MEDIA_BUS_FMT_UYVY8_2X8,	.bpp = 16 },
-	{ .code = MEDIA_BUS_FMT_YUYV10_2X10,	.bpp = 20 },
-	{ .code = MEDIA_BUS_FMT_SRGGB8_1X8,	.bpp = 8 },
-	{ .code = MEDIA_BUS_FMT_SGRBG8_1X8,	.bpp = 8 },
-	{ .code = MEDIA_BUS_FMT_SGBRG8_1X8,	.bpp = 8 },
-	{ .code = MEDIA_BUS_FMT_SBGGR8_1X8,	.bpp = 8 },
-	{ .code = MEDIA_BUS_FMT_SRGGB10_1X10,	.bpp = 10 },
-	{ .code = MEDIA_BUS_FMT_SGRBG10_1X10,	.bpp = 10 },
-	{ .code = MEDIA_BUS_FMT_SGBRG10_1X10,	.bpp = 10 },
-	{ .code = MEDIA_BUS_FMT_SBGGR10_1X10,	.bpp = 10 },
-	{ .code = MEDIA_BUS_FMT_SRGGB12_1X12,	.bpp = 12 },
-	{ .code = MEDIA_BUS_FMT_SGRBG12_1X12,	.bpp = 12 },
-	{ .code = MEDIA_BUS_FMT_SGBRG12_1X12,	.bpp = 12 },
-	{ .code = MEDIA_BUS_FMT_SBGGR12_1X12,	.bpp = 12 },
-	{ .code = MEDIA_BUS_FMT_SRGGB14_1X14,	.bpp = 14 },
-	{ .code = MEDIA_BUS_FMT_SGRBG14_1X14,	.bpp = 14 },
-	{ .code = MEDIA_BUS_FMT_SGBRG14_1X14,	.bpp = 14 },
-	{ .code = MEDIA_BUS_FMT_SBGGR14_1X14,	.bpp = 14 },
-	{ .code = MEDIA_BUS_FMT_SRGGB16_1X16,	.bpp = 16 },
-	{ .code = MEDIA_BUS_FMT_SGRBG16_1X16,	.bpp = 16 },
-	{ .code = MEDIA_BUS_FMT_SGBRG16_1X16,	.bpp = 16 },
-	{ .code = MEDIA_BUS_FMT_SBGGR16_1X16,	.bpp = 16 },
+	{ .code = MEDIA_BUS_FMT_RGB565_2X8_LE,	.bpp = 16,
+	  .rate = RATE_RANGES(80, 4256)},
+	{ .code = MEDIA_BUS_FMT_RGB888_1X24,	.bpp = 24,
+	  .rate = RATE_RANGES(80, 6000)},
+	{ .code = MEDIA_BUS_FMT_UYVY8_1X16,	.bpp = 16,
+	  .rate = RATE_RANGES(80, 4256)},
+	{ .code = MEDIA_BUS_FMT_YUYV8_1X16,	.bpp = 16,
+	  .rate = RATE_RANGES(80, 4256)},
+	{ .code = MEDIA_BUS_FMT_UYVY8_2X8,	.bpp = 16,
+	  .rate = RATE_RANGES(80, 4256)},
+	{ .code = MEDIA_BUS_FMT_YUYV10_2X10,	.bpp = 20,
+	  .rate = RATE_RANGES(80, 5238)},
+	{ .code = MEDIA_BUS_FMT_SRGGB8_1X8,	.bpp = 8,
+	  .rate = RATE_RANGES(80, 2128)},
+	{ .code = MEDIA_BUS_FMT_SGRBG8_1X8,	.bpp = 8,
+	  .rate = RATE_RANGES(80, 2128)},
+	{ .code = MEDIA_BUS_FMT_SGBRG8_1X8,	.bpp = 8,
+	  .rate = RATE_RANGES(80, 2128)},
+	{ .code = MEDIA_BUS_FMT_SBGGR8_1X8,	.bpp = 8,
+	  .rate = RATE_RANGES(80, 2128)},
+	{ .code = MEDIA_BUS_FMT_SRGGB10_1X10,	.bpp = 10,
+	  .rate = RATE_RANGES(80, 2619)},
+	{ .code = MEDIA_BUS_FMT_SGRBG10_1X10,	.bpp = 10,
+	  .rate = RATE_RANGES(80, 2619)},
+	{ .code = MEDIA_BUS_FMT_SGBRG10_1X10,	.bpp = 10,
+	  .rate = RATE_RANGES(80, 2619)},
+	{ .code = MEDIA_BUS_FMT_SBGGR10_1X10,	.bpp = 10,
+	  .rate = RATE_RANGES(80, 2619)},
+	{ .code = MEDIA_BUS_FMT_SRGGB12_1X12,	.bpp = 12,
+	  .rate = RATE_RANGES(80, 3095)},
+	{ .code = MEDIA_BUS_FMT_SGRBG12_1X12,	.bpp = 12,
+	  .rate = RATE_RANGES(80, 3095)},
+	{ .code = MEDIA_BUS_FMT_SGBRG12_1X12,	.bpp = 12,
+	  .rate = RATE_RANGES(80, 3095)},
+	{ .code = MEDIA_BUS_FMT_SBGGR12_1X12,	.bpp = 12,
+	  .rate = RATE_RANGES(80, 3095)},
+	{ .code = MEDIA_BUS_FMT_SRGGB14_1X14,	.bpp = 14,
+	  .rate = RATE_RANGES(80, 3584)},
+	{ .code = MEDIA_BUS_FMT_SGRBG14_1X14,	.bpp = 14,
+	  .rate = RATE_RANGES(80, 3584)},
+	{ .code = MEDIA_BUS_FMT_SGBRG14_1X14,	.bpp = 14,
+	  .rate = RATE_RANGES(80, 3584)},
+	{ .code = MEDIA_BUS_FMT_SBGGR14_1X14,	.bpp = 14,
+	  .rate = RATE_RANGES(80, 3584)},
+	{ .code = MEDIA_BUS_FMT_SRGGB16_1X16,	.bpp = 16,
+	  .rate = RATE_RANGES(80, 4000)},
+	{ .code = MEDIA_BUS_FMT_SGRBG16_1X16,	.bpp = 16,
+	  .rate = RATE_RANGES(80, 4000)},
+	{ .code = MEDIA_BUS_FMT_SGBRG16_1X16,	.bpp = 16,
+	  .rate = RATE_RANGES(80, 4000)},
+	{ .code = MEDIA_BUS_FMT_SBGGR16_1X16,	.bpp = 16,
+	  .rate = RATE_RANGES(80, 4000)},
 };
 
 static const struct rzg2l_csi2_format *rzg2l_csi2_code_to_fmt(unsigned int code)
@@ -289,7 +322,8 @@ static int rzg2l_csi2_dphy_setting(struct rzg2l_csi2 *priv, bool on)
 	return ret;
 }
 
-static int rzg2l_csi2_calc_mbps(struct rzg2l_csi2 *priv, unsigned int bpp)
+static int rzg2l_csi2_calc_mbps(struct rzg2l_csi2 *priv, unsigned int bpp,
+				unsigned long min_rate, unsigned long max_rate)
 {
 	struct v4l2_subdev *source;
 	struct v4l2_ctrl *ctrl;
@@ -315,6 +349,12 @@ static int rzg2l_csi2_calc_mbps(struct rzg2l_csi2 *priv, unsigned int bpp)
 	mbps = v4l2_ctrl_g_ctrl_int64(ctrl) * bpp;
 	do_div(mbps, priv->lanes * 1000000);
 
+	/* Validate Mbps with the minimum and maximum transfer data rates */
+	if ((mbps < min_rate) || ((mbps * priv->lanes) > max_rate)) {
+		dev_err(priv->dev, "unsupported transfer rate %lld\n", mbps);
+		return -EINVAL;
+	}
+
 	return mbps;
 }
 
@@ -327,7 +367,8 @@ int rzg2l_cru_init_csi_dphy(struct v4l2_subdev *sd)
 	/* Code is validated in set_fmt. */
 	format = rzg2l_csi2_code_to_fmt(priv->mf.code);
 
-	mbps = rzg2l_csi2_calc_mbps(priv, format->bpp);
+	mbps = rzg2l_csi2_calc_mbps(priv, format->bpp,
+				    format->rate.min, format->rate.max);
 	if (mbps < 0)
 		return mbps;
 
