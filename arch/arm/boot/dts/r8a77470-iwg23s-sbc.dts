@@ -205,7 +205,7 @@
 		compatible = "rcar-dvdec";
 		reg = <0x31>;
 		clocks = <&cpg CPG_MOD 927>;
-
+		clock-names = "i2c4";
 		port {
 			dvdec: endpoint {
 				remote-endpoint = <&vin0ep>;
