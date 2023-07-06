@@ -354,6 +354,7 @@
 			reg = <0 0xfea00000 0 0x200>;
 			interrupts = <0 285 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&cpg CPG_MOD 115>;
+			clock-names = "2d-dmac";
 			power-domains = <&sysc R8A7742_PD_ALWAYS_ON>;
 		};
 
@@ -1138,14 +1139,16 @@
 			interrupts = <0 258 IRQ_TYPE_LEVEL_HIGH>,
 				 <0 259 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&cpg CPG_MOD 101>;
+			clock-names = "vcp0";
 			power-domains = <&sysc R8A7742_PD_ALWAYS_ON>;
 			renesas,#ch = <0>;
 		};
 
-		vpc0: vcp0@fe908000 {
+		vpc0: vpc0@fe908000 {
 			compatible = "renesas,vpc0";
 			reg = <0 0xfe908000 0 0x90>;
 			clocks = <&cpg CPG_MOD 103>;
+			clock-names = "vpc0";
 			power-domains = <&sysc R8A7742_PD_ALWAYS_ON>;
 			renesas,#ch = <0>;
 		};
@@ -1156,14 +1159,16 @@
 			interrupts = <0 260 IRQ_TYPE_LEVEL_HIGH>,
 				 <0 261 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&cpg CPG_MOD 100>;
+			clock-names = "vcp1";
 			power-domains = <&sysc R8A7742_PD_ALWAYS_ON>;
 			renesas,#ch = <1>;
 		};
 
-		vpc1: vcp0@fe918000 {
+		vpc1: vpc0@fe918000 {
 			compatible = "renesas,vpc1";
 			reg = <0 0xfe918000 0 0x90>;
 			clocks = <&cpg CPG_MOD 102>;
+			clock-names = "vpc1";
 			power-domains = <&sysc R8A7742_PD_ALWAYS_ON>;
 			renesas,#ch = <1>;
 		};
@@ -1172,6 +1177,7 @@
 			compatible = "renesas,vpc0xy";
 			reg = <0 0xfe960380 0 0x4>;
 			clocks = <&cpg CPG_MOD 103>;
+			clock-names = "vpc0";
 			power-domains = <&sysc R8A7742_PD_ALWAYS_ON>;
 			renesas,#ch = <0>;
 		};
@@ -1179,7 +1185,8 @@
 		vpc1xy: vcp0@fe960384 {
 			compatible = "renesas,vpc1xy";
 			reg = <0 0xfe960384 0 0x4>;
-			#clocks = <&cpg CPG_MOD 102>;
+			clocks = <&cpg CPG_MOD 102>;
+			clock-names = "vpc1";
 			power-domains = <&sysc R8A7742_PD_ALWAYS_ON>;
 			renesas,#ch = <1>;
 		};
@@ -1726,26 +1733,29 @@
 		};
 
 		fdp0: fdpm@fe940000 {
-			compatible = "renesas,fdp1";
+			compatible = "renesas,fdpm1";
 			reg = <0 0xfe940000 0 0x2400>;
 			interrupts = <0 262 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&cpg CPG_MOD 119>;
+			clock-names = "fdp1-0";
 			power-domains = <&sysc R8A7742_PD_ALWAYS_ON>;
 		};
 
 		fdp1: fdpm@fe944000 {
-			compatible = "renesas,fdp1";
+			compatible = "renesas,fdpm1";
 			reg = <0 0xfe944000 0 0x2400>;
 			interrupts = <0 263 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&cpg CPG_MOD 118>;
+			clock-names = "fdp1-1";
 			power-domains = <&sysc R8A7742_PD_ALWAYS_ON>;
 		};
 
 		fdp2: fdpm@fe948000 {
-			compatible = "renesas,fdp1";
+			compatible = "renesas,fdpm1";
 			reg = <0 0xfe948000 0 0x2400>;
 			interrupts = <0 264 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&cpg CPG_MOD 117>;
+			clock-names = "fdp1-2";
 			power-domains = <&sysc R8A7742_PD_ALWAYS_ON>;
 		};
 		gic: interrupt-controller@f1001000 {
