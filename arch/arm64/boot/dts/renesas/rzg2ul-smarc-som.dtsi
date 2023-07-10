@@ -161,6 +161,10 @@
 	clock-frequency = <24000000>;
 };
 
+&mtu3 {
+	status = "okay";
+};
+
 &ostm1 {
 	status = "okay";
 };
