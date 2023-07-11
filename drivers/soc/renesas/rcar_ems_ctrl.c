@@ -25,6 +25,7 @@
 #include <linux/platform_device.h>
 #include <linux/pm_runtime.h>
 #include <linux/spinlock.h>
+#include <linux/suspend.h>
 #include <linux/thermal.h>
 
 #include <linux/soc/renesas/rcar_ems_ctrl.h>
@@ -43,6 +44,8 @@ static int ems_poll;
 
 static int thermal_zone_num;
 static struct thermal_zone_device *thermal_zone[EMS_THERMAL_ZONE_MAX];
+
+static atomic_t in_suspend;
 
 static int rcar_ems_notify(unsigned long state, void *p)
 {
@@ -65,6 +68,9 @@ static void rcar_ems_monitor(struct work_struct *ws)
 {
 	int i, ret;
 	int temp, max_temp;
+
+	if (atomic_read(&in_suspend))
+		return;
 
 	max_temp = INT_MIN;
 	for (i = 0; i < thermal_zone_num; i++) {
@@ -299,6 +305,33 @@ static void rcar_ems_cpu_shutdown_exit(void)
 				    CPUFREQ_POLICY_NOTIFIER);
 }
 
+static int thermal_pm_notify(struct notifier_block *nb,
+                             unsigned long mode, void *_unused)
+{
+        struct thermal_zone_device *tz;
+
+        switch (mode) {
+        case PM_HIBERNATION_PREPARE:
+        case PM_RESTORE_PREPARE:
+        case PM_SUSPEND_PREPARE:
+                atomic_set(&in_suspend, 1);
+                break;
+        case PM_POST_HIBERNATION:
+        case PM_POST_RESTORE:
+        case PM_POST_SUSPEND:
+                atomic_set(&in_suspend, 0);
+                break;
+        default:
+                break;
+        }
+
+        return 0;
+}
+
+static struct notifier_block thermal_pm_nb = {
+	.notifier_call = thermal_pm_notify,
+};
+
 static int __init rcar_ems_init(void)
 {
 	int ret;
@@ -306,6 +339,10 @@ static int __init rcar_ems_init(void)
 	ret = rcar_ems_ctrl_init();
 	if (ret)
 		return ret;
+
+	ret = register_pm_notifier(&thermal_pm_nb);
+	if (ret)
+		pr_warn("thermal emergency: Can not register pm notifier\n");
 
 	return rcar_ems_cpu_shutdown_init();
 }
