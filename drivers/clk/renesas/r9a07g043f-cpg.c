@@ -374,4 +374,6 @@ const struct rzg2l_cpg_info r9a07g043f_cpg_info = {
 	/* Resets */
 	.resets = r9a07g043f_resets,
 	.num_resets = R9A07G043F_TSU_PRESETN + 1, /* Last reset ID + 1 */
+
+        .has_clk_mon_regs = true,
 };
