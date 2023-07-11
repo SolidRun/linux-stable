@@ -213,6 +213,11 @@
 	status = "okay";
 };
 
+&pwc {
+	renesas,rzv2m-pwc-power;
+	status = "okay";
+};
+
 &uart0 {
 	pinctrl-0 = <&uart0_pins>;
 	pinctrl-names = "default";
