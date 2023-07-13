@@ -418,7 +418,6 @@
 			phys = <&usb0 0>;
 			phy-names = "usb";
 			power-domains = <&sysc R8A77470_PD_ALWAYS_ON>;
-			resets = <&cpg 704>;
 			status = "disabled";
 		};
 
