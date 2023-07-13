@@ -643,7 +643,6 @@
 			       <&usb_dmac1 0>, <&usb_dmac1 1>;
 			dma-names = "ch0", "ch1", "ch2", "ch3";
 			power-domains = <&sysc R8A7744_PD_ALWAYS_ON>;
-			resets = <&cpg 704>;
 			renesas,buswait = <4>;
 			phys = <&usb0 1>;
 			phy-names = "usb";
