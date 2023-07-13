@@ -318,7 +318,8 @@
 	vmmc-supply = <&reg_3p3v>;
 	vqmmc-supply = <&vccq_sdhi0>;
 	bus-width = <4>;
-  max-frequency = <50000000>;
+	non-removable;
+  	max-frequency = <50000000>;
 	status = "okay";
 };
 #endif
