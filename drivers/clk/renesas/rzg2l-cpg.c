@@ -1187,6 +1187,10 @@ static const struct of_device_id rzg2l_cpg_match[] = {
 		.compatible = "renesas,r9a09g011-cpg",
 		.data = &r9a09g011_cpg_info,
 	},
+        {
+                .compatible = "renesas,r9a09g055-cpg",
+                .data = &r9a09g011_cpg_info,
+        },
 #endif
 	{ /* sentinel */ }
 };
