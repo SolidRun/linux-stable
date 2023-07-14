@@ -91,6 +91,11 @@
 			#power-domain-cells = <0>;
 		};
 
+		sys: system-controller@a3f03000 {
+			compatible = "renesas,r9a09g055-sys";
+			reg = <0 0xa3f03000 0 0x400>;
+		};
+
 		uart0: serial@a4040000 {
 			compatible = "renesas,r9a09g055-uart", "renesas,em-uart";
 			reg = <0 0xa4040000 0 0x80>;
