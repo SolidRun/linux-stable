@@ -7,6 +7,7 @@
 
 /dts-v1/;
 #include "r9a09g055.dtsi"
+#include <dt-bindings/pinctrl/rzv2m-pinctrl.h>
 
 / {
 	model = "RZ/V2MA Evaluation Kit 2.0";
