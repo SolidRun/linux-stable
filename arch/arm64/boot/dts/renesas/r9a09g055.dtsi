@@ -118,6 +118,16 @@
 			status = "disabled";
 		};
 
+                uart1: serial@a4040080 {
+                        compatible = "renesas,r9a09g055-uart", "renesas,em-uart";
+                        reg = <0 0xa4040080 0 0x80>;
+                        interrupts = <GIC_SPI 241 IRQ_TYPE_LEVEL_HIGH>;
+                        clocks = <&cpg CPG_MOD R9A09G011_URT1_CLK>,
+                                 <&cpg CPG_MOD R9A09G011_URT_PCLK>;
+                        clock-names = "sclk", "pclk";
+                        status = "disabled";
+                };
+
 		pinctrl: pinctrl@b6250000 {
 			compatible = "renesas,r9a09g055-pinctrl";
 			reg = <0 0xb6250000 0 0x800>;
