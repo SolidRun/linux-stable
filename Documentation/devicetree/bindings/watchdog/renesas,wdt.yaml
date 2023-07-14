@@ -30,6 +30,7 @@ properties:
       - items:
           - enum:
               - renesas,r9a09g011-wdt    # RZ/V2M
+              - renesas,r9a09g055-wdt    # RZ/V2MA
           - const: renesas,rzv2m-wdt     # RZ/V2M
 
       - items:
