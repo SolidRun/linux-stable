@@ -4,7 +4,7 @@
 $id: http://devicetree.org/schemas/i2c/renesas,rzv2m.yaml#
 $schema: http://devicetree.org/meta-schemas/core.yaml#
 
-title: Renesas RZ/V2M I2C Bus Interface
+title: Renesas RZ/V2{M,MA} I2C Bus Interface
 
 maintainers:
   - Fabrizio Castro <fabrizio.castro.jz@renesas.com>
@@ -17,6 +17,7 @@ properties:
     items:
       - enum:
           - renesas,r9a09g011-i2c  # RZ/V2M
+          - renesas,r9a09g055-i2c  # RZ/V2MA
       - const: renesas,rzv2m-i2c
 
   reg:
