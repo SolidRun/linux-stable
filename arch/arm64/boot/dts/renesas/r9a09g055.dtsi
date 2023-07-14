@@ -179,6 +179,32 @@
                         status = "disabled";
                 };
 
+		wdt0: watchdog@a4050000 {
+			compatible = "renesas,r9a09g055-wdt",
+				     "renesas,rzv2ma-wdt";
+			reg = <0 0xa4050000 0 0x80>;
+			clocks = <&cpg CPG_MOD R9A09G011_WDT0_PCLK>,
+				 <&cpg CPG_MOD R9A09G011_WDT0_CLK>;
+			clock-names = "pclk", "oscclk";
+			interrupts = <GIC_SPI 43 IRQ_TYPE_LEVEL_HIGH>;
+			resets = <&cpg R9A09G011_WDT0_PRESETN>;
+			power-domains = <&cpg>;
+			status = "disabled";
+		};
+
+                wdt1: watchdog@a4050080 {
+                        compatible = "renesas,r9a09g055-wdt",
+                                     "renesas,rzv2ma-wdt";
+                        reg = <0 0xa4050080 0 0x80>;
+                        clocks = <&cpg CPG_MOD R9A09G011_WDT1_PCLK>,
+                                 <&cpg CPG_MOD R9A09G011_WDT1_CLK>;
+                        clock-names = "pclk", "oscclk";
+                        interrupts = <GIC_SPI 44 IRQ_TYPE_LEVEL_HIGH>;
+                        resets = <&cpg R9A09G011_WDT1_PRESETN>;
+                        power-domains = <&cpg>;
+                        status = "disabled";
+                };
+
 		pinctrl: pinctrl@b6250000 {
 			compatible = "renesas,r9a09g055-pinctrl";
 			reg = <0 0xb6250000 0 0x800>;
