@@ -316,6 +316,7 @@ static int rzg2l_wdt_probe(struct platform_device *pdev)
 static const struct of_device_id rzg2l_wdt_ids[] = {
 	{ .compatible = "renesas,rzg2l-wdt", .data = (void *)WDT_RZG2L },
 	{ .compatible = "renesas,rzv2m-wdt", .data = (void *)WDT_RZV2M },
+	{ .compatible = "renesas,rzv2ma-wdt", .data = (void *)WDT_RZV2M },
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, rzg2l_wdt_ids);
