@@ -40,6 +40,7 @@
 			compatible = "arm,cortex-a53";
 			reg = <0>;
 			device_type = "cpu";
+			next-level-cache = <&L2_CA53>;	
 			clocks = <&cpg CPG_MOD R9A09G011_CA53_CLK>;
 		};
 
@@ -47,8 +48,16 @@
                         compatible = "arm,cortex-a53";
                         reg = <0>;
                         device_type = "cpu";
+			next-level-cache = <&L2_CA53>;
                         clocks = <&cpg CPG_MOD R9A09G011_CA53_CLK>;
                 };
+
+		L2_CA53: cache-controller-0 {
+			compatible = "cache";
+			cache-unified;
+			cache-level = <2>;
+			cache-size = <0x80000>;
+		};
 	};
 
 	soc: soc {
