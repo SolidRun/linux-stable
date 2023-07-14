@@ -15,6 +15,7 @@ properties:
       - items:
           - enum:
               - renesas,r9a09g011-uart    # RZ/V2M
+              - renesas,r9a09g055-uart    # RZ/V2MA
           - const: renesas,em-uart        # generic EMMA Mobile compatible UART
 
       - items:
