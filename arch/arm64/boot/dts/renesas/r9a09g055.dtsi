@@ -159,6 +159,62 @@
 			reg = <0 0xa3f03000 0 0x400>;
 		};
 
+		i2c0: i2c@a4030000 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			compatible = "renesas,r9a09g055-i2c", "renesas,rzv2ma-i2c";
+			reg = <0 0xa4030000 0 0x80>;
+			interrupts = <GIC_SPI 232 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 236 IRQ_TYPE_EDGE_RISING>;
+			interrupt-names = "tia", "tis";
+			clocks = <&cpg CPG_MOD R9A09G011_IIC_PCLK0>;
+			resets = <&cpg R9A09G011_IIC_GPA_PRESETN>;
+			power-domains = <&cpg>;
+			status = "disabled";
+		};
+
+		i2c1: i2c@a4030080 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			compatible = "renesas,r9a09g055-i2c", "renesas,rzv2ma-i2c";
+			reg = <0 0xa4030080 0 0x80>;
+			interrupts = <GIC_SPI 233 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 237 IRQ_TYPE_EDGE_RISING>;
+			interrupt-names = "tia", "tis";
+			clocks = <&cpg CPG_MOD R9A09G011_IIC_PCLK0>;
+			resets = <&cpg R9A09G011_IIC_GPA_PRESETN>;
+			power-domains = <&cpg>;
+			status = "disabled";
+		};
+
+                i2c2: i2c@a4030100 {
+                        #address-cells = <1>;
+                        #size-cells = <0>;
+                        compatible = "renesas,r9a09g055-i2c", "renesas,rzv2ma-i2c";
+                        reg = <0 0xa4030100 0 0x80>;
+                        interrupts = <GIC_SPI 234 IRQ_TYPE_EDGE_RISING>,
+                                     <GIC_SPI 238 IRQ_TYPE_EDGE_RISING>;
+                        interrupt-names = "tia", "tis";
+                        clocks = <&cpg CPG_MOD R9A09G011_IIC_PCLK1>;
+                        resets = <&cpg R9A09G011_IIC_GPB_PRESETN>;
+                        power-domains = <&cpg>;
+                        status = "disabled";
+                };
+
+                i2c3: i2c@a4030180 {
+                        #address-cells = <1>;
+                        #size-cells = <0>;
+                        compatible = "renesas,r9a09g055-i2c", "renesas,rzv2ma-i2c";
+                        reg = <0 0xa4030180 0 0x80>;
+                        interrupts = <GIC_SPI 235 IRQ_TYPE_EDGE_RISING>,
+                                     <GIC_SPI 239 IRQ_TYPE_EDGE_RISING>;
+                        interrupt-names = "tia", "tis";
+                        clocks = <&cpg CPG_MOD R9A09G011_IIC_PCLK1>;
+                        resets = <&cpg R9A09G011_IIC_GPB_PRESETN>;
+                        power-domains = <&cpg>;
+                        status = "disabled";
+                };
+
 		uart0: serial@a4040000 {
 			compatible = "renesas,r9a09g055-uart", "renesas,em-uart";
 			reg = <0 0xa4040000 0 0x80>;
