@@ -8,6 +8,7 @@
 #include <dt-bindings/interrupt-controller/arm-gic.h>
 #include <dt-bindings/clock/r9a09g011-cpg.h>
 
+/memreserve/ 0x1B7FFF000 0x00001000; /* spin-table address */
 / {
 	compatible = "renesas,r9a09g055";
 	#address-cells = <2>;
@@ -40,15 +41,19 @@
 			compatible = "arm,cortex-a53";
 			reg = <0>;
 			device_type = "cpu";
-			next-level-cache = <&L2_CA53>;	
+			next-level-cache = <&L2_CA53>;
+			enable-method = "spin-table";
+			cpu-release-addr = <0x1 0xB7FFF000>;
 			clocks = <&cpg CPG_MOD R9A09G011_CA53_CLK>;
 		};
 
                 cpu1: cpu@1 {
                         compatible = "arm,cortex-a53";
-                        reg = <0>;
+                        reg = <1>;
                         device_type = "cpu";
 			next-level-cache = <&L2_CA53>;
+			enable-method = "spin-table";
+			cpu-release-addr = <0x1 0xB7FFF000>;
                         clocks = <&cpg CPG_MOD R9A09G011_CA53_CLK>;
                 };
 
@@ -59,6 +64,13 @@
 			cache-size = <0x80000>;
 		};
 	};
+
+	pmu_a53 {
+		compatible = "arm,cortex-a53-pmu";
+        	interrupts-extended = <&gic GIC_SPI 6 IRQ_TYPE_LEVEL_HIGH>,
+				      <&gic GIC_SPI 7 IRQ_TYPE_LEVEL_HIGH>;
+        	interrupt-affinity = <&cpu0>,<&cpu1>;
+    	};
 
 	soc: soc {
 		compatible = "simple-bus";
