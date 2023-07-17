@@ -424,7 +424,7 @@ config PWM_RENESAS_TPU
 
 config PWM_RZV2M
        tristate "Renesas RZ/V2{M,MA} PWM support"
-       depends on ARCH_R9A09G011 || COMPILE_TEST
+       depends on ARCH_R9A09G011 || ARCH_R9A09G055 || COMPILE_TEST
        depends on HAS_IOMEM
        help
          This driver exposes the PWM controller found in Renesas
