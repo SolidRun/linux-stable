@@ -288,7 +288,10 @@ static const struct of_device_id usb_xhci_of_match[] = {
 	}, {
 		.compatible = "renesas,rzv2m-xhci",
 		.data = &xhci_plat_renesas_rzv2m,
-	},
+        }, {
+                .compatible = "renesas,rzv2ma-xhci",
+                .data = &xhci_plat_renesas_rzv2m,
+        },
 	{ },
 };
 MODULE_DEVICE_TABLE(of, usb_xhci_of_match);
