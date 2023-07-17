@@ -29,7 +29,11 @@
 
 #define SEL_B		SEL_PLL_PACK(0x214, 0, 1)
 #define SEL_CSI0	SEL_PLL_PACK(0x330, 0, 1)
+#define SEL_CSI1	SEL_PLL_PACK(0x330, 1, 1)
+#define SEL_CSI2	SEL_PLL_PACK(0x330, 2, 1)
+#define SEL_CSI3	SEL_PLL_PACK(0x330, 3, 1)
 #define SEL_CSI4	SEL_PLL_PACK(0x330, 4, 1)
+#define SEL_CSI5	SEL_PLL_PACK(0x330, 5, 1)
 #define SEL_D		SEL_PLL_PACK(0x214, 1, 1)
 #define SEL_E		SEL_PLL_PACK(0x214, 2, 1)
 #define SEL_SDI		SEL_PLL_PACK(0x300, 0, 1)
@@ -61,7 +65,11 @@ enum clk_ids {
 	CLK_SEL_B,
 	CLK_SEL_B_D2,
 	CLK_SEL_CSI0,
+	CLK_SEL_CSI1,
+	CLK_SEL_CSI2,
+	CLK_SEL_CSI3,
 	CLK_SEL_CSI4,
+	CLK_SEL_CSI5,
 	CLK_SEL_D,
 	CLK_SEL_E,
 	CLK_SEL_SDI,
@@ -145,7 +153,11 @@ static const struct cpg_core_clk r9a09g011_core_clks[] __initconst = {
 	DEF_MUX(".selsdi",      CLK_SEL_SDI,    SEL_SDI,        sel_sdi),
 	DEF_MUX(".selw0",	CLK_SEL_W0,	SEL_W0,		sel_w),
 	DEF_MUX(".selcsi0",     CLK_SEL_CSI0,   SEL_CSI0,       sel_csi),
+	DEF_MUX(".selcsi1",     CLK_SEL_CSI1,   SEL_CSI1,       sel_csi),
+	DEF_MUX(".selcsi2",     CLK_SEL_CSI2,   SEL_CSI2,       sel_csi),
+	DEF_MUX(".selcsi3",     CLK_SEL_CSI3,   SEL_CSI3,       sel_csi),
 	DEF_MUX(".selcsi4",     CLK_SEL_CSI4,   SEL_CSI4,       sel_csi),
+	DEF_MUX(".selcsi5",     CLK_SEL_CSI5,   SEL_CSI5,       sel_csi),
 
 	DEF_FIXED(".selb_d2",	CLK_SEL_B_D2,	CLK_SEL_B,	1,	2),
 };
@@ -221,7 +233,11 @@ static const struct rzg2l_mod_clk r9a09g011_mod_clks[] __initconst = {
 	DEF_MOD("cperi_grpg",   R9A09G011_CPERI_GRPG_PCLK, CLK_SEL_E,  0x438, 0, 0),
 	DEF_MOD("cperi_grph",   R9A09G011_CPERI_GRPH_PCLK, CLK_SEL_E,  0x438, 1, 0),
 	DEF_MOD("csi0_clk",     R9A09G011_CSI0_CLK,      CLK_SEL_CSI0, 0x438, 8, 0),
+	DEF_MOD("csi1_clk",     R9A09G011_CSI1_CLK,      CLK_SEL_CSI1, 0x438, 9, 0),
+	DEF_MOD("csi2_clk",     R9A09G011_CSI2_CLK,      CLK_SEL_CSI2, 0x438, 10, 0),
+	DEF_MOD("csi3_clk",     R9A09G011_CSI3_CLK,      CLK_SEL_CSI3, 0x438, 11, 0),
 	DEF_MOD("csi4_clk",     R9A09G011_CSI4_CLK,      CLK_SEL_CSI4, 0x438, 12, 0),
+	DEF_MOD("csi5_clk",     R9A09G011_CSI5_CLK,      CLK_SEL_CSI5, 0x438, 13, 0),
         DEF_MOD("cperi_grpe",   R9A09G011_CPERI_GRPE_PCLK, CLK_SEL_E,  0x430, 0, 0),
         DEF_MOD("pwm0_clk",     R9A09G011_PWM0_CLK,      CLK_MAIN,     0x430, 4, 0),
         DEF_MOD("pwm1_clk",     R9A09G011_PWM1_CLK,      CLK_MAIN,     0x430, 5, 0),
