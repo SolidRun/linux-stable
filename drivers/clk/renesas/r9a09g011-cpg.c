@@ -231,10 +231,12 @@ static const struct rzg2l_mod_clk r9a09g011_mod_clks[] __initconst = {
         DEF_MOD("pwm13_clk",    R9A09G011_PWM13_CLK,     CLK_MAIN,     0x434, 9, 0),
         DEF_MOD("pwm14_clk",    R9A09G011_PWM14_CLK,     CLK_MAIN,     0x434, 10, 0),
         DEF_MOD("pwm15_clk",    R9A09G011_PWM15_CLK,     CLK_MAIN,     0x434, 11, 0),
+	DEF_MOD("dmaa_aclk",    R9A09G011_DMAA_ACLK,     CLK_SEL_D,    0x400, 11, 0),
 };
 
 static const struct rzg2l_reset r9a09g011_resets[] = {
 	DEF_RST(R9A09G011_PFC_PRESETN,		0x600, 2),
+	DEF_RST(R9A09G011_DMAA_ARESETN,		0x600, 7),
         DEF_RST_MON(R9A09G011_SDI0_IXRST,       0x608, 0,  6),
         DEF_RST_MON(R9A09G011_SDI1_IXRST,       0x608, 1,  7),
         DEF_RST_MON(R9A09G011_EMM_IXRST,        0x608, 2,  8),
