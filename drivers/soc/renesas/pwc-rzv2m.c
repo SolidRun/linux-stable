@@ -133,6 +133,7 @@ static int rzv2m_pwc_probe(struct platform_device *pdev)
 
 static const struct of_device_id rzv2m_pwc_of_match[] = {
 	{ .compatible = "renesas,rzv2m-pwc" },
+	{ .compatible = "renesas,rzv2ma-pwc" },
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, rzv2m_pwc_of_match);
