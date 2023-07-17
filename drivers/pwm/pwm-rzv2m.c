@@ -432,6 +432,7 @@ err_reset:
 
 static const struct of_device_id rzv2m_pwm_of_table[] = {
         { .compatible = "renesas,rzv2m-pwm", },
+        { .compatible = "renesas,rzv2ma-pwm", },
         { /* Sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, rzv2m_pwm_of_table);
