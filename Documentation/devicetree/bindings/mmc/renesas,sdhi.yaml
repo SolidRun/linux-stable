@@ -61,6 +61,7 @@ properties:
               - renesas,sdhi-r9a07g044 # RZ/G2{L,LC}
               - renesas,sdhi-r9a07g054 # RZ/V2L
               - renesas,sdhi-r9a09g011 # RZ/V2M
+              - renesas,sdhi-r9a09g055 # RZ/V2MA
           - const: renesas,rcar-gen3-sdhi # R-Car Gen3 or RZ/G2
 
   reg:
