@@ -346,7 +346,7 @@ config ARCH_R9A07G043F
 endif # RISCV
 
 config PWC_RZV2M
-	bool "Renesas RZ/V2M PWC support" if COMPILE_TEST
+	bool "Renesas RZ/V2{M,MA} PWC support" if COMPILE_TEST
 
 config RST_RCAR
 	bool "Reset Controller support for R-Car" if COMPILE_TEST
