@@ -211,6 +211,230 @@
 			reg = <0 0xa3f03000 0 0x400>;
 		};
 
+                pwm0: pwm@a4010000 {
+                        compatible = "renesas,r9a09g055-pwm",
+                                     "renesas,rzv2ma-pwm";
+                        reg = <0 0xa4010000 0 0x80>;
+                        interrupts = <GIC_SPI 368 IRQ_TYPE_LEVEL_HIGH>;
+                        clocks = <&cpg CPG_MOD R9A09G011_CPERI_GRPE_PCLK>,
+                                 <&cpg CPG_MOD R9A09G011_PWM0_CLK>;
+                        clock-names = "apb", "pwm";
+                        resets = <&cpg R9A09G011_PWM_GPE_PRESETN>;
+                        power-domains = <&cpg>;
+                        #pwm-cells = <2>;
+                        status = "disabled";
+                };
+
+                pwm1: pwm@a4010080 {
+                        compatible = "renesas,r9a09g055-pwm",
+                                     "renesas,rzv2ma-pwm";
+                        reg = <0 0xa4010080 0 0x80>;
+                        interrupts = <GIC_SPI 369 IRQ_TYPE_LEVEL_HIGH>;
+                        clocks = <&cpg CPG_MOD R9A09G011_CPERI_GRPE_PCLK>,
+                                 <&cpg CPG_MOD R9A09G011_PWM1_CLK>;
+                        clock-names = "apb", "pwm";
+                        resets = <&cpg R9A09G011_PWM_GPE_PRESETN>;
+                        power-domains = <&cpg>;
+                        #pwm-cells = <2>;
+                        status = "disabled";
+                };
+
+                pwm2: pwm@a4010100 {
+                        compatible = "renesas,r9a09g055-pwm",
+                                     "renesas,rzv2ma-pwm";
+                        reg = <0 0xa4010100 0 0x80>;
+                        interrupts = <GIC_SPI 370 IRQ_TYPE_LEVEL_HIGH>;
+                        clocks = <&cpg CPG_MOD R9A09G011_CPERI_GRPE_PCLK>,
+                                 <&cpg CPG_MOD R9A09G011_PWM2_CLK>;
+                        clock-names = "apb", "pwm";
+                        resets = <&cpg R9A09G011_PWM_GPE_PRESETN>;
+                        power-domains = <&cpg>;
+                        #pwm-cells = <2>;
+                        status = "disabled";
+                };
+
+                pwm3: pwm@a4010180 {
+                        compatible = "renesas,r9a09g055-pwm",
+                                     "renesas,rzv2ma-pwm";
+                        reg = <0 0xa4010180 0 0x80>;
+                        interrupts = <GIC_SPI 371 IRQ_TYPE_LEVEL_HIGH>;
+                        clocks = <&cpg CPG_MOD R9A09G011_CPERI_GRPE_PCLK>,
+                                 <&cpg CPG_MOD R9A09G011_PWM3_CLK>;
+                        clock-names = "apb", "pwm";
+                        resets = <&cpg R9A09G011_PWM_GPE_PRESETN>;
+                        power-domains = <&cpg>;
+                        #pwm-cells = <2>;
+                        status = "disabled";
+                };
+
+                pwm4: pwm@a4010200 {
+                        compatible = "renesas,r9a09g055-pwm",
+                                     "renesas,rzv2ma-pwm";
+                        reg = <0 0xa4010200 0 0x80>;
+                        interrupts = <GIC_SPI 372 IRQ_TYPE_LEVEL_HIGH>;
+                        clocks = <&cpg CPG_MOD R9A09G011_CPERI_GRPE_PCLK>,
+                                 <&cpg CPG_MOD R9A09G011_PWM4_CLK>;
+                        clock-names = "apb", "pwm";
+                        resets = <&cpg R9A09G011_PWM_GPE_PRESETN>;
+                        power-domains = <&cpg>;
+                        #pwm-cells = <2>;
+                        status = "disabled";
+                };
+
+                pwm5: pwm@a4010280 {
+                        compatible = "renesas,r9a09g055-pwm",
+                                     "renesas,rzv2ma-pwm";
+                        reg = <0 0xa4010280 0 0x80>;
+                        interrupts = <GIC_SPI 373 IRQ_TYPE_LEVEL_HIGH>;
+                        clocks = <&cpg CPG_MOD R9A09G011_CPERI_GRPE_PCLK>,
+                                 <&cpg CPG_MOD R9A09G011_PWM5_CLK>;
+                        clock-names = "apb", "pwm";
+                        resets = <&cpg R9A09G011_PWM_GPE_PRESETN>;
+                        power-domains = <&cpg>;
+                        #pwm-cells = <2>;
+                        status = "disabled";
+                };
+
+                pwm6: pwm@a4010300 {
+                        compatible = "renesas,r9a09g055-pwm",
+                                     "renesas,rzv2ma-pwm";
+                        reg = <0 0xa4010300 0 0x80>;
+                        interrupts = <GIC_SPI 374 IRQ_TYPE_LEVEL_HIGH>;
+                        clocks = <&cpg CPG_MOD R9A09G011_CPERI_GRPE_PCLK>,
+                                 <&cpg CPG_MOD R9A09G011_PWM6_CLK>;
+                        clock-names = "apb", "pwm";
+                        resets = <&cpg R9A09G011_PWM_GPE_PRESETN>;
+                        power-domains = <&cpg>;
+                        #pwm-cells = <2>;
+                        status = "disabled";
+                };
+
+                pwm7: pwm@a4010380 {
+                        compatible = "renesas,r9a09g055-pwm",
+                                     "renesas,rzv2ma-pwm";
+                        reg = <0 0xa4010380 0 0x80>;
+                        interrupts = <GIC_SPI 375 IRQ_TYPE_LEVEL_HIGH>;
+                        clocks = <&cpg CPG_MOD R9A09G011_CPERI_GRPE_PCLK>,
+                                 <&cpg CPG_MOD R9A09G011_PWM7_CLK>;
+                        clock-names = "apb", "pwm";
+                        resets = <&cpg R9A09G011_PWM_GPE_PRESETN>;
+                        power-domains = <&cpg>;
+                        #pwm-cells = <2>;
+                        status = "disabled";
+                };
+
+		pwm8: pwm@a4010400 {
+			compatible = "renesas,r9a09g055-pwm",
+				     "renesas,rzv2ma-pwm";
+			reg = <0 0xa4010400 0 0x80>;
+			interrupts = <GIC_SPI 376 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD R9A09G011_CPERI_GRPF_PCLK>,
+				 <&cpg CPG_MOD R9A09G011_PWM8_CLK>;
+			clock-names = "apb", "pwm";
+			resets = <&cpg R9A09G011_PWM_GPF_PRESETN>;
+			power-domains = <&cpg>;
+			#pwm-cells = <2>;
+			status = "disabled";
+		};
+
+		pwm9: pwm@a4010480 {
+			compatible = "renesas,r9a09g055-pwm",
+				     "renesas,rzv2ma-pwm";
+			reg = <0 0xa4010480 0 0x80>;
+			interrupts = <GIC_SPI 377 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD R9A09G011_CPERI_GRPF_PCLK>,
+				 <&cpg CPG_MOD R9A09G011_PWM9_CLK>;
+			clock-names = "apb", "pwm";
+			resets = <&cpg R9A09G011_PWM_GPF_PRESETN>;
+			power-domains = <&cpg>;
+			#pwm-cells = <2>;
+			status = "disabled";
+		};
+
+		pwm10: pwm@a4010500 {
+			compatible = "renesas,r9a09g055-pwm",
+				     "renesas,rzv2ma-pwm";
+			reg = <0 0xa4010500 0 0x80>;
+			interrupts = <GIC_SPI 378 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD R9A09G011_CPERI_GRPF_PCLK>,
+				 <&cpg CPG_MOD R9A09G011_PWM10_CLK>;
+			clock-names = "apb", "pwm";
+			resets = <&cpg R9A09G011_PWM_GPF_PRESETN>;
+			power-domains = <&cpg>;
+			#pwm-cells = <2>;
+			status = "disabled";
+		};
+
+		pwm11: pwm@a4010580 {
+			compatible = "renesas,r9a09g055-pwm",
+				     "renesas,rzv2ma-pwm";
+			reg = <0 0xa4010580 0 0x80>;
+			interrupts = <GIC_SPI 379 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD R9A09G011_CPERI_GRPF_PCLK>,
+				 <&cpg CPG_MOD R9A09G011_PWM11_CLK>;
+			clock-names = "apb", "pwm";
+			resets = <&cpg R9A09G011_PWM_GPF_PRESETN>;
+			power-domains = <&cpg>;
+			#pwm-cells = <2>;
+			status = "disabled";
+		};
+
+		pwm12: pwm@a4010600 {
+			compatible = "renesas,r9a09g055-pwm",
+				     "renesas,rzv2ma-pwm";
+			reg = <0 0xa4010600 0 0x80>;
+			interrupts = <GIC_SPI 380 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD R9A09G011_CPERI_GRPF_PCLK>,
+				 <&cpg CPG_MOD R9A09G011_PWM12_CLK>;
+			clock-names = "apb", "pwm";
+			resets = <&cpg R9A09G011_PWM_GPF_PRESETN>;
+			power-domains = <&cpg>;
+			#pwm-cells = <2>;
+			status = "disabled";
+		};
+
+		pwm13: pwm@a4010680 {
+			compatible = "renesas,r9a09g055-pwm",
+				     "renesas,rzv2ma-pwm";
+			reg = <0 0xa4010680 0 0x80>;
+			interrupts = <GIC_SPI 381 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD R9A09G011_CPERI_GRPF_PCLK>,
+				 <&cpg CPG_MOD R9A09G011_PWM13_CLK>;
+			clock-names = "apb", "pwm";
+			resets = <&cpg R9A09G011_PWM_GPF_PRESETN>;
+			power-domains = <&cpg>;
+			#pwm-cells = <2>;
+			status = "disabled";
+		};
+
+		pwm14: pwm@a4010700 {
+			compatible = "renesas,r9a09g055-pwm",
+				     "renesas,rzv2ma-pwm";
+			reg = <0 0xa4010700 0 0x80>;
+			interrupts = <GIC_SPI 382 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD R9A09G011_CPERI_GRPF_PCLK>,
+				 <&cpg CPG_MOD R9A09G011_PWM14_CLK>;
+			clock-names = "apb", "pwm";
+			resets = <&cpg R9A09G011_PWM_GPF_PRESETN>;
+			power-domains = <&cpg>;
+			#pwm-cells = <2>;
+			status = "disabled";
+		};
+
+                pwm15: pwm@a4010780 {
+                        compatible = "renesas,r9a09g055-pwm",
+                                     "renesas,rzv2ma-pwm";
+                        reg = <0 0xa4010780 0 0x80>;
+                        interrupts = <GIC_SPI 383 IRQ_TYPE_LEVEL_HIGH>;
+                        clocks = <&cpg CPG_MOD R9A09G011_CPERI_GRPF_PCLK>,
+                                 <&cpg CPG_MOD R9A09G011_PWM15_CLK>;
+                        clock-names = "apb", "pwm";
+                        resets = <&cpg R9A09G011_PWM_GPF_PRESETN>;
+                        power-domains = <&cpg>;
+                        #pwm-cells = <2>;
+                        status = "disabled";
+                };
+
 		i2c0: i2c@a4030000 {
 			#address-cells = <1>;
 			#size-cells = <0>;
