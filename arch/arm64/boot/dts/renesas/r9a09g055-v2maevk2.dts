@@ -359,3 +359,131 @@
 &wdt1 {
         status = "okay";
 };
+
+&tim0 {
+    status = "okay";
+};
+
+&tim1 {
+    status = "okay";
+};
+
+&tim2 {
+    status = "okay";
+};
+
+&tim3 {
+    status = "okay";
+};
+
+&tim4 {
+    status = "okay";
+};
+
+&tim5 {
+    status = "okay";
+};
+
+&tim6 {
+    status = "okay";
+};
+
+&tim7 {
+    status = "okay";
+};
+
+&tim8 {
+    status = "okay";
+};
+
+&tim9 {
+    status = "okay";
+};
+
+&tim10 {
+    status = "okay";
+};
+
+&tim11 {
+    status = "okay";
+};
+
+&tim12 {
+    status = "okay";
+};
+
+&tim13 {
+    status = "okay";
+};
+
+&tim14 {
+    status = "okay";
+};
+
+&tim15 {
+    status = "okay";
+};
+
+&tim16 {
+    status = "okay";
+};
+
+&tim17 {
+    status = "okay";
+};
+
+&tim18 {
+    status = "okay";
+};
+
+&tim19 {
+    status = "okay";
+};
+
+&tim20 {
+    status = "okay";
+};
+
+&tim21 {
+    status = "okay";
+};
+
+&tim22 {
+    status = "okay";
+};
+
+&tim23 {
+    status = "okay";
+};
+
+&tim24 {
+    status = "okay";
+};
+
+&tim25 {
+    status = "okay";
+};
+
+&tim26 {
+    status = "okay";
+};
+
+&tim27 {
+    status = "okay";
+};
+
+&tim28 {
+    status = "okay";
+};
+
+&tim29 {
+    status = "okay";
+};
+
+&tim30 {
+    status = "okay";
+};
+
+&tim31 {
+    status = "okay";
+};
