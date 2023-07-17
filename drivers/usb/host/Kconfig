@@ -96,13 +96,13 @@ config USB_XHCI_RCAR
 	  found in Renesas R-Car ARM SoCs.
 
 config USB_XHCI_RZV2M
-	bool "xHCI support for Renesas RZ/V2M SoC"
+	bool "xHCI support for Renesas RZ/V2{M,MA} SoC"
 	depends on USB_XHCI_RCAR
-	depends on ARCH_R9A09G011 || COMPILE_TEST
+	depends on ARCH_R9A09G011 || ARCH_R9A09G055 || COMPILE_TEST
 	depends on USB_RZV2M_USB3DRD=y || (USB_RZV2M_USB3DRD=USB_XHCI_RCAR)
 	help
 	  Say 'Y' to enable the support for the xHCI host controller
-	  found in Renesas RZ/V2M SoC.
+	  found in Renesas RZ/V2{M,MA} SoC.
 
 config USB_XHCI_TEGRA
 	tristate "xHCI support for NVIDIA Tegra SoCs"

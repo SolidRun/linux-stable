@@ -193,7 +193,7 @@ config USB_RENESAS_USBHS_UDC
 
 config USB_RZV2M_USB3DRD
 	tristate 'Renesas USB3.1 DRD controller'
-	depends on ARCH_R9A09G011 || COMPILE_TEST
+	depends on ARCH_R9A09G011 || ARCH_R9A09G055 || COMPILE_TEST
 	help
 	   Renesas USB3.1 DRD controller is a USB DRD controller
 	   that supports both host and device switching.

@@ -120,6 +120,7 @@ err_rst:
 
 static const struct of_device_id rzv2m_usb3drd_of_match[] = {
 	{ .compatible = "renesas,rzv2m-usb3drd", },
+	{ .compatible = "renesas,rzv2ma-usb3drd", },
 	{ /* Sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, rzv2m_usb3drd_of_match);
