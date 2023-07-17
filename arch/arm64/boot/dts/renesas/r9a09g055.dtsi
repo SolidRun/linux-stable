@@ -621,6 +621,29 @@
 			power-domains = <&cpg>;
 			resets = <&cpg R9A09G011_PFC_PRESETN>;
 		};
+
+                tsu: thermal@a3f50000 {
+                    compatible = "renesas,rzv2ma-thermal";
+                    reg = <0 0xa3f50000 0 0x80>, <0 0xa3f60000 0 0x80>;
+                    #thermal-sensor-cells = <1>;
+                };
+
+	};
+
+	thermal-zones {
+                rzv2ma-thermal {
+                    polling-delay-passive = <250>;
+                    polling-delay = <1000>;
+                    thermal-sensors = <&tsu 0>;
+
+                    trips {
+                        sensor1_crit: sensor1-crit {
+                            temperature = <93000>;
+                            hysteresis = <1000>;
+                            type = "critical";
+                        };
+                    };
+                };
 	};
 
 	timer {
