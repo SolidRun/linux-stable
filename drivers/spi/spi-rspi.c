@@ -355,6 +355,7 @@ static int rspi_rz_set_config_register(struct rspi_data *rspi, int access_size)
 
 	/* Resets sequencer */
 	rspi_write8(rspi, 0, RSPI_SPSCR);
+	rspi->spcmd &= ~SPCMD_SPB_MASK;
 	if (rspi->bits_per_word == 8 || rspi->bits_per_word == 16)
 		rspi->spcmd |= SPCMD_SPB_8_TO_16(rspi->bits_per_word);
 	else
