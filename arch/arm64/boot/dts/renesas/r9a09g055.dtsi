@@ -1194,6 +1194,25 @@
 			rx_trigger_lvl = <0x4>;
 		};
 
+	        pcie: pcie@85030000 {
+	            compatible = "renesas,rzv2ma-pcie";
+	            device_type = "pci";
+	            reg = <0x0 0x85030000 0x0 0x10000>, // PCI
+	                  <0x0 0xA3F03000 0x0 0x400>,   // PCI SYS
+	                  <0x0 0xA3F70000 0x0 0x800>,   // PCI PHY
+	                  <0x0 0xA3500000 0x0 0x1000>;  // CPG
+	            #address-cells = <0x3>;
+	            #size-cells = <0x2>;
+	            bus-range = <0x0 0xff>;
+	            linux,pci-domain = <0x0>;
+	            interrupts = <GIC_SPI 324 IRQ_TYPE_LEVEL_HIGH>;
+	 	   ranges = <0x03000000 0x0 0xc0000000 0x0 0xc0000000 0x0 0x20000000>;
+	 	   dma-ranges = <0x03000000 0x0 0x00000000 0x0 0x00000000 0x0 0x80000000>;
+	            #interrupt-cells = <0x1>;
+	            interrupt-map-mask = <0 0 0 0>;
+	            interrupt-map = <0 0 0 0 &gic GIC_SPI 324 IRQ_TYPE_LEVEL_HIGH>;
+	        };
+
                 tsu: thermal@a3f50000 {
                     compatible = "renesas,rzv2ma-thermal";
                     reg = <0 0xa3f50000 0 0x80>, <0 0xa3f60000 0 0x80>;
