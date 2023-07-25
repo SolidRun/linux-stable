@@ -54,13 +54,9 @@
 		};
 	};
 
-	memory@58000000 {
+	memory@00000000 {
 		device_type = "memory";
-		/*
-		 * first 1.25GiB is reserved for ISP Firmware,
-		 * next 128MiB is reserved for secure area.
-		 */
-		reg = <0x0 0x58000000 0x0 0x28000000>;
+		reg = <0x0 0x00000000 0x0 0x80000000>;
 	};
 
 	memory@180000000 {
