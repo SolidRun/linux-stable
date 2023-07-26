@@ -51,6 +51,7 @@
 #define RIIC_ICCR2	0x04
 #define RIIC_ICMR1	0x08
 #define RIIC_ICMR3	0x10
+#define RIIC_ICFER	0x14
 #define RIIC_ICSER	0x18
 #define RIIC_ICIER	0x1c
 #define RIIC_ICSR2	0x24
@@ -59,6 +60,7 @@
 #define RIIC_ICDRT	0x3c
 #define RIIC_ICDRR	0x40
 
+#define ICFER_FMPE	0x80
 #define ICCR1_ICE	0x80
 #define ICCR1_IICRST	0x40
 #define ICCR1_SOWP	0x10
@@ -98,6 +100,11 @@ struct riic_dev {
 	struct completion msg_done;
 	struct i2c_adapter adapter;
 	struct clk *clk;
+	unsigned int max_speed;
+};
+
+struct riic_platform_info {
+	unsigned int max_speed;
 };
 
 struct riic_irq_desc {
@@ -293,13 +300,16 @@ static int riic_init_hw(struct riic_dev *riic, struct i2c_timings *t)
 
 	pm_runtime_get_sync(riic->adapter.dev.parent);
 
-	if (t->bus_freq_hz > I2C_MAX_FAST_MODE_FREQ) {
+	if (t->bus_freq_hz > riic->max_speed) {
 		dev_err(&riic->adapter.dev,
 			"unsupported bus speed (%dHz). %d max\n",
-			t->bus_freq_hz, I2C_MAX_FAST_MODE_FREQ);
+			t->bus_freq_hz, riic->max_speed);
 		ret = -EINVAL;
 		goto out;
 	}
+
+	if (t->bus_freq_hz == I2C_MAX_FAST_MODE_PLUS_FREQ)
+		riic_clear_set_bit(riic, ICFER_FMPE, ICFER_FMPE, RIIC_ICFER);
 
 	rate = clk_get_rate(riic->clk);
 
@@ -408,6 +418,11 @@ static int riic_i2c_probe(struct platform_device *pdev)
 	struct i2c_timings i2c_t;
 	struct reset_control *rstc;
 	int i, ret;
+	unsigned int max_speed;
+	struct riic_platform_info *pltdata;
+
+	pltdata = (struct riic_platform_info *)of_device_get_match_data(&pdev->dev);
+	max_speed = pltdata->max_speed;
 
 	riic = devm_kzalloc(&pdev->dev, sizeof(*riic), GFP_KERNEL);
 	if (!riic)
@@ -450,6 +465,7 @@ static int riic_i2c_probe(struct platform_device *pdev)
 		}
 	}
 
+	riic->max_speed = max_speed;
 	adap = &riic->adapter;
 	i2c_set_adapdata(adap, riic);
 	strlcpy(adap->name, "Renesas RIIC adapter", sizeof(adap->name));
@@ -498,8 +514,18 @@ static int riic_i2c_remove(struct platform_device *pdev)
 	return 0;
 }
 
+static const struct riic_platform_info riic_rz_common_plat_data = {
+	.max_speed = I2C_MAX_FAST_MODE_PLUS_FREQ,
+};
+
+static const struct riic_platform_info riic_r7s72100_plat_data = {
+	.max_speed = I2C_MAX_FAST_MODE_FREQ,
+};
+
 static const struct of_device_id riic_i2c_dt_ids[] = {
-	{ .compatible = "renesas,riic-rz", },
+	{ .compatible = "renesas,riic-r7s9210", .data = &riic_rz_common_plat_data},
+	{ .compatible = "renesas,riic-r7s72100", .data = &riic_r7s72100_plat_data},
+	{ .compatible = "renesas,riic-rz", .data = &riic_rz_common_plat_data},
 	{ /* Sentinel */ },
 };
 
