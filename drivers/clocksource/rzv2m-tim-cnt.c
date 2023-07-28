@@ -421,6 +421,7 @@ End of function tim_dev_probe
 /* For the device tree */
 static struct of_device_id tim_dev_of_match[] = {
     { .compatible = "renesas,rzv2m-tim-cnt", },
+    { .compatible = "renesas,rzv2ma-tim-cnt", },
     { /* end of list */ },
 };
 
