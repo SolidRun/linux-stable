@@ -134,6 +134,13 @@
 			 <RZV2M_PORT_PINMUX(3, 2, 2)>, /* UACTS0N */
 			 <RZV2M_PORT_PINMUX(3, 3, 2)>; /* UARTS0N */
 	};
+
+	csi4_pins: csi4 {
+		pinmux = <RZV2M_PORT_PINMUX(4, 0, 1)>, /* CSTXD4  */
+			 <RZV2M_PORT_PINMUX(4, 1, 1)>, /* CSRXD4  */
+			 <RZV2M_PORT_PINMUX(4, 2, 1)>, /* CSSCLK4 */
+			 <RZV2M_PORT_PINMUX(4, 3, 1)>; /* CSCS4   */
+       };
 };
 
 &uart0 {
@@ -142,6 +149,20 @@
 
 	uart-has-rtscts;
 	status = "okay";
+};
+
+&csi4 {
+	pinctrl-0 = <&csi4_pins>;
+	pinctrl-names = "default";
+
+	status = "okay";
+	slavedev4: spi@0 {
+		compatible = "rzv2m,slavedev";
+		reg = <0>;
+		spi-max-frequency = <24000000>;
+		spi-cpha;
+		spi-cpol;
+	};
 };
 
 &usb3drd {
