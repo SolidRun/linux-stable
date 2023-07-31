@@ -54,6 +54,20 @@
 	clock-frequency = <48000000>;
 };
 
+&i2c0 {
+	pinctrl-0 = <&i2c0_pins>;
+	pinctrl-names = "default";
+	clock-frequency = <400000>;
+	status = "okay";
+};
+
+&i2c1 {
+	pinctrl-0 = <&i2c1_pins>;
+	pinctrl-names = "default";
+	clock-frequency = <100000>;
+	status = "okay";
+};
+
 &pinctrl {
 	uart0_pins: uart0 {
 		pinmux = <RZV2M_PORT_PINMUX(3, 0, 2)>, /* UATX0 */
@@ -68,6 +82,16 @@
                          <RZV2M_PORT_PINMUX(3, 6, 2)>, /* UACTS1N */
                          <RZV2M_PORT_PINMUX(3, 7, 2)>; /* UARTS1N */
         };
+
+	i2c0_pins: i2c0 {
+		pinmux = <RZV2M_PORT_PINMUX(5, 0, 1)>, /* SDA */
+			 <RZV2M_PORT_PINMUX(5, 1, 1)>; /* SCL */
+	};
+
+	i2c1_pins: i2c1 {
+		pinmux = <RZV2M_PORT_PINMUX(5, 2, 1)>, /* SDA */
+			 <RZV2M_PORT_PINMUX(5, 3, 1)>; /* SCL */
+	};
 };
 
 &uart0 {
