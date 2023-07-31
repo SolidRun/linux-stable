@@ -1,0 +1,28 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Device Tree Source for the RZ/V2M reserved-memory part
+ *
+ * Copyright (C) 2023 Renesas Electronics Corp.
+ */
+
+/ {
+    reserved_memory: reserved-memory {
+        #address-cells = <2>;
+        #size-cells = <2>;
+        ranges;
+
+        /* global autoconfigured region for contiguous allocations */
+        global_cma: linux,cma@1B8000000 {
+            compatible = "shared-dma-pool";
+            reusable;
+            reg = <0x1 0xB8000000 0x0 0x8000000>;
+            linux,cma-default;
+        };
+
+        /* device specific region for contiguous allocations */
+        drp_reserved: linux,CMAtoDRP {
+            reusable;
+            reg = <0x1 0xC0000000 0x0 0x20000000>;
+        };
+    };
+};
