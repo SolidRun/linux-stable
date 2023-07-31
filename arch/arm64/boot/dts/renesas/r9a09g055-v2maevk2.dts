@@ -205,6 +205,34 @@
         pwm15_pins: pwm15 {
                 pinmux = <RZV2M_PORT_PINMUX(1, 15, 1)>;  /* PM15 */
         };
+
+	csi2_pins: csi2 {
+		pinmux = <RZV2M_PORT_PINMUX(3, 8,  1)>, /* CSTXD2  */
+			 <RZV2M_PORT_PINMUX(3, 9,  1)>, /* CSRXD2  */
+			 <RZV2M_PORT_PINMUX(3, 10, 1)>, /* CSSCLK2 */
+			 <RZV2M_PORT_PINMUX(3, 11, 1)>; /* CSCS2   */
+	};
+
+	csi3_pins: csi3 {
+		pinmux = <RZV2M_PORT_PINMUX(3, 12, 1)>, /* CSTXD3  */
+			 <RZV2M_PORT_PINMUX(3, 13, 1)>, /* CSRXD3  */
+			 <RZV2M_PORT_PINMUX(3, 14, 1)>, /* CSSCLK3 */
+			 <RZV2M_PORT_PINMUX(3, 15, 1)>; /* CSCS3   */
+	};
+
+	csi4_pins: csi4 {
+		pinmux = <RZV2M_PORT_PINMUX(4, 0, 1)>, /* CSTXD4  */
+			 <RZV2M_PORT_PINMUX(4, 1, 1)>, /* CSRXD4  */
+			 <RZV2M_PORT_PINMUX(4, 2, 1)>, /* CSSCLK4 */
+			 <RZV2M_PORT_PINMUX(4, 3, 1)>; /* CSCS4   */
+	};
+
+	csi5_pins: csi5 {
+		pinmux = <RZV2M_PORT_PINMUX(4, 4, 1)>, /* CSTXD5  */
+			 <RZV2M_PORT_PINMUX(4, 5, 1)>, /* CSRXD5  */
+			 <RZV2M_PORT_PINMUX(4, 6, 1)>, /* CSSCLK5 */
+			 <RZV2M_PORT_PINMUX(4, 7, 1)>; /* CSCS5   */
+	};
 };
 
 &pwm0 {
@@ -317,6 +345,62 @@
 
         uart-has-rtscts;
         status = "okay";
+};
+
+&csi2 {
+	pinctrl-0 = <&csi2_pins>;
+	pinctrl-names = "default";
+
+	status = "okay";
+	slavedev2: spi@0 {
+		compatible = "rzv2ma,slavedev";
+		reg = <0>;
+		spi-max-frequency = <24000000>;
+		spi-cpha;
+		spi-cpol;
+	};
+};
+
+&csi3 {
+	pinctrl-0 = <&csi3_pins>;
+	pinctrl-names = "default";
+
+	status = "okay";
+	slavedev3: spi@0 {
+		compatible = "rzv2ma,slavedev";
+		reg = <0>;
+		spi-max-frequency = <24000000>;
+		spi-cpha;
+		spi-cpol;
+	};
+};
+
+&csi4 {
+	pinctrl-0 = <&csi4_pins>;
+	pinctrl-names = "default";
+
+	status = "okay";
+	slavedev4: spi@0 {
+		compatible = "rzv2ma,slavedev";
+		reg = <0>;
+		spi-max-frequency = <24000000>;
+		spi-cpha;
+		spi-cpol;
+	};
+};
+
+&csi5 {
+	pinctrl-0 = <&csi5_pins>;
+	pinctrl-names = "default";
+
+	status = "okay";
+	slavedev5: spi@0 {
+		compatible = "rzv2ma,slavedev";
+		reg = <0>;
+		spi-max-frequency = <24000000>;
+		spi-cpha;
+		spi-cpol;
+	};
 };
 
 &usb3drd {
