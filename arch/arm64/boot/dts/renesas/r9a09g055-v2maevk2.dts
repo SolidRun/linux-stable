@@ -9,6 +9,10 @@
 #include "r9a09g055.dtsi"
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/pinctrl/rzv2m-pinctrl.h>
+#include "r9a09g055_reserved-memory.dtsi"
+#include "r9a09g055_drp-ai.dtsi"
+#include "r9a09g055_videocodec.dtsi"
+#include "r9a09g055_opencva.dtsi"
 
 / {
 	model = "RZ/V2MA Evaluation Kit 2.0";
