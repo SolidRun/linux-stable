@@ -649,6 +649,7 @@ static int rzv2m_csi_remove(struct platform_device *pdev)
 
 static const struct of_device_id rzv2m_csi_match[] = {
 	{ .compatible = "renesas,rzv2m-csi" },
+	{ .compatible = "renesas,rzv2ma-csi" },
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, rzv2m_csi_match);
