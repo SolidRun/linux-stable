@@ -574,6 +574,10 @@
         status = "okay";
 };
 
+&pcie {
+    status = "okay";
+};
+
 &tim0 {
     status = "okay";
 };
