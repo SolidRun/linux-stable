@@ -52,6 +52,7 @@
 			compatible = "cache";
 			cache-unified;
 			cache-level = <2>;
+			cache-size = <0x80000>;
 		};
 	};
 
