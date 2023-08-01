@@ -104,13 +104,17 @@
     regulator-name = "USB0_VBUS_OTG";
     regulator-min-microvolt = <5000000>;
     regulator-max-microvolt = <5000000>;
+	gpio = <&pinctrl RZG2L_GPIO(4, 0) GPIO_ACTIVE_HIGH>;
+	enable-active-high;
   };
 
   usb1_vbus: regulator-usb1-vbus {
-    compatible = "regulator-fixed";
-    regulator-name = "USB1_VBUS";
-    regulator-min-microvolt = <5000000>;
-    regulator-max-microvolt = <5000000>;
+	compatible = "regulator-fixed";
+	regulator-name = "USB1_VBUS";
+	regulator-min-microvolt = <5000000>;
+	regulator-max-microvolt = <5000000>;
+	gpio = <&pinctrl RZG2L_GPIO(5, 0) GPIO_ACTIVE_HIGH>;
+	enable-active-high;
   };
 
   vccq_sdhi1: regulator-vccq-sdhi1 {
@@ -506,17 +510,12 @@
 };
 
 &usb2_phy0 {
-	pinctrl-0 = <&usb0_pins>;
-	pinctrl-names = "default";
-
 	vbus-supply = <&usb0_vbus_otg>;
 	status = "okay";
 };
 
 &usb2_phy1 {
-	pinctrl-0 = <&usb1_pins>;
-	pinctrl-names = "default";
-  vbus-supply = <&usb1_vbus>;
+	vbus-supply = <&usb1_vbus>;
 	status = "okay";
 };
 

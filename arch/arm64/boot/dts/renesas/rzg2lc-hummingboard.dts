@@ -132,3 +132,13 @@
 	/delete-property/ pinctrl-names;
 	status = "disabled";
 };
+
+&usb0_vbus_otg {
+	gpio = <&pinctrl RZG2L_GPIO(4, 0) GPIO_OPEN_DRAIN>;
+	gpio-open-drain;
+};
+
+&usb1_vbus {
+	gpio = <&pinctrl RZG2L_GPIO(5, 0) GPIO_OPEN_DRAIN>;
+	gpio-open-drain;
+};
