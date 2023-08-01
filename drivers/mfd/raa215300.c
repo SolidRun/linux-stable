@@ -16,10 +16,14 @@
 #define RAA215300_REG_BLOCK_EN		0x6C
 #define RAA215300_RTC_EN		BIT(6)
 
+#define RAA215300_REG_MPIO2_COMFIG		0x8C
+#define RAA215300_MPIO2_32K_PP			0b00011001
+
 struct raa215300 {
 	struct regmap		*regmap;
 	struct i2c_client	*client;
 	bool			rtc_enabled;
+	bool			mpio2_32k_enabled;
 };
 
 static bool raa215300_is_volatile_reg(struct device *dev, unsigned int reg)
@@ -34,6 +38,10 @@ static const struct regmap_config raa215300_regmap_config = {
 	.volatile_reg = raa215300_is_volatile_reg,
 	.cache_type = REGCACHE_FLAT,
 };
+
+static int raa215300_set_32k_out(struct raa215300 *pmic) {
+	return regmap_update_bits(pmic->regmap, RAA215300_REG_MPIO2_COMFIG, 0xFF, RAA215300_MPIO2_32K_PP);
+}
 
 static int raa215300_i2c_probe(struct i2c_client *client,
 			       const struct i2c_device_id *id)
@@ -61,6 +69,8 @@ static int raa215300_i2c_probe(struct i2c_client *client,
 
 	pmic->rtc_enabled = of_property_read_bool(client->dev.of_node,
 						  "rtc-enable");
+	pmic->mpio2_32k_enabled = of_property_read_bool(client->dev.of_node,
+						  "mpio2-32k-enable");
 
 	if (pmic->rtc_enabled) {
 		regmap_update_bits(pmic->regmap, RAA215300_REG_BLOCK_EN,
@@ -68,6 +78,14 @@ static int raa215300_i2c_probe(struct i2c_client *client,
 		dev_info(&client->dev, "RTC enabled\n");
 	}
 
+	if (pmic->mpio2_32k_enabled) {
+		ret = raa215300_set_32k_out(pmic);
+		if (ret) {
+			dev_err(&client->dev, "Failed to set MPIO2 as 32K_OUT: %d\n", ret);
+			return ret;
+		}
+	}
+	
 	dev_info(&client->dev, "RAA215300 initialized");
 
 	return 0;
