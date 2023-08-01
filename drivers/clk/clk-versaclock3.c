@@ -162,6 +162,8 @@ struct vc3_driver_data {
 	struct vc3_hw_data clk_mux[VC3_MAX_CLK_MUX_NUM];
 	struct vc3_hw_data clk_out[VC3_MAX_CLK_OUT_NUM];
 	unsigned char clk_in;
+
+	bool is_32k_used;
 };
 
 static const char * const vc3_pfd_mux_names[] = {
@@ -674,22 +676,25 @@ static unsigned char vc3_clk_mux_get_parent(struct clk_hw *hw)
 	struct vc3_hw_data *hwdata = container_of(hw, struct vc3_hw_data, hw);
 	struct vc3_driver_data *vc3 = hwdata->vc3;
 	u32 val;
-	u8 offset = 0;
 	u8 index = 0;
 
 	regmap_read(vc3->regmap, hwdata->reg, &val);
 	if (val & hwdata->offset)
 		index = 1;
 
-	if (hwdata->num == 2)
-		offset = VC3_SE3_FREERUN_32K;
-	else if (hwdata->num == 3)
-		offset = VC3_SE2_FREERUN_32K;
-	else if (hwdata->num == 4)
-		offset = VC3_SE1_FREERUN_32K;
+	if (vc3->is_32k_used) {
+		u8 offset = 0;
 
-	if (offset && (!(val & offset)))
-		index = 2;
+		if (hwdata->num == 2)
+			offset = VC3_SE3_FREERUN_32K;
+		else if (hwdata->num == 3)
+			offset = VC3_SE2_FREERUN_32K;
+		else if (hwdata->num == 4)
+			offset = VC3_SE1_FREERUN_32K;
+
+		if (offset && (!(val & offset)))
+			index = 2;
+	}
 
 	return index;
 }
@@ -701,15 +706,16 @@ static int vc3_clk_mux_set_parent(struct clk_hw *hw, u8 index)
 	unsigned int val = index ? hwdata->offset : 0;
 	u8 offset = hwdata->offset;
 
-	if (index == 2) {
-		val = 0;
-		if (hwdata->num == 2)
-			offset = VC3_SE3_FREERUN_32K;
-		else if (hwdata->num == 3)
-			offset = VC3_SE2_FREERUN_32K;
-		else if (hwdata->num == 4)
-			offset = VC3_SE1_FREERUN_32K;
-
+	if (vc3->is_32k_used) {
+		if (index == 2) {
+			val = 0;
+			if (hwdata->num == 2)
+				offset = VC3_SE3_FREERUN_32K;
+			else if (hwdata->num == 3)
+				offset = VC3_SE2_FREERUN_32K;
+			else if (hwdata->num == 4)
+				offset = VC3_SE1_FREERUN_32K;
+		}
 	}
 
 	regmap_update_bits(vc3->regmap, hwdata->reg, offset, val);
@@ -814,6 +820,18 @@ static void vc3_clk_flags_parse_dt(struct device *dev, u32 *crt_clks)
 		*crt_clks++ = val;
 		i++;
 	}
+}
+
+static void vc3_mux_type_parse_dt(struct device *dev,
+				  struct vc3_driver_data *vc3)
+{
+	struct device_node *np = dev->of_node;
+
+	if (of_property_read_bool(np, "32kHz-free-running"))
+		vc3->is_32k_used = true;
+	else
+		vc3->is_32k_used = false;
+
 }
 
 static int vc3_probe(struct i2c_client *client,
@@ -1042,6 +1060,7 @@ static int vc3_probe(struct i2c_client *client,
 	}
 
 	clk_hw_register_fixed_rate(NULL, "32k", NULL, 0, 32768);
+	vc3_mux_type_parse_dt(&client->dev, vc3);
 	/* Clk muxes */
 	for (i = 0; i < VC3_MAX_CLK_MUX_NUM; i++) {
 		vc3->clk_mux[i].num = i;
@@ -1072,7 +1091,7 @@ static int vc3_probe(struct i2c_client *client,
 			pll_parent_names[0] = vc3_div_names[1];
 			pll_parent_names[1] = vc3_div_names[3];
 			pll_parent_names[2] = "32k";
-			init.num_parents = 3;
+			init.num_parents = (vc3->is_32k_used) ? 3 : 2;
 			init.parent_names = pll_parent_names;
 			break;
 		case 3:
@@ -1081,7 +1100,7 @@ static int vc3_probe(struct i2c_client *client,
 			pll_parent_names[0] = vc3_div_names[4];
 			pll_parent_names[1] = vc3_div_names[3];
 			pll_parent_names[2] = "32k";
-			init.num_parents = 3;
+			init.num_parents = (vc3->is_32k_used) ? 3 : 2;
 			init.parent_names = pll_parent_names;
 			break;
 		case 4:
@@ -1090,7 +1109,7 @@ static int vc3_probe(struct i2c_client *client,
 			pll_parent_names[0] = vc3_div_names[4];
 			pll_parent_names[1] = vc3_div_names[3];
 			pll_parent_names[2] = "32k";
-			init.num_parents = 3;
+			init.num_parents = (vc3->is_32k_used) ? 3 : 2;
 			init.parent_names = pll_parent_names;
 			break;
 		}
