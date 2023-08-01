@@ -114,12 +114,12 @@
   };
 
   vccq_sdhi1: regulator-vccq-sdhi1 {
-    compatible = "regulator-gpio";
-    regulator-name = "SDHI1 VccQ";
-    regulator-min-microvolt = <1800000>;
-    regulator-max-microvolt = <3300000>;
-    gpios-states = <1>;
-    states = <3300000 1>, <1800000 0>;
+	compatible = "regulator-fixed";
+	regulator-name = "WL_REG_ON";
+	regulator-min-microvolt = <3300000>;
+	regulator-max-microvolt = <3300000>;
+	gpio = <&pinctrl RZG2L_GPIO(23, 0) GPIO_ACTIVE_HIGH>;
+	enable-active-high;
   };
 
   hdmi-out {
@@ -384,6 +384,7 @@
 		reg = <0x12>;
 
 		rtc-enable;
+		mpio2-32k-enable;
 	};
 
 	rtc: isl1208@6f {
@@ -466,7 +467,7 @@
 
   bluetooth {
     pinctrl-names = "default";
-    max-speed = <460800>;
+    max-speed = <115200>;
 	compatible = "brcm,bcm4329-bt";
 	shutdown-gpios = <&pinctrl RZG2L_GPIO(23, 1) GPIO_ACTIVE_HIGH>;
   };
@@ -475,35 +476,24 @@
 
 /* WiFi - CYW43439 */
 &sdhi1 {
-  #address-cells = <1>;
-  #size-cells = <0>;
+	#address-cells = <1>;
+	#size-cells = <0>;
 	pinctrl-0 = <&sdhi1_pins>;
 	pinctrl-1 = <&sdhi1_pins_uhs>;
 	pinctrl-names = "default", "state_uhs";
-  status = "okay";
-
-  /*
-  cap-power-off-card;
-  pm-ignore-notify;
-  keep-power-in-suspend;
-  */
-  non-removable;
+	status = "okay";
+	non-removable;
 	vmmc-supply = <&reg_3p3v>;
 	vqmmc-supply = <&vccq_sdhi1>;
+	
 	bus-width = <4>;
-  max-frequency = <50000000>;
-  fsl,delay-line = <12>;
-  keep-power-in-suspend;
+	max-frequency = <50000000>;
+	keep-power-in-suspend;
 
-  brcmf: wifi@1 {
-          reg = <1>;
-          compatible = "brcm,bcm4329-fmac";
-  };
-};
-
-&vccq_sdhi1 {
-  /* WL_REG_ON (P23_0) */
-  gpios = <&pinctrl RZG2L_GPIO(23, 0) GPIO_ACTIVE_HIGH>;
+	brcmf: wifi@1 {
+		reg = <1>;
+		compatible = "brcm,bcm4329-fmac";
+	};
 };
 
 &spi1 {
