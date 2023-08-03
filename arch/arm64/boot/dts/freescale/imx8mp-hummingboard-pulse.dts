@@ -104,14 +104,14 @@
 		regulator-always-on;
 	};
 
+// Enable this node for M.2 LTE modem rfkill support
 	rfkill_m2_wdis {
 		compatible = "rfkill-gpio";
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_m2_rfkill>;
 		rfkill-name = "m2_wdis";
 		rfkill-type = <5>;
-		reset-gpio = <&gpio1 6 GPIO_ACTIVE_HIGH>;
-		shutdown-gpio = <&gpio1 13 GPIO_ACTIVE_HIGH>;
+		shutdown-gpio = <&gpio1 6 GPIO_ACTIVE_HIGH>;
 		status = "okay";
 	};
 
@@ -383,7 +383,7 @@
 &pcie{
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_pcie>;
-	reset-gpio = <&gpio4 28 GPIO_ACTIVE_LOW>;
+	reset-gpio = <&gpio1 13 GPIO_ACTIVE_LOW>;
 	ext_osc = <0>;
 	clocks = <&clk IMX8MP_CLK_HSIO_ROOT>,
 		 <&clk IMX8MP_CLK_PCIE_AUX>,
@@ -552,7 +552,6 @@
 	pinctrl_m2_rfkill: m2_rfkill_grp {
 		fsl,pins = <
 			MX8MP_IOMUXC_GPIO1_IO06__GPIO1_IO06		0x19
-			MX8MP_IOMUXC_GPIO1_IO13__GPIO1_IO13		0x19
 		>;
 	};
 
@@ -583,7 +582,7 @@
 
         pinctrl_pcie: pciegrp {
                 fsl,pins = <
-                        MX8MP_IOMUXC_SAI3_RXFS__GPIO4_IO28		0x41/*pcie reset*/
+						MX8MP_IOMUXC_GPIO1_IO13__GPIO1_IO13		0x19
                 >;
         };
 
