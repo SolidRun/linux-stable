@@ -773,7 +773,7 @@
 			reg = <0 0xa4000380 0 0x80>;
 			interrupts = <GIC_SPI 114 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&cpg CPG_MOD R9A09G011_CPERI_GRPA_PCLK>,
-				 <&cpg CPG_MOD R9A09G011_TIM15_CLK>;
+				 <&cpg CPG_MOD R9A09G011_TIM7_CLK>;
 			clock-names = "apb", "timclk";
 			resets = <&cpg R9A09G011_TIM_GPA_PRESETN>;
 			power-domains = <&cpg>;
