@@ -14,7 +14,7 @@
  * S3[1] : SW_SD0_DEV_SEL	(1: eMMC; 0: uSD)
  */
 
-#define SW_SD0_DEV_SEL	0
+#define SW_SD0_DEV_SEL	1
 
 /dts-v1/;
 #include "rzg2lc-sr-som.dtsi"
