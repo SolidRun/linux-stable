@@ -46,13 +46,6 @@
 			 <RZG2L_PORT_PINMUX(48, 4, 1)>; /* RTS# */
 	};
 
-	sd1-pwr-en-hog {
-		gpio-hog;
-		gpios = <RZG2L_GPIO(39, 2) GPIO_ACTIVE_HIGH>;
-		output-high;
-		line-name = "sd1_pwr_en";
-	};
-
 	sdhi1_pins: sd1 {
 		sd1_data {
 			pins = "SD1_DATA0", "SD1_DATA1", "SD1_DATA2", "SD1_DATA3";
@@ -112,14 +105,11 @@
 	};
 
 	usb0_pins: usb0 {
-		pinmux = <RZG2L_PORT_PINMUX(4, 0, 1)>, /* VBUS */
-			 <RZG2L_PORT_PINMUX(5, 0, 1)>, /* OVC */
-			 <RZG2L_PORT_PINMUX(5, 1, 1)>; /* OTG_ID */
+		pinmux = <RZG2L_PORT_PINMUX(4, 0, 1)>; /* VBUS */
 	};
 
 	usb1_pins: usb1 {
-		pinmux = <RZG2L_PORT_PINMUX(42, 0, 1)>, /* VBUS */
-			 <RZG2L_PORT_PINMUX(42, 1, 1)>; /* OVC */
+		pinmux = <RZG2L_PORT_PINMUX(42, 0, 1)>;/* VBUS */
 	};
 
 };
