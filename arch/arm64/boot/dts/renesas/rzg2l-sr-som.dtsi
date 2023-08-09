@@ -97,13 +97,12 @@
 
 	vccq_sdhi0: regulator-vccq-sdhi0 {
 		compatible = "regulator-gpio";
-
 		regulator-name = "SDHI0 VccQ";
 		regulator-min-microvolt = <1800000>;
 		regulator-max-microvolt = <3300000>;
 		states = <3300000 1>, <1800000 0>;
 		regulator-boot-on;
-		//gpios = <&pinctrl RZG2L_GPIO(39, 0) GPIO_ACTIVE_HIGH>;
+		gpios = <&pinctrl RZG2L_GPIO(39, 0) GPIO_ACTIVE_HIGH>;
 		regulator-always-on;
 	};
 
@@ -134,17 +133,6 @@
     states = <3300000 1>, <1800000 0>;
   };
 
-  hdmi-out {
-    compatible = "hdmi-connector";
-    type = "d";
-
-    port {
-      hdmi_con_out: endpoint {
-        remote-endpoint = <&adv7535_out>;
-      };
-    };
-  };
-
 };
 
 &eth0 {
@@ -153,13 +141,10 @@
 	phy-handle = <&phy0>;
 	phy-mode = "rgmii-id";
 	status = "okay";
+	renesas,no-ether-link;
 
 	phy0: ethernet-phy@0 {
 		reg = <0>;
-/*
-		interrupt-parent = <&pinctrl>;
-		interrupts = <RZG2L_GPIO(27, 0) IRQ_TYPE_LEVEL_LOW>;
-*/
 	};
 };
 
@@ -169,13 +154,10 @@
 	phy-handle = <&phy1>;
 	phy-mode = "rgmii-id";
 	status = "okay";
+	renesas,no-ether-link;
 
 	phy1: ethernet-phy@0 {
 		reg = <0>;
-/*
-		interrupt-parent = <&pinctrl>;
-    interrupts = <RZG2L_GPIO(42, 4) IRQ_TYPE_LEVEL_LOW>;
-*/
 	};
 };
 
@@ -232,13 +214,6 @@
        <RZG2L_PORT_PINMUX(36, 0, 1)>; /* ET1_RXD3 */
   };
 
-	gpio-sd0-pwr-en-hog {
-		gpio-hog;
-		gpios = <RZG2L_GPIO(4, 1) GPIO_ACTIVE_LOW>;
-		output-high;
-		line-name = "gpio_sd0_pwr_en";
-	};
-
 	qspi0_pins: qspi0 {
 		qspi0-data {
 			pins = "QSPI0_IO0", "QSPI0_IO1", "QSPI0_IO2", "QSPI0_IO3";
@@ -252,25 +227,38 @@
 	};
 
 	/*
-	 * The below switch logic can be used to select the device between
+	 * The switch logic can be used to select the device between
 	 * eMMC and microSD, after setting GPIO_SD0_DEV_SEL to high in DT.
-	 * S3[1] should be at OFF position to enable eMMC
-	 * S3[1] should be at position ON to enable uSD card
 	 */
 
 	/*
 	 * TODO: implement device-selection for SolidRun SoM / Carrier
 	 *
-	 * gpio-sd0-dev-sel-hog {
-	 * 	gpio-hog;
-	 * 	gpios = <RZG2L_GPIO(22, 1) GPIO_ACTIVE_HIGH>;
-	 * 	output-high;
-	 * 	line-name = "gpio_sd0_dev_sel";
-	 * };
 	 */
 
+#if SW_SD0_DEV_SEL
+/* eMMC */	
+	/* P22_1 - SD0_DEV_SEL (High: [eMMC]; Low: [uSD]) */
+	gpio-sd0-dev-sel-hog {
+		gpio-hog;
+		gpios = <RZG2L_GPIO(22, 1) GPIO_ACTIVE_HIGH>;
+		output-high;
+		line-name = "gpio_sd0_dev_sel";
+	};	
+
+	/* P39_0 - LDO_SEL1 (High: 3.3v [uSD]; Low: 1.8v [eMMC]) */
+	gpio-sd0-vdd-18v-hog {
+		gpio-hog;
+		gpios = <RZG2L_GPIO(39, 0) GPIO_ACTIVE_LOW>;
+		output-high;
+		line-name = "gpio_sd0_vdd_1.8v";
+		status = "okay";
+	};
+
+#endif
+
   /* BT_REG_ON*/
-  gpio-sd1-bt_reg_on {
+    gpio-sd1-bt_reg_on {
     gpio-hog;
     gpios = <RZG2L_GPIO(23, 0) GPIO_ACTIVE_HIGH>;
     output-high;
@@ -343,8 +331,10 @@
 
 	vmmc-supply = <&reg_3p3v>;
 	vqmmc-supply = <&vccq_sdhi0>;
+	sd-uhs-sdr50;
+	sd-uhs-sdr104;
 	bus-width = <4>;
-  max-frequency = <50000000>;
+	max-frequency = <50000000>; /* 50MiB */
 	status = "okay";
 };
 #endif
@@ -373,30 +363,25 @@
 
 /* WiFi - CYW43439 */
 &sdhi1 {
-  #address-cells = <1>;
-  #size-cells = <0>;
+	#address-cells = <1>;
+	#size-cells = <0>;
 	pinctrl-0 = <&sdhi1_pins>;
 	pinctrl-1 = <&sdhi1_pins_uhs>;
 	pinctrl-names = "default", "state_uhs";
-  status = "okay";
+	status = "okay";
 
-  /*
-  cap-power-off-card;
-  pm-ignore-notify;
-  keep-power-in-suspend;
-  */
-  non-removable;
+	non-removable;
 	vmmc-supply = <&reg_3p3v>;
 	vqmmc-supply = <&vccq_sdhi1>;
 	bus-width = <4>;
-  max-frequency = <50000000>;
-  fsl,delay-line = <12>;
-  keep-power-in-suspend;
+	max-frequency = <50000000>;
+	fsl,delay-line = <12>;
+	keep-power-in-suspend;
 
-  brcmf: wifi@1 {
-          reg = <1>;
-          compatible = "brcm,bcm4329-fmac";
-  };
+	brcmf: wifi@1 {
+		reg = <1>;
+		compatible = "brcm,bcm4329-fmac";
+	};
 };
 
 &wdt0 {
@@ -478,18 +463,16 @@
 	pmic: raa215300@12 {
 		compatible = "renesas,raa215300";
 		reg = <0x12>;
-
 		rtc-enable;
+		mpio2-32k-enable;
 	};
 
 	rtc: isl1208@6f {
 		compatible = "isil,isl1208";
 		reg = <0x6f>;
-
 		//external-oscillator;
+		status="disabled";
 	};
-
-
 
 };
 
@@ -526,9 +509,8 @@
 
   bluetooth {
     pinctrl-names = "default";
-    compatible = "brcm,bcm43439-bt";
-    //host-wakeup-gpios = <&gpio1 28 0>;
-    max-speed = <4000000>;
+	max-speed = <115200>;
+	compatible = "brcm,bcm4330-bt";
   };
 };
 
@@ -544,7 +526,6 @@
 &usb2_phy0 {
 	pinctrl-0 = <&usb0_pins>;
 	pinctrl-names = "default";
-
 	vbus-supply = <&usb0_vbus_otg>;
 	status = "okay";
 };
@@ -552,7 +533,7 @@
 &usb2_phy1 {
 	pinctrl-0 = <&usb1_pins>;
 	pinctrl-names = "default";
-  vbus-supply = <&usb1_vbus>;
+  	vbus-supply = <&usb1_vbus>;
 	status = "okay";
 };
 
