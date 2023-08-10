@@ -14,7 +14,7 @@
  * S3[1] : SW_SD0_DEV_SEL	(1: eMMC; 0: uSD)
  */
 
-#define SW_SD0_DEV_SEL	0
+#define SW_SD0_DEV_SEL	1
 
 /dts-v1/;
 #include "rzg2l-sr-som.dtsi"
@@ -60,20 +60,6 @@
 		gpios = <RZG2L_GPIO(4, 1) GPIO_ACTIVE_HIGH>;
 		output-high;
 		line-name = "gpio_sd0_pwr_en";
-	};
-	
-	gpio-lte_on {
-		gpio-hog;
-		gpios = <RZG2L_GPIO(17, 0) GPIO_ACTIVE_HIGH>;
-		output-high;
-		line-name = "gpio_lte_on";
-	};
-
-	gpio-lte_reset {
-		gpio-hog;
-		gpios = <RZG2L_GPIO(42, 2) GPIO_ACTIVE_HIGH>;
-		output-high;
-		line-name = "gpio_lte_reset";
 	};
 };
 
