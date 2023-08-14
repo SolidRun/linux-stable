@@ -538,6 +538,10 @@ static int rzg2l_cru_probe(struct platform_device *pdev)
 	struct v4l2_ctrl *ctrl;
 	int num_ctrls;
 
+	ret = dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(64));
+	if (ret)
+		return ret;
+
 	cru = devm_kzalloc(&pdev->dev, sizeof(*cru), GFP_KERNEL);
 	if (!cru)
 		return -ENOMEM;

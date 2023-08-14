@@ -520,15 +520,17 @@ static void rzg2l_cru_set_slot_addr(struct rzg2l_cru_dev *cru,
 	if (WARN_ON((offsetx | offsety | offset) & HW_BUFFER_MASK))
 		return;
 
-	/* Currently, we just use the buffer in 32 bits address */
-	rzg2l_cru_write(cru, AMnMBxADDRL(slot), offset);
-	rzg2l_cru_write(cru, AMnMBxADDRH(slot), 0);
+	rzg2l_cru_write(cru, AMnMBxADDRL(slot), lower_32_bits(offset));
+	rzg2l_cru_write(cru, AMnMBxADDRH(slot), upper_32_bits(offset));
 
 	/* Statistic data memory address is located next to Image data area */
 	if (cru->is_statistics) {
+		offset = offset + cru->format.bytesperline * cru->format.height;
+
 		rzg2l_cru_write(cru, AMnSDMBxADDRL(slot),
-			offset + cru->format.bytesperline * cru->format.height);
-		rzg2l_cru_write(cru, AMnSDMBxADDRH(slot), 0);
+				lower_32_bits(offset));
+		rzg2l_cru_write(cru, AMnSDMBxADDRH(slot),
+				upper_32_bits(offset));
 	}
 }
 
