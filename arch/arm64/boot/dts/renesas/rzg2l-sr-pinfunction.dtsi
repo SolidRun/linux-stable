@@ -103,13 +103,4 @@
 			 <RZG2L_PORT_PINMUX(46, 2, 1)>, /* TXD */
 			 <RZG2L_PORT_PINMUX(46, 3, 1)>; /* RXD */
 	};
-
-	usb0_pins: usb0 {
-		pinmux = <RZG2L_PORT_PINMUX(4, 0, 1)>; /* VBUS */
-	};
-
-	usb1_pins: usb1 {
-		pinmux = <RZG2L_PORT_PINMUX(42, 0, 1)>;/* VBUS */
-	};
-
 };
