@@ -104,7 +104,7 @@
 			compatible = "ethernet-phy-ieee802.3-c22";
 			reg = <0>;
 			eee-broken-1000t;
-			reset-gpios = <&gpio4 12 GPIO_ACTIVE_LOW>;
+			reset-gpios = <&gpio4 19 GPIO_ACTIVE_LOW>;
 		};
 	};
 
@@ -160,6 +160,26 @@
 			snps,dcb-algorithm;
 			snps,priority = <0xf0>;
 			snps,map-to-dma-channel = <4>;
+		};
+	};
+};
+
+/*eth1*/
+&fec {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_fec>;
+	phy-mode = "rgmii-id";
+	phy-handle = <&ethphy1>;
+	fsl,magic-packet;
+	status = "disabled";
+
+	mdio {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		ethphy1: ethernet-phy@1 {
+			reg = <1>;
+			reset-gpios = <&gpio4 2 GPIO_ACTIVE_LOW>;
 		};
 	};
 };
@@ -518,7 +538,7 @@
                         MX8MP_IOMUXC_ENET_TD3__ENET_QOS_RGMII_TD3       0x1f
                         MX8MP_IOMUXC_ENET_TX_CTL__ENET_QOS_RGMII_TX_CTL 0x1f
                         MX8MP_IOMUXC_ENET_TXC__CCM_ENET_QOS_CLOCK_GENERATE_TX_CLK       0x1f
-			MX8MP_IOMUXC_SAI1_TXD0__GPIO4_IO12 		0x34
+                        MX8MP_IOMUXC_SAI1_TXD7__GPIO4_IO19              0x34
 		>;
 	};
 
