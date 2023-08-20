@@ -10,6 +10,6 @@
 #include "imx8mp-hummingboard-pulse.dtsi"
 
 / {
-	model = "SolidRun i.MX8MP HummingBoard Pulse";
+	model = "SolidRun i.MX8MP HummingBoard Mate";
 	compatible = "fsl,imx8mp-sr-som", "fsl,imx8mp";
 };
