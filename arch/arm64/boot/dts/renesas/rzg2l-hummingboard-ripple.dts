@@ -186,3 +186,7 @@
 	gpio = <&pinctrl RZG2L_GPIO(42, 0) GPIO_OPEN_DRAIN>;
 	gpio-open-drain;
 };
+
+&eth1 {
+	status = "disabled";
+};
