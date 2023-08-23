@@ -83,18 +83,6 @@
 		regulator-always-on;
 	};
 
-	vccq_sdhi0: regulator-vccq-sdhi0 {
-		compatible = "regulator-gpio";
-
-		regulator-name = "SDHI0 VccQ";
-		regulator-min-microvolt = <1800000>;
-		regulator-max-microvolt = <3300000>;
-		states = <3300000 1>, <1800000 0>;
-		regulator-boot-on;
-		//gpios = <&pinctrl RZG2L_GPIO(39, 0) GPIO_ACTIVE_HIGH>;
-		regulator-always-on;
-	};
-
   chosen {
     stdout-path = "serial0:115200n8";
   };
@@ -220,7 +208,7 @@
 	 */
 
 	/* eMMC/uSD Settings*/
-	sel_emmc: gpio-sd0-dev-sel-emmc-hog {
+	sel_emmc: gpio-sd0-dev-sel-hog {
 		gpio-hog;
 		gpios = <RZG2L_GPIO(22, 1) GPIO_ACTIVE_LOW>;
 		#if (!SW_SD0_DEV_SEL)
@@ -310,7 +298,7 @@
 	pinctrl-names = "default", "state_uhs";
 
 	vmmc-supply = <&reg_3p3v>;
-	vqmmc-supply = <&vccq_sdhi0>;
+	vqmmc-supply = <&reg_1p8v>;
 	bus-width = <4>;
 //	non-removable;
   	max-frequency = <50000000>;

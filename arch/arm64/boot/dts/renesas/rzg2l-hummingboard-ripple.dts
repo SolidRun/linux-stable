@@ -45,7 +45,7 @@
 &pinctrl {
 	gpio-sd0-pwr-en-hog {
 		gpio-hog;
-		gpios = <RZG2L_GPIO(4, 1) GPIO_ACTIVE_HIGH>;
+		gpios = <RZG2L_GPIO(4, 1) GPIO_ACTIVE_LOW>;
 		output-high;
 		line-name = "gpio_sd0_pwr_en";
 	};
