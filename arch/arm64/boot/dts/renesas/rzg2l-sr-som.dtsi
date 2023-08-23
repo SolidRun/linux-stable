@@ -14,17 +14,17 @@
 
 / {
 	aliases {
-	serial0 = &scif0;
-	serial1 = &scif1;
-	serial2 = &scif2;
-	serial3 = &scif3;
-	i2c0 = &i2c0;
-	i2c1 = &i2c1;
-	i2c3 = &i2c3;
-	mmc0 = &sdhi0;
-	mmc1 = &sdhi1;
-	ethernet0 = &eth0;
-	ethernet1 = &eth1;
+		serial0 = &scif0;
+		serial1 = &scif1;
+		serial2 = &scif2;
+		serial3 = &scif3;
+		i2c0 = &i2c0;
+		i2c1 = &i2c1;
+		i2c3 = &i2c3;
+		mmc0 = &sdhi0;
+		mmc1 = &sdhi1;
+		ethernet0 = &eth0;
+		ethernet1 = &eth1;
 	};
 
 	chosen {
@@ -94,17 +94,6 @@
   		regulator-boot-on;
   		regulator-always-on;
   	};
-
-	vccq_sdhi0: regulator-vccq-sdhi0 {
-		compatible = "regulator-gpio";
-		regulator-name = "SDHI0 VccQ";
-		regulator-min-microvolt = <1800000>;
-		regulator-max-microvolt = <3300000>;
-		states = <3300000 1>, <1800000 0>;
-		regulator-boot-on;
-		gpios = <&pinctrl RZG2L_GPIO(39, 0) GPIO_ACTIVE_HIGH>;
-		regulator-always-on;
-	};
 
 	chosen {
 		stdout-path = "serial0:115200n8";
@@ -181,41 +170,41 @@
 };
 
 &pinctrl {
-  eth0_pins: eth0 {
+	eth0_pins: eth0 {
 	pinmux = <RZG2L_PORT_PINMUX(28, 1, 1)>, /* ET0_LINKSTA */
-		<RZG2L_PORT_PINMUX(27, 1, 1)>, /* ET0_MDC */
-		<RZG2L_PORT_PINMUX(28, 0, 1)>, /* ET0_MDIO */
-		<RZG2L_PORT_PINMUX(20, 0, 1)>, /* ET0_TXC */
-		<RZG2L_PORT_PINMUX(20, 1, 1)>, /* ET0_TX_CTL */
-		<RZG2L_PORT_PINMUX(20, 2, 1)>, /* ET0_TXD0 */
-		<RZG2L_PORT_PINMUX(21, 0, 1)>, /* ET0_TXD1 */
-		<RZG2L_PORT_PINMUX(21, 1, 1)>, /* ET0_TXD2 */
-		<RZG2L_PORT_PINMUX(22, 0, 1)>, /* ET0_TXD3 */
-		<RZG2L_PORT_PINMUX(24, 0, 1)>, /* ET0_RXC */
-		<RZG2L_PORT_PINMUX(24, 1, 1)>, /* ET0_RX_CTL */
-		<RZG2L_PORT_PINMUX(25, 0, 1)>, /* ET0_RXD0 */
-		<RZG2L_PORT_PINMUX(25, 1, 1)>, /* ET0_RXD1 */
-		<RZG2L_PORT_PINMUX(26, 0, 1)>, /* ET0_RXD2 */
-		<RZG2L_PORT_PINMUX(26, 1, 1)>; /* ET0_RXD3 */
-  };
+			<RZG2L_PORT_PINMUX(27, 1, 1)>, /* ET0_MDC */
+			<RZG2L_PORT_PINMUX(28, 0, 1)>, /* ET0_MDIO */
+			<RZG2L_PORT_PINMUX(20, 0, 1)>, /* ET0_TXC */
+			<RZG2L_PORT_PINMUX(20, 1, 1)>, /* ET0_TX_CTL */
+			<RZG2L_PORT_PINMUX(20, 2, 1)>, /* ET0_TXD0 */
+			<RZG2L_PORT_PINMUX(21, 0, 1)>, /* ET0_TXD1 */
+			<RZG2L_PORT_PINMUX(21, 1, 1)>, /* ET0_TXD2 */
+			<RZG2L_PORT_PINMUX(22, 0, 1)>, /* ET0_TXD3 */
+			<RZG2L_PORT_PINMUX(24, 0, 1)>, /* ET0_RXC */
+			<RZG2L_PORT_PINMUX(24, 1, 1)>, /* ET0_RX_CTL */
+			<RZG2L_PORT_PINMUX(25, 0, 1)>, /* ET0_RXD0 */
+			<RZG2L_PORT_PINMUX(25, 1, 1)>, /* ET0_RXD1 */
+			<RZG2L_PORT_PINMUX(26, 0, 1)>, /* ET0_RXD2 */
+			<RZG2L_PORT_PINMUX(26, 1, 1)>; /* ET0_RXD3 */
+	};
 
-  eth1_pins: eth1 {
-	pinmux = <RZG2L_PORT_PINMUX(37, 2, 1)>, /* ET1_LINKSTA */
-		<RZG2L_PORT_PINMUX(37, 0, 1)>, /* ET1_MDC */
-		<RZG2L_PORT_PINMUX(37, 1, 1)>, /* ET1_MDIO */
-		<RZG2L_PORT_PINMUX(29, 0, 1)>, /* ET1_TXC */
-		<RZG2L_PORT_PINMUX(29, 1, 1)>, /* ET1_TX_CTL */
-		<RZG2L_PORT_PINMUX(30, 0, 1)>, /* ET1_TXD0 */
-		<RZG2L_PORT_PINMUX(30, 1, 1)>, /* ET1_TXD1 */
-		<RZG2L_PORT_PINMUX(31, 0, 1)>, /* ET1_TXD2 */
-		<RZG2L_PORT_PINMUX(31, 1, 1)>, /* ET1_TXD3 */
-		<RZG2L_PORT_PINMUX(33, 1, 1)>, /* ET1_RXC */
-		<RZG2L_PORT_PINMUX(34, 0, 1)>, /* ET1_RX_CTL */
-		<RZG2L_PORT_PINMUX(34, 1, 1)>, /* ET1_RXD0 */
-		<RZG2L_PORT_PINMUX(35, 0, 1)>, /* ET1_RXD1 */
-		<RZG2L_PORT_PINMUX(35, 1, 1)>, /* ET1_RXD2 */
-		<RZG2L_PORT_PINMUX(36, 0, 1)>; /* ET1_RXD3 */
-  };
+	eth1_pins: eth1 {
+		pinmux = <RZG2L_PORT_PINMUX(37, 2, 1)>, /* ET1_LINKSTA */
+			<RZG2L_PORT_PINMUX(37, 0, 1)>, /* ET1_MDC */
+			<RZG2L_PORT_PINMUX(37, 1, 1)>, /* ET1_MDIO */
+			<RZG2L_PORT_PINMUX(29, 0, 1)>, /* ET1_TXC */
+			<RZG2L_PORT_PINMUX(29, 1, 1)>, /* ET1_TX_CTL */
+			<RZG2L_PORT_PINMUX(30, 0, 1)>, /* ET1_TXD0 */
+			<RZG2L_PORT_PINMUX(30, 1, 1)>, /* ET1_TXD1 */
+			<RZG2L_PORT_PINMUX(31, 0, 1)>, /* ET1_TXD2 */
+			<RZG2L_PORT_PINMUX(31, 1, 1)>, /* ET1_TXD3 */
+			<RZG2L_PORT_PINMUX(33, 1, 1)>, /* ET1_RXC */
+			<RZG2L_PORT_PINMUX(34, 0, 1)>, /* ET1_RX_CTL */
+			<RZG2L_PORT_PINMUX(34, 1, 1)>, /* ET1_RXD0 */
+			<RZG2L_PORT_PINMUX(35, 0, 1)>, /* ET1_RXD1 */
+			<RZG2L_PORT_PINMUX(35, 1, 1)>, /* ET1_RXD2 */
+			<RZG2L_PORT_PINMUX(36, 0, 1)>; /* ET1_RXD3 */
+	};
 
 	qspi0_pins: qspi0 {
 		qspi0-data {
@@ -262,11 +251,11 @@
 
   /* BT_REG_ON*/
 	gpio-sd1-bt_reg_on {
-	gpio-hog;
-	gpios = <RZG2L_GPIO(23, 0) GPIO_ACTIVE_HIGH>;
-	output-high;
-	line-name = "gpio_sd1_bt_reg_on";
-  };
+		gpio-hog;
+		gpios = <RZG2L_GPIO(23, 0) GPIO_ACTIVE_HIGH>;
+		output-high;
+		line-name = "gpio_sd1_bt_reg_on";
+	};
 
 	sdhi0_emmc_pins: sd0emmc {
 		sd0_emmc_data {
@@ -333,7 +322,7 @@
 	pinctrl-names = "default", "state_uhs";
 
 	vmmc-supply = <&reg_3p3v>;
-	vqmmc-supply = <&vccq_sdhi0>;
+	vqmmc-supply = <&reg_1p8v>;
 	sd-uhs-sdr50;
 	sd-uhs-sdr104;
 	bus-width = <4>;
