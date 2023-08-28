@@ -7,6 +7,7 @@
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/pinctrl/rzg2l-pinctrl.h>
+#include <dt-bindings/input/input.h>
 
 /*
  * DIP-Switch S3 setting on SoM
@@ -49,6 +50,21 @@
 			label = "LED_B";
 			gpios = <&pinctrl RZG2L_GPIO(17, 2) GPIO_ACTIVE_HIGH>;
 			default-state = "off";
+		};
+	};
+
+	/*poll RZ_P16_0 (SW1 Button) and reboot if the button is pressed*/
+	gpio_keys_polled {
+		compatible = "gpio-keys-polled";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		poll-interval = <1000>; /*1 sec*/
+		autorepeat; /*for cases when key was triggered before daemon was started*/
+		button@0 {
+			label = "reset";
+			linux,code = <KEY_RESTART>;
+			gpios = <&pinctrl RZG2L_GPIO(16, 0) GPIO_ACTIVE_LOW>;
+			debounce-interval = <100>;
 		};
 	};
 
