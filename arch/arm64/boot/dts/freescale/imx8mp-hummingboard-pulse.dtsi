@@ -377,8 +377,7 @@
 
 &pcie{
 	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_pcie>;
-	reset-gpio = <&gpio1 6 GPIO_ACTIVE_LOW>;
+	// PCIe reset signals are board-related
 	ext_osc = <0>;
 	clocks = <&clk IMX8MP_CLK_HSIO_ROOT>,
 		 <&clk IMX8MP_CLK_PCIE_AUX>,
@@ -574,12 +573,6 @@
 			MX8MP_IOMUXC_GPIO1_IO08__GPIO1_IO08		0x16
 		>;
 	};
-
-        pinctrl_pcie: pciegrp {
-                fsl,pins = <
-						MX8MP_IOMUXC_GPIO1_IO06__GPIO1_IO06		0x19
-                >;
-        };
 
 	pinctrl_pdm: pdmgrp {
 		fsl,pins = <

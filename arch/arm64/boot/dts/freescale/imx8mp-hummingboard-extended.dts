@@ -23,3 +23,14 @@
 &fec {
 	status = "okay";
 };
+
+&iomuxc {
+	pinctrl_pcie: pciegrp {
+		fsl,pins = <MX8MP_IOMUXC_GPIO1_IO06__GPIO1_IO06	0x19>;
+	};
+};
+
+&pcie{
+	pinctrl-0 = <&pinctrl_pcie>;
+	reset-gpio = <&gpio1 6 GPIO_ACTIVE_LOW>;
+};

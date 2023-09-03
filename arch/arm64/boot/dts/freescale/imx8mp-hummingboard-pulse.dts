@@ -13,3 +13,14 @@
 	model = "SolidRun i.MX8MP HummingBoard Pulse";
 	compatible = "fsl,imx8mp-sr-som", "fsl,imx8mp";
 };
+
+&iomuxc {
+	pinctrl_pcie: pciegrp {
+		fsl,pins = <MX8MP_IOMUXC_SAI3_RXFS__GPIO4_IO28 0x41>;
+	};
+};
+
+&pcie{
+	pinctrl-0 = <&pinctrl_pcie>;
+	reset-gpio = <&gpio4 28 GPIO_ACTIVE_LOW>;
+};
