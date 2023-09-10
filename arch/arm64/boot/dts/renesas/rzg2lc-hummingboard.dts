@@ -42,11 +42,9 @@
 
 &i2c0 {
 	adv7535@3d {
-		compatible = "adi,adv7533";
+		compatible = "adi,adv7535";
 		reg = <0x3d>;
-		adi,addr-cec = <0x3c>;
 		adi,dsi-lanes = <4>;
-		adi,addr-edid = <0x3b>;
 		pd-gpios = <&pinctrl RZG2L_GPIO(40, 2) GPIO_ACTIVE_LOW>; // ADV_PD / DSI_EN J9-34 / P40_2
 		/*
 		 * With interrupts enabled and hdmi connected during boot,
