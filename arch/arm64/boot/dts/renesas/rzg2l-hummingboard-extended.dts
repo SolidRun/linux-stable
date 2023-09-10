@@ -21,7 +21,7 @@
 #include "rzg2l-sr-pinfunction.dtsi"
 
 / {
-	model = "Solidrun RZ/G2L HummingBaord-Extended";
+	model = "Solidrun RZ/G2L HummingBoard-Extended";
 	compatible = "renesas,r9a07g044l2", "renesas,r9a07g044";
 
 	x1_clk: x1-clock {
