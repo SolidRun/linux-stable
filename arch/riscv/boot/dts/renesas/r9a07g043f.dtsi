@@ -114,6 +114,13 @@
 		#size-cells = <2>;
 		ranges;
 
+		edac: edac@11410000 {
+			compatible = "renesas,r9a07g043f-edac";
+			reg = <0 0x11410000 0 0x10000>;
+			interrupts = <72 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "ecc_irq";
+		};
+
 		mtu3: timer@10001200 {
 			compatible = "renesas,mtu3";
 			reg = <0 0x10001200 0 0xB00>;
