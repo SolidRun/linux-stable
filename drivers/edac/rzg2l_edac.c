@@ -80,10 +80,231 @@
 #define ECC_SIG_SYND_MSK		(0xff << ECC_SIG_SYND_OFF)
 #define ECC_SIG_ID_MSK			(0x3ffff)
 
+#define SIG_ERROR		(SIGRTMIN + 2)
+#define MAX_BUF			(10)
+#define MBIT_CNT_MAX		(0x7)
+#define SBIT_CNT_MAX		(0x1f)
+
 struct rzg2l_edac_priv_data {
 	void __iomem *reg;
+
+	/* debugfs entries */
+	struct dentry *dir;
+	struct dentry *pid_file;
+	struct dentry *sig_file;
+	struct dentry *sbit_file;
+	struct dentry *mbit_file;
 };
 
+static unsigned int pid;
+static unsigned int signal_id;
+static unsigned int sbit_err_count;
+static unsigned int mbit_err_count;
+static struct task_struct *t;
+static struct kernel_siginfo info;
+
+static ssize_t read_pid(struct file *file, char __user *buf,
+			size_t count, loff_t *ppos)
+{
+	char mybuf[MAX_BUF];
+	int ret;
+
+	if (count > MAX_BUF)
+		return -EINVAL;
+
+	sprintf(mybuf, "%d\n", pid);
+	ret = copy_to_user(buf, mybuf, count);
+	if (ret)
+		return -EINVAL;
+
+	return count;
+}
+
+static ssize_t write_pid(struct file *file, const char __user *buf,
+			size_t count, loff_t *ppos)
+{
+	char mybuf[MAX_BUF];
+	int ret;
+
+	if (count > MAX_BUF)
+		return -EINVAL;
+
+	ret = copy_from_user(mybuf, buf, count);
+	if (ret)
+		return -EINVAL;
+
+	ret = kstrtou32((char *)mybuf, 10, &pid);
+	if (ret < 0)
+		return -EINVAL;
+
+	/* send the signal */
+	memset(&info, 0, sizeof(struct kernel_siginfo));
+	info.si_signo = signal_id;
+	/* FIXME: SI_QUEUE is normally used by sigqueue from user space,
+	 * and kernel space should use SI_KERNEL. But if SI_KERNEL is used the
+	 * real_time data is not delivered to the user space signal handler
+	 *function.
+	 */
+	info.si_code = SI_QUEUE;
+
+	rcu_read_lock();
+
+	/*find the task_struct associated with this pid*/
+	t = pid_task(find_vpid(pid), PIDTYPE_PID);
+	if (t == NULL) {
+		pr_info("no such pid\n");
+		rcu_read_unlock();
+		return -ESRCH;
+	}
+
+	rcu_read_unlock();
+	return count;
+}
+
+static const struct file_operations pid_fops = {
+	.read = read_pid,
+	.write = write_pid,
+};
+
+static ssize_t write_signal_id(struct file *file, const char __user *buf,
+			size_t count, loff_t *ppos)
+{
+	char mybuf[MAX_BUF];
+	int ret;
+
+	if (count > MAX_BUF)
+		return -EINVAL;
+
+	ret = copy_from_user(mybuf, buf, count);
+	if (ret)
+		return -EINVAL;
+
+	ret = kstrtou32((char *)mybuf, 10, &signal_id);
+	if (ret < 0)
+		return -EINVAL;
+
+	info.si_signo = signal_id;
+
+	return count;
+}
+
+static ssize_t read_signal_id(struct file *file, char __user *buf,
+			size_t count, loff_t *ppos)
+{
+	char mybuf[MAX_BUF];
+	int ret;
+
+	if (count > MAX_BUF)
+		return -EINVAL;
+
+	sprintf(mybuf, "%d\n", signal_id);
+	ret = copy_to_user(buf, mybuf, count);
+	if (ret)
+		return -EINVAL;
+
+	return count;
+}
+
+static const struct file_operations signal_id_fops = {
+	.read = read_signal_id,
+	.write = write_signal_id,
+};
+
+static ssize_t read_sbit_err_count(struct file *file, char __user *buf,
+			size_t count, loff_t *ppos)
+{
+	char mybuf[MAX_BUF];
+	int ret;
+
+	if (count > MAX_BUF)
+		return -EINVAL;
+
+	sprintf(mybuf, "%d\n", sbit_err_count);
+	ret = copy_to_user(buf, mybuf, count);
+	if (ret)
+		return -EINVAL;
+
+	return count;
+}
+
+static ssize_t write_sbit_err_count(struct file *file, const char __user *buf,
+			size_t count, loff_t *ppos)
+{
+	char mybuf[MAX_BUF];
+	int ret;
+
+	if (count > MAX_BUF)
+		return -EINVAL;
+
+	ret = copy_from_user(mybuf, buf, count);
+	if (ret)
+		return -EINVAL;
+
+	ret = kstrtou32((char *)mybuf, 10, &sbit_err_count);
+	if (ret < 0)
+		return -EINVAL;
+
+	if (sbit_err_count > SBIT_CNT_MAX) {
+		pr_info("Exceed single bit error max count: %d\n",
+			SBIT_CNT_MAX);
+		sbit_err_count = SBIT_CNT_MAX;
+	}
+
+	return count;
+}
+
+static const struct file_operations sbit_err_fops = {
+	.read = read_sbit_err_count,
+	.write = write_sbit_err_count,
+};
+
+static ssize_t read_mbit_err_count(struct file *file, char __user *buf,
+			size_t count, loff_t *ppos)
+{
+	char mybuf[MAX_BUF];
+	int ret;
+
+	if (count > MAX_BUF)
+		return -EINVAL;
+
+	sprintf(mybuf, "%d\n", mbit_err_count);
+	ret = copy_to_user(buf, mybuf, count);
+	if (ret)
+		return -EINVAL;
+
+	return count;
+}
+
+static ssize_t write_mbit_err_count(struct file *file, const char __user *buf,
+			size_t count, loff_t *ppos)
+{
+	char mybuf[MAX_BUF];
+	int ret;
+
+	if (count > MAX_BUF)
+		return -EINVAL;
+
+	ret = copy_from_user(mybuf, buf, count);
+	if (ret)
+		return -EINVAL;
+
+	ret = kstrtou32((char *)mybuf, 10, &mbit_err_count);
+	if (ret < 0)
+		return -EINVAL;
+
+	if (mbit_err_count > MBIT_CNT_MAX) {
+		pr_info("Exceed multi-bits error max count: %d\n",
+			MBIT_CNT_MAX);
+		mbit_err_count = MBIT_CNT_MAX;
+	}
+
+	return count;
+}
+
+static const struct file_operations mbit_err_fops = {
+	.read = read_mbit_err_count,
+	.write = write_mbit_err_count,
+};
 static void init_mem_layout(struct mem_ctl_info *mci)
 {
 	struct rzg2l_edac_priv_data *priv = mci->pvt_info;
@@ -209,6 +430,9 @@ static irqreturn_t edac_ecc_isr(int irq, void *dev_id)
 
 	writel(int_status, priv->reg + ECC_INT_ACK_ECC_REG);
 
+	if (t != NULL)
+		send_sig_info(signal_id, &info, t);
+
 	return IRQ_HANDLED;
 }
 
@@ -296,11 +520,37 @@ static int rzg2l_edac_mc_probe(struct platform_device *pdev)
 		goto err;
 	}
 
+	priv_data->dir = debugfs_create_dir("mfis_ecc", NULL);
+	if (!priv_data->dir) {
+		dev_err(&pdev->dev, "Failed to create mfis_ecc directory\n");
+		ret = -EPERM;
+		goto err;
+	}
+
+	priv_data->pid_file = debugfs_create_file("pid", 0600, priv_data->dir, NULL,
+			&pid_fops);
+	priv_data->sig_file = debugfs_create_file("sig_id", 0600, priv_data->dir, NULL,
+			&signal_id_fops);
+	priv_data->sbit_file = debugfs_create_file("sbit_count", 0600, priv_data->dir, NULL,
+			&sbit_err_fops);
+	priv_data->mbit_file = debugfs_create_file("mbit_count", 0600, priv_data->dir, NULL,
+			&mbit_err_fops);
+
+	if (!priv_data->pid_file || !priv_data->sig_file ||
+		!priv_data->sbit_file || !priv_data->mbit_file) {
+		dev_err(&pdev->dev,
+				"Failed to create debug files for pid, sig file\n");
+		ret = -EPERM;
+		goto err_create_debug_fs;
+	}
+
+	signal_id = SIG_ERROR;
+
 	ret = edac_mc_add_mc(mci);
 	if (ret) {
 		edac_printk(KERN_ERR, RZG2L_EDAC_MOD_NAME,
 			    "Failed to register with EDAC core\n");
-		goto err;
+		goto err_create_debug_fs;
 	}
 
 	/* Unmask all ECC interrupt */
@@ -319,7 +569,8 @@ static int rzg2l_edac_mc_probe(struct platform_device *pdev)
 	writel(val, priv_data->reg + ECC_INT_ACK_ECC_REG);
 
 	return 0;
-
+err_create_debug_fs:
+	debugfs_remove_recursive(priv_data->dir);
 err:
 	edac_mc_free(mci);
 edac_mc_alloc_err:
@@ -341,6 +592,12 @@ static int rzg2l_edac_mc_remove(struct platform_device *pdev)
 	val = readl(priv->reg + ECC_INT_MSK_ECC_REG);
 	val |= ECC_INT_MSK_ECC;
 	writel(val, priv->reg + ECC_INT_MSK_ECC_REG);
+
+	debugfs_remove(priv->pid_file);
+	debugfs_remove(priv->sig_file);
+	debugfs_remove(priv->sbit_file);
+	debugfs_remove(priv->mbit_file);
+	debugfs_remove_recursive(priv->dir);
 
 	edac_mc_del_mc(&pdev->dev);
 	edac_mc_free(mci);
