@@ -1121,7 +1121,8 @@ static int renesas_mtu3_pwm_config(struct pwm_chip *chip,
 	struct renesas_mtu3_channel *ch1, *ch2;
 	static const unsigned int prescalers[] = { 1, 4, 16, 64 };
 	unsigned int prescaler;
-	u32 clk_rate, period, duty, deadtime, val;
+	u32 period, duty, deadtime, val;
+	unsigned long clk_rate;
 
 	if ((duty_ns < 0) || (period_ns < 0))
 		return -EINVAL;
@@ -1132,8 +1133,8 @@ static int renesas_mtu3_pwm_config(struct pwm_chip *chip,
 	if (ch1->function == MTU3_PWM_MODE_1) {
 		for (prescaler = 0; prescaler < ARRAY_SIZE(prescalers);
 			++prescaler) {
-			period = clk_rate / prescalers[prescaler]
-				/ (NSEC_PER_SEC / period_ns);
+			period = (clk_rate * period_ns) / NSEC_PER_SEC;
+			period /= prescalers[prescaler];
 			if (period <= 0xffff)
 				break;
 		}
@@ -1149,8 +1150,8 @@ static int renesas_mtu3_pwm_config(struct pwm_chip *chip,
 			else
 				duty = period + 1;
 		} else {
-			duty = clk_rate / prescalers[prescaler]
-				/ (NSEC_PER_SEC / duty_ns);
+			duty = (clk_rate * duty_ns) / NSEC_PER_SEC;
+			duty /= prescalers[prescaler];
 			if (duty > period)
 				return -EINVAL;
 		}
@@ -1171,14 +1172,14 @@ static int renesas_mtu3_pwm_config(struct pwm_chip *chip,
 		}
 	} else if (ch1->function == MTU3_PWM_COMPLEMENTARY) {
 		for (prescaler = 0; prescaler < ARRAY_SIZE(prescalers); ++prescaler) {
-			period = clk_rate / prescalers[prescaler]
-				/ (NSEC_PER_SEC / (period_ns/2));
+			period = (clk_rate * (period_ns / 2)) / NSEC_PER_SEC;
+			period /= prescalers[prescaler];
 
 			if ((!mtu3->pwms[pwm->hwpwm].deadtime_ns))
 				deadtime = 1;
 			else
-				deadtime = clk_rate / prescalers[prescaler]
-				/ (NSEC_PER_SEC / mtu3->pwms[pwm->hwpwm].deadtime_ns);
+				deadtime = (clk_rate * mtu3->pwms[pwm->hwpwm].deadtime_ns) / NSEC_PER_SEC;
+				deadtime /= prescalers[prescaler];
 
 			if (period + deadtime <= 0xffff)
 				break;
@@ -1198,7 +1199,8 @@ static int renesas_mtu3_pwm_config(struct pwm_chip *chip,
 		if (duty_ns == period_ns)
 			duty = period + deadtime;
 		else {
-			duty = clk_rate / prescalers[prescaler] / (NSEC_PER_SEC / (duty_ns/2));
+			duty = (clk_rate * (duty_ns / 2)) / NSEC_PER_SEC;
+			duty /= prescalers[prescaler];
 			if (duty > period)
 				return -EINVAL;
 		}
