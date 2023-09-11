@@ -1,0 +1,31 @@
+Renesas RZ/G2L series and RZ/Five MPUs EDAC node
+
+The Renesas RZ/G2L series and RZ/Five MPUs support DDR3 and DDR4 memory with and
+without ECC (error correction check).
+
+The memory controller supports SECDED (single bit error correction, double bit
+error detection) effectively reducing available memory to 7/8.
+
+Note, the bootloader must configure ECC mode in the memory controller.
+
+Required properties:
+- compatible: should be one of following strings:
+	- "renesas,r9a07g044-edac"	/* RZ/G2L and RZ/G2LC */
+	- "renesas,r9a07g043-edac"	/* RZ/G2UL */
+	- "renesas,r9a07g043f-edac"	/* RZ/Five */
+- reg: DDR controller register set should be <0 0x11410000 0 0x10000>
+- interrupts: should be DDR3L/4 controller_int
+- interrupt-names:  should be "ecc_irq"
+- interrupt-parent: should be one of following parents:
+	- <&gic>	/* RZ/G2L Series */
+	- <&plic>	/* RZ/Five */
+
+Example:
+	/* RZ/G2L EDAC */
+	edac: edac@11410000 {
+		compatible = "renesas,r9a07g044-edac";
+		reg = <0 0x11410000 0 0x10000>;
+		interrupt-parent = <&gic>;
+		interrupts = <GIC_SPI 40 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "ecc_irq";
+	};
