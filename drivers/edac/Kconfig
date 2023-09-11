@@ -537,4 +537,11 @@ config EDAC_DMC520
 	  Support for error detection and correction on the
 	  SoCs with ARM DMC-520 DRAM controller.
 
+config EDAC_RZG2L
+	tristate "RZG2L ECC Support"
+	depends on (ARCH_R9A07G044 || ARCH_R9A07G043 || ARCH_R9A07G043F)
+	help
+	  Support for error detection and correction on the Renesas RZ/G2L,
+	  RZ/G2LC, RZ/G2UL and RZ/Five.
+
 endif # EDAC
