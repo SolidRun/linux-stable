@@ -50,6 +50,9 @@ static int should_io_be_busy(void)
 			boot_cpu_data.x86_model >= 15)
 		return 1;
 #endif
+#if defined(CONFIG_ARM64) && defined(CONFIG_ARCH_RENESAS)
+	return 1;
+#endif
 	return 0;
 }
 
