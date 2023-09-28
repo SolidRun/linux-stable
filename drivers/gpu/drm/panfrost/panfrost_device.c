@@ -73,8 +73,25 @@ static int panfrost_clk_init(struct panfrost_device *pfdev)
 			goto disable_clock;
 	}
 
+	pfdev->bus_ace_clock = devm_clk_get_optional(pfdev->dev, "bus_ace");
+	if (IS_ERR(pfdev->bus_ace_clock)) {
+		dev_warn(pfdev->dev, "get bus_ace_clock failed %ld\n",
+			PTR_ERR(pfdev->bus_ace_clock));
+	}
+
+	if (!IS_ERR(pfdev->bus_ace_clock)) {
+		rate = clk_get_rate(pfdev->bus_ace_clock);
+		dev_info(pfdev->dev, "bus_ace_clock rate = %lu\n", rate);
+
+		err = clk_prepare_enable(pfdev->bus_ace_clock);
+		if (err)
+			goto disable_bus_clock;
+	}
+
 	return 0;
 
+disable_bus_clock:
+	clk_disable_unprepare(pfdev->bus_clock);
 disable_clock:
 	clk_disable_unprepare(pfdev->clock);
 
@@ -83,6 +100,8 @@ disable_clock:
 
 static void panfrost_clk_fini(struct panfrost_device *pfdev)
 {
+	if (!IS_ERR(pfdev->bus_ace_clock))
+		clk_disable_unprepare(pfdev->bus_ace_clock);
 	clk_disable_unprepare(pfdev->bus_clock);
 	clk_disable_unprepare(pfdev->clock);
 }
