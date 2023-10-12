@@ -597,6 +597,8 @@ static void renesas_sdhi_reset(struct tmio_mmc_host *host, bool preserve)
 					  false, priv->rstc);
 			/* At least SDHI_VER_GEN2_SDR50 needs manual release of reset */
 			sd_ctrl_write16(host, CTL_RESET_SD, 0x0001);
+			/* enable 16bit data access on SDBUF as default */
+			renesas_sdhi_sdbuf_width(host, 16);
 			priv->needs_adjust_hs400 = false;
 			renesas_sdhi_set_clock(host, host->clk_cache);
 		} else if (priv->scc_ctl) {
