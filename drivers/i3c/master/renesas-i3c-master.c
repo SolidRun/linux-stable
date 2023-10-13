@@ -253,7 +253,7 @@
 #define SVST_SVAF1		BIT(17)
 #define SVST_SVAF2		BIT(18)
 
-#define DATBAS(x)		(0x224 + 0x4 * x)
+#define DATBAS(x)		(0x224 + 0x8 * x)
 #define DATBAS_DVSTAD(x)	(((x) & 0x7f) << 0)
 #define DATBAS_DVIBIPL		BIT(12)
 #define DATBAS_DVSIRRJ		BIT(13)
@@ -437,6 +437,17 @@ static int renesas_i3c_master_get_addr_pos(struct renesas_i3c_master *master, u8
 	}
 
 	return -EINVAL;
+}
+
+static u8 DATBAS_parity_cal(u8 addr)
+{
+	u8 par = addr | BIT(7);
+	u8 i;
+
+	for (i = 1; i < 8; i++)
+		par ^= ((addr << i) & BIT(7));
+
+	return par;
 }
 
 static struct renesas_i3c_xfer *
@@ -757,7 +768,7 @@ static int renesas_i3c_master_daa(struct i3c_master_controller *m)
 		last_addr = ret;
 
 		i3c_reg_write(master->regs, DATBAS(pos),
-				DATBAS_DVDYAD(ret) | ~(u32)DATBAS_DVTYP);
+					DATBAS_DVDYAD(DATBAS_parity_cal(ret)));
 	}
 
 	xfer = renesas_i3c_master_alloc_xfer(master, 1);
@@ -963,6 +974,9 @@ static int renesas_i3c_master_attach_i3c_dev(struct i3c_dev_desc *dev)
 	data->index = pos;
 	master->addrs[pos] = dev->info.dyn_addr ? : dev->info.static_addr;
 	master->free_pos &= ~BIT(pos);
+	i3c_reg_write(master->regs, DATBAS(pos),
+			DATBAS_DVSTAD(dev->info.static_addr) |
+			DATBAS_DVDYAD(DATBAS_parity_cal(master->addrs[pos])));
 	i3c_dev_set_master_data(dev, data);
 
 	return 0;
