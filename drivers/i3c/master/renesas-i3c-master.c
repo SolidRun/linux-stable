@@ -514,10 +514,12 @@ static void renesas_i3c_master_start_xfer_locked(struct renesas_i3c_master *mast
 		break;
 	case I3C_INTERNAL_STATE_MASTER_WRITE:
 	case I3C_INTERNAL_STATE_MASTER_COMMAND_WRITE:
+		i3c_reg_set_bit(master->regs, NTIE, NTIE_RSPQFIE);
 		if (cmd->len <= 4) {
 			cmd->cmd0 |= NCMDQP_CMD_ATTR(NCMDQP_IMMED_XFER);
 			cmd->cmd0 |= NCMDQP_BYTE_CNT(cmd->len);
 			cmd->tx_count = cmd->len;
+			cmd1 = cmd->len == 0 ? 0 : *(u32 *)cmd->tx_buf;
 		} else
 			cmd1 = NCMDQP_DATA_LENGTH(cmd->len);
 
@@ -943,10 +945,9 @@ static int renesas_i3c_master_priv_xfers(struct i3c_dev_desc *dev,
 		struct renesas_i3c_cmd *cmd = xfer->cmds;
 
 		/* Calculate the command descriptor. */
+		cmd->rnw = i3c_xfers[i].rnw;
 		cmd->cmd0 = NCMDQP_DEV_INDEX(data->index) | NCMDQP_MODE(0) |
 				NCMDQP_RNW(cmd->rnw) | NCMDQP_ROC | NCMDQP_TOC;
-
-		cmd->rnw = i3c_xfers[i].rnw;
 
 		if (i3c_xfers[i].rnw) {
 			cmd->rx_count = 0;
@@ -962,7 +963,7 @@ static int renesas_i3c_master_priv_xfers(struct i3c_dev_desc *dev,
 			master->internal_state = I3C_INTERNAL_STATE_MASTER_WRITE;
 		}
 
-		if (!i3c_xfers[i].rnw) {
+		if (!i3c_xfers[i].rnw && i3c_xfers[i].len > 4) {
 			renesas_i3c_master_write_to_tx_fifo(master, cmd->tx_buf, cmd->len);
 			if (cmd->len > NTDTBP0_DEPTH * sizeof(u32))
 				i3c_reg_set_bit(master->regs, NTIE, NTIE_TDBEIE0);
