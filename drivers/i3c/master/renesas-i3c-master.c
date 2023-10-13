@@ -308,6 +308,7 @@ enum i3c_internal_state {
 	I3C_INTERNAL_STATE_DISABLED,
 	I3C_INTERNAL_STATE_MASTER_IDLE,
 	I3C_INTERNAL_STATE_MASTER_ENTDAA,
+	I3C_INTERNAL_STATE_MASTER_SETDASA,
 	I3C_INTERNAL_STATE_MASTER_WRITE,
 	I3C_INTERNAL_STATE_MASTER_READ,
 	I3C_INTERNAL_STATE_MASTER_COMMAND_WRITE,
@@ -506,6 +507,8 @@ static void renesas_i3c_master_start_xfer_locked(struct renesas_i3c_master *mast
 
 	switch (master->internal_state) {
 	case I3C_INTERNAL_STATE_MASTER_ENTDAA:
+	case I3C_INTERNAL_STATE_MASTER_SETDASA:
+		i3c_reg_set_bit(master->regs, NTIE, NTIE_RSPQFIE);
 		i3c_reg_write(master->regs, NCMDQP, cmd->cmd0);
 		i3c_reg_write(master->regs, NCMDQP, 0);
 		break;
@@ -874,20 +877,37 @@ static int renesas_i3c_master_send_ccc_cmd(struct i3c_master_controller *m,
 	cmd->cmd0 = 0;
 
 	/* Calculate the command descriptor. */
-	cmd->cmd0 = NCMDQP_TID(I3C_COMMAND_WRITE) |
-		NCMDQP_CMD(ccc->id) | NCMDQP_CP | NCMDQP_DEV_INDEX(pos) |
-		NCMDQP_MODE(0) | NCMDQP_RNW(ccc->rnw) | NCMDQP_ROC | NCMDQP_TOC;
+	switch (ccc->id) {
+	case I3C_CCC_SETDASA:
+		i3c_reg_write(master->regs, DATBAS(pos),
+			DATBAS_DVSTAD(ccc->dests[0].addr) |
+			DATBAS_DVDYAD(*(u8 *)ccc->dests[0].payload.data >> 1));
+		cmd->cmd0 = NCMDQP_CMD_ATTR(NCMDQP_ADDR_ASSGN) | NCMDQP_ROC |
+			NCMDQP_TID(I3C_COMMAND_ADDRESS_ASSIGNMENT) |
+			NCMDQP_CMD(I3C_CCC_SETDASA) | NCMDQP_DEV_INDEX(pos) |
+			NCMDQP_DEV_COUNT(0) | NCMDQP_TOC;
+		master->internal_state = I3C_INTERNAL_STATE_MASTER_SETDASA;
+		break;
+	default:
+		/* Calculate the command descriptor. */
+		cmd->cmd0 = NCMDQP_TID(I3C_COMMAND_WRITE) | NCMDQP_MODE(0) |
+				NCMDQP_RNW(ccc->rnw) | NCMDQP_CMD(ccc->id) |
+				NCMDQP_ROC | NCMDQP_TOC | NCMDQP_CP |
+				NCMDQP_DEV_INDEX(pos);
 
-	if (ccc->rnw) {
-		cmd->rx_buf = ccc->dests[0].payload.data;
-		cmd->len = ccc->dests[0].payload.len;
-		cmd->rx_count = 0;
-		master->internal_state = I3C_INTERNAL_STATE_MASTER_COMMAND_READ;
-	} else {
-		cmd->tx_buf = ccc->dests[0].payload.data;
-		cmd->len = ccc->dests[0].payload.len;
-		cmd->tx_count = 0;
-		master->internal_state = I3C_INTERNAL_STATE_MASTER_COMMAND_WRITE;
+		if (ccc->rnw) {
+			cmd->rx_buf = ccc->dests[0].payload.data;
+			cmd->len = ccc->dests[0].payload.len;
+			cmd->rx_count = 0;
+			master->internal_state =
+					I3C_INTERNAL_STATE_MASTER_COMMAND_READ;
+		} else {
+			cmd->tx_buf = ccc->dests[0].payload.data;
+			cmd->len = ccc->dests[0].payload.len;
+			cmd->tx_count = 0;
+			master->internal_state =
+					I3C_INTERNAL_STATE_MASTER_COMMAND_WRITE;
+		}
 	}
 
 	renesas_i3c_master_enqueue_xfer(master, xfer);
