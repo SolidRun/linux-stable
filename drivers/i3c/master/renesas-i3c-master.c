@@ -736,6 +736,16 @@ static void renesas_i3c_master_bus_cleanup(struct i3c_master_controller *m)
 				!(val & RSTCTL_RI3CTST), 0, 1000);
 }
 
+static u8 DATBAS_parity_cal(u8 addr)
+{
+	u8 i, par;
+
+	par = addr | BIT(7);
+	for (i = 1; i < 8; i++)
+		par ^= ((addr << i) & BIT(7));
+
+	return par;
+}
 static int renesas_i3c_master_daa(struct i3c_master_controller *m)
 {
 	struct renesas_i3c_master *master = to_renesas_i3c_master(m);
@@ -764,7 +774,7 @@ static int renesas_i3c_master_daa(struct i3c_master_controller *m)
 		last_addr = ret;
 
 		i3c_reg_write(master->regs, DATBAS(pos),
-				DATBAS_DVDYAD(ret) | ~(u32)DATBAS_DVTYP);
+				DATBAS_DVDYAD(DATBAS_parity_cal(ret)));
 	}
 
 	xfer = renesas_i3c_master_alloc_xfer(master, 1);
@@ -968,6 +978,9 @@ static int renesas_i3c_master_attach_i3c_dev(struct i3c_dev_desc *dev)
 	data->index = pos;
 	master->addrs[pos] = dev->info.dyn_addr ? : dev->info.static_addr;
 	master->free_pos &= ~BIT(pos);
+	i3c_reg_write(master->regs, DATBAS(pos),
+			DATBAS_DVSTAD(dev->info.static_addr) |
+			DATBAS_DVDYAD(DATBAS_parity_cal(master->addrs[pos])));
 	i3c_dev_set_master_data(dev, data);
 
 	return 0;
