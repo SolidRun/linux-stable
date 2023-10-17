@@ -527,6 +527,7 @@ static void renesas_i3c_master_start_xfer_locked(struct renesas_i3c_master *mast
 		case I3C_INTERNAL_STATE_MASTER_READ:
 		case I3C_INTERNAL_STATE_MASTER_COMMAND_READ:
 		{
+			i3c_reg_set_bit(master->regs, NTIE, NTIE_RDBFIE0);
 			cmd1 = NCMDQP_DATA_LENGTH(cmd->len);
 			i3c_reg_write(master->regs, NCMDQP, cmd->cmd0);
 			i3c_reg_write(master->regs, NCMDQP, cmd1);
@@ -1185,6 +1186,7 @@ static irqreturn_t i3c_resp_isr(int irq, void *data)
 	u32 resp_descriptor, ret = 0;
 	u32 bytes_remaining = 0;
 	u32 data_len, ntst;
+	int read_bytes;
 
 	resp_descriptor = i3c_reg_read(master->regs, NRSPQP);
 
@@ -1193,6 +1195,16 @@ static irqreturn_t i3c_resp_isr(int irq, void *data)
 
 	switch (master->internal_state) {
 	case I3C_INTERNAL_STATE_MASTER_ENTDAA:
+		read_bytes = NDBSTLV0_RDBLV(i3c_reg_read(master->regs, NDBSTLV0)) * sizeof(u32);
+
+		if (read_bytes == 8 ) {
+			i3c_reg_set_bit(master->regs, NTIE, NTIE_RSPQFIE);
+			/* Read PID, BCR, DCR data */
+			i3c_reg_read(master->regs, NTDTBP0);
+			i3c_reg_read(master->regs, NTDTBP0);
+			cmd->rx_count++;
+		}
+
                 if (cmd->rx_count == NRSPQP_DATA_LEN(resp_descriptor))
                         return IRQ_HANDLED;
 		break;
@@ -1341,9 +1353,7 @@ static irqreturn_t i3c_rx_isr(int irq, void *data)
 		read_bytes = NDBSTLV0_RDBLV(i3c_reg_read(master->regs, NDBSTLV0)) * sizeof(u32);
 		renesas_i3c_master_read_from_rx_fifo(master, cmd->rx_buf, read_bytes);
 
-		if (master->internal_state == I3C_INTERNAL_STATE_MASTER_ENTDAA &&
-							cmd->rx_count == 8 )
-			cmd->rx_count = 0;
+		cmd->rx_count = read_bytes;
 	}
 
 	/* Clear the Read Buffer Full status flag. */
