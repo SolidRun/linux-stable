@@ -514,6 +514,7 @@
 &usb2_phy0 {
 	vbus-supply = <&usb0_vbus_otg>;
 	status = "okay";
+	renesas,no-otg-pins;
 };
 
 &usb2_phy1 {
