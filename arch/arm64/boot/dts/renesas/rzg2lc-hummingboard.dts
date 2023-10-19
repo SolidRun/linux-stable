@@ -29,6 +29,17 @@
 		#clock-cells = <0>;
 		clock-frequency = <24000000>;
 	};
+
+	hdmi-out {
+		compatible = "hdmi-connector";
+		type = "d";
+
+		port {
+			hdmi_con_out: endpoint {
+			remote-endpoint = <&adv7535_out>;
+			};
+		};
+	};
 };
 
 &pinctrl {

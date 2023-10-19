@@ -113,17 +113,6 @@
 	gpio = <&pinctrl RZG2L_GPIO(23, 0) GPIO_ACTIVE_HIGH>;
 	enable-active-high;
   };
-
-  hdmi-out {
-    compatible = "hdmi-connector";
-    type = "d";
-
-    port {
-      hdmi_con_out: endpoint {
-        remote-endpoint = <&adv7535_out>;
-      };
-    };
-  };
 };
 
 &eth0 {
@@ -490,6 +479,7 @@
 &usb2_phy0 {
 	vbus-supply = <&usb0_vbus_otg>;
 	status = "okay";
+	renesas,no-otg-pins;
 };
 
 &usb2_phy1 {
