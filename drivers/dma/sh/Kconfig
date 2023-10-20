@@ -55,7 +55,7 @@ config RZ_DMAC
 	select DMA_VIRTUAL_CHANNELS
 	help
 	  This driver supports the general purpose DMA controller found in the
-	  Renesas RZ/{G2L,V2L,Five} SoC variants.
+	  Renesas RZ/{G2L,V2L,Five,G3S} SoC variants.
 
 config RZV2MA_DMAC
         tristate "Renesas RZ/V2MA DMA Controller"
