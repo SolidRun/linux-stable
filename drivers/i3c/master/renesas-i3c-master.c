@@ -1476,6 +1476,10 @@ static int renesas_i3c_master_probe(struct platform_device *pdev)
 	if (ret)
 		goto err_disable_tclk;
 
+	dev_info(&pdev->dev, "register with i2c-scl = %ldHz i3c-scl = %ldHz\n",
+						master->base.bus.scl_rate.i2c,
+						master->base.bus.scl_rate.i3c);
+
 	return 0;
 
 err_disable_tclk:
