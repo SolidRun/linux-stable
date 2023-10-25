@@ -2406,11 +2406,14 @@ static struct pwm_device *rzg2l_gpt_dev_to_pwm_dev(struct device *dev)
 static int rzg2l_gpt_suspend(struct device *dev)
 {
 	struct pwm_device *pwm = rzg2l_gpt_dev_to_pwm_dev(dev);
+	struct rzg2l_gpt_chip *rzg2l_gpt = dev_get_drvdata(dev);
 
 	if (!test_bit(PWMF_REQUESTED, &pwm->flags))
 		return 0;
 
 	pm_runtime_put(dev);
+
+	reset_control_assert(rzg2l_gpt->rstc);
 
 	return 0;
 }
@@ -2418,6 +2421,9 @@ static int rzg2l_gpt_suspend(struct device *dev)
 static int rzg2l_gpt_resume(struct device *dev)
 {
 	struct pwm_device *pwm = rzg2l_gpt_dev_to_pwm_dev(dev);
+	struct rzg2l_gpt_chip *rzg2l_gpt = dev_get_drvdata(dev);
+
+	reset_control_deassert(rzg2l_gpt->rstc);
 
 	if (!test_bit(PWMF_REQUESTED, &pwm->flags))
 		return 0;
