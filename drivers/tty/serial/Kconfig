@@ -672,6 +672,32 @@ config SERIAL_SH_SCI_DMA
 	depends on SERIAL_SH_SCI && DMA_ENGINE
 	default ARCH_RENESAS
 
+config SERIAL_RZ_SCI
+	tristate "Renesas SCI serial port support"
+	depends on ARCH_RENESAS || COMPILE_TEST
+	select SERIAL_CORE
+	select SERIAL_MCTRL_GPIO if GPIOLIB
+
+config SERIAL_RZ_SCI_NR_UARTS
+	int "Maximum number of Renesas SCI serial ports" if EXPERT
+	range 1 64
+	depends on SERIAL_RZ_SCI
+	default "10"
+
+config SERIAL_RZ_SCI_CONSOLE
+	bool "Support for console on Renesas SCI(F)" if EXPERT
+	depends on SERIAL_RZ_SCI=y
+	select SERIAL_CORE_CONSOLE
+	default y
+
+config SERIAL_RZ_SCI_EARLYCON
+	bool "Support for early console on Renesas SCI(F)" if EXPERT
+	depends on SERIAL_RZ_SCI=y
+	select SERIAL_CORE_CONSOLE
+	select SERIAL_EARLYCON
+	default ARCH_RENESAS
+
+
 config SERIAL_HS_LPC32XX
 	tristate "LPC32XX high speed serial port support"
 	depends on ARCH_LPC32XX || COMPILE_TEST
