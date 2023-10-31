@@ -551,6 +551,8 @@ static int rzg2l_gpt_request(struct pwm_chip *chip, struct pwm_device *pwm)
 
 	pc->enable_clock = 1;
 
+	reset_control_deassert(pc->rstc);
+
 	return pm_runtime_get_sync(chip->dev);
 }
 
@@ -561,6 +563,8 @@ static void rzg2l_gpt_free(struct pwm_chip *chip, struct pwm_device *pwm)
 	pc->enable_clock = 0;
 
 	pm_runtime_put(chip->dev);
+
+	reset_control_assert(pc->rstc);
 }
 
 static int rzg2l_gpt_config(struct pwm_chip *chip, struct pwm_device *pwm,
@@ -2282,8 +2286,6 @@ static int rzg2l_gpt_probe(struct platform_device *pdev)
 		return PTR_ERR(rzg2l_gpt->rstc);
 	}
 
-	reset_control_deassert(rzg2l_gpt->rstc);
-
 	irq = platform_get_irq_byname(pdev, "gtcib");
 	if (irq < 0) {
 		dev_err(&pdev->dev, "Failed to obtain IRQ\n");
@@ -2423,10 +2425,10 @@ static int rzg2l_gpt_resume(struct device *dev)
 	struct pwm_device *pwm = rzg2l_gpt_dev_to_pwm_dev(dev);
 	struct rzg2l_gpt_chip *rzg2l_gpt = dev_get_drvdata(dev);
 
-	reset_control_deassert(rzg2l_gpt->rstc);
-
 	if (!test_bit(PWMF_REQUESTED, &pwm->flags))
 		return 0;
+
+	reset_control_deassert(rzg2l_gpt->rstc);
 
 	pm_runtime_get_sync(dev);
 
