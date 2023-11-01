@@ -66,21 +66,11 @@
 /* RGMII register */
 #define MXL8611X_EXT_RGMII_CFG1_REG							0xA003
 /* delay can be adjusted in steps of about 150ps */
-#define MXL8611X_EXT_RGMII_CFG1_NO_DELAY					0
-#define MXL8611X_EXT_RGMII_CFG1_RX_DELAY_MAX				(0xF << 10)
-#define MXL8611X_EXT_RGMII_CFG1_RX_DELAY_MIN				(0x1 << 10)
-#define MXL8611X_EXT_RGMII_CFG1_RX_DELAY_DEFAULT			(0xF << 10)
-
+#define MXL8611X_EXT_RGMII_CFG1_NO_DELAY				0
+#define	MXL8611X_EXT_RGMII_CFG1_DELAY_MAX				2250
 #define MXL8611X_EXT_RGMII_CFG1_RX_DELAY_MASK				GENMASK(13, 10)
-#define MXL8611X_EXT_RGMII_CFG1_TX_1G_DELAY_MAX				(0xF << 0)
-#define MXL8611X_EXT_RGMII_CFG1_TX_1G_DELAY_MIN				(0x1 << 0)
 #define MXL8611X_EXT_RGMII_CFG1_TX_1G_DELAY_MASK			GENMASK(3, 0)
-#define MXL8611X_EXT_RGMII_CFG1_TX_1G_DELAY_DEFAULT			(0x1 << 0)
-
-#define MXL8611X_EXT_RGMII_CFG1_TX_10MB_100MB_DELAY_MAX		(0xF << 4)
-#define MXL8611X_EXT_RGMII_CFG1_TX_10MB_100MB_DELAY_MIN		(0x1 << 4)
-#define MXL8611X_EXT_RGMII_CFG1_TX_10MB_100MB_DEFAULT		(0xF << 4)
-#define MXL8611X_EXT_RGMII_CFG1_TX_10MB_100MB_DELAY_MASK	GENMASK(7, 4)
+#define MXL8611X_EXT_RGMII_CFG1_TX_10MB_100MB_DELAY_MASK		GENMASK(7, 4)
 
 #define MXL8611X_EXT_RGMII_CFG1_FULL_MASK \
 			((MXL8611X_EXT_RGMII_CFG1_RX_DELAY_MASK) | \
@@ -448,7 +438,50 @@ static int mxl86110_read_page(struct phy_device *phydev)
 static int mxl86110_write_page(struct phy_device *phydev, int page)
 {
 	return __phy_write(phydev, MXL8611X_EXTD_REG_ADDR_OFFSET, page);
-};
+};                       
+
+/**
+ * mxl8611x_convert_ps_to_reg() - converts delay ps to register values 
+ * @of_value: value of delay in ps from device-tree
+ * @reg: The reg value to store
+ */
+static int mxl8611x_convert_ps_to_reg(int of_value, int *reg)
+{
+	if (of_value < 0 || of_value > MXL8611X_EXT_RGMII_CFG1_DELAY_MAX)
+		return -EINVAL;
+
+	*reg = DIV_ROUND_CLOSEST(of_value, 150);
+
+	return 0;
+}
+
+/**
+ * mxl8611x_led_cfg() - retrieves rgmii delays from device tree and
+ * converts them to register values
+ * @phydev: pointer to the phy_device
+ * @property: pointer to the property string to retrieve
+ * @val: where to store the converted value
+ *
+ * returns 0 or negative errno code
+ */
+static int mxl8611x_rgmii_cfg_of_delay(struct phy_device *phydev, const char *property, int *val)
+{
+	u32 of_val;
+	int ret = 0;
+	struct device_node *node = phydev->mdio.dev.of_node;
+
+	ret = of_property_read_u32(node, property, &of_val);
+	if (ret < 0)
+		return ret;
+
+	/* Convert delay in ps to register value */
+	ret = mxl8611x_convert_ps_to_reg(of_val, val);
+	if (ret)
+		phydev_err(phydev, "%s, %s = %d is invalid, using default value\n",
+			__func__, property, of_val); 
+
+	return ret;
+}
 
 /**
  * mxl8611x_led_cfg() - applies LED configuration from device tree
@@ -543,10 +576,24 @@ static int mxl86110_config_init(struct phy_device *phydev)
 {
 	int page_to_restore, ret = 0;
 	unsigned int val = 0;
+	int rxdelay, txdelay_100m, txdelay_1g;
 
 	page_to_restore = phy_select_page(phydev, MXL86110_DEFAULT_PAGE);
 	if (page_to_restore < 0)
 		goto error;
+
+	/* Get RGMII Rx Delay Selection from device tree or rgmii register */
+	if (mxl8611x_rgmii_cfg_of_delay(phydev, "mxl-8611x,rx-internal-delay-ps", &rxdelay))
+		rxdelay = FIELD_GET(MXL8611X_EXT_RGMII_CFG1_RX_DELAY_MASK, val);
+
+	/* Get Fast Ethernet RGMII Tx Clock Delay Selection from device tree or rgmii register */
+	if (mxl8611x_rgmii_cfg_of_delay(phydev, "mxl-8611x,tx-internal-delay-ps-100m",
+					&txdelay_100m))
+		txdelay_100m = FIELD_GET(MXL8611X_EXT_RGMII_CFG1_TX_10MB_100MB_DELAY_MASK, val);
+
+	/* Get Gigabit Ethernet RGMII Tx Clock Delay Selection from device tree or rgmii register */
+	if (mxl8611x_rgmii_cfg_of_delay(phydev, "mxl-8611x,tx-internal-delay-ps-1g", &txdelay_1g))
+		txdelay_1g = FIELD_GET(MXL8611X_EXT_RGMII_CFG1_TX_1G_DELAY_MASK, val);
 
 	switch (phydev->interface) {
 	case PHY_INTERFACE_MODE_RGMII:
@@ -554,21 +601,22 @@ static int mxl86110_config_init(struct phy_device *phydev)
 		val = MXL8611X_EXT_RGMII_CFG1_NO_DELAY;
 		break;
 	case PHY_INTERFACE_MODE_RGMII_RXID:
-		val = MXL8611X_EXT_RGMII_CFG1_RX_DELAY_CUSTOM;
+		val = FIELD_PREP(MXL8611X_EXT_RGMII_CFG1_RX_DELAY_MASK, rxdelay);
 		break;
 	case PHY_INTERFACE_MODE_RGMII_TXID:
-		val = MXL8611X_EXT_RGMII_CFG1_TX_1G_DELAY_CUSTOM |
-				MXL8611X_EXT_RGMII_CFG1_TX_10MB_100MB_CUSTOM;
+		val = FIELD_PREP(MXL8611X_EXT_RGMII_CFG1_TX_10MB_100MB_DELAY_MASK, txdelay_100m);
+		val |= FIELD_PREP(MXL8611X_EXT_RGMII_CFG1_TX_1G_DELAY_MASK, txdelay_1g);
 		break;
 	case PHY_INTERFACE_MODE_RGMII_ID:
-		val = MXL8611X_EXT_RGMII_CFG1_TX_1G_DELAY_CUSTOM |
-				MXL8611X_EXT_RGMII_CFG1_TX_10MB_100MB_CUSTOM;
-		val |= MXL8611X_EXT_RGMII_CFG1_RX_DELAY_CUSTOM;
+		val = FIELD_PREP(MXL8611X_EXT_RGMII_CFG1_RX_DELAY_MASK, rxdelay);
+		val |= FIELD_PREP(MXL8611X_EXT_RGMII_CFG1_TX_10MB_100MB_DELAY_MASK, txdelay_100m);
+		val |= FIELD_PREP(MXL8611X_EXT_RGMII_CFG1_TX_1G_DELAY_MASK, txdelay_1g);
 		break;
 	default:
-		ret = -EINVAL;
+		ret = -EOPNOTSUPP;
 		goto error;
 	}
+
 	ret = mxlphy_modify_extended_reg(phydev, MXL8611X_EXT_RGMII_CFG1_REG,
 					MXL8611X_EXT_RGMII_CFG1_FULL_MASK, val);
 	if (ret < 0)
@@ -1533,10 +1581,24 @@ static int mxl86111_config_init(struct phy_device *phydev)
 {
 	int page_to_restore, ret = 0;
 	unsigned int val = 0;
+	int rxdelay, txdelay_100m, txdelay_1g;
 
 	page_to_restore = phy_select_page(phydev, MXL86111_EXT_SMI_SDS_PHYUTP_SPACE);
 	if (page_to_restore < 0)
 		goto err_restore_page;
+
+	/* Get RGMII Rx Delay Selection from device tree or rgmii register */
+	if (mxl8611x_rgmii_cfg_of_delay(phydev, "mxl-8611x,rx-internal-delay-ps", &rxdelay))
+		rxdelay = FIELD_GET(MXL8611X_EXT_RGMII_CFG1_RX_DELAY_MASK, val);
+
+	/* Get Fast Ethernet RGMII Tx Clock Delay Selection from device tree or rgmii register */
+	if (mxl8611x_rgmii_cfg_of_delay(phydev, "mxl-8611x,tx-internal-delay-ps-100m",
+					&txdelay_100m))
+		txdelay_100m = FIELD_GET(MXL8611X_EXT_RGMII_CFG1_TX_10MB_100MB_DELAY_MASK, val);
+
+	/* Get Gigabit Ethernet RGMII Tx Clock Delay Selection from device tree or rgmii register */
+	if (mxl8611x_rgmii_cfg_of_delay(phydev, "mxl-8611x,tx-internal-delay-ps-1g", &txdelay_1g))
+		txdelay_1g = FIELD_GET(MXL8611X_EXT_RGMII_CFG1_TX_1G_DELAY_MASK, val);
 
 	switch (phydev->interface) {
 	case PHY_INTERFACE_MODE_RGMII:
@@ -1544,16 +1606,16 @@ static int mxl86111_config_init(struct phy_device *phydev)
 		val = MXL8611X_EXT_RGMII_CFG1_NO_DELAY;
 		break;
 	case PHY_INTERFACE_MODE_RGMII_RXID:
-		val = MXL8611X_EXT_RGMII_CFG1_RX_DELAY_CUSTOM;
+		val = FIELD_PREP(MXL8611X_EXT_RGMII_CFG1_RX_DELAY_MASK, rxdelay);
 		break;
 	case PHY_INTERFACE_MODE_RGMII_TXID:
-		val = MXL8611X_EXT_RGMII_CFG1_TX_1G_DELAY_CUSTOM |
-				MXL8611X_EXT_RGMII_CFG1_TX_10MB_100MB_CUSTOM;
+		val = FIELD_PREP(MXL8611X_EXT_RGMII_CFG1_TX_10MB_100MB_DELAY_MASK, txdelay_100m);
+		val |= FIELD_PREP(MXL8611X_EXT_RGMII_CFG1_TX_1G_DELAY_MASK, txdelay_1g);
 		break;
 	case PHY_INTERFACE_MODE_RGMII_ID:
-		val = MXL8611X_EXT_RGMII_CFG1_TX_1G_DELAY_CUSTOM |
-				MXL8611X_EXT_RGMII_CFG1_TX_10MB_100MB_CUSTOM;
-		val |= MXL8611X_EXT_RGMII_CFG1_RX_DELAY_CUSTOM;
+		val = FIELD_PREP(MXL8611X_EXT_RGMII_CFG1_RX_DELAY_MASK, rxdelay);
+		val |= FIELD_PREP(MXL8611X_EXT_RGMII_CFG1_TX_10MB_100MB_DELAY_MASK, txdelay_100m);
+		val |= FIELD_PREP(MXL8611X_EXT_RGMII_CFG1_TX_1G_DELAY_MASK, txdelay_1g);
 		break;
 	case PHY_INTERFACE_MODE_SGMII:
 		break;
