@@ -348,6 +348,8 @@ struct rzg2l_gpt_chip {
 	bool enable_clock;
 	u32 counter_mode, reset_counter;
 	u32 pulse_number;
+	u32 GTIOR_val;
+	u32 GTINTAD_val;
 };
 
 #if IS_BUILTIN(CONFIG_POEG_RZG2L)
@@ -1938,39 +1940,8 @@ static ssize_t gpt_operation_available_show(struct device *dev,
 	return len;
 }
 
-static ssize_t gpt_operation_store(struct device *dev,
-		struct device_attribute *attr, const char *buf, size_t count)
+static void gpt_set_operation_mode(struct rzg2l_gpt_chip *pc)
 {
-	struct platform_device *pdev = to_platform_device(dev);
-	struct rzg2l_gpt_chip *pc = platform_get_drvdata(pdev);
-	int ret;
-
-	if (!pc->enable_clock) {
-		dev_err(pc->chip.dev, "Please export pwm module to enable clock first\n");
-		return -EINVAL;
-	}
-
-	ret = sysfs_match_string(gpt_operation_enum, buf);
-	if (ret < 0)
-		return ret;
-
-	if (pc->channel != BOTH_AB)
-		if ((ret == COUNTING_INPUT) || (ret == DEADTIME_OUTPUT)) {
-			dev_err(pc->chip.dev, "This operation must set in bothAB output\n");
-			return -EINVAL;
-		}
-
-	mutex_lock(&pc->mutex);
-
-	/* Reset registers to prevent conflict setting between modes */
-	rzg2l_reset_period_and_duty(pc);
-	pc->chip.pwms[0].state.period = 0;
-	pc->chip.pwms[0].state.duty_cycle = 0;
-	pc->chip.pwms[0].state.enabled = 0;
-	pc->chip.pwms[0].state.polarity = 0;
-
-	pc->gpt_operation = ret;
-
 	switch (pc->gpt_operation) {
 	case NORMAL_OUTPUT:
 		/* Set no buffer operation */
@@ -2026,6 +1997,42 @@ static ssize_t gpt_operation_store(struct device *dev,
 		rzg2l_gpt_write(pc, BIT(31)-1, GTPR);
 		break;
 	}
+}
+
+static ssize_t gpt_operation_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	struct platform_device *pdev = to_platform_device(dev);
+	struct rzg2l_gpt_chip *pc = platform_get_drvdata(pdev);
+	int ret;
+
+	if (!pc->enable_clock) {
+		dev_err(pc->chip.dev, "PWM clock is not enabled. Please export pwm module first.\n");
+		return -EINVAL;
+	}
+
+	ret = sysfs_match_string(gpt_operation_enum, buf);
+	if (ret < 0)
+		return ret;
+
+	if (pc->channel != BOTH_AB)
+		if ((ret == COUNTING_INPUT) || (ret == DEADTIME_OUTPUT)) {
+			dev_err(pc->chip.dev, "This operation must set in bothAB output\n");
+			return -EINVAL;
+		}
+
+	mutex_lock(&pc->mutex);
+
+	/* Reset registers to prevent conflict setting between modes */
+	rzg2l_reset_period_and_duty(pc);
+	pc->chip.pwms[0].state.period = 0;
+	pc->chip.pwms[0].state.duty_cycle = 0;
+	pc->chip.pwms[0].state.enabled = 0;
+	pc->chip.pwms[0].state.polarity = 0;
+
+	pc->gpt_operation = ret;
+
+	gpt_set_operation_mode(pc);
 
 	mutex_unlock(&pc->mutex);
 
@@ -2413,6 +2420,9 @@ static int rzg2l_gpt_suspend(struct device *dev)
 	if (!test_bit(PWMF_REQUESTED, &pwm->flags))
 		return 0;
 
+	rzg2l_gpt->GTIOR_val = rzg2l_gpt_read(rzg2l_gpt, GTIOR);
+	rzg2l_gpt->GTINTAD_val = rzg2l_gpt_read(rzg2l_gpt, GTINTAD);
+
 	pm_runtime_put(dev);
 
 	reset_control_assert(rzg2l_gpt->rstc);
@@ -2436,6 +2446,21 @@ static int rzg2l_gpt_resume(struct device *dev)
 			pwm->state.period);
 	if (pwm_is_enabled(pwm))
 		rzg2l_gpt_enable(pwm->chip, pwm);
+
+	/* Restore buffer value. */
+	rzg2l_gpt_write(rzg2l_gpt, rzg2l_gpt->bufferA[0], GTCCRA);
+	rzg2l_gpt_write(rzg2l_gpt, rzg2l_gpt->bufferB[0], GTCCRB);
+	rzg2l_gpt_write(rzg2l_gpt, rzg2l_gpt->bufferA[1], GTCCRC);
+	rzg2l_gpt_write(rzg2l_gpt, rzg2l_gpt->bufferB[1], GTCCRE);
+	rzg2l_gpt_write(rzg2l_gpt, rzg2l_gpt->bufferA[2], GTCCRD);
+	rzg2l_gpt_write(rzg2l_gpt, rzg2l_gpt->bufferB[2], GTCCRF);
+	rzg2l_gpt_write(rzg2l_gpt, rzg2l_gpt->deadtime_first, GTDVU);
+	rzg2l_gpt_write(rzg2l_gpt, rzg2l_gpt->deadtime_second, GTDVD);
+	rzg2l_gpt_write(rzg2l_gpt, rzg2l_gpt->GTIOR_val, GTIOR);
+	rzg2l_gpt_write(rzg2l_gpt, rzg2l_gpt->GTINTAD_val, GTINTAD);
+
+	/* Restore gpt mode setting */
+	gpt_set_operation_mode(rzg2l_gpt);
 
 	return 0;
 }
