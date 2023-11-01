@@ -10,6 +10,7 @@
 #include "r9a07g044l2.dtsi"
 
 #include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/net/mxl-8611x.h>
 #include <dt-bindings/pinctrl/rzg2l-pinctrl.h>
 
 / {
@@ -137,6 +138,16 @@
 
 	phy0: ethernet-phy@0 {
 		reg = <0>;
+		mxl-8611x,led0_cfg = <(
+			MXL8611X_LEDX_CFG_LINK_UP_TX_ACT_ON |
+			MXL8611X_LEDX_CFG_LINK_UP_RX_ACT_ON |
+			MXL8611X_LEDX_CFG_LINK_UP_1GB_ON |
+			MXL8611X_LEDX_CFG_LINK_UP_100MB_ON |
+			MXL8611X_LEDX_CFG_LINK_UP_10MB_ON
+		)>;
+		mxl-8611x,rx-internal-delay-ps = <0>;
+		mxl-8611x,tx-internal-delay-ps-100m = <2250>;
+		mxl-8611x,tx-internal-delay-ps-1g = <300>;
 	};
 };
 
@@ -150,6 +161,16 @@
 
 	phy1: ethernet-phy@0 {
 		reg = <0>;
+		mxl-8611x,led0_cfg = <(
+			MXL8611X_LEDX_CFG_LINK_UP_TX_ACT_ON |
+			MXL8611X_LEDX_CFG_LINK_UP_RX_ACT_ON |
+			MXL8611X_LEDX_CFG_LINK_UP_1GB_ON |
+			MXL8611X_LEDX_CFG_LINK_UP_100MB_ON |
+			MXL8611X_LEDX_CFG_LINK_UP_10MB_ON
+		)>;
+		mxl-8611x,rx-internal-delay-ps = <0>;
+		mxl-8611x,tx-internal-delay-ps-100m = <2250>;
+		mxl-8611x,tx-internal-delay-ps-1g = <300>;
 	};
 };
 
