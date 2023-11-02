@@ -43,16 +43,15 @@
 		#size-cells = <2>;
 		ranges;
 
-		global_cma: linux,cma@58000000 {
+		multimedia_cma: linux,multimedia {
 			compatible = "shared-dma-pool";
-			linux,cma-default;
 			reusable;
-			reg = <0x0 0x58000000 0x0 0x10000000>;
+			size = <0x0 0x10000000>;
 		};
-		mmp_reserved: linux,multimedia {
+		mmp_reserved: linux,mmp {
 			compatible = "shared-dma-pool";
 			reusable;
-			reg = <0x00000000 0x68000000 0x0 0x8000000>;
+			size = <0x0 0x8000000>;
 		};
 	};
 
@@ -180,6 +179,7 @@
 
 &gpu {
 	mali-supply = <&reg_1p1v>;
+	memory-region = <&multimedia_cma>;
 };
 
 &ostm1 {
@@ -403,22 +403,6 @@
 	timeout-sec = <60>;
 };
 
-&ehci0 {
-	memory-region = <&global_cma>;
-};
-
-&ohci0 {
-	memory-region = <&global_cma>;
-};
-
-&ehci1 {
-	memory-region = <&global_cma>;
-};
-
-&ohci1 {
-	memory-region = <&global_cma>;
-};
-
 &canfd {
 	status = "disabled";
 };
@@ -539,6 +523,7 @@
 
 &du {
 	status = "okay";
+	memory-region = <&multimedia_cma>;
 };
 
 &dsi0 {
@@ -547,6 +532,7 @@
 
 &cru {
 	status = "okay";
+	memory-region = <&multimedia_cma>;
 };
 
 &mtu3 {
