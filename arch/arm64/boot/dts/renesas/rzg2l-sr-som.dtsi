@@ -269,15 +269,6 @@
 	};
 
 #endif
-
-  /* BT_REG_ON*/
-	gpio-sd1-bt_reg_on {
-		gpio-hog;
-		gpios = <RZG2L_GPIO(23, 0) GPIO_ACTIVE_HIGH>;
-		output-high;
-		line-name = "gpio_sd1_bt_reg_on";
-	};
-
 	sdhi0_emmc_pins: sd0emmc {
 		sd0_emmc_data {
 			pins = "SD0_DATA0", "SD0_DATA1", "SD0_DATA2", "SD0_DATA3",
@@ -519,11 +510,12 @@
 	uart-has-rtscts;
 	status = "okay";
 
-  bluetooth {
-	pinctrl-names = "default";
-	max-speed = <115200>;
-	compatible = "brcm,bcm4330-bt";
-  };
+	bluetooth {
+		compatible = "brcm,bcm4330-bt";
+		pinctrl-names = "default";
+		max-speed = <115200>;
+		shutdown-gpios = <&pinctrl RZG2L_GPIO(23, 0) GPIO_ACTIVE_HIGH>;
+	};
 };
 
 &spi1 {
