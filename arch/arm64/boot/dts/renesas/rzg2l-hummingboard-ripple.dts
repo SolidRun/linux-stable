@@ -24,12 +24,6 @@
 	model = "Solidrun RZ/G2L HummingBoard-Ripple";
 	compatible = "renesas,r9a07g044l2", "renesas,r9a07g044";
 
-	x1_clk: x1-clock {
-		compatible = "fixed-clock";
-		#clock-cells = <0>;
-		clock-frequency = <24000000>;
-	};
-
 	hdmi-out {
 		compatible = "hdmi-connector";
 		type = "d";
@@ -39,6 +33,42 @@
 			remote-endpoint = <&adv7535_out>;
 			};
 		};
+	};
+
+	cam_ext_2v8: 2p8v {
+		compatible = "regulator-fixed";
+		regulator-name = "camera_ext_2v8";
+		regulator-min-microvolt = <2800000>;
+		regulator-max-microvolt = <2800000>;
+		regulator-always-on;
+	};
+
+	cam_ext_1v8: 1p8v {
+		compatible = "regulator-fixed";
+		regulator-name = "camera_ext_1v8";
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		regulator-always-on;
+	};
+
+	cam_ext_1v2: 1p2v {
+		compatible = "regulator-fixed";
+		regulator-name = "camera_ext_1v2";
+		regulator-min-microvolt = <1200000>;
+		regulator-max-microvolt = <1200000>;
+		regulator-always-on;
+	};
+
+	imx219_clk: osc25250_clk {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <24000000>;
+	};
+
+	ar0521_clk: osc27000_clk {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <26000000>;
 	};
 };
 
@@ -85,6 +115,8 @@
 };
 
 &i2c0 {
+	clock-frequency = <400000>;
+
 	adv7535@3d {
 		compatible = "adi,adv7535";
 		reg = <0x3d>;
@@ -140,6 +172,69 @@
 		pagesize = <16>;
 	};
 
+
+	imx219: sensor@10 {
+		compatible = "sony,imx219";
+		reg = <0x10>;
+		clocks = <&imx219_clk>;
+		clock-names = "extclk";
+		VANA-supply = <&cam_ext_2v8>;
+		VDIG-supply = <&cam_ext_1v8>;
+		VDDL-supply = <&cam_ext_1v2>;
+		status = "disabled";
+
+		port {
+			imx219_0: endpoint {
+				remote-endpoint = <&csi2_in>;
+				clock-lanes = <0>;
+				data-lanes = <1 2>;
+				link-frequencies = /bits/ 64 <456000000>;
+		 	};
+		};
+	};
+
+	ar0521: sensor@36 {
+		compatible = "onnn,ar0521";
+		reg = <0x36>;
+		clocks = <&ar0521_clk>;
+		clock-names = "extclk";
+		vaa-supply = <&cam_ext_2v8>;
+		vdd-supply = <&cam_ext_1v2>;
+		vdd_io-supply = <&cam_ext_1v8>;
+
+		port {
+			ar0521_0: endpoint {
+				remote-endpoint = <&csi2_in>;
+				clock-lanes = <0>;
+				data-lanes = <1 2 3 4>;
+		 	};
+		};
+	};
+};
+
+&csi2 {
+	status = "okay";
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@1 {
+			reg = <1>;
+
+			csi2_to_cru: endpoint {
+				remote-endpoint = <&cru_to_csi2>;
+			};
+		};
+
+		port@0 {
+			reg = <0>;
+
+			csi2_in: endpoint {
+				remote-endpoint = <&ar0521_0>;
+				data-lanes = <1 2 3 4>;
+			};
+		};
+	};
 };
 
 &dsi0 {
