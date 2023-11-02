@@ -5,6 +5,7 @@
 
 #include <linux/module.h>
 #include <linux/of_platform.h>
+#include <linux/of_reserved_mem.h>
 #include <linux/pagemap.h>
 #include <linux/pm_runtime.h>
 #include <drm/panfrost_drm.h>
@@ -565,6 +566,11 @@ static int panfrost_probe(struct platform_device *pdev)
 		return -ENODEV;
 
 	pfdev->coherent = device_get_dma_attr(&pdev->dev) == DEV_DMA_COHERENT;
+
+        /* Get the optional reserved memory resource */
+        err = of_reserved_mem_device_init(&pdev->dev);
+        if (err && err != -ENODEV)
+                return err;
 
 	/* Allocate and initialze the DRM device. */
 	ddev = drm_dev_alloc(&panfrost_drm_driver, &pdev->dev);

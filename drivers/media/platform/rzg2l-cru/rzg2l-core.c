@@ -11,6 +11,7 @@
 #include <linux/of.h>
 #include <linux/of_device.h>
 #include <linux/of_graph.h>
+#include <linux/of_reserved_mem.h>
 #include <linux/platform_device.h>
 #include <linux/pm_runtime.h>
 #include <linux/slab.h>
@@ -572,6 +573,11 @@ static int rzg2l_cru_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "failed to get CRU_ARESETN reset\n");
 		return PTR_ERR(cru->rstc.aresetn);
 	}
+
+        /* Get the optional reserved memory resource */
+        ret = of_reserved_mem_device_init(&pdev->dev);
+        if (ret && ret != -ENODEV)
+                return ret;
 
 	ret = rzg2l_cru_dma_register(cru, irq);
 	if (ret)
