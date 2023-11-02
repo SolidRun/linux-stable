@@ -12,6 +12,7 @@
 #include <linux/mm.h>
 #include <linux/module.h>
 #include <linux/of_device.h>
+#include <linux/of_reserved_mem.h>
 #include <linux/platform_device.h>
 #include <linux/pm.h>
 #include <linux/slab.h>
@@ -636,6 +637,11 @@ static int rcar_du_probe(struct platform_device *pdev)
 	rcdu->mmio = devm_ioremap_resource(&pdev->dev, mem);
 	if (IS_ERR(rcdu->mmio))
 		return PTR_ERR(rcdu->mmio);
+
+        /* Get the optional reserved memory resource */
+        ret = of_reserved_mem_device_init(&pdev->dev);
+        if (ret && ret != -ENODEV)
+                return ret;
 
 	/* DRM/KMS objects */
 	ddev = drm_dev_alloc(&rcar_du_driver, &pdev->dev);
