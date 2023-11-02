@@ -516,11 +516,12 @@
 	uart-has-rtscts;
 	status = "okay";
 
-  bluetooth {
-	pinctrl-names = "default";
-	max-speed = <115200>;
-	compatible = "brcm,bcm4330-bt";
-  };
+	bluetooth {
+		compatible = "brcm,bcm4330-bt";
+		pinctrl-names = "default";
+		max-speed = <1000000>;
+		reset-gpios = <&pinctrl RZG2L_GPIO(23, 0) GPIO_ACTIVE_LOW>;
+	};
 };
 
 &spi1 {
