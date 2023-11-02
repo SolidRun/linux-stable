@@ -180,9 +180,12 @@ static int rzg2l_poeg_probe(struct platform_device *pdev)
 
 static int rzg2l_poeg_remove(struct platform_device *pdev)
 {
+	struct rzg2l_poeg_chip *poeg_chip = platform_get_drvdata(pdev);
+
 	device_remove_file(&pdev->dev, &dev_attr_output_disable);
 	pm_runtime_put(&pdev->dev);
 	pm_runtime_disable(&pdev->dev);
+	reset_control_assert(poeg_chip->rstc);
 
 	return 0;
 }
@@ -196,7 +199,11 @@ MODULE_DEVICE_TABLE(of, rzg2l_poeg_of_table);
 
 static int rzg2l_poeg_suspend(struct device *dev)
 {
+	struct rzg2l_poeg_chip *poeg_chip = dev_get_drvdata(dev);
+
 	pm_runtime_put(dev);
+
+	reset_control_assert(poeg_chip->rstc);
 
 	return 0;
 }
@@ -204,6 +211,8 @@ static int rzg2l_poeg_suspend(struct device *dev)
 static int rzg2l_poeg_resume(struct device *dev)
 {
 	struct rzg2l_poeg_chip *poeg_chip = dev_get_drvdata(dev);
+
+	reset_control_deassert(poeg_chip->rstc);
 
 	pm_runtime_get_sync(dev);
 	enable_poeg_function(poeg_chip);
