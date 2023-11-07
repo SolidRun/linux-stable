@@ -1079,11 +1079,8 @@
 	bus-width = <4>;
 	non-removable;
 	vmmc-supply = <&reg_wlan>;
-<<<<<<< HEAD
 	vqmmc-1-8-v;
-=======
 	mmc-pwrseq = <&usdhc2_pwrseq>;
->>>>>>> linux-stable/linux-4.9.y
 	cap-power-off-card;
 	keep-power-in-suspend;
 	status = "okay";
