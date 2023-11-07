@@ -364,7 +364,7 @@
 /* ----------------------------------------------------
   PCIe CMA
 -------------------------------------------------------*/
-#define PCIE_CMA_ADDRESS		 				0x1FFFFFF00
+#define PCIE_CMA_ADDRESS		 				0x1FFC00000
 #define PCIE_CMA_SIZE				 			0x100
 
 struct rzv2m_axi_window_set {
