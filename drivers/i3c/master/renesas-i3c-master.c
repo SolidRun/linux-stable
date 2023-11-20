@@ -84,8 +84,8 @@
 #define REFCKCTL_IREFCKS(x)	(((x) & 0x7) << 0)
 
 #define STDBR			0x74
-#define STDBR_SBRLO(x)		((((x) > 0xff ? (x)/2 : (x)) & 0xff) << 0)
-#define STDBR_SBRHO(x)		((((x) > 0xff ? (x)/2 : (x)) & 0xff) << 8)
+#define STDBR_SBRLO(cond, x)	((((cond) ? (x)/2 : (x)) & 0xff) << 0)
+#define STDBR_SBRHO(cond, x)	((((cond) ? (x)/2 : (x)) & 0xff) << 8)
 #define STDBR_SBRLP(x)		(((x) & 0x3f) << 16)
 #define STDBR_SBRHP(x)		(((x) & 0x3f) << 24)
 #define STDBR_DSBRPO		BIT(31)
@@ -610,6 +610,7 @@ static int renesas_i3c_master_bus_init(struct i3c_master_controller *m)
 	int cks, pp_high_ticks, pp_low_ticks, i3c_total_ticks;
 	int od_high_ticks, od_low_ticks, i2c_total_ticks;
 	int ret;
+	bool double_SBR;
 
 	rate = clk_get_rate(master->tclk);
 	if (!rate)
@@ -660,10 +661,11 @@ static int renesas_i3c_master_bus_init(struct i3c_master_controller *m)
 	od_high_ticks = i2c_total_ticks - od_low_ticks;
 
 	/* Standard Bit Rate setting */
+	double_SBR = od_low_ticks > 0xFF ? true : false;
 	i3c_reg_write(master->regs, STDBR,
-				   (od_low_ticks > 0xFF ? STDBR_DSBRPO : 0) |
-				   STDBR_SBRLO(od_low_ticks) |
-				   STDBR_SBRHO(od_high_ticks) |
+				   (double_SBR ? STDBR_DSBRPO : 0) |
+				   STDBR_SBRLO(double_SBR, od_low_ticks) |
+				   STDBR_SBRHO(double_SBR, od_high_ticks) |
 				   STDBR_SBRLP(pp_low_ticks) |
 				   STDBR_SBRHP(pp_high_ticks));
 	/* Extended Bit Rate setting */
