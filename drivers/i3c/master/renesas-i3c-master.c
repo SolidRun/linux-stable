@@ -357,6 +357,8 @@ struct renesas_i3c_master {
 	enum i3c_internal_state internal_state;
 	u16 maxdevs;
 	u32 free_pos;
+	u32 i2c_STDBR;
+	u32 i3c_STDBR;
 	u8 addrs[RENESAS_I3C_MAX_DEVS];
 	struct {
 		struct list_head list;
@@ -592,9 +594,12 @@ static void renesas_i3c_master_bus_enable(struct i3c_master_controller *m, bool 
 		i3c_reg_write(master->regs, PRTS, 0);
 		i3c_reg_set_bit(master->regs, BCTL, BCTL_HJACKCTL | BCTL_INCBA);
 		i3c_reg_set_bit(master->regs, MSDVAD, MSDVAD_MDYADV);
-	} else
+		i3c_reg_write(master->regs, STDBR, master->i3c_STDBR);
+	} else {
 		/* Select I2C protocol mode. */
 		i3c_reg_write(master->regs, PRTS, 1);
+		i3c_reg_write(master->regs, STDBR, master->i2c_STDBR);
+	}
 
 	/* Enable I3C Bus. */
 	i3c_reg_set_bit(master->regs, BCTL, BCTL_BUSE);
@@ -606,7 +611,7 @@ static int renesas_i3c_master_bus_init(struct i3c_master_controller *m)
 	struct i3c_bus *bus = i3c_master_get_bus(m);
 	struct i3c_device_info info = { };
 	unsigned long rate;
-	u32 val;
+	u32 val, scl_rise_ns, scl_fall_ns;
 	int cks, pp_high_ticks, pp_low_ticks, i3c_total_ticks;
 	int od_high_ticks, od_low_ticks, i2c_total_ticks;
 	int ret;
@@ -628,6 +633,11 @@ static int renesas_i3c_master_bus_init(struct i3c_master_controller *m)
 
 	i2c_total_ticks = DIV_ROUND_UP(rate, bus->scl_rate.i2c);
 	i3c_total_ticks = DIV_ROUND_UP(rate, bus->scl_rate.i3c);
+
+	/* SCL falling (tf) and rising (tr) calculation */
+	scl_rise_ns =  bus->scl_rate.i2c <= I2C_MAX_STANDARD_MODE_FREQ ? 1000 :
+			bus->scl_rate.i2c <= I2C_MAX_FAST_MODE_FREQ ? 300 : 120;
+	scl_fall_ns = bus->scl_rate.i2c <= I2C_MAX_FAST_MODE_FREQ ? 300 : 120;
 
 	for (cks = 0; cks < 7; cks++) {
 		/* SCL low-period calculation in Open-drain mode */
@@ -662,12 +672,21 @@ static int renesas_i3c_master_bus_init(struct i3c_master_controller *m)
 
 	/* Standard Bit Rate setting */
 	double_SBR = od_low_ticks > 0xFF ? true : false;
-	i3c_reg_write(master->regs, STDBR,
-				   (double_SBR ? STDBR_DSBRPO : 0) |
-				   STDBR_SBRLO(double_SBR, od_low_ticks) |
-				   STDBR_SBRHO(double_SBR, od_high_ticks) |
-				   STDBR_SBRLP(pp_low_ticks) |
-				   STDBR_SBRHP(pp_high_ticks));
+	master->i3c_STDBR = (double_SBR ? STDBR_DSBRPO : 0) |
+			STDBR_SBRLO(double_SBR, od_low_ticks) |
+			STDBR_SBRHO(double_SBR, od_high_ticks) |
+			STDBR_SBRLP(pp_low_ticks) |
+			STDBR_SBRHP(pp_high_ticks);
+
+	od_low_ticks -= scl_fall_ns / (1000000000 / rate) + 1;
+	od_high_ticks -= scl_rise_ns / (1000000000 / rate) + 1;
+	master->i2c_STDBR = (double_SBR ? STDBR_DSBRPO : 0) |
+			STDBR_SBRLO(double_SBR, od_low_ticks) |
+			STDBR_SBRHO(double_SBR, od_high_ticks) |
+			STDBR_SBRLP(pp_low_ticks) |
+			STDBR_SBRHP(pp_high_ticks);
+	i3c_reg_write(master->regs, STDBR, master->i3c_STDBR);
+
 	/* Extended Bit Rate setting */
 	i3c_reg_write(master->regs, EXTBR, EXTBR_EBRLO(od_low_ticks) |
 					   EXTBR_EBRHO(od_high_ticks) |
