@@ -228,8 +228,8 @@
 			reset-names = "tresetn", "presetn";
 			#address-cells = <3>;
 			#size-cells = <0>;
-			i2c-scl-hz = <400000>;
-			i3c-scl-hz = <12000000>;
+			i2c-scl-hz = <1000000>;
+			i3c-scl-hz = <12500000>;
 			status = "disabled";
 		};
 
