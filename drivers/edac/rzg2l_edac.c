@@ -33,9 +33,6 @@
 #define DDR_CLS_DDR3			(0x6)
 #define DDR_CLS_DDR4			(0xa)
 
-/* ECC Mode Registers */
-#define ECC_MODE_REG			0x174
-
 /* ECC Mode Macros */
 #define ECC_MODE_OFF			24
 #define ECC_MODE_MSK			(0x3 << ECC_MODE_OFF)
@@ -43,11 +40,69 @@
 #define ECC_MODE_ED			0x2
 #define ECC_MODE_SECDED			0x3
 
-/* ECC IRQ Registers */
-#define ECC_INT_MSK_MASTER_REG		0x22c
-#define ECC_INT_MSK_ECC_REG		0x274
-#define ECC_INT_STS_ECC_REG		0x234
-#define ECC_INT_ACK_ECC_REG		0x254
+#define ECC_MODE_REG			0
+#define ECC_SIG_UE_ADDR1_REG		1
+#define ECC_SIG_UE_ADDR2_REG		2
+#define ECC_SIG_UE_SYND_REG		3
+#define ECC_SIG_UE_DATA1_REG		4
+#define ECC_SIG_UE_DATA2_REG		5
+#define ECC_SIG_UE_ID_REG		6
+#define ECC_SIG_CE_ADDR1_REG		7
+#define ECC_SIG_CE_ADDR2_REG		8
+#define ECC_SIG_CE_SYND_REG		9
+#define ECC_SIG_CE_DATA1_REG		10
+#define ECC_SIG_CE_DATA2_REG		11
+#define ECC_SIG_CE_ID_REG		12
+#define ECC_INT_MSK_MASTER_REG		13
+#define ECC_INT_MSK_ECC_REG		14
+#define ECC_INT_STS_ECC_REG		15
+#define ECC_INT_ACK_ECC_REG		16
+#define DDR_CTRL_BUSY_REG		17
+#define ECC_FRC_ERR_REG			18
+
+unsigned long g2l_ddrmc_regs[] = {
+	0x174, /* ECC Mode Registers */
+	0x184, /*ECC_SIG_UE_ADDR1_REG*/
+	0x188, /*ECC_SIG_UE_ADDR2_REG*/
+	0x188, /*ECC_SIG_UE_SYND_REG*/
+	0x18c, /*ECC_SIG_UE_DATA1_REG*/
+	0x190, /*ECC_SIG_UE_DATA2_REG*/
+	0x1a4, /*ECC_SIG_UE_ID_REG*/
+	0x194, /*ECC_SIG_CE_ADDR1_REG*/
+	0x198, /*ECC_SIG_CE_ADDR2_REG*/
+	0x198, /*ECC_SIG_CE_SYND_REG*/
+	0x19c, /*ECC_SIG_CE_DATA1_REG*/
+	0x1a0, /*ECC_SIG_CE_DATA2_REG*/
+	0x1a8, /*ECC_SIG_CE_ID_REG*/
+	0x22c, /*ECC_INT_MSK_MASTER_REG*/
+	0x274, /*ECC_INT_MSK_ECC_REG*/
+	0x234, /*ECC_INT_STS_ECC_REG*/
+	0x254, /*ECC_INT_ACK_ECC_REG*/
+	0x218, /*DDR_CTRL_BUSY_REG*/
+	0x178, /*ECC_FRC_ERR_REG*/
+};
+
+unsigned long v2l_ddrmc_regs[] = {
+	0x18c, /* ECC Mode Registers */
+	0x19c, /*ECC_SIG_UE_ADDR1_REG*/
+	0x1a0, /*ECC_SIG_UE_ADDR2_REG*/
+	0x1a0, /*ECC_SIG_UE_SYND_REG*/
+	0x1a4, /*ECC_SIG_UE_DATA1_REG*/
+	0x1a8, /*ECC_SIG_UE_DATA2_REG*/
+	0x1bc, /*ECC_SIG_UE_ID_REG*/
+	0x1ac, /*ECC_SIG_CE_ADDR1_REG*/
+	0x1b0, /*ECC_SIG_CE_ADDR2_REG*/
+	0x1b0, /*ECC_SIG_CE_SYND_REG*/
+	0x1b4, /*ECC_SIG_CE_DATA1_REG*/
+	0x1b8, /*ECC_SIG_CE_DATA2_REG*/
+	0x1c0, /*ECC_SIG_CE_ID_REG*/
+	0x244, /*ECC_INT_MSK_MASTER_REG*/
+	0x28c, /*ECC_INT_MSK_ECC_REG*/
+	0x24c, /*ECC_INT_STS_ECC_REG*/
+	0x26c, /*ECC_INT_ACK_ECC_REG*/
+	0x230, /*DDR_CTRL_BUSY_REG*/
+	0x190, /*ECC_FRC_ERR_REG*/
+};
 
 /* ECC IRQ Macros */
 #define ECC_INT_MSK_MASTER_ECC_OFF	1
@@ -61,20 +116,6 @@
 #define ECC_INT_STS_UE_MSK		0xC
 #define ECC_INT_STS_SCRB_MSK		0x80
 
-/* ECC signature  Registers */
-#define ECC_SIG_UE_ADDR1_REG		0x184
-#define ECC_SIG_UE_ADDR2_REG		0x188
-#define ECC_SIG_UE_SYND_REG		0x188
-#define ECC_SIG_UE_DATA1_REG		0x18c
-#define ECC_SIG_UE_DATA2_REG		0x190
-#define ECC_SIG_UE_ID_REG		0x1a4
-#define ECC_SIG_CE_ADDR1_REG		0x194
-#define ECC_SIG_CE_ADDR2_REG		0x198
-#define ECC_SIG_CE_SYND_REG		0x198
-#define ECC_SIG_CE_DATA1_REG		0x19c
-#define ECC_SIG_CE_DATA2_REG		0x1a0
-#define ECC_SIG_CE_ID_REG		0x1a8
-
 /* ECC signature  Macros */
 #define ECC_SIG_SYND_OFF		8
 #define ECC_SIG_SYND_MSK		(0xff << ECC_SIG_SYND_OFF)
@@ -86,7 +127,8 @@
 #define SBIT_CNT_MAX		(0x1f)
 
 struct rzg2l_edac_priv_data {
-	void __iomem *reg;
+	void __iomem *base;
+	unsigned long *regs;
 
 	/* debugfs entries */
 	struct dentry *dir;
@@ -316,7 +358,7 @@ static void init_mem_layout(struct mem_ctl_info *mci)
 	dimm = edac_get_dimm(mci, 0, 0, 0);
 
 	/* 1. set the dimm edac_mode */
-	val = readl(priv->reg + ECC_MODE_REG) & ECC_MODE_MSK;
+	val = readl(priv->base + priv->regs[ECC_MODE_REG]) & ECC_MODE_MSK;
 	val >>= ECC_MODE_OFF;
 	switch(val) {
 	case ECC_MODE_ENABLE:
@@ -333,7 +375,7 @@ static void init_mem_layout(struct mem_ctl_info *mci)
 	}
 
 	/* 2. set mtype */
-	val = readl(priv->reg + DDR_CLS_REG) & DDR_CLS_MSK;
+	val = readl(priv->base + DDR_CLS_REG) & DDR_CLS_MSK;
 	val >>= DDR_CLS_OFF;
 	if (val == DDR_CLS_DDR3)
 		dimm->mtype = MEM_DDR3;
@@ -365,24 +407,24 @@ static irqreturn_t edac_ecc_isr(int irq, void *dev_id)
 	priv = mci->pvt_info;
 
 	/* Check the intr status and confirm ECC error intr */
-	int_status = readl(priv->reg + ECC_INT_STS_ECC_REG) & \
+	int_status = readl(priv->base + priv->regs[ECC_INT_STS_ECC_REG]) & \
 		     ECC_INT_STS_ECC_MSK;
 
 	if (!(int_status & ECC_INT_MSK_ECC))
 		return IRQ_NONE;
 
 	if (int_status & ECC_INT_STS_CE_MSK) {
-		err_addr = (u64)readl(priv->reg + ECC_SIG_CE_ADDR2_REG);
+		err_addr = (u64)readl(priv->base + priv->regs[ECC_SIG_CE_ADDR2_REG]);
 		err_addr = ((err_addr & 0x3) << 32) | \
-				readl(priv->reg + ECC_SIG_CE_ADDR1_REG);
+				readl(priv->base + priv->regs[ECC_SIG_CE_ADDR1_REG]);
 
-		err_data = (u64)readl(priv->reg + ECC_SIG_CE_DATA2_REG);
+		err_data = (u64)readl(priv->base + priv->regs[ECC_SIG_CE_DATA2_REG]);
 		err_data = (err_data << 32) | \
-			   readl(priv->reg + ECC_SIG_CE_DATA1_REG);
+			   readl(priv->base + priv->regs[ECC_SIG_CE_DATA1_REG]);
 
-		err_id = readl(priv->reg + ECC_SIG_CE_ID_REG) & ECC_SIG_ID_MSK;
+		err_id = readl(priv->base + priv->regs[ECC_SIG_CE_ID_REG]) & ECC_SIG_ID_MSK;
 
-		err_synd = readl(priv->reg + ECC_SIG_CE_SYND_REG) & \
+		err_synd = readl(priv->base + priv->regs[ECC_SIG_CE_SYND_REG]) & \
 			   ECC_SIG_SYND_MSK;
 		err_synd >>= ECC_SIG_SYND_OFF;
 
@@ -395,17 +437,17 @@ static irqreturn_t edac_ecc_isr(int irq, void *dev_id)
 	}
 
 	if (int_status & ECC_INT_STS_UE_MSK) {
-		err_addr = (u64)readl(priv->reg + ECC_SIG_UE_ADDR2_REG);
+		err_addr = (u64)readl(priv->base + priv->regs[ECC_SIG_UE_ADDR2_REG]);
 		err_addr = ((err_addr & 0x3) << 32) | \
-				readl(priv->reg + ECC_SIG_UE_ADDR1_REG);
+				readl(priv->base + priv->regs[ECC_SIG_UE_ADDR1_REG]);
 
-		err_data = (u64)readl(priv->reg + ECC_SIG_UE_DATA2_REG);
+		err_data = (u64)readl(priv->base + priv->regs[ECC_SIG_UE_DATA2_REG]);
 		err_data = (err_data << 32) | \
-			   readl(priv->reg + ECC_SIG_UE_DATA1_REG);
+			   readl(priv->base + priv->regs[ECC_SIG_UE_DATA1_REG]);
 
-		err_id = readl(priv->reg + ECC_SIG_UE_ID_REG) & ECC_SIG_ID_MSK;
+		err_id = readl(priv->base + priv->regs[ECC_SIG_UE_ID_REG]) & ECC_SIG_ID_MSK;
 
-		err_synd = readl(priv->reg + ECC_SIG_UE_SYND_REG) & \
+		err_synd = readl(priv->base + priv->regs[ECC_SIG_UE_SYND_REG]) & \
 			   ECC_SIG_SYND_MSK;
 		err_synd >>= ECC_SIG_SYND_OFF;
 
@@ -428,7 +470,7 @@ static irqreturn_t edac_ecc_isr(int irq, void *dev_id)
 		edac_printk(KERN_ERR, EDAC_MC,
 			"Scrubbing and writeback failed IRQ cleared\n");
 
-	writel(int_status, priv->reg + ECC_INT_ACK_ECC_REG);
+	writel(int_status, priv->base + priv->regs[ECC_INT_ACK_ECC_REG]);
 
 	if (t != NULL)
 		send_sig_info(signal_id, &info, t);
@@ -437,9 +479,10 @@ static irqreturn_t edac_ecc_isr(int irq, void *dev_id)
 }
 
 static const struct of_device_id rzg2l_edac_of_match[] = {
-	{ .compatible = "renesas,r9a07g044-edac"},
-	{ .compatible = "renesas,r9a07g043-edac"},
-	{ .compatible = "renesas,r9a07g043f-edac"},
+	{ .compatible = "renesas,r9a07g044-edac", .data = g2l_ddrmc_regs},
+	{ .compatible = "renesas,r9a07g043-edac", .data = g2l_ddrmc_regs},
+	{ .compatible = "renesas,r9a07g043f-edac", .data = g2l_ddrmc_regs},
+	{ .compatible = "renesas,r9a07g054-edac", .data = v2l_ddrmc_regs},
 	{},
 };
 MODULE_DEVICE_TABLE(of, rzg2l_edac_of_match);
@@ -448,11 +491,12 @@ static int rzg2l_edac_mc_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 	struct resource *res;
-	void __iomem *reg;
+	void __iomem *base;
+	unsigned long *regs;
 	struct mem_ctl_info *mci;
 	struct edac_mc_layer layers[1];
 	const struct of_device_id *id;
-	struct rzg2l_edac_priv_data *priv_data;
+	struct rzg2l_edac_priv_data *priv;
 	int irq, ret = -ENODEV;
 	u32 val;
 
@@ -461,11 +505,17 @@ static int rzg2l_edac_mc_probe(struct platform_device *pdev)
 		return -ENODEV;
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	reg = devm_ioremap_resource(dev, res);
-	if (IS_ERR(reg)) {
+	base = devm_ioremap_resource(dev, res);
+	if (IS_ERR(base)) {
 		edac_printk(KERN_ERR, RZG2L_EDAC_MOD_NAME,
-			    "rzg2l DDR4 mc regs are not defined\n");
-		return PTR_ERR(reg);
+			    "rzg2l DDR4 mc base are not defined.\n");
+		return PTR_ERR(base);
+	}
+	regs = of_device_get_match_data(&pdev->dev);
+	if (!regs) {
+		edac_printk(KERN_ERR, RZG2L_EDAC_MOD_NAME,
+			    "rzg2l DDR4 mc regs are not found.\n");
+		return -EINVAL;
 	}
 
 	edac_printk(KERN_ERR, RZG2L_EDAC_MOD_NAME,
@@ -483,8 +533,9 @@ static int rzg2l_edac_mc_probe(struct platform_device *pdev)
 		goto edac_mc_alloc_err;
 	}
 	mci->pdev = &pdev->dev;
-	priv_data = mci->pvt_info;
-	priv_data->reg = reg;
+	priv = mci->pvt_info;
+	priv->base = base;
+	priv->regs = regs;
 	platform_set_drvdata(pdev, mci);
 	/* Initialize controller capabilities */
 	mci->mtype_cap = MEM_FLAG_DDR4;
@@ -503,7 +554,7 @@ static int rzg2l_edac_mc_probe(struct platform_device *pdev)
 
 	/* mask all the interrupts in master */
 	val = ECC_INT_MSK_ALL;
-	writel(val, priv_data->reg + ECC_INT_MSK_MASTER_REG);
+	writel(val, priv->base + priv->regs[ECC_INT_MSK_MASTER_REG]);
 
 	/* Setup Interrupt handler for ECC */
 	irq = platform_get_irq_byname(pdev, "ecc_irq");
@@ -520,24 +571,24 @@ static int rzg2l_edac_mc_probe(struct platform_device *pdev)
 		goto err;
 	}
 
-	priv_data->dir = debugfs_create_dir("mfis_ecc", NULL);
-	if (!priv_data->dir) {
+	priv->dir = debugfs_create_dir("mfis_ecc", NULL);
+	if (!priv->dir) {
 		dev_err(&pdev->dev, "Failed to create mfis_ecc directory\n");
 		ret = -EPERM;
 		goto err;
 	}
 
-	priv_data->pid_file = debugfs_create_file("pid", 0600, priv_data->dir, NULL,
+	priv->pid_file = debugfs_create_file("pid", 0600, priv->dir, NULL,
 			&pid_fops);
-	priv_data->sig_file = debugfs_create_file("sig_id", 0600, priv_data->dir, NULL,
+	priv->sig_file = debugfs_create_file("sig_id", 0600, priv->dir, NULL,
 			&signal_id_fops);
-	priv_data->sbit_file = debugfs_create_file("sbit_count", 0600, priv_data->dir, NULL,
+	priv->sbit_file = debugfs_create_file("sbit_count", 0600, priv->dir, NULL,
 			&sbit_err_fops);
-	priv_data->mbit_file = debugfs_create_file("mbit_count", 0600, priv_data->dir, NULL,
+	priv->mbit_file = debugfs_create_file("mbit_count", 0600, priv->dir, NULL,
 			&mbit_err_fops);
 
-	if (!priv_data->pid_file || !priv_data->sig_file ||
-		!priv_data->sbit_file || !priv_data->mbit_file) {
+	if (!priv->pid_file || !priv->sig_file ||
+		!priv->sbit_file || !priv->mbit_file) {
 		dev_err(&pdev->dev,
 				"Failed to create debug files for pid, sig file\n");
 		ret = -EPERM;
@@ -554,23 +605,23 @@ static int rzg2l_edac_mc_probe(struct platform_device *pdev)
 	}
 
 	/* Unmask all ECC interrupt */
-	val = readl(priv_data->reg + ECC_INT_MSK_ECC_REG);
+	val = readl(priv->base + priv->regs[ECC_INT_MSK_ECC_REG]);
 	val &= ~(ECC_INT_MSK_ECC);
-	writel(val, priv_data->reg + ECC_INT_MSK_ECC_REG);
+	writel(val, priv->base + priv->regs[ECC_INT_MSK_ECC_REG]);
 
 	/* Enable the ECC interrupt in master */
-	val = readl(priv_data->reg + ECC_INT_MSK_MASTER_REG);
+	val = readl(priv->base + priv->regs[ECC_INT_MSK_MASTER_REG]);
 	val &= ~(ECC_INT_MSK_MASTER_ECC | ECC_INT_MSK_MASTER_GLB);
-	writel(val, priv_data->reg + ECC_INT_MSK_MASTER_REG);
+	writel(val, priv->base + priv->regs[ECC_INT_MSK_MASTER_REG]);
 
 	/* Ack all ECC interrupt in advance */
-	val = readl(priv_data->reg + ECC_INT_ACK_ECC_REG);
+	val = readl(priv->base + priv->regs[ECC_INT_ACK_ECC_REG]);
 	val &= ~ECC_INT_MSK_ECC;
-	writel(val, priv_data->reg + ECC_INT_ACK_ECC_REG);
+	writel(val, priv->base + priv->regs[ECC_INT_ACK_ECC_REG]);
 
 	return 0;
 err_create_debug_fs:
-	debugfs_remove_recursive(priv_data->dir);
+	debugfs_remove_recursive(priv->dir);
 err:
 	edac_mc_free(mci);
 edac_mc_alloc_err:
@@ -584,14 +635,14 @@ static int rzg2l_edac_mc_remove(struct platform_device *pdev)
 	struct rzg2l_edac_priv_data *priv = mci->pvt_info;
 
 	/* Mask all interrupt from DDR controller in int_mask_master */
-	val = readl(priv->reg + ECC_INT_MSK_MASTER_REG);
+	val = readl(priv->base + priv->regs[ECC_INT_MSK_MASTER_REG]);
 	val |= ECC_INT_MSK_ALL;
-	writel(val, priv->reg + ECC_INT_MSK_MASTER_REG);
+	writel(val, priv->base + priv->regs[ECC_INT_MSK_MASTER_REG]);
 
 	/* Mask all ECC interrupt */
-	val = readl(priv->reg + ECC_INT_MSK_ECC_REG);
+	val = readl(priv->base + priv->regs[ECC_INT_MSK_ECC_REG]);
 	val |= ECC_INT_MSK_ECC;
-	writel(val, priv->reg + ECC_INT_MSK_ECC_REG);
+	writel(val, priv->base + priv->regs[ECC_INT_MSK_ECC_REG]);
 
 	debugfs_remove(priv->pid_file);
 	debugfs_remove(priv->sig_file);
