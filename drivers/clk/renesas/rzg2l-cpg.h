@@ -21,6 +21,7 @@
 #define CPG_PL6_ETH_SSEL	(0x418)
 #define CPG_PL5_SDIV		(0x420)
 #define CPG_RST_MON		(0x680)
+#define CPG_WDTOVF_RST		(0xB10)
 #define CPG_OTHERFUNC1_REG	(0xBE8)
 
 #define ACPU_MSTOP		(0xB60)
@@ -75,6 +76,8 @@
 #define MSTOP(off, bit)	((off & 0xffff) << 16 | bit)
 #define MSTOP_OFF(val)	((val >> 16) & 0xffff)
 #define MSTOP_BIT(val)	(val & 0xffff)
+
+#define WDTOVF_WEN(x)	((x) << 16)
 
 /**
  * Definitions of CPG Core Clocks
@@ -259,6 +262,8 @@ struct rzg2l_cpg_info {
 
 	bool has_clk_mon_regs;
 };
+
+unsigned int rzg2l_cpg_wdt_ovf_sysrst(struct clk_hw *hw, int channel);
 
 extern const struct rzg2l_cpg_info r9a07g043_cpg_info;
 extern const struct rzg2l_cpg_info r9a07g043f_cpg_info;

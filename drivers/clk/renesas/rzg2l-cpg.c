@@ -638,6 +638,21 @@ struct mstp_clock {
 
 #define to_mod_clock(_hw) container_of(_hw, struct mstp_clock, hw)
 
+unsigned int rzg2l_cpg_wdt_ovf_sysrst(struct clk_hw *hw, int channel)
+{
+	struct mstp_clock *clock = to_mod_clock(hw);
+	struct rzg2l_cpg_priv *priv = clock->priv;
+	unsigned int val;
+
+	/* Get the WDTOVF of specific WDT channel */
+	val = readl(priv->base + CPG_WDTOVF_RST) & BIT(channel);
+
+	/* Clear WDTOVF flag after reading */
+	writel(WDTOVF_WEN(val) | val, priv->base + CPG_WDTOVF_RST);
+
+	return !!val;
+}
+
 static int rzg2l_mod_clock_endisable(struct clk_hw *hw, bool enable)
 {
 	struct mstp_clock *clock = to_mod_clock(hw);
