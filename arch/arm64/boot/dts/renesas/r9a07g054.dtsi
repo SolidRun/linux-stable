@@ -1399,6 +1399,7 @@
 			interrupt-names = "wdt", "perrout";
 			resets = <&cpg R9A07G054_WDT0_PRESETN>;
 			power-domains = <&cpg>;
+			channel,id = <0>;
 			status = "disabled";
 		};
 
@@ -1414,6 +1415,7 @@
 			interrupt-names = "wdt", "perrout";
 			resets = <&cpg R9A07G054_WDT1_PRESETN>;
 			power-domains = <&cpg>;
+			channel,id = <1>;
 			status = "disabled";
 		};
 
@@ -1429,6 +1431,7 @@
 			interrupt-names = "wdt", "perrout";
 			resets = <&cpg R9A07G054_WDT2_PRESETN>;
 			power-domains = <&cpg>;
+			channel,id = <2>;
 			status = "disabled";
 		};
 
