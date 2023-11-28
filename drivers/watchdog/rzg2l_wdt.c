@@ -6,6 +6,7 @@
  */
 #include <linux/bitops.h>
 #include <linux/clk.h>
+#include <linux/clk-provider.h>
 #include <linux/delay.h>
 #include <linux/io.h>
 #include <linux/iopoll.h>
@@ -17,6 +18,8 @@
 #include <linux/reset.h>
 #include <linux/units.h>
 #include <linux/watchdog.h>
+
+#include "../clk/renesas/rzg2l-cpg.h"
 
 #define WDTCNT		0x00
 #define WDTSET		0x04
@@ -250,6 +253,7 @@ static int rzg2l_wdt_probe(struct platform_device *pdev)
 	struct device *dev = &pdev->dev;
 	struct rzg2l_wdt_priv *priv;
 	unsigned long pclk_rate;
+	u32 channel;
 	int ret;
 
 	priv = devm_kzalloc(dev, sizeof(*priv), GFP_KERNEL);
@@ -291,6 +295,12 @@ static int rzg2l_wdt_probe(struct platform_device *pdev)
 
 	priv->devtype = (uintptr_t)of_device_get_match_data(dev);
 
+	if (priv->devtype == WDT_RZG2L) {
+		ret = device_property_read_u32(&pdev->dev, "channel,id", &channel);
+		if (ret)
+			return dev_err_probe(dev, ret, "no channel,id found");
+	}
+
 	if (priv->devtype == WDT_RZV2M) {
 		priv->minimum_assertion_period = RZV2M_A_NSEC +
 			3 * F2CYCLE_NSEC(pclk_rate) + 5 *
@@ -303,6 +313,10 @@ static int rzg2l_wdt_probe(struct platform_device *pdev)
 	priv->wdev.info = &rzg2l_wdt_ident;
 	priv->wdev.ops = &rzg2l_wdt_ops;
 	priv->wdev.parent = dev;
+	if (priv->devtype == WDT_RZG2L)
+		priv->wdev.bootstatus =
+			rzg2l_cpg_wdt_ovf_sysrst(__clk_get_hw(priv->pclk), channel) ?
+							WDIOF_CARDRESET : 0;
 	priv->wdev.min_timeout = 1;
 	priv->wdev.max_timeout = rzg2l_wdt_get_cycle_usec(priv->osc_clk_rate, 0xfff) /
 				 USEC_PER_SEC;
