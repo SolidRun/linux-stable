@@ -790,6 +790,7 @@
 			interrupt-names = "wdt", "perrout";
 			resets = <&cpg R9A07G043F_WDT0_PRESETN>;
 			power-domains = <&cpg>;
+			channel,id = <0>;
 			status = "disabled";
 		};
 
