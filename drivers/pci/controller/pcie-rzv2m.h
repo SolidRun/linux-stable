@@ -67,7 +67,9 @@
 
 /* Error Event */
 #define PCIE_EVENT_INTERRUPT_EANBLE_0_REG		0x0200
+#define DL_UPDOWN_ENABLE                                        0x00000200
 #define PCIE_EVENT_INTERRUPT_STATUS_0_REG		0x0204
+#define DL_UPDOWN_STATUS                                        0x00000200
 #define AXI_MASTER_ERR_INTERRUPT_EANBLE_REG		0x0210
 #define AXI_MASTER_ERR_INTERRUPT_STATUS_REG		0x0214
 #define AXI_SLAVE_ERR_INTERRUPT_EANBLE_1_REG	0x0210
@@ -110,10 +112,12 @@
 	#define LTSSM_ST_ALL_SHIFT					(8)
 	#define LTSSM_ST_ALL_MASK					(0x7F << LTSSM_ST_ALL_SHIFT)
     #define LTSSM_ST_L2_IDLE					(0x3A)
+	#define LTSSM_ST_DETECT                                         (0x0C << LTSSM_ST_ALL_SHIFT)
 	#define DL_DOWN_STATUS						0x00000001
 #define PCIE_LOOPBACK_TEST_REG					0x040C
 #define PCIE_CORE_CONTROL_2_REG					0x0410
 #define PCIE_CORE_STATUS_2_REG					0x0414
+	#define STATE_RECEIVER_DETECTED                         (0xff << 8)
 
 /* MODE & Lane Control */
 #define SYS_BASE_ADD							0xA3F03000
@@ -360,12 +364,6 @@
 -------------------------------------------------------*/
 #define RAMA_ADDRESS			 				0x80100000
 #define RAMA_SIZE				 				0x32000
-
-/* ----------------------------------------------------
-  PCIe CMA
--------------------------------------------------------*/
-#define PCIE_CMA_ADDRESS		 				0x1FFC00000
-#define PCIE_CMA_SIZE				 			0x100
 
 struct rzv2m_axi_window_set {
 	u32	base[RZV2M_PCI_MAX_RESOURCES];
