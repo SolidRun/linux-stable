@@ -2,8 +2,11 @@
 /*
  * Device Tree Source for the RZ/G2LC Solidrun SOM
  *
- * Copyright (C) 2023 SolidRun Ltd.
+ * Copyright (C) 2021 Renesas Electronics Corp.
  */
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/pinctrl/rzg2l-pinctrl.h>
 
 /*
  * DIP-Switch S3 setting on SoM
@@ -19,7 +22,10 @@
 #include "rzv2l-sr-pinfunction.dtsi"
 
 / {
-	model = "Solidrun RZ/V2L HummingBoard-Ripple";
+	model = "Solidrun RZ/V2L HummingBoard-Pro";
 	compatible = "renesas,rzv2l-sr-som", "renesas,r9a07g054l2", "renesas,r9a07g054";
 };
 
+&eth1 {
+	status = "okay";
+};
