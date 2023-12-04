@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
 /*
- * Device Tree Source for the RZ/G2LC Solidrun SOM
+ * Device Tree Source for the RZ Solidrun HummingBoards
  *
  * Copyright (C) 2023 SolidRun Ltd.
  */
@@ -41,6 +41,15 @@
 		regulator-name = "camera_ext_1v2";
 		regulator-min-microvolt = <1200000>;
 		regulator-max-microvolt = <1200000>;
+		regulator-always-on;
+	};
+
+	reg_sdhi0_vmmc: regulator-sdhi0 {
+		compatible = "regulator-fixed";
+		regulator-name = "VSD_3V3";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		gpio = <&pinctrl RZG2L_GPIO(4, 1) GPIO_ACTIVE_LOW>;
 		regulator-always-on;
 	};
 
@@ -254,13 +263,6 @@
 };
 
 &pinctrl {
-	gpio-sd0-pwr-en-hog {
-		gpio-hog;
-		gpios = <RZG2L_GPIO(4, 1) GPIO_ACTIVE_LOW>;
-		output-high;
-		line-name = "gpio_sd0_pwr_en";
-	};
-
 	gpio-lte_on {
 		gpio-hog;
 		gpios = <RZG2L_GPIO(17, 0) GPIO_ACTIVE_HIGH>;
@@ -274,37 +276,31 @@
 		output-high;
 		line-name = "gpio_lte_reset";
 	};
-
-	/*
-	 * The below switch logic can be used to select the device between
-	 * eMMC and microSD, after setting GPIO_SD0_DEV_SEL to high in DT.
-	 * HB-Ripple: S3[1] should be at OFF position to enable eMMC
-	 * HB-Ripple: S3[1] should be at position ON to enable uSD card
-	 */
-
-	/*
-	 * TODO: implement device-selection for SolidRun SoM / Carrier
-	 *
-	 * gpio-sd0-dev-sel-hog {
-	 * 	gpio-hog;
-	 * 	gpios = <RZG2L_GPIO(22, 1) GPIO_ACTIVE_HIGH>;
-	 * 	output-high;
-	 * 	line-name = "gpio_sd0_dev_sel";
-	 * };
-	 */
-
 };
 
 &scif1 {
 	pinctrl-0 = <&scif1_pins>;
 	pinctrl-names = "default";
-
 	//uart-has-rtscts;
 	status = "okay";
 };
 
+/* uSD */
 &sdhi0 {
-	status = "okay";
+#if (!SW_SD0_DEV_SEL)
+	pinctrl-0 = <&sdhi0_pins>;
+	pinctrl-1 = <&sdhi0_pins_uhs>;
+	pinctrl-names = "default", "state_uhs";
+
+	vmmc-supply = <&reg_sdhi0_vmmc>;
+	vqmmc-supply = <&reg_sdhi0_vccq>;
+	sd-uhs-sdr50;
+	sd-uhs-sdr104;
+	bus-width = <4>;
+	max-frequency = <50000000>; /* 50MiB */
+	status = "disabled";
+#endif
+	cd-gpios = <&pinctrl RZG2L_GPIO(47, 0) GPIO_ACTIVE_LOW>;
 };
 
 &spi1 {
@@ -312,7 +308,6 @@
 	pinctrl-names = "default";
 	dmas = <&dmac 0x2e99>, <&dmac 0x2e9a>;
 	dma-names = "tx", "rx";
-
 	status = "okay";
 };
 

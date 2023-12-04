@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
 /*
- * Device Tree Source for the RZ/V2L SolidRun HummingBoard Pro
+ * Device Tree Source for the RZ/G2L Solidrun HummingBoard Pro
  *
  * Copyright (C) 2023 SolidRun Ltd.
  */
@@ -14,14 +14,14 @@
 #define SW_SD0_DEV_SEL	1
 
 /dts-v1/;
-#include "rzv2l-sr-som.dtsi"
+#include "rzg2l-sr-som.dtsi"
 #include "rz-hummingboard-common.dtsi"
 
 / {
-	model = "Solidrun RZ/V2L HummingBoard-Pro";
-	compatible = "renesas,rzv2l-sr-som", "renesas,r9a07g054l2", "renesas,r9a07g054";
+	model = "Solidrun RZ/G2L HummingBoard-Pro";
+	compatible = "renesas,rzg2l-sr-som", "renesas,r9a07g044l2", "renesas,r9a07g044";
 };
 
 &eth1 {
-	status = "okay";
+        status = "okay";
 };
