@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
 /*
- * Device Tree Source for the RZ/G2LC Solidrun SOM
+ * Device Tree Source for the RZ/G2L SolidRun Tutus Board
  *
  * Copyright (C) 2021 Renesas Electronics Corp.
  */
@@ -19,11 +19,10 @@
 
 /dts-v1/;
 #include "rzg2l-sr-som.dtsi"
-#include "rzg2l-sr-pinfunction.dtsi"
 
 / {
 	model = "Solidrun RZ/G2L HummingBoard-Tutus";
-	compatible = "renesas,r9a07g044l2", "renesas,r9a07g044";
+	compatible = "renesas,rzg2l-sr-som","renesas,r9a07g044l2", "renesas,r9a07g044";
 
 	x1_clk: x1-clock {
 		compatible = "fixed-clock";
@@ -68,6 +67,27 @@
 		};
 	};
 
+        usb0_vbus_otg: regulator-usb0-vbus-otg {
+                compatible = "regulator-fixed";
+                regulator-name = "USB0_VBUS_OTG";
+                regulator-min-microvolt = <5000000>;
+                regulator-max-microvolt = <5000000>;
+                gpio = <&pinctrl RZG2L_GPIO(4, 0) GPIO_ACTIVE_HIGH>;
+                gpio-open-drain;
+                regulator-always-on;
+                enable-active-high;
+        };
+
+        usb1_vbus: regulator-usb1-vbus {
+                compatible = "regulator-fixed";
+                regulator-name = "USB1_VBUS";
+                regulator-min-microvolt = <5000000>;
+                regulator-max-microvolt = <5000000>;
+                gpio = <&pinctrl RZG2L_GPIO(42, 0) GPIO_ACTIVE_HIGH>;
+                gpio-open-drain;
+                regulator-always-on;
+                enable-active-high;
+        };
 };
 
 &pinctrl {
@@ -112,14 +132,4 @@
 	/delete-property/ pinctrl-0;
 	/delete-property/ pinctrl-names;
 	status = "disabled";
-};
-
-&usb0_vbus_otg {
-	gpio = <&pinctrl RZG2L_GPIO(4, 0) GPIO_OPEN_DRAIN>;
-	gpio-open-drain;
-};
-
-&usb1_vbus {
-	gpio = <&pinctrl RZG2L_GPIO(42, 0) GPIO_OPEN_DRAIN>;
-	gpio-open-drain;
 };

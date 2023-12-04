@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
 /*
- * Device Tree Source for the RZ/G2LC Solidrun SOM
+ * Device Tree Source for the RZ/V2L Solidrun HummingBoard Ripple 
  *
  * Copyright (C) 2023 SolidRun Ltd.
  */
@@ -16,7 +16,6 @@
 /dts-v1/;
 #include "rzv2l-sr-som.dtsi"
 #include "rz-hummingboard-common.dtsi"
-#include "rzv2l-sr-pinfunction.dtsi"
 
 / {
 	model = "Solidrun RZ/V2L HummingBoard-Ripple";

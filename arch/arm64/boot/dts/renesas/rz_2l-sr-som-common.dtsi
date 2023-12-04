@@ -1,0 +1,270 @@
+// SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+/*
+ * Device Tree Source common for the RZ/G2L and RZ/V2L Solidrun SOM
+ *
+ * Copyright (C) 2023 SolidRun Ltd.
+ */
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/net/mxl-8611x.h>
+#include "rz_2l-sr-pinfunction.dtsi"
+
+/ {
+	aliases {
+		serial0 = &scif0;
+		serial1 = &scif1;
+		serial2 = &scif2;
+		serial3 = &scif3;
+		i2c0 = &i2c0;
+		i2c1 = &i2c1;
+		i2c3 = &i2c3;
+		mmc0 = &sdhi0;
+		mmc1 = &sdhi1;
+		ethernet0 = &eth0;
+		ethernet1 = &eth1;
+	};
+
+	chosen {
+		stdout-path = "serial0:115200n8";
+	};
+
+	mmngr {
+		compatible = "renesas,mmngr";
+		memory-region = <&mmp_reserved>;
+	};
+
+	mmngrbuf {
+		compatible = "renesas,mmngrbuf";
+	};
+
+	vspm_if {
+		compatible = "renesas,vspm_if";
+	};
+
+	reg_1p8v: regulator0 {
+		compatible = "regulator-fixed";
+		regulator-name = "fixed-1.8V";
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		regulator-boot-on;
+		regulator-always-on;
+	};
+
+	reg_3p3v: regulator1 {
+		compatible = "regulator-fixed";
+		regulator-name = "fixed-3.3V";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-boot-on;
+		regulator-always-on;
+	};
+
+	reg_1p1v: regulator-vdd-core {
+  		compatible = "regulator-fixed";
+  		regulator-name = "fixed-1.1V";
+  		regulator-min-microvolt = <1100000>;
+  		regulator-max-microvolt = <1100000>;
+  		regulator-boot-on;
+  		regulator-always-on;
+  	};
+
+	reg_sdhi0_vccq: regulator-vccq-sdhi0 {
+		compatible = "regulator-gpio";
+
+		regulator-name = "SDHI0_VCCQ";
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <3300000>;
+		states = <3300000 1>, <1800000 0>;
+		gpios = <&pinctrl RZG2L_GPIO(39, 0) GPIO_ACTIVE_HIGH>;
+		regulator-boot-on;
+		regulator-always-on;
+	};
+
+	sdio_pwrseq: sdio-pwrseq {
+		compatible = "mmc-pwrseq-simple";
+		reset-gpios = <&pinctrl RZG2L_GPIO(23, 1) GPIO_ACTIVE_LOW>;
+	};
+
+	x1_clk: x1-clock {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <24000000>;
+	};
+};
+
+&eth0 {
+	pinctrl-0 = <&eth0_pins>;
+	pinctrl-names = "default";
+	phy-handle = <&phy0>;
+	phy-mode = "rgmii-id";
+	status = "disabled";
+	renesas,no-ether-link;
+
+	phy0: ethernet-phy@0 {
+		reg = <0>;
+		mxl-8611x,led0_cfg = <(
+			MXL8611X_LEDX_CFG_LINK_UP_TX_ACT_ON |
+			MXL8611X_LEDX_CFG_LINK_UP_RX_ACT_ON |
+			MXL8611X_LEDX_CFG_LINK_UP_1GB_ON |
+			MXL8611X_LEDX_CFG_LINK_UP_100MB_ON |
+			MXL8611X_LEDX_CFG_LINK_UP_10MB_ON
+		)>;
+		mxl-8611x,rx-internal-delay-ps = <0>;
+		mxl-8611x,tx-internal-delay-ps-100m = <2250>;
+		mxl-8611x,tx-internal-delay-ps-1g = <300>;
+	};
+};
+
+&eth1 {
+	pinctrl-0 = <&eth1_pins>;
+	pinctrl-names = "default";
+	phy-handle = <&phy1>;
+	phy-mode = "rgmii-id";
+	status = "disabled";
+	renesas,no-ether-link;
+
+	phy1: ethernet-phy@0 {
+		reg = <0>;
+		mxl-8611x,led0_cfg = <(
+			MXL8611X_LEDX_CFG_LINK_UP_TX_ACT_ON |
+			MXL8611X_LEDX_CFG_LINK_UP_RX_ACT_ON |
+			MXL8611X_LEDX_CFG_LINK_UP_1GB_ON |
+			MXL8611X_LEDX_CFG_LINK_UP_100MB_ON |
+			MXL8611X_LEDX_CFG_LINK_UP_10MB_ON
+		)>;
+		mxl-8611x,rx-internal-delay-ps = <0>;
+		mxl-8611x,tx-internal-delay-ps-100m = <2250>;
+		mxl-8611x,tx-internal-delay-ps-1g = <300>;
+	};
+};
+
+&extal_clk {
+	clock-frequency = <24000000>;
+};
+
+&gpu {
+	mali-supply = <&reg_1p1v>;
+};
+
+&i2c1 {
+	pinctrl-0 = <&i2c1_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+
+	/* EEPROM CAT24AA01TDI-GT3 1-kb (128 B x 8)  */
+	eeprom: eeprom@50 {
+		compatible = "atmel,24c02";
+		reg = <0x50>;
+		pagesize = <16>;
+	};
+};
+
+&i2c3 {
+	pinctrl-0 = <&i2c3_pins>;
+	pinctrl-names = "default";
+	clock-frequency = <400000>;
+
+	status = "okay";
+
+	pmic: raa215300@12 {
+		compatible = "renesas,raa215300";
+		reg = <0x12>;
+		rtc-enable;
+		mpio2-32k-enable;
+	};
+};
+
+&mtu3 {
+	status = "okay";
+};
+
+&ostm1 {
+	status = "okay";
+};
+
+&ostm2 {
+	status = "okay";
+};
+
+&phyrst {
+	status = "okay";
+};
+
+&sbc {
+	pinctrl-0 = <&qspi0_pins>;
+	pinctrl-names = "default";
+	status = "disabled";
+};
+
+&scif0 {
+	pinctrl-0 = <&scif0_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&scif2 {
+	pinctrl-0 = <&scif2_pins>;
+	pinctrl-names = "default";
+	uart-has-rtscts;
+	status = "okay";
+
+	bluetooth {
+		compatible = "brcm,bcm4330-bt";
+		shutdown-gpios = <&pinctrl RZG2L_GPIO(23, 0) GPIO_ACTIVE_HIGH>;
+	};
+};
+
+#if SW_SD0_DEV_SEL
+/* eMMC */
+&sdhi0 {
+	pinctrl-0 = <&sdhi0_emmc_pins>;
+	pinctrl-1 = <&sdhi0_emmc_pins>;
+	pinctrl-names = "default", "state_uhs";
+
+	vmmc-supply = <&reg_3p3v>;
+	vqmmc-supply = <&reg_sdhi0_vccq>;
+	bus-width = <8>;
+	mmc-hs200-1_8v;
+	non-removable;
+	fixed-emmc-driver-type = <1>;
+	status = "okay";
+};
+#endif
+
+/* WiFi - CYW43439 */
+&sdhi1 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+	pinctrl-0 = <&sdhi1_pins>;
+	pinctrl-1 = <&sdhi1_pins_uhs>;
+	pinctrl-names = "default", "state_uhs";
+	status = "okay";
+
+	non-removable;
+	vmmc-supply = <&reg_3p3v>;
+	mmc-pwrseq = <&sdio_pwrseq>;
+	bus-width = <4>;
+	max-frequency = <50000000>;
+	fsl,delay-line = <12>;
+	keep-power-in-suspend;
+
+	brcmf: wifi@1 {
+		reg = <1>;
+		compatible = "brcm,bcm4329-fmac";
+	};
+};
+
+&wdt0 {
+	status = "okay";
+	timeout-sec = <60>;
+};
+
+&wdt1 {
+	status = "okay";
+	timeout-sec = <60>;
+};
+
+&wdt2 {
+	status = "okay";
+	timeout-sec = <60>;
+};
