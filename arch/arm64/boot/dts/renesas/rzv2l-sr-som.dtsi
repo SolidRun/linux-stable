@@ -54,5 +54,20 @@
 				reg = <0x0 0xB4000000 0x0 0x03000000>;
 		};
 	};
+
+	udmabuf@0 {
+		compatible = "ikwzm,u-dma-buf";
+		device-name = "udmabuf0";
+		minor-number = <0>;
+		size = <0x4000000>; // 64mib
+		dma-coherent;
+		memory-region = <&image_buf0>;
+	};
+};
+
+&drpai0 {
+	memory-region = <&drp_reserved>;
+	linux-memory-region = < &{/memory@48000000} >;
+	status = "okay"; 
 };
 
