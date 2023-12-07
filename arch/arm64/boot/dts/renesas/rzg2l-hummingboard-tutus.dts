@@ -108,14 +108,6 @@
 	};
 };
 
-&dsi0 {
-	status = "okay";
-};
-
-&du {
-	status = "okay";
-};
-
 &scif1 {
 	pinctrl-0 = <&scif1_pins>;
 	pinctrl-names = "default";
