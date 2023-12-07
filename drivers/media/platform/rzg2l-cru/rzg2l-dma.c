@@ -456,11 +456,13 @@ static int rzg2l_cru_mc_validate_format(struct rzg2l_cru_dev *cru,
 	} else {
 		switch (fmt.format.code) {
 		case MEDIA_BUS_FMT_UYVY8_2X8:
+		case MEDIA_BUS_FMT_YUYV8_2X8:
 		case MEDIA_BUS_FMT_UYVY10_2X10:
 		case MEDIA_BUS_FMT_RGB444_1X12:
 		case MEDIA_BUS_FMT_RGB565_2X8_LE:
 		case MEDIA_BUS_FMT_RGB666_1X18:
 		case MEDIA_BUS_FMT_RGB888_1X24:
+		case MEDIA_BUS_FMT_BGR888_1X24:
 		case MEDIA_BUS_FMT_SRGGB8_1X8:
 		case MEDIA_BUS_FMT_SGRBG8_1X8:
 		case MEDIA_BUS_FMT_SGBRG8_1X8:
@@ -618,6 +620,10 @@ static void rzg2l_cru_csi2_setup(struct rzg2l_cru_dev *cru)
 		icnmc = ICnMC_INF_YUV8_422;
 		cru->input_fmt = YUV;
 		break;
+	case MEDIA_BUS_FMT_YUYV8_2X8:
+		icnmc = ICnMC_INF_YUV8_422;
+		cru->input_fmt = YUV;
+		break;
 	case MEDIA_BUS_FMT_UYVY10_2X10:
 		icnmc = ICnMC_INF_YUV10_422;
 		cru->input_fmt = YUV;
@@ -634,7 +640,7 @@ static void rzg2l_cru_csi2_setup(struct rzg2l_cru_dev *cru)
 		icnmc = ICnMC_INF_RGB666;
 		cru->input_fmt = RGB;
 		break;
-	case MEDIA_BUS_FMT_RGB888_1X24:
+	case MEDIA_BUS_FMT_BGR888_1X24:
 		icnmc = ICnMC_INF_RGB888;
 		cru->input_fmt = RGB;
 		break;
