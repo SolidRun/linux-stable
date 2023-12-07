@@ -1,0 +1,14 @@
+#
+# DRP-AI subsystem configuration
+#
+
+menu "DRP-AI/DRP support"
+
+config DRPAI
+	tristate "DRP-AI support"
+	default y
+	help
+	  DRP-AI is a peripheral hardware that accelerates AI.
+	  If you want DRP-AI support, you should say Y here.
+
+endmenu

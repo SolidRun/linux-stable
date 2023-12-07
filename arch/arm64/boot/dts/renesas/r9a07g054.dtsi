@@ -1595,6 +1595,26 @@
 				};
 			};
 		};
+
+		drpai0: drpai@12C00000 {
+			compatible = "renesas,rzv2l-drpai";
+			reg = <0 0x13000000 0 0x1000000>,
+				  <0 0x12C00000 0 0x400000>;
+			clocks = <&cpg CPG_MOD R9A07G054_STPAI_INITCLK>,
+					 <&cpg CPG_MOD R9A07G054_STPAI_ACLK>,
+					 <&cpg CPG_MOD R9A07G054_STPAI_MCLK>,
+					 <&cpg CPG_MOD R9A07G054_STPAI_DCLKIN>,
+					 <&cpg CPG_MOD R9A07G054_STPAI_ACLK_DRP>;
+			resets = <&cpg R9A07G054_STPAI_ARESETN>;
+			power-domains = <&cpg>;
+			sysctrl = <&sysc>;
+			clock-names = "intclk","aclk_drp","mclk","dclkin","aclk";
+			interrupts = <GIC_SPI 440 IRQ_TYPE_LEVEL_HIGH>,
+						 <GIC_SPI 441 IRQ_TYPE_LEVEL_HIGH>,
+						 <GIC_SPI 442 IRQ_TYPE_LEVEL_HIGH>,
+						 <GIC_SPI 443 IRQ_TYPE_LEVEL_HIGH>;
+			status = "okay";
+		};
 	};
 
 	thermal-zones {
