@@ -33,7 +33,7 @@
                 mmp_reserved: linux,mmp {
                         compatible = "shared-dma-pool";
                         reusable;
-                        size = <0x0 0x8000000>;
+                        reg = <0x00000000 0x68000000 0x0 0x8000000>;
                 };
 
 		/* device specific region for contiguous allocations */
