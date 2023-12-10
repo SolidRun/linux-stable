@@ -60,6 +60,7 @@ properties:
               - renesas,sdhi-r9a07g043 # RZ/G2UL
               - renesas,sdhi-r9a07g044 # RZ/G2{L,LC}
               - renesas,sdhi-r9a07g054 # RZ/V2L
+              - renesas,sdhi-r9a08g045 # RZ/G3S
               - renesas,sdhi-r9a09g011 # RZ/V2M
               - renesas,sdhi-r9a09g055 # RZ/V2MA
           - const: renesas,rcar-gen3-sdhi # R-Car Gen3 or RZ/G2
@@ -115,6 +116,7 @@ allOf:
               - renesas,sdhi-r9a07g043
               - renesas,sdhi-r9a07g044
               - renesas,sdhi-r9a07g054
+              - renesas,sdhi-r9a08g045
     then:
       properties:
         clocks:
