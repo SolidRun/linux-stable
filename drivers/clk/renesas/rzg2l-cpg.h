@@ -101,8 +101,8 @@ struct cpg_core_clk {
 	const struct clk_div_table *dtable_a;
 	const struct clk_div_table *dtable_b;
 	const char * const *parent_names;
-	int flag;
-	int mux_flags;
+	u32 flag;
+	u32 mux_flags;
 	int num_parents;
 };
 
