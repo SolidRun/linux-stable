@@ -671,15 +671,15 @@ static int rzg2l_mod_clock_endisable(struct clk_hw *hw, bool enable)
 		enable ? "ON" : "OFF");
 	spin_lock_irqsave(&priv->rmw_lock, flags);
 
+	value = bitmask << 16;
 	if (enable) {
-		value = (bitmask << 16) | bitmask;
+		value |= bitmask;
 		mstop_val = MSTOP_BIT(clock->mstop) << 16;
 
 		writel(value, priv->base + CLK_ON_R(reg));
 		if (clock->mstop)
 			writel(mstop_val, priv->base + MSTOP_OFF(clock->mstop));
 	} else {
-		value = bitmask << 16;
 		mstop_val = MSTOP_BIT(clock->mstop) << 16
 			  | MSTOP_BIT(clock->mstop);
 
