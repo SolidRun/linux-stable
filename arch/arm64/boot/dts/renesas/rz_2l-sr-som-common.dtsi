@@ -21,7 +21,6 @@
 		mmc0 = &sdhi0;
 		mmc1 = &sdhi1;
 		ethernet0 = &eth0;
-		ethernet1 = &eth1;
 	};
 
 	chosen {
@@ -101,29 +100,6 @@
 	renesas,no-ether-link;
 
 	phy0: ethernet-phy@0 {
-		reg = <0>;
-		mxl-8611x,led0_cfg = <(
-			MXL8611X_LEDX_CFG_LINK_UP_TX_ACT_ON |
-			MXL8611X_LEDX_CFG_LINK_UP_RX_ACT_ON |
-			MXL8611X_LEDX_CFG_LINK_UP_1GB_ON |
-			MXL8611X_LEDX_CFG_LINK_UP_100MB_ON |
-			MXL8611X_LEDX_CFG_LINK_UP_10MB_ON
-		)>;
-		mxl-8611x,rx-internal-delay-ps = <0>;
-		mxl-8611x,tx-internal-delay-ps-100m = <2250>;
-		mxl-8611x,tx-internal-delay-ps-1g = <300>;
-	};
-};
-
-&eth1 {
-	pinctrl-0 = <&eth1_pins>;
-	pinctrl-names = "default";
-	phy-handle = <&phy1>;
-	phy-mode = "rgmii-id";
-	status = "disabled";
-	renesas,no-ether-link;
-
-	phy1: ethernet-phy@0 {
 		reg = <0>;
 		mxl-8611x,led0_cfg = <(
 			MXL8611X_LEDX_CFG_LINK_UP_TX_ACT_ON |
