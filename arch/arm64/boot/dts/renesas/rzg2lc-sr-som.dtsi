@@ -10,22 +10,19 @@
 #include "r9a07g044c2.dtsi"
 
 #include <dt-bindings/gpio/gpio.h>
-#include <dt-bindings/pinctrl/rzg2l-pinctrl.h>
+
+#include "rz_2l-sr-som-common.dtsi"
 
 / {
 	aliases {
-    serial0 = &scif0;
-    serial1 = &scif1;
-    i2c0 = &i2c0;
-    i2c1 = &i2c1;
+		serial0 = &scif0;
+		serial1 = &scif1;
+		i2c0 = &i2c0;
+		i2c1 = &i2c1;
 		i2c2 = &i2c2;
-    mmc0 = &sdhi0;
-    mmc1 = &sdhi1;
-    ethernet0 = &eth0;
-	};
-
-	chosen {
-		bootargs = "ignore_loglevel rw root=/dev/nfs ip=on";
+		mmc0 = &sdhi0;
+		mmc1 = &sdhi1;
+		ethernet0 = &eth0;
 	};
 
 	memory@48000000 {
@@ -39,91 +36,22 @@
 		#size-cells = <2>;
 		ranges;
 
-		global_cma: linux,cma@58000000 {
-			compatible = "shared-dma-pool";
-			linux,cma-default;
-			reusable;
-			reg = <0x0 0x58000000 0x0 0x10000000>;
-		};
-		mmp_reserved: linux,multimedia {
+                multimedia_cma: linux,multimedia {
+                        compatible = "shared-dma-pool";
+                        reusable;
+                        size = <0x0 0x10000000>;
+                };
+
+		mmp_reserved: linux,mmp {
 			compatible = "shared-dma-pool";
 			reusable;
 			reg = <0x00000000 0x68000000 0x0 0x8000000>;
 		};
 	};
-
-	mmngr {
-		compatible = "renesas,mmngr";
-		memory-region = <&mmp_reserved>;
-	};
-
-	mmngrbuf {
-		compatible = "renesas,mmngrbuf";
-	};
-
-	vspm_if {
-		compatible = "renesas,vspm_if";
-	};
-
-	reg_1p8v: regulator0 {
-		compatible = "regulator-fixed";
-		regulator-name = "fixed-1.8V";
-		regulator-min-microvolt = <1800000>;
-		regulator-max-microvolt = <1800000>;
-		regulator-boot-on;
-		regulator-always-on;
-	};
-
-	reg_3p3v: regulator1 {
-		compatible = "regulator-fixed";
-		regulator-name = "fixed-3.3V";
-		regulator-min-microvolt = <3300000>;
-		regulator-max-microvolt = <3300000>;
-		regulator-boot-on;
-		regulator-always-on;
-	};
-
-  chosen {
-    stdout-path = "serial0:115200n8";
-  };
-
-  usb0_vbus_otg: regulator-usb0-vbus-otg {
-    compatible = "regulator-fixed";
-    regulator-name = "USB0_VBUS_OTG";
-    regulator-min-microvolt = <5000000>;
-    regulator-max-microvolt = <5000000>;
-	gpio = <&pinctrl RZG2L_GPIO(4, 0) GPIO_ACTIVE_HIGH>;
-	enable-active-high;
-  };
-
-  usb1_vbus: regulator-usb1-vbus {
-	compatible = "regulator-fixed";
-	regulator-name = "USB1_VBUS";
-	regulator-min-microvolt = <5000000>;
-	regulator-max-microvolt = <5000000>;
-	gpio = <&pinctrl RZG2L_GPIO(5, 0) GPIO_ACTIVE_HIGH>;
-	enable-active-high;
-  };
-
-  vccq_sdhi1: regulator-vccq-sdhi1 {
-	compatible = "regulator-fixed";
-	regulator-name = "WL_REG_ON";
-	regulator-min-microvolt = <3300000>;
-	regulator-max-microvolt = <3300000>;
-	gpio = <&pinctrl RZG2L_GPIO(23, 0) GPIO_ACTIVE_HIGH>;
-	enable-active-high;
-  };
 };
 
 &eth0 {
-	pinctrl-0 = <&eth0_pins>;
-	pinctrl-names = "default";
-	phy-handle = <&phy0>;
-	phy-mode = "rgmii-id";
-	status = "okay";
-	renesas,no-ether-link;
-
-    phy0: ethernet-phy@0 {
+	phy0: ethernet-phy@0 {
 		reg = <0>;
 		max-speed = <100>;  /* configure ethernet max speed for ethernet0 */
 		/*
@@ -132,257 +60,6 @@
 		* interrupts = <RZG2L_GPIO(27, 0) IRQ_TYPE_LEVEL_LOW>;
 		*/
 	};
-};
-
-&extal_clk {
-	clock-frequency = <24000000>;
-};
-
-&ostm1 {
-	status = "okay";
-};
-
-&ostm2 {
-	status = "okay";
-};
-
-&pinctrl {
-	eth0_pins: eth0 {
-		pinmux = <RZG2L_PORT_PINMUX(28, 1, 1)>, /* ET0_LINKSTA */
-			 <RZG2L_PORT_PINMUX(27, 1, 1)>, /* ET0_MDC */
-			 <RZG2L_PORT_PINMUX(28, 0, 1)>, /* ET0_MDIO */
-			 <RZG2L_PORT_PINMUX(20, 0, 1)>, /* ET0_TXC */
-			 <RZG2L_PORT_PINMUX(20, 1, 1)>, /* ET0_TX_CTL */
-			 <RZG2L_PORT_PINMUX(20, 2, 1)>, /* ET0_TXD0 */
-			 <RZG2L_PORT_PINMUX(21, 0, 1)>, /* ET0_TXD1 */
-			 <RZG2L_PORT_PINMUX(21, 1, 1)>, /* ET0_TXD2 */
-			 <RZG2L_PORT_PINMUX(22, 0, 1)>, /* ET0_TXD3 */
-			 <RZG2L_PORT_PINMUX(24, 0, 1)>, /* ET0_RXC */
-			 <RZG2L_PORT_PINMUX(24, 1, 1)>, /* ET0_RX_CTL */
-			 <RZG2L_PORT_PINMUX(25, 0, 1)>, /* ET0_RXD0 */
-			 <RZG2L_PORT_PINMUX(25, 1, 1)>, /* ET0_RXD1 */
-			 <RZG2L_PORT_PINMUX(26, 0, 1)>, /* ET0_RXD2 */
-			 <RZG2L_PORT_PINMUX(26, 1, 1)>; /* ET0_RXD3 */
-	};
-
-	gpio-sd0-pwr-en-hog {
-		gpio-hog;
-		gpios = <RZG2L_GPIO(18, 1) GPIO_ACTIVE_LOW>;
-		output-high;
-		line-name = "gpio_sd0_pwr_en";
-	};
-
-	qspi0_pins: qspi0 {
-		qspi0-data {
-			pins = "QSPI0_IO0", "QSPI0_IO1", "QSPI0_IO2", "QSPI0_IO3";
-			power-source = <1800>;
-		};
-
-		qspi0-ctrl {
-			pins = "QSPI0_SPCLK", "QSPI0_SSL", "QSPI_RESET#";
-			power-source = <1800>;
-		};
-	};
-
-	/*
-	 * The below switch logic can be used to select the device between
-	 * eMMC and microSD, after setting GPIO_SD0_DEV_SEL to high in DT.
-	 * S3[6] should be at OFF position to enable eMMC
-	 * S3[6] should be at position ON to enable uSD card
-	 */
-
-	/*
-	 * TODO: implement device-selection for SolidRun SoM / Carrier
-	 *
-	 */
-
-	/* eMMC/uSD Settings*/
-	sel_emmc: gpio-sd0-dev-sel-hog {
-		gpio-hog;
-		gpios = <RZG2L_GPIO(22, 1) GPIO_ACTIVE_LOW>;
-		#if (!SW_SD0_DEV_SEL)
-			output-low; /*uSD*/
-		#else
-			output-high; /*eMMC*/
-		#endif
-		line-name = "gpio_sd0_dev_sel_emmc";
-		status = "okay";
-	};
-
-	/* P39_0 - LDO_SEL1 (High: 3.3v [SD]; Low: 1.8v [eMMC]) */
-	gpio_sel_emmc: gpio-sd0-vdd-18v-hog {
-		gpio-hog;
-		gpios = <RZG2L_GPIO(39, 0) GPIO_ACTIVE_LOW>;
-		#if (!SW_SD0_DEV_SEL)
-			output-low; /*uSD*/
-		#else
-			output-high; /*eMMC*/
-		#endif
-		line-name = "gpio_sd0_vdd_1.8v";
-		status = "okay";
-	};
-
-	sdhi0_emmc_pins: sd0emmc {
-		sd0_emmc_data {
-			pins = "SD0_DATA0", "SD0_DATA1", "SD0_DATA2", "SD0_DATA3",
-			       "SD0_DATA4", "SD0_DATA5", "SD0_DATA6", "SD0_DATA7";
-			power-source = <1800>;
-		};
-
-		sd0_emmc_ctrl {
-			pins = "SD0_CLK", "SD0_CMD";
-			power-source = <1800>;
-		};
-
-		sd0_emmc_rst {
-			pins = "SD0_RST#";
-			power-source = <1800>;
-		};
-	};
-
-	sdhi0_pins: sd0 {
-		sd0_data {
-			pins = "SD0_DATA0", "SD0_DATA1", "SD0_DATA2", "SD0_DATA3";
-			power-source = <3300>;
-		};
-
-		sd0_ctrl {
-			pins = "SD0_CLK", "SD0_CMD";
-			power-source = <3300>;
-		};
-
-		sd0_mux {
-			pinmux = <RZG2L_PORT_PINMUX(18, 0, 1)>; /* SD0_CD */
-		};
-	};
-
-	sdhi0_pins_uhs: sd0_uhs {
-		sd0_data_uhs {
-			pins = "SD0_DATA0", "SD0_DATA1", "SD0_DATA2", "SD0_DATA3";
-			power-source = <1800>;
-		};
-
-		sd0_ctrl_uhs {
-			pins = "SD0_CLK", "SD0_CMD";
-			power-source = <1800>;
-		};
-
-		sd0_mux_uhs {
-			pinmux = <RZG2L_PORT_PINMUX(18, 0, 1)>; /* SD0_CD */
-		};
-	};
-};
-
-&sbc {
-	pinctrl-0 = <&qspi0_pins>;
-	pinctrl-names = "default";
-	status = "disabled";
-};
-
-#if (!SW_SD0_DEV_SEL)
-/* uSD */
-&sdhi0 {
-	pinctrl-0 = <&sdhi0_pins>;
-	pinctrl-1 = <&sdhi0_pins_uhs>;
-	pinctrl-names = "default", "state_uhs";
-
-	vmmc-supply = <&reg_3p3v>;
-	vqmmc-supply = <&reg_1p8v>;
-	bus-width = <4>;
-//	non-removable;
-  	max-frequency = <50000000>;
-	status = "okay";
-};
-#endif
-
-#if SW_SD0_DEV_SEL
-/* eMMC */
-&sdhi0 {
-	pinctrl-0 = <&sdhi0_emmc_pins>;
-	pinctrl-1 = <&sdhi0_emmc_pins>;
-	pinctrl-names = "default", "state_uhs";
-
-	vmmc-supply = <&reg_3p3v>;
-	vqmmc-supply = <&reg_1p8v>;
-	bus-width = <8>;
-	mmc-hs200-1_8v;
-	non-removable;
-	fixed-emmc-driver-type = <1>;
-	status = "okay";
-};
-#endif
-
-&wdt0 {
-	status = "okay";
-	timeout-sec = <60>;
-};
-
-&wdt1 {
-	status = "okay";
-	timeout-sec = <60>;
-};
-
-&wdt2 {
-	status = "okay";
-	timeout-sec = <60>;
-};
-
-&ehci0 {
-	memory-region = <&global_cma>;
-};
-
-&ohci0 {
-	memory-region = <&global_cma>;
-};
-
-&ehci1 {
-	memory-region = <&global_cma>;
-};
-
-&ohci1 {
-	memory-region = <&global_cma>;
-};
-
-&i2c2 {
-	pinctrl-0 = <&i2c2_pins>;
-	pinctrl-names = "default";
-	clock-frequency = <400000>;
-
-	status = "okay";
-
-	pmic: raa215300@12 {
-		compatible = "renesas,raa215300";
-		reg = <0x12>;
-
-		rtc-enable;
-		mpio2-32k-enable;
-	};
-
-	rtc: isl1208@6f {
-		compatible = "isil,isl1208";
-		reg = <0x6f>;
-
-		//external-oscillator;
-	};
-
-};
-
-&canfd {
-	status = "disabled";
-};
-
-&ehci0 {
-	dr_mode = "otg";
-	status = "okay";
-};
-
-&ehci1 {
-	status = "okay";
-};
-
-&hsusb {
-	dr_mode = "otg";
-	status = "okay";
 };
 
 &i2c0 {
@@ -399,106 +76,105 @@
 };
 
 &i2c1 {
-	pinctrl-0 = <&i2c1_pins>;
+	/delete-node/ eeprom@50;
+};
+
+&i2c2 {
+	pinctrl-0 = <&i2c2_pins>;
 	pinctrl-names = "default";
+	clock-frequency = <400000>;
+
 	status = "okay";
+
+	pmic: raa215300@12 {
+		compatible = "renesas,raa215300";
+		reg = <0x12>;
+		rtc-enable;
+		mpio2-32k-enable;
+	};
+
+	rtc: isl1208@6f {
+		compatible = "isil,isl1208";
+		reg = <0x6f>;
+	};
+
 };
 
-&ohci0 {
-	dr_mode = "otg";
-	status = "okay";
+&i2c3 {
+	/delete-property/ pinctrl-0;
+	/delete-property/ pinctrl-names;
+	status = "disabled";
+	/delete-node/ raa215300@12;
 };
 
-&ohci1 {
-	status = "okay";
+&pinctrl {
+	/delete-node/ eth1;
+	/delete-node/ i2c3;
+
+        gpio-sd0-dev-sel-hog {
+                gpio-hog;
+                gpios = <RZG2L_GPIO(22, 1) GPIO_ACTIVE_LOW>;
+                output-high;
+                line-name = "gpio_sd0_dev_sel";
+        };
+
+        i2c2_pins: i2c2 {
+                pinmux = <RZG2L_PORT_PINMUX(42, 3, 1)>, /* SDA */
+                         <RZG2L_PORT_PINMUX(42, 4, 1)>; /* SCL */
+        };
+
+	scif2_pins: scif2 {
+		pinmux = <RZG2L_PORT_PINMUX(42, 0, 4)>, /* TxD */
+			 <RZG2L_PORT_PINMUX(42, 1, 4)>, /* RxD */
+			 <RZG2L_PORT_PINMUX(5, 1, 2)>, /* CTS# */
+			 <RZG2L_PORT_PINMUX(5, 2, 2)>; /* RTS# */
+	};
 };
 
-&phyrst {
-	status = "okay";
+&reg_sdhi0_vccq {
+	states = <3300000 0>, <1800000 1>;
+	gpios = <&pinctrl RZG2L_GPIO(39, 0) GPIO_ACTIVE_LOW>;
 };
 
-&scif0 {
-	pinctrl-0 = <&scif0_pins>;
+&sbc {
+	pinctrl-0 = <&qspi0_pins>;
 	pinctrl-names = "default";
-	status = "okay";
-};
-
-&scif1 {
-	pinctrl-0 = <&scif1_pins>;
-	pinctrl-names = "default";
-	uart-has-rtscts;
-	status = "okay";
+	status = "disabled";
 };
 
 &scif2 {
-	pinctrl-0 = <&scif2_pins>;
-	pinctrl-names = "default";
-	uart-has-rtscts;
-	status = "okay";
-
 	bluetooth {
 		compatible = "brcm,bcm4330-bt";
-		pinctrl-names = "default";
-		max-speed = <4000000>;
 		shutdown-gpios = <&pinctrl RZG2L_GPIO(23, 1) GPIO_ACTIVE_HIGH>;
 	};
 };
 
+#if SW_SD0_DEV_SEL
+/* eMMC */
+&sdhi0 {
+	pinctrl-0 = <&sdhi0_emmc_pins>;
+	pinctrl-1 = <&sdhi0_emmc_pins>;
+	pinctrl-names = "default", "state_uhs";
+
+	vmmc-supply = <&reg_3p3v>;
+	vqmmc-supply = <&reg_sdhi0_vccq>;
+	bus-width = <8>;
+	mmc-hs200-1_8v;
+	non-removable;
+	fixed-emmc-driver-type = <1>;
+	status = "okay";
+};
+#endif
+
 
 /* WiFi - CYW43439 */
 &sdhi1 {
-	#address-cells = <1>;
-	#size-cells = <0>;
-	pinctrl-0 = <&sdhi1_pins>;
-	pinctrl-1 = <&sdhi1_pins_uhs>;
-	pinctrl-names = "default", "state_uhs";
-	status = "okay";
-	non-removable;
-	vmmc-supply = <&reg_3p3v>;
-	vqmmc-supply = <&vccq_sdhi1>;
-	
-	bus-width = <4>;
-	max-frequency = <50000000>;
-	keep-power-in-suspend;
-
 	brcmf: wifi@1 {
 		reg = <1>;
 		compatible = "brcm,bcm4329-fmac";
 	};
 };
 
-&spi1 {
-	pinctrl-0 = <&spi1_pins>;
-	pinctrl-names = "default";
-	dmas = <&dmac 0x2e99>, <&dmac 0x2e9a>;
-	dma-names = "tx", "rx";
-
-	status = "okay";
-};
-
-&usb2_phy0 {
-	vbus-supply = <&usb0_vbus_otg>;
-	status = "okay";
-	renesas,no-otg-pins;
-};
-
-&usb2_phy1 {
-	vbus-supply = <&usb1_vbus>;
-	status = "okay";
-};
-
-&du {
-	status = "okay";
-};
-
-&dsi0 {
-	status = "okay";
-};
-
-&cru {
-	status = "okay";
-};
-
-&mtu3 {
-	status = "okay";
+&sdio_pwrseq {
+	reset-gpios = <&pinctrl RZG2L_GPIO(23, 0) GPIO_ACTIVE_LOW>;
 };

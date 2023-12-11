@@ -18,108 +18,30 @@
 
 /dts-v1/;
 #include "rzg2lc-sr-som.dtsi"
-#include "rzg2lc-sr-pinfunction.dtsi"
+#include "rz-hummingboard-common.dtsi"
 
 / {
-  model = "Solidrun RZ/G2LC SOM";
-  compatible = "renesas,r9a07g044c2", "renesas,r9a07g044";
+  model = "Solidrun RZ/G2LC HummingBoard-Ripple";
+  compatible = "renesas,rzg2lc-sr-som", "renesas,r9a07g044c2", "renesas,r9a07g044";
+};
 
-  x1_clk: x1-clock {
-		compatible = "fixed-clock";
-		#clock-cells = <0>;
-		clock-frequency = <24000000>;
-	};
-
-	hdmi-out {
-		compatible = "hdmi-connector";
-		type = "d";
-
-		port {
-			hdmi_con_out: endpoint {
-			remote-endpoint = <&adv7535_out>;
-			};
-		};
-	};
+&adv7535 {
+	pd-gpios = <&pinctrl RZG2L_GPIO(40, 2) GPIO_ACTIVE_LOW>; // ADV_PD / DSI_EN J9-34 / P40_2
 };
 
 &pinctrl {
-  gpio-lte_on {
-    gpio-hog;
-    gpios = <RZG2L_GPIO(19, 1) GPIO_ACTIVE_HIGH>;
-    output-high;
-    line-name = "gpio_lte_on";
-  };
-};
+	/delete-node/ gpio-lte_reset;
 
-&i2c0 {
-	adv7535@3d {
-		compatible = "adi,adv7535";
-		reg = <0x3d>;
-		adi,dsi-lanes = <4>;
-		pd-gpios = <&pinctrl RZG2L_GPIO(40, 2) GPIO_ACTIVE_LOW>; // ADV_PD / DSI_EN J9-34 / P40_2
-		/*
-		 * With interrupts enabled and hdmi connected during boot,
-		 * rzg2l_mipi_dsi_enable never happens and display receives no signal.
-		 * Re-enable once issue has been resolved.
-		 *
-		 * interrupt-parent = <&pinctrl>;
-		 * interrupts = <RZG2L_GPIO(42, 2) IRQ_TYPE_EDGE_FALLING>; // DSI_TS_nINT J5001-43 P42_2
-		 */
-		status = "okay";
-
-		ports {
-			#address-cells = <1>;
-			#size-cells = <0>;
-
-			port@0 {
-				reg = <0>;
-				adv7535_in: endpoint@0 {
-					remote-endpoint = <&dsi0_out>;
-				};
-			};
-
-			port@1 {
-				reg = <1>;
-				adv7535_out: endpoint@1 {
-					remote-endpoint = <&hdmi_con_out>;
-				};
-			};
-
-			port@2 {
-				reg = <2>;
-				codec_endpoint: endpoint {
-					/* Audio signals not connected. */
-				};
-			};
-		};
+	gpio-lte_on {
+		gpio-hog;
+		gpios = <RZG2L_GPIO(19, 1) GPIO_ACTIVE_HIGH>;
+		output-high;
+		line-name = "gpio_lte_on";
 	};
-
-	rtc@69 {
-		compatible = "abracon,abx80x";
-		reg = <0x69>;
-		abracon,tc-diode = "schottky";
-		abracon,tc-resistor = <3>;
-	};
-
-  eeprom_carrier: eeprom@57 {
-    compatible = "st,24c02", "atmel,24c02";
-    reg = <0x57>;
-    pagesize = <16>;
-  };
-
 };
 
-&dsi0 {
-	status = "okay";
-};
-
-&dsi0_out {
-	remote-endpoint = <&adv7535_in>;
-	data-lanes = <1 2 3 4>;
-};
-
-&du {
-	status = "okay";
+&reg_sdhi0_vmmc {
+	gpio = <&pinctrl RZG2L_GPIO(18, 1) GPIO_ACTIVE_LOW>;
 };
 
 &scif1 {
@@ -130,24 +52,17 @@
 	status = "okay";
 };
 
-&canfd {
-	/delete-property/ pinctrl-0;
-	/delete-property/ pinctrl-names;
-	status = "disabled";
-};
-
-&spi1 {
-	/delete-property/ pinctrl-0;
-	/delete-property/ pinctrl-names;
-	status = "disabled";
+&sdhi0 {
+	cd-gpios = <&pinctrl RZG2L_GPIO(18, 0) GPIO_ACTIVE_LOW>;
 };
 
 &usb0_vbus_otg {
-	gpio = <&pinctrl RZG2L_GPIO(4, 0) GPIO_OPEN_DRAIN>;
+	gpio = <&pinctrl RZG2L_GPIO(4, 0) GPIO_ACTIVE_HIGH>;
 	gpio-open-drain;
 };
 
 &usb1_vbus {
-	gpio = <&pinctrl RZG2L_GPIO(5, 0) GPIO_OPEN_DRAIN>;
+	gpio = <&pinctrl RZG2L_GPIO(5, 0) GPIO_ACTIVE_HIGH>;
 	gpio-open-drain;
 };
+

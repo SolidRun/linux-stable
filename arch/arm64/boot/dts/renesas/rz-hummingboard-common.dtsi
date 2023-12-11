@@ -158,7 +158,7 @@
 	clock-frequency = <400000>;
 	status = "okay";
 
-	adv7535@3d {
+	adv7535: adv7535@3d {
 		compatible = "adi,adv7535";
 		reg = <0x3d>;
 		adi,dsi-lanes = <4>;
