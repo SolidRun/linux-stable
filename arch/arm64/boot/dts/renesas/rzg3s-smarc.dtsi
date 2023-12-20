@@ -41,33 +41,33 @@
 	};
 
 	sdhi1_pins: sd1 {
-		data {
+		data1 {
 			pins = "SD1_DATA0", "SD1_DATA1", "SD1_DATA2", "SD1_DATA3";
 			power-source = <3300>;
 		};
 
-		ctrl {
+		ctrl1 {
 			pins = "SD1_CLK", "SD1_CMD";
 			power-source = <3300>;
 		};
 
-		cd {
+		cd1 {
 			pinmux = <RZG2L_PORT_PINMUX(0, 2, 1)>; /* SD1_CD */
 		};
 	};
 
 	sdhi1_pins_uhs: sd1-uhs {
-		data {
+		data1_uhs {
 			pins = "SD1_DATA0", "SD1_DATA1", "SD1_DATA2", "SD1_DATA3";
 			power-source = <1800>;
 		};
 
-		ctrl {
+		ctrl1_uhs {
 			pins = "SD1_CLK", "SD1_CMD";
 			power-source = <1800>;
 		};
 
-		cd {
+		cd1_uhs {
 			pinmux = <RZG2L_PORT_PINMUX(0, 2, 1)>; /* SD1_CD */
 		};
 	};

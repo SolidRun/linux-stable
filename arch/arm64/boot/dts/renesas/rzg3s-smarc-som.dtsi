@@ -17,7 +17,7 @@
  *	0 - SCIF1, SSI0, IRQ0, IRQ1 connected to SoC
  *	1 - SD2 is connected to SoC
  */
-#define SW_SD0_DEV_SEL	1
+#define SW_SD0_DEV_SEL	0
 #define SW_SD2_EN	1
 
 / {
@@ -128,34 +128,35 @@
 #endif
 
 &pinctrl {
+
 	sdhi0_pins: sd0 {
-		data {
+		data0 {
 			pins = "SD0_DATA0", "SD0_DATA1", "SD0_DATA2", "SD0_DATA3";
 			power-source = <3300>;
 		};
 
-		ctrl {
+		ctrl0 {
 			pins = "SD0_CLK", "SD0_CMD";
 			power-source = <3300>;
 		};
 
-		cd {
+		cd0 {
 			pinmux = <RZG2L_PORT_PINMUX(0, 0, 1)>; /* SD0_CD */
 		};
 	};
 
 	sdhi0_uhs_pins: sd0-uhs {
-		data {
+		data0_uhs {
 			pins = "SD0_DATA0", "SD0_DATA1", "SD0_DATA2", "SD0_DATA3";
 			power-source = <1800>;
 		};
 
-		ctrl {
+		ctrl0_uhs {
 			pins = "SD0_CLK", "SD0_CMD";
 			power-source = <1800>;
 		};
 
-		cd {
+		cd0_uhs {
 			pinmux = <RZG2L_PORT_PINMUX(0, 0, 1)>; /* SD0_CD */
 		};
 	};
@@ -168,12 +169,12 @@
 	};
 
 	sdhi2_pins: sd2 {
-		data {
+		data2 {
 			pins = "P11_2", "P11_3", "P12_0", "P12_1";
 			input-enable;
 		};
 
-		ctrl {
+		ctrl2 {
 			pins = "P11_1";
 			input-enable;
 		};
