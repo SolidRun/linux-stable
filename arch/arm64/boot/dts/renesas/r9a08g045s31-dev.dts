@@ -1,0 +1,17 @@
+// SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+/*
+ * Device Tree Source for the RZ/G3S Development board (13mm_LPDDR4)
+ *
+ * Copyright (C) 2023 Renesas Electronics Corp.
+ */
+
+/dts-v1/;
+
+#include "r9a08g045.dtsi"
+#include "rzg3s-dev-common.dtsi"
+
+/ {
+	model = "Renesas Development EVK based on r9a08g045s31";
+	compatible = "renesas,r9a08g045",
+		     "renesas,r9a08g045s31", "renesas,r9a08g045s31-dev";
+};
