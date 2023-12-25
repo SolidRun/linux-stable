@@ -33,6 +33,8 @@
 	compatible = "renesas,rzg3s-smarcm", "renesas,r9a08g045s33", "renesas,r9a08g045";
 
 	aliases {
+		i2c0 = &i2c0;
+		i2c1 = &i2c1;
 		mmc0 = &sdhi0;
 #if SW_CONFIG3 == SW_OFF
 		mmc2 = &sdhi2;
@@ -341,4 +343,12 @@
 				 <RZG2L_PORT_PINMUX(14, 1, 7)>; /* SD2_CD# */
 		};
 	};
+};
+
+&i2c0 {
+	status = "okay";
+};
+
+&i2c1 {
+	status = "okay";
 };
