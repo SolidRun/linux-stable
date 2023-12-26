@@ -11,6 +11,8 @@
 / {
 	aliases {
 		serial0 = &scif0;
+		serial1 = &scif1;
+		serial2 = &scif3;
 		mmc1 = &sdhi1;
 	};
 
@@ -38,6 +40,20 @@
 	scif0_pins: scif0 {
 		pinmux = <RZG2L_PORT_PINMUX(6, 3, 1)>, /* RXD */
 			 <RZG2L_PORT_PINMUX(6, 4, 1)>; /* TXD */
+	};
+
+#if SW_CONFIG3 == SW_ON
+	scif1_pins: scif1 {
+		pinmux = <RZG2L_PORT_PINMUX(14, 0, 1)>, /* TXD */
+			 <RZG2L_PORT_PINMUX(14, 1, 1)>, /* RXD */
+			 <RZG2L_PORT_PINMUX(16, 0, 1)>, /* CTS# */
+			 <RZG2L_PORT_PINMUX(16, 1, 1)>; /* RTS# */
+	};
+#endif
+
+	scif3_pins: scif3 {
+		pinmux = <RZG2L_PORT_PINMUX(17, 3, 7)>, /* TXD */
+			 <RZG2L_PORT_PINMUX(17, 2, 7)>; /* RXD */
 	};
 
 	sdhi1_pins: sd1 {
@@ -76,6 +92,22 @@
 &scif0 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&scif0_pins>;
+	status = "okay";
+};
+
+/* Be noticed that SW_OP_MUX[4] must be turned on to use SCIF1(SER0) at PMOD1-3A. */
+#if SW_CONFIG3 == SW_ON
+&scif1 {
+	pinctrl-0 = <&scif1_pins>;
+	pinctrl-names = "default";
+	uart-has-rtscts;
+	status = "okay";
+};
+#endif
+
+&scif3 {
+	pinctrl-0 = <&scif3_pins>;
+	pinctrl-names = "default";
 	status = "okay";
 };
 
