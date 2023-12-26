@@ -17,8 +17,10 @@
 /* RZ/G3S Specific registers. */
 #define G3S_CPG_PL2_DDIV		(0x204)
 #define G3S_CPG_SDHI_DDIV		(0x218)
+#define G3S_CPG_SPI_DDIV		(0x220)
 #define G3S_CPG_PLL_DSEL		(0x240)
 #define G3S_CPG_SDHI_DSEL		(0x244)
+#define G3S_CPG_SPI_SSEL		(0x404)
 #define G3S_CLKDIVSTATUS		(0x280)
 #define G3S_CLKSELSTATUS		(0x284)
 
@@ -27,6 +29,7 @@
 #define G3S_DIV_SDHI0		DDIV_PACK(G3S_CPG_SDHI_DDIV, 0, 1)
 #define G3S_DIV_SDHI1		DDIV_PACK(G3S_CPG_SDHI_DDIV, 4, 1)
 #define G3S_DIV_SDHI2		DDIV_PACK(G3S_CPG_SDHI_DDIV, 8, 1)
+#define G3S_DIV_SPI		DDIV_PACK(G3S_CPG_SPI_DDIV, 0, 3)
 
 /* RZ/G3S Clock status configuration. */
 #define G3S_DIVPL1A_STS		DDIV_PACK(G3S_CLKDIVSTATUS, 0, 1)
@@ -37,6 +40,7 @@
 #define G3S_DIV_SDHI0_STS	DDIV_PACK(G3S_CLKDIVSTATUS, 24, 1)
 #define G3S_DIV_SDHI1_STS	DDIV_PACK(G3S_CLKDIVSTATUS, 25, 1)
 #define G3S_DIV_SDHI2_STS	DDIV_PACK(G3S_CLKDIVSTATUS, 26, 1)
+#define G3S_DIV_SPI_STS		DDIV_PACK(G3S_CLKDIVSTATUS, 29, 1)
 
 #define G3S_SEL_PLL4_STS	SEL_PLL_PACK(G3S_CLKSELSTATUS, 6, 1)
 #define G3S_SEL_SDHI0_STS	SEL_PLL_PACK(G3S_CLKSELSTATUS, 16, 1)
@@ -48,6 +52,7 @@
 #define G3S_SEL_SDHI0		SEL_PLL_PACK(G3S_CPG_SDHI_DSEL, 0, 2)
 #define G3S_SEL_SDHI1		SEL_PLL_PACK(G3S_CPG_SDHI_DSEL, 4, 2)
 #define G3S_SEL_SDHI2		SEL_PLL_PACK(G3S_CPG_SDHI_DSEL, 8, 2)
+#define G3S_SEL_SPI		SEL_PLL_PACK(G3S_CPG_SPI_SSEL, 0, 2)
 
 /* PLL 1/4/6 configuration registers macro. */
 #define G3S_PLL146_CONF(clk1, clk2)	((clk1) << 22 | (clk2) << 12)
@@ -75,6 +80,7 @@ enum clk_ids {
 	CLK_PLL2_DIV6,
 	CLK_PLL3,
 	CLK_PLL3_DIV2,
+	CLK_PLL3_DIV2_2,
 	CLK_PLL3_DIV2_4,
 	CLK_PLL3_DIV2_8,
 	CLK_PLL3_DIV6,
@@ -84,6 +90,7 @@ enum clk_ids {
 	CLK_SEL_SDHI0,
 	CLK_SEL_SDHI1,
 	CLK_SEL_SDHI2,
+	CLK_SEL_SPI,
 	CLK_SEL_PLL4,
 	CLK_P1_DIV2,
 	CLK_P3_DIV2,
@@ -121,6 +128,7 @@ static const struct clk_div_table dtable_1_32[] = {
 
 /* Mux clock names tables. */
 static const char * const sel_sdhi[] = { ".pll2_div2", ".pll6", ".pll2_div6" };
+static const char * const sel_spi_octa[] = { ".pll3_div2_2", ".pll3_div6", ".pll6_div2" };
 static const char * const sel_pll4[] = { ".osc_div1000", ".pll4" };
 
 /* Mux clock indices tables. */
@@ -142,10 +150,12 @@ static const struct cpg_core_clk r9a08g045_core_clks[] __initconst = {
 	DEF_FIXED(".pll2_div2_8", CLK_PLL2_DIV2_8, CLK_PLL2_DIV2, 1, 8),
 	DEF_FIXED(".pll2_div6", CLK_PLL2_DIV6, CLK_PLL2, 1, 6),
 	DEF_FIXED(".pll3_div2", CLK_PLL3_DIV2, CLK_PLL3, 1, 2),
+	DEF_FIXED(".pll3_div2_2", CLK_PLL3_DIV2_2, CLK_PLL3_DIV2, 1, 2),
 	DEF_FIXED(".pll3_div2_4", CLK_PLL3_DIV2_4, CLK_PLL3_DIV2, 1, 4),
 	DEF_FIXED(".pll3_div2_8", CLK_PLL3_DIV2_8, CLK_PLL3_DIV2, 1, 8),
 	DEF_FIXED(".pll3_div6", CLK_PLL3_DIV6, CLK_PLL3, 1, 6),
 	DEF_FIXED(".pll6_div2", CLK_PLL6_DIV2, CLK_PLL6, 1, 2),
+	DEF_MUX(".sel_spi", CLK_SEL_SPI, G3S_SEL_SPI, sel_spi_octa),
 	DEF_SD_MUX(".sel_sd0", CLK_SEL_SDHI0, G3S_SEL_SDHI0, G3S_SEL_SDHI0_STS, sel_sdhi,
 		   mtable_sd, 0, NULL),
 	DEF_SD_MUX(".sel_sd1", CLK_SEL_SDHI1, G3S_SEL_SDHI1, G3S_SEL_SDHI1_STS, sel_sdhi,
@@ -169,6 +179,10 @@ static const struct cpg_core_clk r9a08g045_core_clks[] __initconst = {
 	DEF_G3S_DIV("SD2", R9A08G045_CLK_SD2, CLK_SEL_SDHI2, G3S_DIV_SDHI2, G3S_DIV_SDHI2_STS,
 		    dtable_1_2, 800000000UL, 500000000UL, CLK_SET_RATE_PARENT,
 		    rzg3s_cpg_div_clk_notifier),
+	DEF_G3S_DIV("SPI0", R9A08G045_CLK_SPI0, CLK_SEL_SPI, G3S_DIV_SPI, G3S_DIV_SPI_STS,
+		    dtable_1_32, 400000000UL, 200000000UL, CLK_SET_RATE_PARENT,
+		    rzg3s_cpg_div_clk_notifier),
+	DEF_FIXED("SPI1", R9A08G045_CLK_SPI1, R9A08G045_CLK_SPI0, 1, 2),
 	DEF_FIXED(".sd0_div4", CLK_SD0_DIV4, R9A08G045_CLK_SD0, 1, 4),
 	DEF_FIXED(".sd1_div4", CLK_SD1_DIV4, R9A08G045_CLK_SD1, 1, 4),
 	DEF_FIXED(".sd2_div4", CLK_SD2_DIV4, R9A08G045_CLK_SD2, 1, 4),
@@ -193,6 +207,10 @@ static const struct rzg2l_mod_clk r9a08g045_mod_clks[] = {
 	DEF_MOD("ia55_pclk",		R9A08G045_IA55_PCLK, R9A08G045_CLK_P2, 0x518, 0, 0),
 	DEF_MOD("ia55_clk",		R9A08G045_IA55_CLK, R9A08G045_CLK_P1, 0x518, 1, MSTOP(PERI_CPU_MSTOP, BIT(13))),
 	DEF_MOD("dmac_aclk",		R9A08G045_DMAC_ACLK, R9A08G045_CLK_P3, 0x52c, 0, MSTOP(REG1_MSTOP, BIT(2) | BIT(3))),
+	DEF_MOD("spi_hclk",		R9A08G045_SPI_HCLK, R9A08G045_CLK_P3, 0x550, 0, 0),
+	DEF_MOD("spi_aclk",		R9A08G045_SPI_ACLK, R9A08G045_CLK_P3, 0x550, 1, 0),
+	DEF_MOD("spi_clk",		R9A08G045_SPI_CLK, R9A08G045_CLK_SPI1, 0x550, 2, MSTOP(MCPU1_MSTOP, BIT(1))),
+	DEF_MOD("spi_clkx2",		R9A08G045_SPI_CLKX2, R9A08G045_CLK_SPI0, 0x550, 3, 0),
 	DEF_MOD("sdhi0_imclk",		R9A08G045_SDHI0_IMCLK, CLK_SD0_DIV4, 0x554, 0, MSTOP(PERI_COM_MSTOP, BIT(0))),
 	DEF_MOD("sdhi0_imclk2",		R9A08G045_SDHI0_IMCLK2, CLK_SD0_DIV4, 0x554, 1, 0),
 	DEF_MOD("sdhi0_clk_hs",		R9A08G045_SDHI0_CLK_HS, R9A08G045_CLK_SD0, 0x554, 2, 0),
@@ -219,6 +237,8 @@ static const struct rzg2l_reset r9a08g045_resets[] = {
 	DEF_RST(R9A08G045_GIC600_GICRESET_N, 0x814, 0),
 	DEF_RST(R9A08G045_GIC600_DBG_GICRESET_N, 0x814, 1),
 	DEF_RST(R9A08G045_IA55_RESETN, 0x818, 0),
+	DEF_RST(R9A08G045_SPI_HRESETN, 0x850, 0),
+	DEF_RST(R9A08G045_SPI_ARESETN, 0x850, 1),
 	DEF_RST(R9A08G045_SDHI0_IXRST, 0x854, 0),
 	DEF_RST(R9A08G045_SDHI1_IXRST, 0x854, 1),
 	DEF_RST(R9A08G045_SDHI2_IXRST, 0x854, 2),
