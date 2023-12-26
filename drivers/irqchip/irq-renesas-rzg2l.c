@@ -25,8 +25,8 @@
 
 /* Register Offset and Bit mask */
 #define NSCR		0x00	/* NMI Status Control Register */
-#define NCSR_NSMON	BIT(16)
-#define NCSR_NSTAT	BIT(0)
+#define NSCR_NSMON	BIT(16)
+#define NSCR_NSTAT	BIT(0)
 #define NITSR		0x04	/* NMI Interrupt Type Selection Register */
 #define NITSR_NTSEL	BIT(0)
 #define ISCR		0x10	/* IRQ Status Control Register */
@@ -127,7 +127,7 @@ static irqreturn_t irqc_irq_handler(int irq, void *dev_id)
 
 	if (irqc->type == IRQC_NMI) {
 		reg = NSCR;
-		bit = NCSR_NSTAT;
+		bit = NSCR_NSTAT;
 	} else if (irqc->type == IRQC_IRQ) {
 		reg = ISCR;
 		bit = BIT(irqc->hw_irq);
@@ -300,6 +300,7 @@ static const struct of_device_id irqc_dt_ids[] = {
 	{ .compatible = "renesas,rzg2l-irqc", },
 	{ .compatible = "renesas,rzv2l-irqc", },
 	{ .compatible = "renesas,rzg2ul-irqc", },
+	{ .compatible = "renesas,rzg3s-irqc", },
 	{},
 };
 MODULE_DEVICE_TABLE(of, irqc_dt_ids);
