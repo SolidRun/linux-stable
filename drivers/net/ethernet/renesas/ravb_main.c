@@ -2644,7 +2644,10 @@ static int ravb_probe(struct platform_device *pdev)
 	ndev->features = info->net_features;
 	ndev->hw_features = info->net_hw_features;
 
-	reset_control_deassert(rstc);
+	error = reset_control_deassert(rstc);
+	if (error)
+		goto out_free_netdev;
+
 	pm_runtime_enable(&pdev->dev);
 	pm_runtime_get_sync(&pdev->dev);
 
@@ -2871,11 +2874,11 @@ out_disable_gptp_clk:
 out_disable_refclk:
 	clk_disable_unprepare(priv->refclk);
 out_release:
-	free_netdev(ndev);
-
 	pm_runtime_put(&pdev->dev);
 	pm_runtime_disable(&pdev->dev);
 	reset_control_assert(rstc);
+out_free_netdev:
+	free_netdev(ndev);
 	return error;
 }
 
@@ -2988,8 +2991,11 @@ static int __maybe_unused ravb_resume(struct device *dev)
 	const struct ravb_hw_info *info = priv->info;
 	int ret = 0;
 
-	if (priv->rstc)
-		reset_control_deassert(priv->rstc);
+	if (priv->rstc) {
+		ret = reset_control_deassert(priv->rstc);
+		if (ret)
+			return ret;
+	}
 
 	clk_prepare_enable(priv->refclk);
 
