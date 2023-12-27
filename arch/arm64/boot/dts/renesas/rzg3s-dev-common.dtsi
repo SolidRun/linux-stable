@@ -11,6 +11,8 @@
 / {
 	aliases {
 		serial0 = &scif0;
+		i2c0 = &i2c0;
+		i2c1 = &i2c1;
 		mmc0 = &sdhi0;
 		mmc1 = &sdhi1;
 	};
@@ -298,4 +300,12 @@
 		};
 	};
 
+};
+
+&i2c0 {
+	status = "okay";
+};
+
+&i2c1 {
+	status = "okay";
 };
