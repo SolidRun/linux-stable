@@ -263,12 +263,11 @@
 	};
 
 	adv_bridge: adv7535@3d {
-		compatible = "adi,adv7533";
+		compatible = "adi,adv7535";
 		reg = <0x3d>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_mipi_dsi_en>;
-		adi,addr-cec = <0x3c>;
-		adi,addr-edid = <0x3b>;
+		adi,addr-cec = <0x3b>;
 		adi,dsi-lanes = <4>;
 		gpio = <&gpio1 8 GPIO_ACTIVE_HIGH>;
 		status = "okay";
