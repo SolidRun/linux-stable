@@ -349,7 +349,7 @@ struct rzg2l_dedicated_configs {
 struct rzg2l_pinctrl_data {
 	const char * const *port_pins;
 	const u32 *port_pin_configs;
-	struct rzg2l_dedicated_configs *dedicated_pins;
+	const struct rzg2l_dedicated_configs *dedicated_pins;
 	const struct rzg2l_hwcfg *hwcfg;
 	unsigned int n_port_pins;
 	unsigned int n_dedicated_pins;
@@ -2033,7 +2033,7 @@ static const u32 r9a07g043f_gpio_configs[] = {
 };
 
 
-static struct {
+static const struct {
 	struct rzg2l_dedicated_configs common[35];
 	struct rzg2l_dedicated_configs rzg2l_pins[7];
 } rzg2l_dedicated_pins = {
