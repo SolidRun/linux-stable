@@ -491,6 +491,15 @@
 			status = "disabled";
 		};
 
+		rtc: rtc@1004ec00 {
+			compatible = "renesas,rtca-3";
+			reg = <0 0x1004ec00 0 0x400>;
+			interrupts = <GIC_SPI 316 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 317 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 315 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "period", "carry", "alarm";
+			status = "disabled";
+		};
 	};
 
 	timer {
