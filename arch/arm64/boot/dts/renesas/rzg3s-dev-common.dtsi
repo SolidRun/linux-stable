@@ -155,6 +155,10 @@
 	timeout-sec = <60>;
 };
 
+&rtc {
+	status = "okay";
+};
+
 &pinctrl {
 	eth0-phy-irq-hog {
 		gpio-hog;
