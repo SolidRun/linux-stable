@@ -148,6 +148,10 @@
 	};
 };
 
+&wdt0 {
+	status = "okay";
+	timeout-sec = <60>;
+};
 
 &pinctrl {
 	eth0-phy-irq-hog {
