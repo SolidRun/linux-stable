@@ -155,6 +155,10 @@
 	timeout-sec = <60>;
 };
 
+&vbattb {
+	status = "okay";
+};
+
 &rtc {
 	status = "okay";
 };
