@@ -512,6 +512,93 @@
 			interrupt-names = "period", "carry", "alarm";
 			status = "disabled";
 		};
+
+		ostm0: timer@12801000 {
+			compatible = "renesas,r9a08g045-ostm",
+				     "renesas,ostm";
+			reg = <0x0 0x12801000 0x0 0x400>;
+			interrupts = <GIC_SPI 44 IRQ_TYPE_EDGE_RISING>;
+			clocks = <&cpg CPG_MOD R9A08G045_OSTM0_PCLK>;
+			resets = <&cpg R9A08G045_OSTM0_PRESETZ>;
+			power-domains = <&cpg>;
+			status = "disabled";
+		};
+
+		ostm1: timer@12801400 {
+			compatible = "renesas,r9a08g045-ostm",
+				     "renesas,ostm";
+			reg = <0x0 0x12801400 0x0 0x400>;
+			interrupts = <GIC_SPI 45 IRQ_TYPE_EDGE_RISING>;
+			clocks = <&cpg CPG_MOD R9A08G045_OSTM1_PCLK>;
+			resets = <&cpg R9A08G045_OSTM1_PRESETZ>;
+			power-domains = <&cpg>;
+			status = "disabled";
+		};
+
+		ostm2: timer@12801800 {
+			compatible = "renesas,r9a08g045-ostm",
+				     "renesas,ostm";
+			reg = <0x0 0x12801800 0x0 0x400>;
+			interrupts = <GIC_SPI 46 IRQ_TYPE_EDGE_RISING>;
+			clocks = <&cpg CPG_MOD R9A08G045_OSTM2_PCLK>;
+			resets = <&cpg R9A08G045_OSTM2_PRESETZ>;
+			power-domains = <&cpg>;
+			status = "disabled";
+		};
+
+		ostm3: timer@12801c00 {
+			compatible = "renesas,r9a08g045-ostm",
+				     "renesas,ostm";
+			reg = <0x0 0x12801c00 0x0 0x400>;
+			interrupts = <GIC_SPI 47 IRQ_TYPE_EDGE_RISING>;
+			clocks = <&cpg CPG_MOD R9A08G045_OSTM3_PCLK>;
+			resets = <&cpg R9A08G045_OSTM3_PRESETZ>;
+			power-domains = <&cpg>;
+			status = "disabled";
+		};
+
+		ostm4: timer@12802000 {
+			compatible = "renesas,r9a08g045-ostm",
+				     "renesas,ostm";
+			reg = <0x0 0x12802000 0x0 0x400>;
+			interrupts = <GIC_SPI 48 IRQ_TYPE_EDGE_RISING>;
+			clocks = <&cpg CPG_MOD R9A08G045_OSTM4_PCLK>;
+			resets = <&cpg R9A08G045_OSTM4_PRESETZ>;
+			power-domains = <&cpg>;
+			status = "disabled";
+		};
+
+		ostm5: timer@12802400 {
+			compatible = "renesas,r9a08g045-ostm",
+				     "renesas,ostm";
+			reg = <0x0 0x12802400 0x0 0x400>;
+			interrupts = <GIC_SPI 49 IRQ_TYPE_EDGE_RISING>;
+			clocks = <&cpg CPG_MOD R9A08G045_OSTM5_PCLK>;
+			resets = <&cpg R9A08G045_OSTM5_PRESETZ>;
+			power-domains = <&cpg>;
+		};
+
+		ostm6: timer@12802800 {
+			compatible = "renesas,r9a08g045-ostm",
+				     "renesas,ostm";
+			reg = <0x0 0x12802800 0x0 0x400>;
+			interrupts = <GIC_SPI 50 IRQ_TYPE_EDGE_RISING>;
+			clocks = <&cpg CPG_MOD R9A08G045_OSTM6_PCLK>;
+			resets = <&cpg R9A08G045_OSTM6_PRESETZ>;
+			power-domains = <&cpg>;
+			status = "disabled";
+		};
+
+		ostm7: timer@12802c00 {
+			compatible = "renesas,r9a08g045-ostm",
+				     "renesas,ostm";
+			reg = <0x0 0x12802c00 0x0 0x400>;
+			interrupts = <GIC_SPI 51 IRQ_TYPE_EDGE_RISING>;
+			clocks = <&cpg CPG_MOD R9A08G045_OSTM7_PCLK>;
+			resets = <&cpg R9A08G045_OSTM7_PRESETZ>;
+			power-domains = <&cpg>;
+			status = "disabled";
+		};
 	};
 
 	timer {
