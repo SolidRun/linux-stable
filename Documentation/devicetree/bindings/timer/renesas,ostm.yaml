@@ -27,6 +27,7 @@ properties:
           - renesas,r9a07g043f-ostm # RZ/Five
           - renesas,r9a07g044-ostm # RZ/G2{L,LC}
           - renesas,r9a07g054-ostm # RZ/V2L
+          - renesas,r9a08g045-ostm # RZ/G3S
       - const: renesas,ostm        # Generic
 
   reg:
