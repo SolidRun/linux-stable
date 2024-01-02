@@ -98,7 +98,7 @@
 
 /* RSCFDnCFDGAFLECTR / RSCFDnGAFLECTR */
 #define RCANFD_GAFLECTR_AFLDAE		BIT(8)
-#define RCANFD_GAFLECTR_AFLPN(gpriv, x)	((x) & reg_rzg3s(gpriv, 0x3f, 0x1f))
+#define RCANFD_GAFLECTR_AFLPN(gpriv, x)	((x) & reg_rzg3s(gpriv, 0x7f, 0x1f))
 
 /* RSCFDnCFDGAFLIDj / RSCFDnGAFLIDj */
 #define RCANFD_GAFLID_GAFLLB		BIT(29)
@@ -116,7 +116,7 @@
 
 /* RSCFDnCFDCmNCFG - CAN FD only */
 #define RCANFD_NCFG_NTSEG2(gpriv, x) \
-		(((x) & reg_rzg3s(gpriv, 0x3f, 0x1f)) << reg_rzg3s(gpriv, 25, 24))
+		(((x) & reg_rzg3s(gpriv, 0x7f, 0x1f)) << reg_rzg3s(gpriv, 25, 24))
 
 #define RCANFD_NCFG_NTSEG1(gpriv, x) \
 		(((x) & reg_rzg3s(gpriv, 0xff, 0x7f)) << reg_rzg3s(gpriv, 17, 16))
