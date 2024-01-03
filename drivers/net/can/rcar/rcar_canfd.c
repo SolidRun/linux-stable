@@ -1413,11 +1413,13 @@ static int rcar_canfd_open(struct net_device *ndev)
 	struct rcar_canfd_global *gpriv = priv->gpriv;
 	int err;
 
-	/* Peripheral clock is already enabled in probe */
-	err = clk_prepare_enable(gpriv->can_clk);
-	if (err) {
-		netdev_err(ndev, "failed to enable CAN clock, error %d\n", err);
-		goto out_clock;
+	if (is_rzg3s(gpriv)) {
+		/* Peripheral clock is already enabled in probe */
+		err = clk_prepare_enable(gpriv->can_clk);
+		if (err) {
+			netdev_err(ndev, "failed to enable CAN clock, error %d\n", err);
+			goto out_clock;
+		}
 	}
 
 	err = open_candev(ndev);
@@ -1437,7 +1439,8 @@ out_close:
 	napi_disable(&priv->napi);
 	close_candev(ndev);
 out_can_clock:
-	clk_disable_unprepare(gpriv->can_clk);
+	if (is_rzg3s(gpriv))
+		clk_disable_unprepare(gpriv->can_clk);
 out_clock:
 	return err;
 }
@@ -1479,7 +1482,8 @@ static int rcar_canfd_close(struct net_device *ndev)
 	netif_stop_queue(ndev);
 	rcar_canfd_stop(ndev);
 	napi_disable(&priv->napi);
-	clk_disable_unprepare(gpriv->can_clk);
+	if (is_rzg3s(gpriv))
+		clk_disable_unprepare(gpriv->can_clk);
 	close_candev(ndev);
 	can_led_event(ndev, CAN_LED_EVENT_STOP);
 	return 0;
@@ -2108,7 +2112,8 @@ static int rcar_canfd_remove(struct platform_device *pdev)
 
 	/* Enter global sleep mode */
 	rcar_canfd_set_bit(gpriv->base, RCANFD_GCTR, RCANFD_GCTR_GSLPR);
-	clk_disable_unprepare(gpriv->clkp);
+	if (is_rzg3s(gpriv))
+		clk_disable_unprepare(gpriv->clkp);
 	reset_control_assert(gpriv->rstc1);
 	reset_control_assert(gpriv->rstc2);
 
@@ -2128,13 +2133,17 @@ static int __maybe_unused rcar_canfd_suspend(struct device *dev)
 			continue;
 
 		netif_stop_queue(ndev);
+		rcar_canfd_stop(ndev);
 		netif_device_detach(ndev);
+		if (is_rzg3s(gpriv))
+			clk_disable_unprepare(gpriv->can_clk);
 	}
 
 	reset_control_assert(gpriv->rstc1);
 	reset_control_assert(gpriv->rstc2);
 	clk_disable_unprepare(gpriv->clkp);
-	clk_disable_unprepare(gpriv->can_clk);
+	if (is_rzg3s(gpriv))
+		clk_disable_unprepare(gpriv->can_clk);
 
 	return 0;
 }
@@ -2162,13 +2171,14 @@ static int __maybe_unused rcar_canfd_resume(struct device *dev)
 			"failed to enable peripheral clock, error %d\n", err);
 		goto fail_reset;
 	}
-
-	/* Enable RAM clock */
-	err = clk_prepare_enable(gpriv->can_clk);
-	if (err) {
-		dev_err(dev,
-			"failed to enable ram clock, error %d\n", err);
-		goto fail_reset;
+	if (is_rzg3s(gpriv)) {
+		/* Enable RAM clock */
+		err = clk_prepare_enable(gpriv->can_clk);
+		if (err) {
+			dev_err(dev,
+				"failed to enable ram clock, error %d\n", err);
+			goto fail_reset;
+		}
 	}
 
 	err = rcar_canfd_reset_controller(gpriv);
@@ -2190,7 +2200,14 @@ static int __maybe_unused rcar_canfd_resume(struct device *dev)
 		if (!netif_running(ndev))
 			continue;
 
+		if (is_rzg3s(gpriv))
+			clk_prepare_enable(gpriv->can_clk);
 		netif_device_attach(ndev);
+		err = rcar_canfd_start(ndev);
+		if (err) {
+			netif_device_detach(ndev);
+			return err;
+		}
 		netif_start_queue(ndev);
 	}
 
