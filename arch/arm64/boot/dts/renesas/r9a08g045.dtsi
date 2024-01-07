@@ -190,6 +190,48 @@
 			status = "disabled";
 		};
 
+		i3c: i3c-master@1005b000 {
+			compatible = "renesas,i3c-master";
+			reg = <0 0x1005b000 0 0x1000>;
+			clocks = <&cpg CPG_MOD R9A08G045_I3C_PCLK>,
+				 <&cpg CPG_MOD R9A08G045_I3C_TCLK>;
+			clock-names = "pclk", "tclk";
+			interrupts = <GIC_SPI 289 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 290 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 291 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 292 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 293 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 294 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 295 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 296 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 297 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 298 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 299 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 300 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 301 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 302 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 303 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 304 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 305 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 306 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 307 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 308 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 309 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 310 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 311 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "ierr", "terr", "hterr", "habort", "abort",
+					  "resp", "cmd", "ibi", "rx", "tx", "rcv",
+					  "hresp", "hcmd", "hrx", "htx", "st", "sp",
+					  "exit", "tend", "nack", "al", "tmo", "wu";
+			resets = <&cpg R9A08G045_I3C_TRESETN>,
+				 <&cpg R9A08G045_I3C_PRESETN>;
+			reset-names = "tresetn", "presetn";
+			#address-cells = <3>;
+			#size-cells = <0>;
+			i2c-scl-hz = <100000>;
+			status = "disabled";
+		};
+
 		sci0: serial@1004d000 {
 			compatible = "renesas,r9a08g045-sci", "renesas,sci";
 			reg = <0 0x1004d000 0 0x400>;
