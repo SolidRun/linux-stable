@@ -397,6 +397,20 @@ static struct renesas_usbhs_driver_pipe_config usbhsc_new_pipe[] = {
 	RENESAS_USBHS_PIPE(USB_ENDPOINT_XFER_BULK, 512, 0xd8, true),
 };
 
+/* commonly used on RZ/G2L Series, RZ/V2L and RZ/Five SoCs */
+static struct renesas_usbhs_driver_pipe_config usbhsc_rzg2l_pipe[] = {
+	RENESAS_USBHS_PIPE(USB_ENDPOINT_XFER_CONTROL, 64, 0x00, false),
+	RENESAS_USBHS_PIPE(USB_ENDPOINT_XFER_ISOC, 1024, 0x08, true),
+	RENESAS_USBHS_PIPE(USB_ENDPOINT_XFER_ISOC, 1024, 0x28, true),
+	RENESAS_USBHS_PIPE(USB_ENDPOINT_XFER_BULK, 512, 0x48, true),
+	RENESAS_USBHS_PIPE(USB_ENDPOINT_XFER_BULK, 512, 0x58, true),
+	RENESAS_USBHS_PIPE(USB_ENDPOINT_XFER_BULK, 512, 0x68, true),
+	RENESAS_USBHS_PIPE(USB_ENDPOINT_XFER_INT, 64, 0x04, false),
+	RENESAS_USBHS_PIPE(USB_ENDPOINT_XFER_INT, 64, 0x05, false),
+	RENESAS_USBHS_PIPE(USB_ENDPOINT_XFER_INT, 64, 0x06, false),
+	RENESAS_USBHS_PIPE(USB_ENDPOINT_XFER_INT, 64, 0x07, false),
+};
+
 /*
  *		power control
  */
@@ -581,6 +595,10 @@ static const struct of_device_id usbhs_of_match[] = {
 		.compatible = "renesas,rza2-usbhs",
 		.data = &usbhs_rza2_plat_info,
 	},
+	{
+		.compatible = "renesas,rzg2l-usbhs",
+		.data = &usbhs_rza2_plat_info,
+	},
 	{ },
 };
 MODULE_DEVICE_TABLE(of, usbhs_of_match);
@@ -646,12 +664,17 @@ static int usbhs_probe(struct platform_device *pdev)
 	priv->pfunc = &info->platform_callback;
 
 	/* set default param if platform doesn't have */
-	if (usbhs_get_dparam(priv, has_new_pipe_configs)) {
-		priv->dparam.pipe_configs = usbhsc_new_pipe;
-		priv->dparam.pipe_size = ARRAY_SIZE(usbhsc_new_pipe);
-	} else if (!priv->dparam.pipe_configs) {
-		priv->dparam.pipe_configs = usbhsc_default_pipe;
-		priv->dparam.pipe_size = ARRAY_SIZE(usbhsc_default_pipe);
+	if (of_device_is_compatible(pdev->dev.of_node, "renesas,rzg2l-usbhs")) {
+		priv->dparam.pipe_configs = usbhsc_rzg2l_pipe;
+		priv->dparam.pipe_size = ARRAY_SIZE(usbhsc_rzg2l_pipe);
+	} else {
+		if (usbhs_get_dparam(priv, has_new_pipe_configs)) {
+			priv->dparam.pipe_configs = usbhsc_new_pipe;
+			priv->dparam.pipe_size = ARRAY_SIZE(usbhsc_new_pipe);
+		} else if (!priv->dparam.pipe_configs) {
+			priv->dparam.pipe_configs = usbhsc_default_pipe;
+			priv->dparam.pipe_size = ARRAY_SIZE(usbhsc_default_pipe);
+		}
 	}
 	if (!priv->dparam.pio_dma_border)
 		priv->dparam.pio_dma_border = 64; /* 64byte */
