@@ -3,6 +3,7 @@
 Required Properties:
 - compatible: should be "renesas,pwm-rcar" and one of the following.
  - "renesas,gpt-r9a07g044": for RZ/G2L, RZ/G2LC, RZ/V2L.
+ - "renesas,gpt-r9a08g045": for RZ/G3S.
 
 - reg: base address and length of the registers block for the PWM.
 - #pwm-cells: should be 2. See pwm.txt in this directory for a description of
