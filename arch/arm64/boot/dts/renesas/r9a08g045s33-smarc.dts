@@ -28,6 +28,14 @@
 #define SW_CONFIG3	SW_ON
 
 /*
+ * Select between SCIF1 and SPDIF due to pins multiplex:
+ * @SPDIF_SEL:
+ *	SW_OFF - SCIF1 pins are selected (default)
+ *	SW_ON  - SPDIF pins are selected
+ */
+#define SPDIF_SEL      SW_OFF
+
+/*
  * SW_GPIO_CAN_PMOD[x]: switch between CAN and PMOD pins
  * @SW_GPIO_CAN_PMOD1:
  *	SW_OFF - GPIO8 is connected to GPIO8_PMOD
