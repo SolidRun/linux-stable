@@ -858,6 +858,24 @@
 			status = "disabled";
 		};
 
+		spdif: spdif@100a9000 {
+			compatible = "renesas,r9a08g045-spdif",
+				     "renesas,rz-spdif";
+			reg = <0 0x100a9000 0 0x400>;
+			interrupts = <GIC_SPI 387 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "intreq_spdif_n";
+			clocks = <&cpg CPG_MOD R9A08G045_SPDIF_PCLK>,
+				 <&audio_clk1>, <&audio_clk2>;
+			clock-names = "spdif-tx-rx", "audio_clk1", "audio_clk2";
+			resets = <&cpg R9A08G045_SPDIF_RST>;
+			dmas = <&dmac 0x1e79>, <&dmac 0x1e7a>;
+			dma-names = "tx", "rx";
+			power-domains = <&cpg>;
+			#sound-dai-cells = <0>;
+			rz,spdif-mode = <1>;
+			status = "disabled";
+		};
+
 		phyrst: usbphy-ctrl@11e00000 {
 			compatible = "renesas,r9a08g045-usbphy-ctrl",
 				     "renesas,rzg2l-usbphy-ctrl";
