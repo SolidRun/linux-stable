@@ -1247,6 +1247,23 @@
 			power-domains = <&cpg>;
 			status = "disabled";
 		};
+
+		xspi: spi@10060000 {
+			compatible = "renesas,g3s-xspi-if";
+			reg = <0 0x10060000 0 0x10000>,
+			      <0 0x20000000 0 0x10000000>;
+			reg-names = "regs", "dirmap";
+			clocks = <&cpg CPG_MOD R9A08G045_SPI_CLK>,
+				 <&cpg CPG_MOD R9A08G045_SPI_HCLK>,
+				 <&cpg CPG_MOD R9A08G045_SPI_ACLK>,
+				 <&cpg CPG_MOD R9A08G045_SPI_CLKX2>;
+			resets = <&cpg R9A08G045_SPI_HRESETN>,
+				 <&cpg R9A08G045_SPI_ARESETN>;
+			power-domains = <&cpg>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "disabled";
+		};
 	};
 
 	timer {
