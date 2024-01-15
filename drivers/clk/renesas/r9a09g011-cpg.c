@@ -216,6 +216,7 @@ static const struct rzg2l_mod_clk r9a09g011_mod_clks[] __initconst = {
 	DEF_MOD("cperi_grph",   R9A09G011_CPERI_GRPH_PCLK, CLK_SEL_E,  0x438, 1, 0),
 	DEF_MOD("urt_pclk",	R9A09G011_URT_PCLK,	 CLK_SEL_E,    0x438, 4, 0),
 	DEF_MOD("urt0_clk",	R9A09G011_URT0_CLK,	 CLK_SEL_W0,   0x438, 5, 0),
+	DEF_MOD("urt1_clk",     R9A09G011_URT1_CLK,      CLK_SEL_W0,   0x438, 6, 0),
 	DEF_MOD("csi0_clk",     R9A09G011_CSI0_CLK,      CLK_SEL_CSI0, 0x438, 8, 0),
 	DEF_MOD("csi4_clk",     R9A09G011_CSI4_CLK,      CLK_SEL_CSI4, 0x438, 12, 0),
 
