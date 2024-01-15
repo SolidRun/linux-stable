@@ -14,8 +14,19 @@
 / {
 	aliases {
 		serial1 = &scif1;
+#if (!SW_I2S0_I2S1)
 		i2c2 = &i2c2;
+#endif
 	};
+
+#if (SW_I2S0_I2S1)
+	/delete-node/ sound;
+
+	sound_card {
+		compatible = "audio-graph-card";
+		dais = <&i2s2_port0>;
+	};
+#endif
 };
 
 #if (SW_SCIF_CAN || SW_RSPI_CAN)
@@ -31,6 +42,7 @@
 };
 #endif
 
+#if (!SW_I2S0_I2S1)
 &cpu_dai {
 	sound-dai = <&ssi0>;
 };
@@ -48,6 +60,14 @@
 		reg = <0x1a>;
 	};
 };
+
+&adv7535 {
+	/delete-property/ #sound-dai-cells;
+	ports {
+		/delete-node/ port@2;
+	};
+};
+#endif
 
 #if PMOD_MTU3
 &mtu3 {
@@ -84,6 +104,16 @@
 	pinctrl-names = "default";
 
 	status = "okay";
+#if (SW_I2S0_I2S1)
+	ports {
+		i2s2_port0: port@0 {
+			i2s2_cpu_endpoint: endpoint {
+				remote-endpoint = <&codec_endpoint>;
+				dai-format = "i2s";
+			};
+		};
+	};
+#endif
 };
 
 #if (SW_RSPI_CAN)

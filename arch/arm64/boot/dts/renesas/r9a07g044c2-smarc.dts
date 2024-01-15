@@ -32,6 +32,8 @@
 #error "Can not set 1 to both SW_SCIF_CAN and SW_RSPI_CAN due to HW routing"
 #endif
 
+#define SW_I2S0_I2S1	1
+
 /* comment the #define statement to disable SCIF1 (SER0) on PMOD1 (CN7) */
 #define PMOD1_SER0	1
 
