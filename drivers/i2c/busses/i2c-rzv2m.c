@@ -497,6 +497,7 @@ static int rzv2m_i2c_remove(struct platform_device *pdev)
 
 static const struct of_device_id rzv2m_i2c_ids[] = {
 	{ .compatible = "renesas,rzv2m-i2c" },
+	{ .compatible = "renesas,rzv2ma-i2c" },
 	{ }
 };
 MODULE_DEVICE_TABLE(of, rzv2m_i2c_ids);
