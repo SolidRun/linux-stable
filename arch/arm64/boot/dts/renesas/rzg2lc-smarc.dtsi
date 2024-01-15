@@ -137,3 +137,21 @@
 	interrupt-parent = <&pinctrl>;
 	interrupts = <RZG2L_GPIO(43, 1) IRQ_TYPE_EDGE_FALLING>;
 };
+
+#if (POEGD_SUPPORT)
+&poegd {
+	status = "okay";
+};
+#endif
+
+#if (SCIF1_GPT3)
+&gpt3 {
+	pinctrl-0 = <&gpt3_pins>;
+	pinctrl-names = "default";
+	channel = "both_AB";
+#if (POEGD_SUPPORT)
+	poeg = <&poegd>;
+#endif
+	status = "okay";
+};
+#endif

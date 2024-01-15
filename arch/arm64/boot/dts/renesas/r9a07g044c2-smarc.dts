@@ -23,9 +23,12 @@
 #if (SW_SCIF_CAN)
 /* Due to HW routing, SW_RSPI_CAN is always 0 when SW_SCIF_CAN is set to 1 */
 #define SW_RSPI_CAN	0
+/* Enable GPT3 when SCIF1 disabled */
+#define SCIF1_GPT3	1
 #else
 /* Please set SW_RSPI_CAN. Default value is 1 */
 #define SW_RSPI_CAN	1
+#define SCIF1_GPT3	0
 #endif
 
 #if (SW_SCIF_CAN && SW_RSPI_CAN)
@@ -48,6 +51,9 @@
 #if (PMOD_MTU3 && SW_RSPI_CAN)
 #error "Cannot set as both PMOD_MTU3 and SW_RSPI_CAN are mutually exclusive"
 #endif
+
+/* Select function support POEGD (1: enabled, 0 : disabled) */
+#define POEGD_SUPPORT	1
 
 #include "r9a07g044c2.dtsi"
 #include "rzg2lc-smarc-som.dtsi"

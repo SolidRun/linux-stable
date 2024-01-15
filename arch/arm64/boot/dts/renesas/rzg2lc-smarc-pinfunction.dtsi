@@ -140,9 +140,11 @@
 			 <RZG2L_PORT_PINMUX(42, 1, 1)>; /* OVC */
 	};
 
-	gpt4_pins: gpt4 {
-		pinmux = <RZG2L_PORT_PINMUX(43, 0, 2)>, /* Channel A */
-			 <RZG2L_PORT_PINMUX(43, 1, 2)>; /* Channel B */
+#if (SCIF1_GPT3)
+	gpt3_pins: gpt3 {
+		pinmux = <RZG2L_PORT_PINMUX(41, 0, 4)>, /* Channel A */
+			 <RZG2L_PORT_PINMUX(41, 1, 4)>; /* Channel B */
 	};
+#endif
 };
 
