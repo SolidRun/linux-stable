@@ -166,6 +166,13 @@
 };
 
 &pinctrl {
+	csi4_pins: csi4 {
+		pinmux = <RZV2M_PORT_PINMUX(4, 0, 1)>, /* CSTXD4  */
+			 <RZV2M_PORT_PINMUX(4, 1, 1)>, /* CSRXD4  */
+			 <RZV2M_PORT_PINMUX(4, 2, 1)>, /* CSSCLK4 */
+			 <RZV2M_PORT_PINMUX(4, 3, 1)>; /* CSCS4   */
+	};
+
 	emmc_pins: emmc {
 		emmc_data {
 			pinmux = <RZV2M_PORT_PINMUX(0, 0, 2)>, /* MMDAT0 */
@@ -371,4 +378,18 @@
 
 &tim23 {
     status = "okay";
+};
+
+&csi4 {
+	pinctrl-0 = <&csi4_pins>;
+	pinctrl-names = "default";
+
+	status = "okay";
+	slavedev4: spi@0 {
+		compatible = "rzv2m,slavedev";
+		reg = <0>;
+		spi-max-frequency = <24000000>;
+		spi-cpha;
+		spi-cpol;
+	};
 };
