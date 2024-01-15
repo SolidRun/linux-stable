@@ -111,3 +111,10 @@
 	interrupt-parent = <&pinctrl>;
 	interrupts = <RZG2L_GPIO(2, 1) IRQ_TYPE_EDGE_FALLING>;
 };
+
+&gpt5 {
+	pinctrl-0 = <&gpt5_pins>;
+	pinctrl-names = "default";
+	channel = "channel_A";
+	status = "okay";
+};
