@@ -547,6 +547,13 @@ config SH_TIMER_TMU
 	  the 32-bit Timer Unit (TMU) hardware available on a wide range
 	  SoCs from Renesas.
 
+config RZV2M_TIM_CNT
+       bool "Renesas RZ/V2M counter driver"
+       depends on ARCH_R9A09G011 || COMPILE_TEST
+       help
+          Enable support for RZ/V2M counter driver found on Renesas RZ/V2M alike
+          SoCs. This IP supports 32 bit counter.
+
 config EM_TIMER_STI
 	bool "Renesas STI timer driver" if COMPILE_TEST
 	depends on HAS_IOMEM
