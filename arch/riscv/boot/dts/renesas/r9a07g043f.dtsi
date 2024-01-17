@@ -122,7 +122,8 @@
 		};
 
 		mtu3: timer@10001200 {
-			compatible = "renesas,mtu3";
+			compatible = "renesas,r9a07g043f-mtu3",
+				     "renesas,rz-mtu3";
 			reg = <0 0x10001200 0 0xB00>;
 			interrupts =
 				<202 IRQ_TYPE_LEVEL_HIGH>,
@@ -184,9 +185,9 @@
 					  "tgi8a", "tgi8b", "tgi8c", "tgi8d",
 					  "tgi8v", "tgi8u";
 			clocks = <&cpg CPG_MOD R9A07G043F_MTU_X_MCK_MTU3>;
-			clock-names = "fck";
 			power-domains = <&cpg>;
 			resets = <&cpg R9A07G043F_MTU_X_PRESET_MTU3>;
+			#pwm-cells = <2>;
 			status = "disabled";
 		};
 
