@@ -50,6 +50,7 @@ static int	pcie_thread_status;
 static int	pcie_receiver_detection;
 static struct task_struct *pcie_kthread_tsk;
 static struct rzv2m_pcie *tmp_pcie;
+struct rzv2m_pcie_host;
 
 static u32 r_configuration_space[] = {
 	0x00000004,
@@ -99,16 +100,22 @@ static inline struct rzv2m_msi *to_rzv2m_msi(struct msi_controller *chip)
 	return container_of(chip, struct rzv2m_msi, chip);
 }
 
+/* PCIE HW info data for specific SoC */
+struct rzv2m_pcie_hw_info {
+	bool 	is_sram_used;
+	int	(*phy_init_fn)(struct rzv2m_pcie_host *);
+};
+
 /* Structure representing the PCIe interface */
 struct rzv2m_pcie_host {
-	struct rzv2m_pcie	pcie;
-	struct device		*dev;
-	struct phy		*phy;
-	void __iomem		*base;
-	struct clk		*bus_clk;
-	struct			rzv2m_msi msi;
-	int			(*phy_init_fn)(struct rzv2m_pcie_host *host);
-	struct irq_domain	*intx_domain;
+	struct rzv2m_pcie		pcie;
+	struct device			*dev;
+	struct phy			*phy;
+	void __iomem			*base;
+	struct clk			*bus_clk;
+	struct				rzv2m_msi msi;
+	struct irq_domain		*intx_domain;
+	const struct rzv2m_pcie_hw_info	*info;
 };
 
 static int rzv2m_pcie_hw_init(struct rzv2m_pcie *pcie);
@@ -307,7 +314,13 @@ static int rzv2m_pcie_write_config_access(struct rzv2m_pcie_host *host,
 
 	rzv2m_pci_write_reg(pcie, 0, REQUEST_DATA_REG(0) );
 	rzv2m_pci_write_reg(pcie, 0, REQUEST_DATA_REG(1) );
-	rzv2m_pci_write_reg(pcie, data, REQUEST_DATA_REG(2) );
+	if (host->info->is_sram_used) {
+		rzv2m_pci_write_reg(pcie, (reg == 0x54) ? RAMA_ADDRESS : data,
+				    REQUEST_DATA_REG(2));
+	} else {
+		rzv2m_pci_write_reg(pcie, data, REQUEST_DATA_REG(2));
+		
+	}
 
 	if (bus->number == 1) {
 		/* Type 0 */
@@ -934,11 +947,19 @@ static void rzv2m_pcie_hw_enable_msi(struct rzv2m_pcie_host *host)
 	unsigned long msi_base_mask;
 	int idx;
 
-	msi->pages = __get_free_pages(GFP_KERNEL, 0);
-	base = dma_map_single(pcie->dev, (void *)msi->pages, (MSI_RCV_WINDOW_MASK_MIN+1), DMA_BIDIRECTIONAL);
+	if (host->info->is_sram_used) {
+		msi->pages = ioremap(RAMA_ADDRESS, RAMA_SIZE);
+		base = RAMA_ADDRESS;
+	} else {
+		msi->pages = __get_free_pages(GFP_KERNEL, 0);
+		base = dma_map_single(pcie->dev, (void *)msi->pages,
+				      MSI_RCV_WINDOW_MASK_MIN + 1,
+				      DMA_BIDIRECTIONAL);
+	}
 
 	msi_base = 0;
-	for(idx=0; idx < RZV2M_PCI_MAX_RESOURCES; idx++) {
+
+	for(idx = 0; idx < RZV2M_PCI_MAX_RESOURCES; idx++) {
 		if( !(rzv2m_pci_read_reg(pcie, AXI_WINDOW_BASE_REG(idx)) & AXI_WINDOW_ENABLE) ) {
 			continue;
 		}
@@ -1112,11 +1133,6 @@ static int rzv2m_pcie_parse_map_dma_ranges(struct rzv2m_pcie_host *host)
 	return err;
 }
 
-static const struct of_device_id rzv2m_pcie_of_match[] = {
-	{ .compatible = "renesas,rzv2m-pcie", },
-	{},
-};
-
 static int rzv2m_pcie_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
@@ -1136,6 +1152,9 @@ static int rzv2m_pcie_probe(struct platform_device *pdev)
 	pcie = &host->pcie;
 	pcie->dev = dev;
 	platform_set_drvdata(pdev, host);
+
+
+	host->info = of_device_get_match_data(&pdev->dev);
 
 	pm_runtime_enable(pcie->dev);
 	err = pm_runtime_get_sync(pcie->dev);
@@ -1299,6 +1318,20 @@ static int rzv2m_pcie_resume(struct device *dev)
 static struct dev_pm_ops rzv2m_pcie_pm_ops = {
 	.suspend_noirq =	rzv2m_pcie_suspend,
 	.resume_noirq =		rzv2m_pcie_resume,
+};
+
+static const struct rzv2m_pcie_hw_info rzv2m_pcie_info = {
+	.is_sram_used = false,
+};
+
+static const struct rzv2m_pcie_hw_info rzv2ma_pcie_info = {
+	.is_sram_used = true,
+};
+
+static const struct of_device_id rzv2m_pcie_of_match[] = {
+	{ .compatible = "renesas,rzv2m-pcie",	.data = &rzv2m_pcie_info,  },
+	{ .compatible = "renesas,rzv2ma-pcie",	.data = &rzv2ma_pcie_info, },
+	{},
 };
 
 static struct platform_driver rzv2m_pcie_driver = {
