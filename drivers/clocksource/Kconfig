@@ -548,8 +548,8 @@ config SH_TIMER_TMU
 	  SoCs from Renesas.
 
 config RZV2M_TIM_CNT
-       bool "Renesas RZ/V2M counter driver"
-       depends on ARCH_R9A09G011 || COMPILE_TEST
+       bool "Renesas RZ/V2{M,MA} counter driver"
+       depends on ARCH_R9A09G011 || ARCH_R9A09G055 || COMPILE_TEST
        help
           Enable support for RZ/V2M counter driver found on Renesas RZ/V2M alike
           SoCs. This IP supports 32 bit counter.
