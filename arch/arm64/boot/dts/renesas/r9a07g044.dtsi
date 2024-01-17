@@ -1558,6 +1558,13 @@
 				};
 			};
 		};
+
+		edac: edac@11410000 {
+			compatible = "renesas,r9a07g044-edac";
+			reg = <0 0x11410000 0 0x10000>;
+			interrupts = <GIC_SPI 40 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "ecc_irq";
+		};
 	};
 
 	thermal-zones {
