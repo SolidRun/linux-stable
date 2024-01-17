@@ -33,7 +33,11 @@
 #define SEL_SDI		SEL_PLL_PACK(0x300, 0, 1)
 #define SEL_W0		SEL_PLL_PACK(0x32C, 0, 1)
 #define SEL_CSI0	SEL_PLL_PACK(0x330, 0, 1)
+#define SEL_CSI1	SEL_PLL_PACK(0x330, 1, 1)
+#define SEL_CSI2	SEL_PLL_PACK(0x330, 2, 1)
+#define SEL_CSI3	SEL_PLL_PACK(0x330, 3, 1)
 #define SEL_CSI4	SEL_PLL_PACK(0x330, 4, 1)
+#define SEL_CSI5	SEL_PLL_PACK(0x330, 5, 1)
 
 enum clk_ids {
 	/* Core Clock Outputs exported to DT */
@@ -65,7 +69,11 @@ enum clk_ids {
 	CLK_SEL_SDI,
 	CLK_SEL_W0,
 	CLK_SEL_CSI0,
+	CLK_SEL_CSI1,
+	CLK_SEL_CSI2,
+	CLK_SEL_CSI3,
 	CLK_SEL_CSI4,
+	CLK_SEL_CSI5,
 
 	/* Module Clocks */
 	MOD_CLK_BASE
@@ -146,7 +154,11 @@ static const struct cpg_core_clk r9a09g011_core_clks[] __initconst = {
 	DEF_MUX(".selsdi",	CLK_SEL_SDI,	SEL_SDI,	sel_sdi),
 	DEF_MUX(".selw0",	CLK_SEL_W0,	SEL_W0,		sel_w),
 	DEF_MUX(".selcsi0",     CLK_SEL_CSI0,   SEL_CSI0,       sel_csi),
+	DEF_MUX(".selcsi1",     CLK_SEL_CSI1,   SEL_CSI1,       sel_csi),
+	DEF_MUX(".selcsi2",     CLK_SEL_CSI2,   SEL_CSI2,       sel_csi),
+	DEF_MUX(".selcsi3",     CLK_SEL_CSI3,   SEL_CSI3,       sel_csi),
 	DEF_MUX(".selcsi4",     CLK_SEL_CSI4,   SEL_CSI4,       sel_csi),
+	DEF_MUX(".selcsi5",     CLK_SEL_CSI5,   SEL_CSI5,       sel_csi),
 
 	DEF_FIXED(".selb_d2",	CLK_SEL_B_D2,	CLK_SEL_B,	1,	2),
 };
@@ -240,8 +252,11 @@ static const struct rzg2l_mod_clk r9a09g011_mod_clks[] __initconst = {
 	DEF_MOD("urt0_clk",	R9A09G011_URT0_CLK,	 CLK_SEL_W0,   0x438, 5, 0),
 	DEF_MOD("urt1_clk",     R9A09G011_URT1_CLK,      CLK_SEL_W0,   0x438, 6, 0),
 	DEF_MOD("csi0_clk",     R9A09G011_CSI0_CLK,      CLK_SEL_CSI0, 0x438, 8, 0),
+	DEF_MOD("csi1_clk",     R9A09G011_CSI1_CLK,      CLK_SEL_CSI1, 0x438, 9, 0),
+	DEF_MOD("csi2_clk",     R9A09G011_CSI2_CLK,      CLK_SEL_CSI2, 0x438, 10, 0),
+	DEF_MOD("csi3_clk",     R9A09G011_CSI3_CLK,      CLK_SEL_CSI3, 0x438, 11, 0),
 	DEF_MOD("csi4_clk",     R9A09G011_CSI4_CLK,      CLK_SEL_CSI4, 0x438, 12, 0),
-
+	DEF_MOD("csi5_clk",     R9A09G011_CSI5_CLK,      CLK_SEL_CSI5, 0x438, 13, 0),
 	DEF_MOD("ca53",		R9A09G011_CA53_CLK,	 CLK_DIV_A,    0x448, 0, 0),
 };
 
