@@ -87,6 +87,36 @@
 			pinmux = <RZG2L_PORT_PINMUX(0, 2, 1)>; /* SD1_CD */
 		};
 	};
+
+#if SW_GPIO_CAN_PMOD1 == SW_ON
+	/* GPIO8_CAN0_STB */
+	can0-stb-hog {
+		gpio-hog;
+		gpios = <RZG2L_GPIO(13, 0) GPIO_ACTIVE_HIGH>;
+		output-low;
+		line-name = "can0_stb";
+	};
+#endif
+
+#if SW_GPIO_CAN_PMOD2 == SW_ON
+	/* GPIO9_CAN0_STB */
+	can1-stb-hog {
+		gpio-hog;
+		gpios = <RZG2L_GPIO(13, 1) GPIO_ACTIVE_HIGH>;
+		output-low;
+		line-name = "can1_stb";
+	};
+#endif
+
+	can0_pins: can0 {
+		pinmux = <RZG2L_PORT_PINMUX(6, 1, 3)>, /* TX */
+			 <RZG2L_PORT_PINMUX(6, 2, 3)>; /* RX */
+	};
+
+	can1_pins: can1 {
+		pinmux = <RZG2L_PORT_PINMUX(17, 0, 3)>, /* TX */
+			 <RZG2L_PORT_PINMUX(17, 1, 3)>; /* RX */
+	};
 };
 
 &scif0 {
@@ -122,4 +152,18 @@
 	sd-uhs-sdr104;
 	max-frequency = <125000000>;
 	status = "okay";
+};
+
+&canfd {
+	pinctrl-0 = <&can0_pins &can1_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+
+	channel0 {
+		status = "okay";
+	};
+
+	channel1 {
+		status = "okay";
+	};
 };
