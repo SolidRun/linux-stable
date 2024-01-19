@@ -26,7 +26,6 @@
  * driven clock event.
  */
 
-static void __iomem *system_clock;	/* For sched_clock() */
 
 /* OSTM REGISTERS */
 #define	OSTM_CMP		0x000	/* RW,32 */
@@ -43,6 +42,12 @@ static void __iomem *system_clock;	/* For sched_clock() */
 #define	CTL_ONESHOT		0x02
 #define	CTL_FREERUN		0x02
 
+static struct ostm_clksrc {
+	void __iomem *system_clock;
+	struct timer_of *to;
+	struct clocksource clksrc;
+} *ostm_clksrc;
+
 static void ostm_timer_stop(struct timer_of *to)
 {
 	if (readb(timer_of_base(to) + OSTM_TE) & TE) {
@@ -58,27 +63,67 @@ static void ostm_timer_stop(struct timer_of *to)
 	}
 }
 
-static int __init ostm_init_clksrc(struct timer_of *to)
+static void ostm_clksrc_resume(struct clocksource *c)
 {
+	struct ostm_clksrc *ostm_clksrc =
+		container_of(c, struct ostm_clksrc, clksrc);
+	struct timer_of *to = ostm_clksrc->to;
+
+	writeb(CTL_FREERUN, timer_of_base(to) + OSTM_CTL);
+	writeb(TS, timer_of_base(to) + OSTM_TS);
+	writeb(TE, timer_of_base(to) + OSTM_TE);
+}
+
+static u64 ostm_clksrc_readl_up(struct clocksource *c)
+{
+	struct ostm_clksrc *ostm_clksrc =
+		container_of(c, struct ostm_clksrc, clksrc);
+
+	return (u64)readl_relaxed(ostm_clksrc->system_clock);
+}
+
+static int __init ostm_clocksource_register_hz(struct ostm_clksrc *ostm_clksrc,
+						int rating, unsigned int bits,
+						u64 (*read)(struct clocksource *))
+{
+	struct timer_of *to = ostm_clksrc->to;
+	struct clocksource *cs = &ostm_clksrc->clksrc;
+
+	if (bits > 64 || bits < 16)
+		return -EINVAL;
+
+	cs->name = to->np->full_name;
+	cs->rating = rating;
+	cs->mask = CLOCKSOURCE_MASK(bits);
+	cs->read = read;
+	cs->resume = ostm_clksrc_resume;
+	cs->flags = CLOCK_SOURCE_IS_CONTINUOUS;
+
+	return clocksource_register_hz(cs, timer_of_rate(to));
+}
+
+static int __init ostm_init_clksrc(struct ostm_clksrc *ostm_clksrc)
+{
+	struct timer_of *to = ostm_clksrc->to;
+
 	ostm_timer_stop(to);
 
 	writel(0, timer_of_base(to) + OSTM_CMP);
 	writeb(CTL_FREERUN, timer_of_base(to) + OSTM_CTL);
 	writeb(TS, timer_of_base(to) + OSTM_TS);
 
-	return clocksource_mmio_init(timer_of_base(to) + OSTM_CNT,
-				     to->np->full_name, timer_of_rate(to), 300,
-				     32, clocksource_mmio_readl_up);
+	return ostm_clocksource_register_hz(ostm_clksrc, 300, 32,
+						ostm_clksrc_readl_up);
 }
 
 static u64 notrace ostm_read_sched_clock(void)
 {
-	return readl(system_clock);
+	return readl(ostm_clksrc->system_clock);
 }
 
 static void __init ostm_init_sched_clock(struct timer_of *to)
 {
-	system_clock = timer_of_base(to) + OSTM_CNT;
+	ostm_clksrc->system_clock = timer_of_base(to) + OSTM_CNT;
 	sched_clock_register(ostm_read_sched_clock, 32, timer_of_rate(to));
 }
 
@@ -178,7 +223,7 @@ static int __init ostm_init(struct device_node *np)
 	reset_control_deassert(rstc);
 
 	to->flags = TIMER_OF_BASE | TIMER_OF_CLOCK;
-	if (system_clock) {
+	if (ostm_clksrc) {
 		/*
 		 * clock sources don't use interrupts, clock events do
 		 */
@@ -195,10 +240,19 @@ static int __init ostm_init(struct device_node *np)
 	 * First probed device will be used as system clocksource. Any
 	 * additional devices will be used as clock events.
 	 */
-	if (!system_clock) {
-		ret = ostm_init_clksrc(to);
-		if (ret)
+	if (!ostm_clksrc) {
+		ostm_clksrc = kzalloc(sizeof(*ostm_clksrc), GFP_KERNEL);
+		if (!ostm_clksrc) {
+			ret = -ENOMEM;
+			goto err_reset;
+		}
+
+		ostm_clksrc->to = to;
+		ret = ostm_init_clksrc(ostm_clksrc);
+		if (ret) {
+			kfree(ostm_clksrc);
 			goto err_cleanup;
+		}
 
 		ostm_init_sched_clock(to);
 		pr_info("%pOF: used for clocksource\n", np);
