@@ -107,6 +107,7 @@ struct riic_dev {
 	struct completion msg_done;
 	struct i2c_adapter adapter;
 	struct clk *clk;
+	struct reset_control *rstc;
 
 	struct riic_platform_info *info;
 };
@@ -453,6 +454,8 @@ static int riic_i2c_probe(struct platform_device *pdev)
 	if (ret)
 		return ret;
 
+	riic->rstc = rstc;
+
 	ret = devm_add_action_or_reset(&pdev->dev, riic_reset_control_assert, rstc);
 	if (ret)
 		return ret;
@@ -572,12 +575,53 @@ static const struct of_device_id riic_i2c_dt_ids[] = {
 	{ /* Sentinel */ },
 };
 
+static int __maybe_unused riic_i2c_suspend(struct device *dev)
+{
+	struct riic_dev *riic = dev_get_drvdata(dev);
+
+	i2c_mark_adapter_suspended(&riic->adapter);
+
+	if (riic->rstc)
+		reset_control_assert(riic->rstc);
+
+	return 0;
+}
+
+static int __maybe_unused riic_i2c_resume(struct device *dev)
+{
+	struct riic_dev *riic = dev_get_drvdata(dev);
+	int ret = 0;
+	struct i2c_timings i2c_t;
+
+	if (riic->rstc) {
+		ret = reset_control_deassert(riic->rstc);
+		if (ret) {
+			dev_err(dev, "Failed to reset controller (error %d)\n", ret);
+			return ret;
+		}
+	}
+
+	i2c_parse_fw_timings(dev, &i2c_t, true);
+	ret = riic_init_hw(riic, &i2c_t);
+	if (ret)
+		return ret;
+
+	i2c_mark_adapter_resumed(&riic->adapter);
+
+	return 0;
+}
+
+static const struct dev_pm_ops riic_i2c_pm_ops = {
+	SET_NOIRQ_SYSTEM_SLEEP_PM_OPS(riic_i2c_suspend, riic_i2c_resume)
+};
+
 static struct platform_driver riic_i2c_driver = {
 	.probe		= riic_i2c_probe,
 	.remove		= riic_i2c_remove,
 	.driver		= {
 		.name	= "i2c-riic",
 		.of_match_table = riic_i2c_dt_ids,
+		.pm	= &riic_i2c_pm_ops,
 	},
 };
 
