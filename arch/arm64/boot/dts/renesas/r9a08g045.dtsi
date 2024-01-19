@@ -64,7 +64,7 @@
 		i2c0: i2c@10090000 {
 			#address-cells = <1>;
 			#size-cells = <0>;
-			compatible = "renesas,riic-rz";
+			compatible = "renesas,riic-r9a08g045";
 			reg = <0 0x10090000 0 0x400>;
 			interrupts = <GIC_SPI 257 IRQ_TYPE_LEVEL_HIGH>,
 				     <GIC_SPI 263 IRQ_TYPE_EDGE_RISING>,
@@ -86,7 +86,7 @@
 		i2c1: i2c@10090400 {
 			#address-cells = <1>;
 			#size-cells = <0>;
-			compatible = "renesas,riic-rz";
+			compatible = "renesas,riic-r9a08g045";
 			reg = <0 0x10090400 0 0x400>;
 			interrupts = <GIC_SPI 265 IRQ_TYPE_LEVEL_HIGH>,
 				     <GIC_SPI 271 IRQ_TYPE_EDGE_RISING>,
@@ -108,7 +108,7 @@
 		i2c2: i2c@10090800 {
 			#address-cells = <1>;
 			#size-cells = <0>;
-			compatible = "renesas,riic-rz";
+			compatible = "renesas,riic-r9a08g045";
 			reg = <0 0x10090800 0 0x400>;
 			interrupts = <GIC_SPI 273 IRQ_TYPE_LEVEL_HIGH>,
 				     <GIC_SPI 279 IRQ_TYPE_EDGE_RISING>,
@@ -130,7 +130,7 @@
 		i2c3: i2c@10090C00 {
 			#address-cells = <1>;
 			#size-cells = <0>;
-			compatible = "renesas,riic-rz";
+			compatible = "renesas,riic-r9a08g045";
 			reg = <0 0x10090C00 0 0x400>;
 			interrupts = <GIC_SPI 281 IRQ_TYPE_LEVEL_HIGH>,
 				     <GIC_SPI 287 IRQ_TYPE_EDGE_RISING>,
