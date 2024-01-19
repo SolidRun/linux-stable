@@ -1455,6 +1455,15 @@ config RTC_DRV_SH
 	  To compile this driver as a module, choose M here: the
 	  module will be called rtc-sh.
 
+config RTC_DRV_RTCA3
+	tristate "Renesas Realtime Clock RTCA-3 IP"
+	help
+	  Say Y here to enable support for the on-chip Renesas RTCA-3 IP.
+	  This RTC is also found in RZ/G3S SoCs.
+
+	  This driver can also be built as a module. If so, the module
+	  will be called rtc-rtca3.
+
 config RTC_DRV_VR41XX
 	tristate "NEC VR41XX"
 	depends on CPU_VR41XX || COMPILE_TEST
