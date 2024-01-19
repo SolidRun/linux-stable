@@ -731,13 +731,18 @@ static int rcar_canfd_reset_controller(struct rcar_canfd_global *gpriv)
 	/* Reset Global error flags */
 	rcar_canfd_write(gpriv->base, RCANFD_GERFL, 0x0);
 
-	/* Set the controller into appropriate mode */
-	if (gpriv->fdmode)
-		rcar_canfd_set_bit(gpriv->base, RCANFD_GRMCFG,
-				   RCANFD_GRMCFG_RCMC);
-	else
-		rcar_canfd_clear_bit(gpriv->base, RCANFD_GRMCFG,
-				     RCANFD_GRMCFG_RCMC);
+	/*
+	 * - Set the controller into appropriate mode.
+	 * - RZ/G3S only supports CAN-FD mode.
+	 */
+	if (!is_rzg3s(gpriv)) {
+		if (gpriv->fdmode)
+			rcar_canfd_set_bit(gpriv->base, RCANFD_GRMCFG,
+					   RCANFD_GRMCFG_RCMC);
+		else
+			rcar_canfd_clear_bit(gpriv->base, RCANFD_GRMCFG,
+					     RCANFD_GRMCFG_RCMC);
+	}
 
 	/* Transition all Channels to reset mode */
 	for_each_set_bit(ch, &gpriv->channels_mask, RCANFD_NUM_CHANNELS) {
@@ -1890,6 +1895,12 @@ static int rcar_canfd_probe(struct platform_device *pdev)
 	gpriv->channels_mask = channels_mask;
 	gpriv->fdmode = fdmode;
 	gpriv->info = info;
+
+	if (is_rzg3s(gpriv) && !(gpriv->fdmode)) {
+		gpriv->fdmode = true;
+		dev_warn(&pdev->dev,
+			 "RZ/G3S does not support classical CAN, move to CAN-FD mode");
+	}
 
 	gpriv->rstc1 = devm_reset_control_get_optional_exclusive(&pdev->dev,
 								 "rstp_n");
