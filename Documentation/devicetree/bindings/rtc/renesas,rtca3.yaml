@@ -1,0 +1,55 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/rtc/renesas,rtca3.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: Renesas Realtime Clock (RTCA-3)
+
+properties:
+  compatible:
+    items:
+      - const: renesas,rtca-3
+
+  reg:
+    maxItems: 1
+
+  interrupts:
+    maxItems: 3
+
+  interrupt-names:
+    items:
+      - const: period
+      - const: carry
+      - const: alarm
+
+  binary_cntmd: Option for setting counting mode
+    maxItems: 1
+    description: |
+      Used to control count mode for RTC module. Item 0 / 1  represent
+      the calendar / binary count mode. Need to use just in case binary
+      count mode. Default is always 0.
+
+required:
+  - compatible
+  - reg
+  - interrupts
+  - interrupt-names
+
+additionalProperties: false
+
+examples:
+  - |
+	#include <dt-bindings/interrupt-controller/arm-gic.h>
+	#include <dt-bindings/clock/r9a08g045-cpg.h>
+
+	rtc: rtc@1004ec00 {
+		compatible = "renesas,rtca-3";
+		reg = <0 0x1004ec00 0 0x400>;
+		interrupts = <GIC_SPI 316 IRQ_TYPE_LEVEL_HIGH>,
+			<GIC_SPI 317 IRQ_TYPE_LEVEL_HIGH>,
+			<GIC_SPI 315 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "period", "carry", "alarm";
+		binary_cntmd = <1>;
+		status = "disabled";
+	};
