@@ -2976,6 +2976,8 @@ static int __maybe_unused ravb_suspend(struct device *dev)
 	if (priv->rstc)
 		reset_control_assert(priv->rstc);
 
+	clk_disable_unprepare(priv->refclk);
+
 	return ret;
 }
 
@@ -2988,6 +2990,8 @@ static int __maybe_unused ravb_resume(struct device *dev)
 
 	if (priv->rstc)
 		reset_control_deassert(priv->rstc);
+
+	clk_prepare_enable(priv->refclk);
 
 	/* If WoL is enabled set reset mode to rearm the WoL logic */
 	if (priv->wol_enabled)
