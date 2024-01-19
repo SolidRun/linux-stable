@@ -132,6 +132,8 @@ struct sci_port {
 	int			irqs[SCIx_NR_IRQS];
 	char			*irqstr[SCIx_NR_IRQS];
 
+	struct reset_control 	*rstc;
+
 	struct dma_chan			*chan_tx;
 	struct dma_chan			*chan_rx;
 
@@ -3410,6 +3412,7 @@ static struct plat_sci_port *sci_parse_dt(struct platform_device *pdev,
 	p->regtype = SCI_OF_REGTYPE(data);
 
 	sp->has_rtscts = of_property_read_bool(np, "uart-has-rtscts");
+	sp->rstc = rstc;
 
 	return p;
 }
@@ -3538,12 +3541,25 @@ static __maybe_unused int sci_suspend(struct device *dev)
 	if (sport)
 		uart_suspend_port(&sci_uart_driver, &sport->port);
 
+	/* Also support "no_console_suspend" */
+	if (console_suspend_enabled)
+		reset_control_assert(sport->rstc);
+
 	return 0;
 }
 
 static __maybe_unused int sci_resume(struct device *dev)
 {
 	struct sci_port *sport = dev_get_drvdata(dev);
+	int ret;
+
+	if (console_suspend_enabled) {
+		ret = reset_control_deassert(sport->rstc);
+		if (ret) {
+			dev_err(dev, "failed to reset controller (error %d)\n", ret);
+			return ret;
+		}
+	}
 
 	if (sport)
 		uart_resume_port(&sci_uart_driver, &sport->port);
