@@ -336,6 +336,15 @@
 		};
 	};
 
+	canfd0_pins: canfd0 {
+		pinmux = <RZG2L_PORT_PINMUX(13, 1, 3)>, /* TX */
+			 <RZG2L_PORT_PINMUX(13, 2, 3)>; /* RX */
+	};
+
+	canfd1_pins: canfd1 {
+		pinmux = <RZG2L_PORT_PINMUX(14, 0, 3)>, /* TX */
+			 <RZG2L_PORT_PINMUX(14, 1, 3)>; /* RX */
+	};
 };
 
 &i2c0 {
@@ -344,4 +353,16 @@
 
 &i2c1 {
 	status = "okay";
+};
+
+&canfd {
+	pinctrl-0 = <&canfd0_pins &canfd1_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+	channel0 {
+		status = "okay";
+	};
+	channel1 {
+		status = "okay";
+	};
 };
