@@ -2973,6 +2973,9 @@ static int __maybe_unused ravb_suspend(struct device *dev)
 	else
 		ret = ravb_close(ndev);
 
+	if (priv->rstc)
+		reset_control_assert(priv->rstc);
+
 	return ret;
 }
 
@@ -2982,6 +2985,9 @@ static int __maybe_unused ravb_resume(struct device *dev)
 	struct ravb_private *priv = netdev_priv(ndev);
 	const struct ravb_hw_info *info = priv->info;
 	int ret = 0;
+
+	if (priv->rstc)
+		reset_control_deassert(priv->rstc);
 
 	/* If WoL is enabled set reset mode to rearm the WoL logic */
 	if (priv->wol_enabled)
