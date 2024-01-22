@@ -836,7 +836,9 @@ static ssize_t rzg2l_mipi_dsi_host_transfer(struct mipi_dsi_host *host,
 	bool is_long = mipi_dsi_packet_format_is_long(msg->type);
 	bool is_need_bta = false;
 	ssize_t err = 0;
-	u32 sqch0dsc00ar, sqch0dsc00br, status;
+	u32 sqch0dsc00ar = 0;
+	u32 sqch0dsc00br = 0;
+	u32 status;
 	unsigned int timeout;
 	unsigned int i;
 
