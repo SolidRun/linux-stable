@@ -7,6 +7,14 @@
 
 /dts-v1/;
 
+/*
+ * RSPI2_PINS_SEL - select between RSPI ch2 and POEG, GPT pins
+ * RSPI2_LOOPBACK_SEL - select target SPI device
+ * 			(N25Q256A flash with Digilent PMOD SF3 by default)
+ */
+#define RSPI2_PINS_SEL			1
+#define RSPI2_LOOPBACK_SEL		0
+
 #include "r9a08g045.dtsi"
 #include "rzg3s-dev-common.dtsi"
 

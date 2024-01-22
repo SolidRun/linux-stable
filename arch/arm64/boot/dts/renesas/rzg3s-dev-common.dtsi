@@ -444,6 +444,7 @@
 			 <RZG2L_PORT_PINMUX(6, 0, 1)>; /* VBUS */
 	};
 
+#if !RSPI2_PINS_SEL
 	poegc_pins: poegc {
 		pinmux = <RZG2L_PORT_PINMUX(11, 2, 5)>; /* GPT_Ext_C - SD2_DATA0 - J17_3 */
 	};
@@ -451,11 +452,19 @@
 	poegd_pins: poegd {
 		pinmux = <RZG2L_PORT_PINMUX(11, 3, 5)>; /* GPT_Ext_D - SD2_DATA1 - J17_2 */
 	};
-
+#else
+	spi2_pins: spi2 {
+		pinmux = <RZG2L_PORT_PINMUX(11, 0, 4)>, /* CK */
+			 <RZG2L_PORT_PINMUX(11, 1, 4)>, /* MOSI */
+			 <RZG2L_PORT_PINMUX(11, 2, 4)>, /* MISO */
+			 <RZG2L_PORT_PINMUX(11, 3, 4)>; /* SSL */
+	};
+#endif
 	gpt0_pins: gpt0 {
 		pinmux = <RZG2L_PORT_PINMUX(12, 0, 3)>, /* GTIOC0A - SD2_DATA2 - J17_10 */
 			 <RZG2L_PORT_PINMUX(12, 1, 3)>; /* GTIOC0B - SD2_DATA3 - J17_9 */
 	};
+
 
 	xspi_pins: xspi {
 		xspi-data {
@@ -587,6 +596,7 @@
 	status = "okay";
 };
 
+#if !RSPI2_PINS_SEL
 &poegc {
 	pinctrl-0 = <&poegc_pins>;
 	pinctrl-names = "default";
@@ -598,6 +608,44 @@
 	pinctrl-names = "default";
 	status = "okay";
 };
+#else
+&spi2 {
+	pinctrl-0 = <&spi2_pins>;
+	pinctrl-names = "default";
+
+	dmas = <&dmac 0x2ee1>, <&dmac 0x2ee2>;
+	dma-names = "tx", "rx";
+
+	status = "okay";
+
+#if RSPI2_LOOPBACK_SEL
+	spidev@0 {
+		compatible = "rohm,dh2228fv";
+		reg = <0>;
+		spi-max-frequency = <50000000>;
+	};
+#else
+	flash0: mt25ql256a@0 {
+		compatible = "micron,mt25ql256a", "jedec,spi-nor";
+		reg = <0>;
+		spi-max-frequency = <10000000>;
+		spi-tx-bus-width = <1>;
+		spi-rx-bus-width = <1>;
+		m25p,fast-read;
+
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			scratch@0 {
+				reg = <0x00000000 0x2000000>;
+			};
+		};
+	};
+#endif /* RSPI2_LOOPBACK_SEL */
+};
+#endif /* !RSPI2_PINS_SEL */
 
 &gpt0 {
 	pinctrl-0 = <&gpt0_pins>;
