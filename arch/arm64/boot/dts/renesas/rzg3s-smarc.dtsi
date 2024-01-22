@@ -250,6 +250,13 @@
 		pinmux = <RZG2L_PORT_PINMUX(5, 4, 5)>, /* OVC */
 			 <RZG2L_PORT_PINMUX(6, 0, 1)>; /* VBUS */
 	};
+
+	spi0_pins: spi0 {
+		pinmux = <RZG2L_PORT_PINMUX(15, 0, 1)>, /* CK */
+			 <RZG2L_PORT_PINMUX(15, 1, 1)>, /* MOSI */
+			 <RZG2L_PORT_PINMUX(15, 2, 1)>, /* MISO */
+			 <RZG2L_PORT_PINMUX(15, 3, 1)>; /* SSL */
+	};
 };
 
 &gpt0 {
@@ -362,4 +369,40 @@
 
 &phyrst {
 	status = "okay";
+};
+
+&spi0 {
+	pinctrl-0 = <&spi0_pins>;
+	pinctrl-names = "default";
+
+	dmas = <&dmac 0x2ed9>, <&dmac 0x2eda>;
+	dma-names = "tx", "rx";
+
+	status = "okay";
+#if RSPI0_LOOPBACK_SEL
+	spidev@0 {
+		compatible = "rohm,dh2228fv";
+		reg = <0>;
+		spi-max-frequency = <50000000>;
+	};
+#else
+	flash0: mt25ql256a@0 {
+		compatible = "micron,mt25ql256a", "jedec,spi-nor";
+		reg = <0>;
+		spi-max-frequency = <10000000>;
+		spi-tx-bus-width = <1>;
+		spi-rx-bus-width = <1>;
+		m25p,fast-read;
+
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			scratch@0 {
+				reg = <0x00000000 0x2000000>;
+			};
+		};
+	};
+#endif
 };

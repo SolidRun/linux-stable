@@ -39,6 +39,12 @@
 #define SW_GPIO_CAN_PMOD1	SW_OFF
 #define SW_GPIO_CAN_PMOD2	SW_OFF
 
+/*
+ * RSPI0_LOOPBACK_SEL - select target SPI device between virtual loopback
+			and N25Q256A flash on PMOD Digilent SF3 (default)
+ */
+#define RSPI0_LOOPBACK_SEL	0
+
 #include "r9a08g045s33.dtsi"
 #include "rzg3s-smarc-som.dtsi"
 #include "rzg3s-smarc.dtsi"
