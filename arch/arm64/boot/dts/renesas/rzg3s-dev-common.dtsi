@@ -456,6 +456,18 @@
 		pinmux = <RZG2L_PORT_PINMUX(12, 0, 3)>, /* GTIOC0A - SD2_DATA2 - J17_10 */
 			 <RZG2L_PORT_PINMUX(12, 1, 3)>; /* GTIOC0B - SD2_DATA3 - J17_9 */
 	};
+
+	xspi_pins: xspi {
+		xspi-data {
+			pins = "XSPI_IO0", "XSPI_IO1", "XSPI_IO2", "XSPI_IO3";
+			power-source = <1800>;
+		};
+
+		xspi-ctrl {
+			pins = "XSPI_SPCLK", "XSPI_CS0#", "XSPI_RESET#";
+			power-source = <1800>;
+		};
+	};
 };
 
 &i2c0 {
@@ -593,4 +605,46 @@
 	channel = "both_AB";
 	poeg = <&poegc &poegd>;
 	status = "okay";
+};
+
+&xspi {
+	pinctrl-0 = <&xspi_pins>;
+	pinctrl-names = "default";
+
+	status = "okay";
+
+	flash@0 {
+		compatible = "atmel,at25ql128a", "jedec,spi-nor";
+		reg = <0>;
+		m25p,fast-read;
+		spi-max-frequency = <50000000>;
+		spi-tx-bus-width = <4>;
+		spi-rx-bus-width = <4>;
+
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			partition@000000 {
+				label = "bl2";
+				reg = <0x00000000 0x0001D200>;
+				read-only;
+			};
+			partition@01D200 {
+				label = "fip";
+				reg = <0x0001D200 0x001C2E00>;
+				read-only;
+			};
+			partition@1E0000 {
+				label = "env";
+				reg = <0x001E0000 0x00020000>;
+				read-only;
+			};
+			partition@200000 {
+				label = "test-area";
+				reg = <0x00200000 0x00E00000>;
+			};
+		};
+	};
 };
