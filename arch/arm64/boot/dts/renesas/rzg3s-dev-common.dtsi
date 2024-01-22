@@ -443,6 +443,19 @@
 		pinmux = <RZG2L_PORT_PINMUX(5, 4, 5)>, /* OVC */
 			 <RZG2L_PORT_PINMUX(6, 0, 1)>; /* VBUS */
 	};
+
+	poegc_pins: poegc {
+		pinmux = <RZG2L_PORT_PINMUX(11, 2, 5)>; /* GPT_Ext_C - SD2_DATA0 - J17_3 */
+	};
+
+	poegd_pins: poegd {
+		pinmux = <RZG2L_PORT_PINMUX(11, 3, 5)>; /* GPT_Ext_D - SD2_DATA1 - J17_2 */
+	};
+
+	gpt0_pins: gpt0 {
+		pinmux = <RZG2L_PORT_PINMUX(12, 0, 3)>, /* GTIOC0A - SD2_DATA2 - J17_10 */
+			 <RZG2L_PORT_PINMUX(12, 1, 3)>; /* GTIOC0B - SD2_DATA3 - J17_9 */
+	};
 };
 
 &i2c0 {
@@ -559,5 +572,25 @@
 };
 
 &phyrst {
+	status = "okay";
+};
+
+&poegc {
+	pinctrl-0 = <&poegc_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&poegd {
+	pinctrl-0 = <&poegd_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&gpt0 {
+	pinctrl-0 = <&gpt0_pins>;
+	pinctrl-names = "default";
+	channel = "both_AB";
+	poeg = <&poegc &poegd>;
 	status = "okay";
 };
