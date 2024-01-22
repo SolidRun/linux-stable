@@ -98,6 +98,26 @@
 		clock-frequency = <24000000>;
 	};
 
+	codec_test0: codec_test {
+		compatible = "linux,snd-soc-dummy";
+		#sound-dai-cells = <0>;
+	};
+
+#if COMMON_PINS_SEL == SPDIF_PINS_SEL
+		spdif_link: simple-audio-card,dai-link@1 {
+			bitclock-master = <&cpu_dai1>;
+			frame-master = <&cpu_dai1>;
+
+			cpu_dai1: cpu {
+				sound-dai = <&spdif>;
+			};
+
+			codec {
+				sound-dai = <&codec_test0>;
+			};
+		};
+#endif
+
 	snd_rzg2l: sound {
 		compatible = "simple-audio-card";
 		simple-audio-card,name = "snd_rzg3s";
@@ -444,20 +464,25 @@
 			 <RZG2L_PORT_PINMUX(6, 0, 1)>; /* VBUS */
 	};
 
-#if !RSPI2_PINS_SEL
+#if COMMON_PINS_SEL == SPDIF_PINS_SEL
+	spdif_pins: spdif {
+		pinmux = <RZG2L_PORT_PINMUX(11, 0, 6)>, /* SPDIF_IN  */
+			 <RZG2L_PORT_PINMUX(11, 1, 6)>; /* SPDIF_OUT */
+	};
+#elif COMMON_PINS_SEL == RSPI2_PINS_SEL
+	spi2_pins: spi2 {
+		pinmux = <RZG2L_PORT_PINMUX(11, 0, 4)>, /* CK */
+			 <RZG2L_PORT_PINMUX(11, 1, 4)>, /* MOSI */
+			 <RZG2L_PORT_PINMUX(11, 2, 4)>, /* MISO */
+			 <RZG2L_PORT_PINMUX(11, 3, 4)>; /* SSL */
+	};
+#else
 	poegc_pins: poegc {
 		pinmux = <RZG2L_PORT_PINMUX(11, 2, 5)>; /* GPT_Ext_C - SD2_DATA0 - J17_3 */
 	};
 
 	poegd_pins: poegd {
 		pinmux = <RZG2L_PORT_PINMUX(11, 3, 5)>; /* GPT_Ext_D - SD2_DATA1 - J17_2 */
-	};
-#else
-	spi2_pins: spi2 {
-		pinmux = <RZG2L_PORT_PINMUX(11, 0, 4)>, /* CK */
-			 <RZG2L_PORT_PINMUX(11, 1, 4)>, /* MOSI */
-			 <RZG2L_PORT_PINMUX(11, 2, 4)>, /* MISO */
-			 <RZG2L_PORT_PINMUX(11, 3, 4)>; /* SSL */
 	};
 #endif
 	gpt0_pins: gpt0 {
@@ -596,19 +621,14 @@
 	status = "okay";
 };
 
-#if !RSPI2_PINS_SEL
-&poegc {
-	pinctrl-0 = <&poegc_pins>;
+#if COMMON_PINS_SEL == SPDIF_PINS_SEL
+&spdif {
+	pinctrl-0 = <&spdif_pins>;
 	pinctrl-names = "default";
-	status = "okay";
-};
 
-&poegd {
-	pinctrl-0 = <&poegd_pins>;
-	pinctrl-names = "default";
 	status = "okay";
 };
-#else
+#elif COMMON_PINS_SEL == RSPI2_PINS_SEL
 &spi2 {
 	pinctrl-0 = <&spi2_pins>;
 	pinctrl-names = "default";
@@ -645,7 +665,19 @@
 	};
 #endif /* RSPI2_LOOPBACK_SEL */
 };
-#endif /* !RSPI2_PINS_SEL */
+#else
+&poegc {
+	pinctrl-0 = <&poegc_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&poegd {
+	pinctrl-0 = <&poegd_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+#endif
 
 &gpt0 {
 	pinctrl-0 = <&gpt0_pins>;
