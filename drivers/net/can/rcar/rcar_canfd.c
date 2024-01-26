@@ -619,7 +619,7 @@ static const struct rcar_canfd_hw_info rzg2l_hw_info = {
 };
 
 static const struct rcar_canfd_hw_info rzg3s_hw_info = {
-	.postdiv = 1,
+	.postdiv = 2,
 	.multi_channel_irqs = 1,
 };
 
