@@ -313,7 +313,7 @@
 	};
 
 	eth0_pins: eth0 {
-		eth0_txc {
+		txc {
 			pinmux = <RZG2L_PORT_PINMUX(1, 0, 1)>;  /* ET0_TXC */
 			power-source = <1800>;
 			output-enable;
@@ -321,14 +321,14 @@
 			drive-strength-microamp = <5200>;
 		};
 
-		eth0_tx_ctl {
+		tx_ctl {
 			pinmux = <RZG2L_PORT_PINMUX(1, 1, 1)>;  /* ET0_TX_CTL */
 			power-source = <1800>;
 			output-enable;
 			drive-strength-microamp = <5200>;
 		};
 
-		eth0_mux {
+		mux {
 			pinmux = <RZG2L_PORT_PINMUX(1, 2, 1)>,	/* ET0_TXD0 */
 				 <RZG2L_PORT_PINMUX(1, 3, 1)>,	/* ET0_TXD1 */
 				 <RZG2L_PORT_PINMUX(1, 4, 1)>,	/* ET0_TXD2 */
@@ -354,7 +354,7 @@
 	};
 
 	eth1_pins: eth1 {
-		eth1_txc {
+		txc {
 			pinmux = <RZG2L_PORT_PINMUX(7, 0, 1)>;	/* ET1_TXC */
 			power-source = <1800>;
 			output-enable;
@@ -362,14 +362,14 @@
 			drive-strength-microamp = <5200>;
 		};
 
-		eth1_tx_ctl {
+		tx_ctl {
 			pinmux = <RZG2L_PORT_PINMUX(7, 1, 1)>;	/* ET1_TX_CTL */
 			power-source = <1800>;
 			output-enable;
 			drive-strength-microamp = <5200>;
 		};
 
-		eth1_mux {
+		mux {
 			pinmux = <RZG2L_PORT_PINMUX(7, 2, 1)>,	/* ET1_TXD0 */
 				 <RZG2L_PORT_PINMUX(7, 3, 1)>,	/* ET1_TXD1 */
 				 <RZG2L_PORT_PINMUX(7, 4, 1)>,	/* ET1_TXD2 */
@@ -389,33 +389,33 @@
 #endif
 
 	sdhi0_pins: sd0 {
-		data0 {
+		data {
 			pins = "SD0_DATA0", "SD0_DATA1", "SD0_DATA2", "SD0_DATA3";
 			power-source = <3300>;
 		};
 
-		ctrl0 {
+		ctrl {
 			pins = "SD0_CLK", "SD0_CMD";
 			power-source = <3300>;
 		};
 
-		cd0 {
+		cd {
 			pinmux = <RZG2L_PORT_PINMUX(0, 0, 1)>; /* SD0_CD */
 		};
 	};
 
 	sdhi0_uhs_pins: sd0-uhs {
-		data0_uhs {
+		data {
 			pins = "SD0_DATA0", "SD0_DATA1", "SD0_DATA2", "SD0_DATA3";
 			power-source = <1800>;
 		};
 
-		ctrl0_uhs {
+		ctrl {
 			pins = "SD0_CLK", "SD0_CMD";
 			power-source = <1800>;
 		};
 
-		cd0_uhs {
+		cd {
 			pinmux = <RZG2L_PORT_PINMUX(0, 0, 1)>; /* SD0_CD */
 		};
 	};
@@ -429,12 +429,12 @@
 
 #if SW_CONFIG3 == SW_OFF
 	sdhi2_pins: sd2 {
-		data2 {
+		data {
 			pins = "P11_2", "P11_3", "P12_0", "P12_1";
 			input-enable;
 		};
 
-		ctrl2 {
+		ctrl {
 			pins = "P11_1";
 			input-enable;
 		};
