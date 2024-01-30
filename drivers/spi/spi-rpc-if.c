@@ -146,20 +146,24 @@ static const struct spi_controller_mem_ops rpcif_spi_mem_ops = {
 };
 
 static const struct rpcif_ops rpc_ops = {
+#ifdef CONFIG_RENESAS_RPCIF
 	.sw_init	= rpcif_sw_init,
 	.hw_init	= rpcif_hw_init,
 	.prepare	= rpcif_prepare,
 	.manual_xfer	= rpcif_manual_xfer,
 	.dirmap_read	= rpcif_dirmap_read,
+#endif
 };
 
 static const struct rpcif_ops xspi_ops = {
+#ifdef CONFIG_RENESAS_XSPI
 	.sw_init	= xspi_sw_init,
 	.hw_init	= xspi_hw_init,
 	.prepare	= xspi_prepare,
 	.manual_xfer	= xspi_manual_xfer,
 	.dirmap_read	= xspi_dirmap_read,
 	.dirmap_write	= xspi_dirmap_write,
+#endif
 };
 
 static int rpcif_spi_probe(struct platform_device *pdev)
