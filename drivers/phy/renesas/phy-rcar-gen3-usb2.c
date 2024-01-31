@@ -9,6 +9,7 @@
  * Copyright (C) 2014 Cogent Embedded, Inc.
  */
 
+#include <linux/arm-smccc.h>
 #include <linux/extcon-provider.h>
 #include <linux/interrupt.h>
 #include <linux/io.h>
@@ -86,6 +87,12 @@
 /*  RZ/G2L specific */
 #define USB2_OBINT_IDCHG_EN		BIT(0)
 #define USB2_LINECTRL1_USB2_IDMON	BIT(0)
+
+/* RZ/G3S specific */
+#define RZG3S_SIP_SVC_SET_USB_PWRRDY	0x82000014
+#define RZG3S_SYS_USB_PWRRDY		0xD70
+#define RZG3S_SYS_USB_PWRRDY_PWRRDY	0
+#define RZG3S_SYS_USB_PWRRDY_PWRRDY_N	BIT(0)
 
 #define NUM_OF_PHYS			4
 enum rcar_gen3_phy_index {
@@ -559,6 +566,28 @@ out:
 	return ret;
 }
 
+static int rz_g3s_phy_usb2_power_on(struct phy *p)
+{
+	struct arm_smccc_res local_res;
+
+	/* Turning on the USB region power */
+	arm_smccc_smc(RZG3S_SIP_SVC_SET_USB_PWRRDY, RZG3S_SYS_USB_PWRRDY,
+		      RZG3S_SYS_USB_PWRRDY_PWRRDY, 0, 0, 0, 0, 0, &local_res);
+
+	return rcar_gen3_phy_usb2_power_on(p);
+}
+
+static int rz_g3s_phy_usb2_power_off(struct phy *p)
+{
+	struct arm_smccc_res local_res;
+
+	/* Turning off the USB region power */
+	arm_smccc_smc(RZG3S_SIP_SVC_SET_USB_PWRRDY, RZG3S_SYS_USB_PWRRDY,
+		      RZG3S_SYS_USB_PWRRDY_PWRRDY_N, 0, 0, 0, 0, 0, &local_res);
+
+	return rcar_gen3_phy_usb2_power_off(p);
+}
+
 static const struct phy_ops rcar_gen3_phy_usb2_ops = {
 	.init		= rcar_gen3_phy_usb2_init,
 	.exit		= rcar_gen3_phy_usb2_exit,
@@ -570,6 +599,14 @@ static const struct phy_ops rcar_gen3_phy_usb2_ops = {
 static const struct phy_ops rz_g1c_phy_usb2_ops = {
 	.init		= rcar_gen3_phy_usb2_init,
 	.exit		= rcar_gen3_phy_usb2_exit,
+	.owner		= THIS_MODULE,
+};
+
+static const struct phy_ops rz_g3s_phy_usb2_ops = {
+	.init		= rcar_gen3_phy_usb2_init,
+	.exit		= rcar_gen3_phy_usb2_exit,
+	.power_on	= rz_g3s_phy_usb2_power_on,
+	.power_off	= rz_g3s_phy_usb2_power_off,
 	.owner		= THIS_MODULE,
 };
 
@@ -592,7 +629,7 @@ static const struct rcar_gen3_phy_drv_data rz_g2l_phy_usb2_data = {
 };
 
 static const struct rcar_gen3_phy_drv_data rz_g3s_phy_usb2_data = {
-	.phy_usb2_ops = &rcar_gen3_phy_usb2_ops,
+	.phy_usb2_ops = &rz_g3s_phy_usb2_ops,
 	.no_adp_ctrl = true,
 	.max_burst_length = 2,
 };
