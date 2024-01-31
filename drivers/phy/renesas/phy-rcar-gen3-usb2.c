@@ -27,6 +27,7 @@
 
 /******* USB2.0 Host registers (original offset is +0x200) *******/
 #define USB2_INT_ENABLE		0x000
+#define USB2_AHB_BUS_CTR	0x008
 #define USB2_USBCTR		0x00c
 #define USB2_SPD_RSM_TIMSET	0x10c
 #define USB2_OC_TIMSET		0x110
@@ -41,6 +42,9 @@
 #define USB2_INT_ENABLE_UCOM_INTEN	BIT(3)
 #define USB2_INT_ENABLE_USBH_INTB_EN	BIT(2)	/* For EHCI */
 #define USB2_INT_ENABLE_USBH_INTA_EN	BIT(1)	/* For OHCI */
+
+/* AHB_BUS_CTR */
+#define USB2_AHB_BUS_CTR_MAX_BURST_LEN	0x3
 
 /* USBCTR */
 #define USB2_USBCTR_DIRPD	BIT(2)
@@ -122,11 +126,13 @@ struct rcar_gen3_chan {
 	bool is_otg_channel;
 	bool uses_otg_pins;
 	bool soc_no_adp_ctrl;
+	s8 max_burst_length;
 };
 
 struct rcar_gen3_phy_drv_data {
 	const struct phy_ops *phy_usb2_ops;
 	bool no_adp_ctrl;
+	s8 max_burst_length;
 };
 
 /*
@@ -516,6 +522,14 @@ static int rcar_gen3_phy_usb2_power_on(struct phy *p)
 	val &= ~USB2_USBCTR_PLL_RST;
 	writel(val, usb2_base + USB2_USBCTR);
 
+	/* Set the maximum burst length used for a transfer request */
+	if (channel->max_burst_length > 0) {
+		val = readl(usb2_base + USB2_AHB_BUS_CTR);
+		val &= ~USB2_AHB_BUS_CTR_MAX_BURST_LEN;
+		writel(val | channel->max_burst_length,
+		       usb2_base + USB2_AHB_BUS_CTR);
+	}
+
 out:
 	/* The powered flag should be set for any other phys anyway */
 	rphy->powered = true;
@@ -562,21 +576,25 @@ static const struct phy_ops rz_g1c_phy_usb2_ops = {
 static const struct rcar_gen3_phy_drv_data rcar_gen3_phy_usb2_data = {
 	.phy_usb2_ops = &rcar_gen3_phy_usb2_ops,
 	.no_adp_ctrl = false,
+	.max_burst_length = -1,
 };
 
 static const struct rcar_gen3_phy_drv_data rz_g1c_phy_usb2_data = {
 	.phy_usb2_ops = &rz_g1c_phy_usb2_ops,
 	.no_adp_ctrl = false,
+	.max_burst_length = -1,
 };
 
 static const struct rcar_gen3_phy_drv_data rz_g2l_phy_usb2_data = {
 	.phy_usb2_ops = &rcar_gen3_phy_usb2_ops,
 	.no_adp_ctrl = true,
+	.max_burst_length = -1,
 };
 
 static const struct rcar_gen3_phy_drv_data rz_g3s_phy_usb2_data = {
 	.phy_usb2_ops = &rcar_gen3_phy_usb2_ops,
 	.no_adp_ctrl = true,
+	.max_burst_length = 2,
 };
 
 static const struct of_device_id rcar_gen3_phy_usb2_match_table[] = {
@@ -716,6 +734,8 @@ static int rcar_gen3_phy_usb2_probe(struct platform_device *pdev)
 	channel->soc_no_adp_ctrl = phy_data->no_adp_ctrl;
 	if (phy_data->no_adp_ctrl)
 		channel->obint_enable_bits = USB2_OBINT_IDCHG_EN;
+
+	channel->max_burst_length = phy_data->max_burst_length;
 
 	mutex_init(&channel->lock);
 	for (i = 0; i < NUM_OF_PHYS; i++) {
