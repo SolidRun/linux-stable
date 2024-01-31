@@ -572,11 +572,12 @@ static int rz_ssi_pio_send(struct rz_ssi_priv *ssi, struct rz_ssi_stream *strm)
 
 static irqreturn_t rz_ssi_interrupt(int irq, void *data)
 {
-	struct rz_ssi_stream *strm = NULL;
 	struct rz_ssi_priv *ssi = data;
 	u32 ssisr = rz_ssi_reg_readl(ssi, SSISR);
 
 	if (!(ssi->is_full_duplex)) {
+		struct rz_ssi_stream *strm = NULL;
+
 		if (ssi->playback.substream)
 			strm = &ssi->playback;
 		else if (ssi->capture.substream)
@@ -631,20 +632,57 @@ static irqreturn_t rz_ssi_interrupt(int irq, void *data)
 		}
 
 	} else {
+		struct rz_ssi_stream *strm_playback = NULL;
+		struct rz_ssi_stream *strm_capture = NULL;
+
+		if (ssi->playback.substream)
+			strm_playback = &ssi->playback;
+		if (ssi->capture.substream)
+			strm_capture = &ssi->capture;
+
+		if ((!strm_playback) && (!strm_capture))
+			return IRQ_HANDLED;
+
+		if (irq == ssi->irq_int) { /* error or idle */
+			if (ssi->capture.substream) {
+				if (ssisr & SSISR_RUIRQ)
+					strm_capture->uerr_num++;
+				if (ssisr & SSISR_ROIRQ)
+					strm_capture->oerr_num++;
+				rz_ssi_stop(ssi, strm_capture);
+			}
+
+			if (ssi->playback.substream) {
+				if (ssisr & SSISR_TUIRQ)
+					strm_playback->uerr_num++;
+				if (ssisr & SSISR_TOIRQ)
+					strm_playback->oerr_num++;
+				rz_ssi_stop(ssi, strm_playback);
+			}
+
+			/* Clear all flags */
+			rz_ssi_reg_mask_setl(ssi, SSISR, SSISR_TOIRQ |
+					     SSISR_TUIRQ | SSISR_ROIRQ |
+					     SSISR_RUIRQ, 0);
+
+			/* Resume */
+			if (strm_playback)
+				rz_ssi_start(ssi, &ssi->playback);
+			if (strm_capture)
+				rz_ssi_start(ssi, &ssi->capture);
+		};
+
 		/* tx data empty */
-		if (irq == ssi->irq_tx && ssi->playback.substream) {
-			strm = &ssi->playback;
-			if (strm->running)
-				strm->transfer(ssi, &ssi->playback);
+		if (irq == ssi->irq_tx && ssi->playback.substream &&
+		    strm_playback->running) {
+			strm_playback->transfer(ssi, &ssi->playback);
 		}
 
 		/* rx data full */
-		if (irq == ssi->irq_rx && ssi->capture.substream) {
-			strm = &ssi->capture;
-			if (strm->running) {
-				strm->transfer(ssi, &ssi->capture);
-				rz_ssi_reg_mask_setl(ssi, SSIFSR, SSIFSR_RDF, 0);
-			}
+		if (irq == ssi->irq_rx && ssi->capture.substream &&
+		    strm_capture->running) {
+			strm_capture->transfer(ssi, &ssi->capture);
+			rz_ssi_reg_mask_setl(ssi, SSIFSR, SSIFSR_RDF, 0);
 		}
 	}
 
@@ -800,6 +838,7 @@ static int rz_ssi_dai_trigger(struct snd_pcm_substream *substream, int cmd,
 	struct rz_ssi_priv *ssi = snd_soc_dai_get_drvdata(dai);
 	struct rz_ssi_stream *strm = rz_ssi_stream_get(ssi, substream);
 	int ret = 0, i, num_transfer = 1;
+	bool is_playback;
 
 	switch (cmd) {
 	case SNDRV_PCM_TRIGGER_START:
@@ -812,12 +851,20 @@ static int rz_ssi_dai_trigger(struct snd_pcm_substream *substream, int cmd,
 
 		rz_ssi_stream_init(strm, substream);
 
+		is_playback = rz_ssi_stream_is_play(ssi, substream);
+
+		/*
+		 * HW limitation of full duplex communication:
+		 * Must have one or more frames of serial data in the
+		 * transmit FIFO data register (SSIFTDR).
+		 * So, record should not start if have not run playback yet.
+		 */
+		if ((ssi->is_full_duplex) && (!ssi->playback.substream) &&
+		    (!is_playback))
+			return -EOPNOTSUPP;
+
 		if (rz_ssi_is_dma_enabled(ssi)) {
 			if (ssi->dma_rt) {
-				bool is_playback;
-
-				is_playback = rz_ssi_stream_is_play(ssi,
-								    substream);
 				ret = rz_ssi_dma_slave_config(ssi,
 							ssi->playback.dma_ch,
 							is_playback);
@@ -1101,21 +1148,19 @@ static int rz_ssi_probe(struct platform_device *pdev)
 	spin_lock_init(&ssi->lock);
 	dev_set_drvdata(&pdev->dev, ssi);
 
-	if (!(ssi->is_full_duplex)) {
-		/* Error Interrupt */
-		ssi->irq_int = platform_get_irq_byname(pdev, "int_req");
-		if (ssi->irq_int < 0) {
-			rz_ssi_release_dma_channels(ssi);
-			return ssi->irq_int;
-		}
+	/* Error Interrupt */
+	ssi->irq_int = platform_get_irq_byname(pdev, "int_req");
+	if (ssi->irq_int < 0) {
+		rz_ssi_release_dma_channels(ssi);
+		return ssi->irq_int;
+	}
 
-		ret = devm_request_irq(&pdev->dev, ssi->irq_int, &rz_ssi_interrupt,
-				       0, dev_name(&pdev->dev), ssi);
-		if (ret < 0) {
-			rz_ssi_release_dma_channels(ssi);
-			return dev_err_probe(&pdev->dev, ret,
-					     "irq request error (int_req)\n");
-		}
+	ret = devm_request_irq(&pdev->dev, ssi->irq_int, &rz_ssi_interrupt,
+			       0, dev_name(&pdev->dev), ssi);
+	if (ret < 0) {
+		rz_ssi_release_dma_channels(ssi);
+		return dev_err_probe(&pdev->dev, ret,
+				     "irq request error (int_req)\n");
 	}
 
 	if (!rz_ssi_is_dma_enabled(ssi)) {
