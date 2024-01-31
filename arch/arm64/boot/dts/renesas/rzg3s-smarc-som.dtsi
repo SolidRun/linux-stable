@@ -126,8 +126,6 @@
 
 	phy0: ethernet-phy@7 {
 		reg = <7>;
-		interrupt-parent = <&pinctrl>;
-		interrupts = <RZG2L_GPIO(12, 0) IRQ_TYPE_EDGE_FALLING>;
 		rxc-skew-psec = <0>;
 		txc-skew-psec = <0>;
 		rxdv-skew-psec = <0>;
@@ -140,6 +138,9 @@
 		txd1-skew-psec = <0>;
 		txd2-skew-psec = <0>;
 		txd3-skew-psec = <0>;
+
+		interrupt-parent = <&pinctrl>;
+		interrupts = <RZG2L_GPIO(12, 0) IRQ_TYPE_LEVEL_LOW>; /* RZ_IRQ0 */
 	};
 };
 
@@ -152,8 +153,6 @@
 
 	phy1: ethernet-phy@7 {
 		reg = <7>;
-		interrupt-parent = <&pinctrl>;
-		interrupts = <RZG2L_GPIO(12, 1) IRQ_TYPE_EDGE_FALLING>;
 		rxc-skew-psec = <0>;
 		txc-skew-psec = <0>;
 		rxdv-skew-psec = <0>;
@@ -166,6 +165,9 @@
 		txd1-skew-psec = <0>;
 		txd2-skew-psec = <0>;
 		txd3-skew-psec = <0>;
+
+		interrupt-parent = <&pinctrl>;
+		interrupts = <RZG2L_GPIO(12, 1) IRQ_TYPE_LEVEL_LOW>; /* RZ_IRQ1 */
 	};
 };
 #endif
@@ -309,13 +311,6 @@
 	};
 
 #if SW_CONFIG3 == SW_ON
-	eth0-phy-irq-hog {
-		gpio-hog;
-		gpios = <RZG2L_GPIO(12, 0) GPIO_ACTIVE_LOW>;
-		input;
-		line-name = "eth0-phy-irq";
-	};
-
 	eth0_pins: eth0 {
 		txc {
 			pinmux = <RZG2L_PORT_PINMUX(1, 0, 1)>;  /* ET0_TXC */
@@ -348,13 +343,6 @@
 				 <RZG2L_PORT_PINMUX(4, 5, 1)>;	/* ET0_LINKSTA */
 			power-source = <1800>;
 		};
-	};
-
-	eth1-phy-irq-hog {
-		gpio-hog;
-		gpios = <RZG2L_GPIO(12, 1) GPIO_ACTIVE_LOW>;
-		input;
-		line-name = "eth1-phy-irq";
 	};
 
 	eth1_pins: eth1 {
