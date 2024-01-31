@@ -16,9 +16,12 @@
 #include <linux/io.h>
 #include <linux/mod_devicetable.h>
 #include <linux/module.h>
+#include <linux/of_device.h>
 #include <linux/platform_device.h>
 #include <linux/pm_runtime.h>
 #include <linux/reset.h>
+
+#include <linux/iio/adc/rzg2l_adc.h>
 
 #define DRIVER_NAME		"rzg2l-adc"
 
@@ -31,14 +34,19 @@
 #define RZG2L_ADM1_MS			BIT(2)
 #define RZG2L_ADM1_BS			BIT(4)
 #define RZG2L_ADM1_EGA_MASK		GENMASK(13, 12)
-#define RZG2L_ADM2_CHSEL_MASK		GENMASK(7, 0)
+#define RZG2L_ADM2_CHSEL_MASK(adc)	\
+		reg_rzg3s(adc, GENMASK(8, 0), GENMASK(7, 0))
 #define RZG2L_ADM3_ADIL_MASK		GENMASK(31, 24)
 #define RZG2L_ADM3_ADCMP_MASK		GENMASK(23, 16)
-#define RZG2L_ADM3_ADCMP_E		FIELD_PREP(RZG2L_ADM3_ADCMP_MASK, 0xe)
-#define RZG2L_ADM3_ADSMP_MASK		GENMASK(15, 0)
+#define RZG2L_ADM3_ADCMP_E(adc)		\
+		reg_rzg3s(adc, FIELD_PREP(RZG2L_ADM3_ADCMP_MASK, 0x1d), \
+			  FIELD_PREP(RZG2L_ADM3_ADCMP_MASK, 0xe))
+#define RZG2L_ADM3_ADSMP_MASK(adc)	\
+		reg_rzg3s(adc, GENMASK(7, 0), GENMASK(15, 0))
 
 #define RZG2L_ADINT			0x20
-#define RZG2L_ADINT_INTEN_MASK		GENMASK(7, 0)
+#define RZG2L_ADINT_INTEN_MASK(adc)	\
+		reg_rzg3s(adc, GENMASK(11, 0), GENMASK(7, 0))
 #define RZG2L_ADINT_CSEEN		BIT(16)
 #define RZG2L_ADINT_INTS		BIT(31)
 
@@ -55,11 +63,19 @@
 #define RZG2L_ADCR(n)			(0x30 + ((n) * 0x4))
 #define RZG2L_ADCR_AD_MASK		GENMASK(11, 0)
 
-#define RZG2L_ADSMP_DEFAULT_SAMPLING	0x578
+#define RZG2L_ADSMP_DEFAULT_SAMPLING(adc)	reg_rzg3s(adc, 0x7F, 0x578)
 
-#define RZG2L_ADC_MAX_CHANNELS		8
-#define RZG2L_ADC_CHN_MASK		0x7
+#define RZG2L_ADC_CHN_MASK(adc)		reg_rzg3s(adc, 0xf, 0x7)
 #define RZG2L_ADC_TIMEOUT		usecs_to_jiffies(1 * 4)
+
+#define ADC_TSU_SUPPORT			BIT(0)
+
+struct rzg2l_adc_hw_info {
+	int max_channels;
+	u32 flags;
+	u8 tsu_channel;
+	u32 tsu_sampling;
+};
 
 struct rzg2l_adc_data {
 	const struct iio_chan_spec *channels;
@@ -75,8 +91,33 @@ struct rzg2l_adc {
 	struct completion completion;
 	const struct rzg2l_adc_data *data;
 	struct mutex lock;
-	u16 last_val[RZG2L_ADC_MAX_CHANNELS];
+	u16 *last_val;
+
+	const struct rzg2l_adc_hw_info *info;
 };
+
+
+static const struct rzg2l_adc_hw_info rzg2l_adc_info = {
+	.max_channels = 8,
+	.flags = 0,
+};
+
+static const struct rzg2l_adc_hw_info rzg3s_adc_info = {
+	.max_channels = 9,
+	.flags = ADC_TSU_SUPPORT,
+	.tsu_channel = 8,
+	.tsu_sampling = 0xFF,
+};
+
+static inline bool is_rzg3s(struct rzg2l_adc *adc)
+{
+	return adc->info == &rzg3s_adc_info;
+}
+
+static inline u32 reg_rzg3s(struct rzg2l_adc *adc, u32 rzg3s, u32 not_rzg3s)
+{
+	return is_rzg3s(adc) ? rzg3s : not_rzg3s;
+}
 
 static const char * const rzg2l_adc_channel_name[] = {
 	"adc0",
@@ -87,6 +128,7 @@ static const char * const rzg2l_adc_channel_name[] = {
 	"adc5",
 	"adc6",
 	"adc7",
+	"adc8",
 };
 
 static unsigned int rzg2l_adc_readl(struct rzg2l_adc *adc, u32 reg)
@@ -146,7 +188,7 @@ static void rzg2l_set_trigger(struct rzg2l_adc *adc)
 	 * Setup ADM1 for SW trigger
 	 * EGA[13:12] - Set 00 to indicate hardware trigger is invalid
 	 * BS[4] - Enable 1-buffer mode
-	 * MS[1] - Enable Select mode
+	 * MS[2] - Enable Select mode
 	 * TRG[0] - Enable software trigger mode
 	 */
 	reg = rzg2l_adc_readl(adc, RZG2L_ADM(1));
@@ -168,9 +210,20 @@ static int rzg2l_adc_conversion_setup(struct rzg2l_adc *adc, u8 ch)
 
 	/* Select analog input channel subjected to conversion. */
 	reg = rzg2l_adc_readl(adc, RZG2L_ADM(2));
-	reg &= ~RZG2L_ADM2_CHSEL_MASK;
+	reg &= ~RZG2L_ADM2_CHSEL_MASK(adc);
 	reg |= BIT(ch);
 	rzg2l_adc_writel(adc, RZG2L_ADM(2), reg);
+
+
+	/* ADC setting for TSU */
+	if (adc->info->flags & ADC_TSU_SUPPORT) {
+		reg = rzg2l_adc_readl(adc, RZG2L_ADM(3));
+		reg &= ~RZG2L_ADM3_ADSMP_MASK(adc);
+		reg |= (ch == adc->info->tsu_channel) ?
+			adc->info->tsu_sampling :
+			RZG2L_ADSMP_DEFAULT_SAMPLING(adc);
+		rzg2l_adc_writel(adc, RZG2L_ADM(3), reg);
+	}
 
 	/*
 	 * Setup ADINT
@@ -180,7 +233,7 @@ static int rzg2l_adc_conversion_setup(struct rzg2l_adc *adc, u8 ch)
 	 */
 	reg = rzg2l_adc_readl(adc, RZG2L_ADINT);
 	reg &= ~RZG2L_ADINT_INTS;
-	reg &= ~RZG2L_ADINT_INTEN_MASK;
+	reg &= ~RZG2L_ADINT_INTEN_MASK(adc);
 	reg |= (RZG2L_ADINT_CSEEN | BIT(ch));
 	rzg2l_adc_writel(adc, RZG2L_ADINT, reg);
 
@@ -217,7 +270,7 @@ static int rzg2l_adc_conversion(struct iio_dev *indio_dev, struct rzg2l_adc *adc
 
 	if (!wait_for_completion_timeout(&adc->completion, RZG2L_ADC_TIMEOUT)) {
 		rzg2l_adc_writel(adc, RZG2L_ADINT,
-				 rzg2l_adc_readl(adc, RZG2L_ADINT) & ~RZG2L_ADINT_INTEN_MASK);
+				 rzg2l_adc_readl(adc, RZG2L_ADINT) & ~RZG2L_ADINT_INTEN_MASK(adc));
 		rzg2l_adc_start_stop(adc, false);
 		rzg2l_adc_set_power(indio_dev, false);
 		return -ETIMEDOUT;
@@ -240,7 +293,7 @@ static int rzg2l_adc_read_raw(struct iio_dev *indio_dev,
 			return -EINVAL;
 
 		mutex_lock(&adc->lock);
-		ch = chan->channel & RZG2L_ADC_CHN_MASK;
+		ch = chan->channel & RZG2L_ADC_CHN_MASK(adc);
 		ret = rzg2l_adc_conversion(indio_dev, adc, ch);
 		if (ret) {
 			mutex_unlock(&adc->lock);
@@ -279,7 +332,7 @@ static irqreturn_t rzg2l_adc_isr(int irq, void *dev_id)
 	if (!intst)
 		return IRQ_NONE;
 
-	for_each_set_bit(ch, &intst, RZG2L_ADC_MAX_CHANNELS)
+	for_each_set_bit(ch, &intst, adc->info->max_channels)
 		adc->last_val[ch] = rzg2l_adc_readl(adc, RZG2L_ADCR(ch)) & RZG2L_ADCR_AD_MASK;
 
 	/* clear the channel interrupt */
@@ -289,6 +342,37 @@ static irqreturn_t rzg2l_adc_isr(int irq, void *dev_id)
 
 	return IRQ_HANDLED;
 }
+
+int rzg2l_adc_read_tsu(struct device *dev, int *val)
+{
+	struct iio_dev *indio_dev = dev_get_drvdata(dev);
+	struct rzg2l_adc *adc = iio_priv(indio_dev);
+	u8 ch;
+	int ret;
+
+	if (!indio_dev || !adc) {
+		pr_err(" TSU found no iio and adc device\n");
+		return -EINVAL;
+	}
+
+	if (adc->info->flags & ADC_TSU_SUPPORT) {
+		dev_err(dev, "TSU usage is not supported");
+		return -ENOTSUPP;
+	}
+
+	mutex_lock(&adc->lock);
+	ch = adc->info->tsu_channel & RZG2L_ADC_CHN_MASK(adc);
+	ret = rzg2l_adc_conversion(indio_dev, adc, ch);
+	if (ret) {
+		mutex_unlock(&adc->lock);
+		return ret;
+	}
+	*val = adc->last_val[ch];
+	mutex_unlock(&adc->lock);
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(rzg2l_adc_read_tsu);
 
 static int rzg2l_adc_parse_properties(struct platform_device *pdev, struct rzg2l_adc *adc)
 {
@@ -310,7 +394,7 @@ static int rzg2l_adc_parse_properties(struct platform_device *pdev, struct rzg2l
 		return -ENODEV;
 	}
 
-	if (num_channels > RZG2L_ADC_MAX_CHANNELS) {
+	if (num_channels > adc->info->max_channels) {
 		dev_err(&pdev->dev, "num of channel children out of range\n");
 		return -EINVAL;
 	}
@@ -328,7 +412,7 @@ static int rzg2l_adc_parse_properties(struct platform_device *pdev, struct rzg2l
 			return ret;
 		}
 
-		if (channel >= RZG2L_ADC_MAX_CHANNELS) {
+		if (channel >= adc->info->max_channels) {
 			fwnode_handle_put(fwnode);
 			return -EINVAL;
 		}
@@ -372,11 +456,13 @@ static int rzg2l_adc_hw_init(struct rzg2l_adc *adc)
 		usleep_range(100, 200);
 	}
 
-	/* Only division by 4 can be set */
-	reg = rzg2l_adc_readl(adc, RZG2L_ADIVC);
-	reg &= ~RZG2L_ADIVC_DIVADC_MASK;
-	reg |= RZG2L_ADIVC_DIVADC_4;
-	rzg2l_adc_writel(adc, RZG2L_ADIVC, reg);
+	/* Only division by 4 can be set (except RZ/G3S) */
+	if (!is_rzg3s(adc)) {
+		reg = rzg2l_adc_readl(adc, RZG2L_ADIVC);
+		reg &= ~RZG2L_ADIVC_DIVADC_MASK;
+		reg |= RZG2L_ADIVC_DIVADC_4;
+		rzg2l_adc_writel(adc, RZG2L_ADIVC, reg);
+	}
 
 	/*
 	 * Setup AMD3
@@ -387,8 +473,8 @@ static int rzg2l_adc_hw_init(struct rzg2l_adc *adc)
 	reg = rzg2l_adc_readl(adc, RZG2L_ADM(3));
 	reg &= ~RZG2L_ADM3_ADIL_MASK;
 	reg &= ~RZG2L_ADM3_ADCMP_MASK;
-	reg &= ~RZG2L_ADM3_ADSMP_MASK;
-	reg |= (RZG2L_ADM3_ADCMP_E | RZG2L_ADSMP_DEFAULT_SAMPLING);
+	reg &= ~RZG2L_ADM3_ADSMP_MASK(adc);
+	reg |= (RZG2L_ADM3_ADCMP_E(adc) | RZG2L_ADSMP_DEFAULT_SAMPLING(adc));
 	rzg2l_adc_writel(adc, RZG2L_ADM(3), reg);
 
 exit_hw_init:
@@ -421,6 +507,7 @@ static int rzg2l_adc_probe(struct platform_device *pdev)
 	struct device *dev = &pdev->dev;
 	struct iio_dev *indio_dev;
 	struct rzg2l_adc *adc;
+	const struct rzg2l_adc_hw_info *info;
 	int ret;
 	int irq;
 
@@ -429,6 +516,18 @@ static int rzg2l_adc_probe(struct platform_device *pdev)
 		return -ENOMEM;
 
 	adc = iio_priv(indio_dev);
+
+	info = of_device_get_match_data(dev);
+	if (!info)
+		return -EINVAL;
+
+	adc->info = info;
+
+	adc->last_val = devm_kzalloc(dev,
+				     info->max_channels * sizeof(adc->last_val),
+				     GFP_KERNEL);
+	if (!adc->last_val)
+		return -ENOMEM;
 
 	ret = rzg2l_adc_parse_properties(pdev, adc);
 	if (ret)
@@ -533,7 +632,8 @@ static int rzg2l_adc_probe(struct platform_device *pdev)
 }
 
 static const struct of_device_id rzg2l_adc_match[] = {
-	{ .compatible = "renesas,rzg2l-adc",},
+	{ .compatible = "renesas,rzg2l-adc", .data = &rzg2l_adc_info, },
+	{ .compatible = "renesas,rzg3s-adc", .data = &rzg3s_adc_info, },
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, rzg2l_adc_match);
