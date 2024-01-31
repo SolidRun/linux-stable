@@ -638,6 +638,50 @@ static const struct of_device_id rzg2l_adc_match[] = {
 };
 MODULE_DEVICE_TABLE(of, rzg2l_adc_match);
 
+static int __maybe_unused rzg2l_adc_suspend(struct device *dev)
+{
+	struct iio_dev *indio_dev = dev_get_drvdata(dev);
+	struct rzg2l_adc *adc = iio_priv(indio_dev);
+
+	reset_control_assert(adc->adrstn);
+	reset_control_assert(adc->presetn);
+
+	return pm_runtime_force_suspend(dev);
+}
+
+static int __maybe_unused rzg2l_adc_resume(struct device *dev)
+{
+	struct iio_dev *indio_dev = dev_get_drvdata(dev);
+	struct rzg2l_adc *adc = iio_priv(indio_dev);
+	int ret;
+
+	ret = pm_runtime_force_resume(dev);
+	if (ret) {
+		dev_err(dev, "Failed to force resume device, error %d\n", ret);
+		return ret;
+	}
+
+	ret = reset_control_deassert(adc->adrstn);
+	if (ret) {
+		dev_err(dev, "Failed to deassert adrstn, err %d\n", ret);
+		return PTR_ERR(adc->adrstn);
+	}
+
+	ret = reset_control_deassert(adc->presetn);
+	if (ret) {
+		dev_err(dev, "Failed to deassert presetn, err %d\n", ret);
+		return PTR_ERR(adc->presetn);
+	}
+
+	ret = rzg2l_adc_hw_init(adc);
+	if (ret) {
+		dev_err(dev, "Failed to initialize ADC, err %d\n", ret);
+		return ret;
+	}
+
+	return 0;
+}
+
 static int __maybe_unused rzg2l_adc_pm_runtime_suspend(struct device *dev)
 {
 	struct iio_dev *indio_dev = dev_get_drvdata(dev);
@@ -672,6 +716,7 @@ static int __maybe_unused rzg2l_adc_pm_runtime_resume(struct device *dev)
 }
 
 static const struct dev_pm_ops rzg2l_adc_pm_ops = {
+	SET_SYSTEM_SLEEP_PM_OPS(rzg2l_adc_suspend, rzg2l_adc_resume)
 	SET_RUNTIME_PM_OPS(rzg2l_adc_pm_runtime_suspend,
 			   rzg2l_adc_pm_runtime_resume,
 			   NULL)
