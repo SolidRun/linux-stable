@@ -52,7 +52,8 @@
 
 #define RZG2L_ADSTS			0x24
 #define RZG2L_ADSTS_CSEST		BIT(16)
-#define RZG2L_ADSTS_INTST_MASK		GENMASK(7, 0)
+#define RZG2L_ADSTS_INTST_MASK(adc)	\
+		reg_rzg3s(adc, GENMASK(8, 0), GENMASK(7, 0))
 
 #define RZG2L_ADIVC			0x28
 #define RZG2L_ADIVC_DIVADC_MASK		GENMASK(8, 0)
@@ -328,7 +329,7 @@ static irqreturn_t rzg2l_adc_isr(int irq, void *dev_id)
 		return IRQ_HANDLED;
 	}
 
-	intst = reg & RZG2L_ADSTS_INTST_MASK;
+	intst = reg & RZG2L_ADSTS_INTST_MASK(adc);
 	if (!intst)
 		return IRQ_NONE;
 
@@ -355,7 +356,7 @@ int rzg2l_adc_read_tsu(struct device *dev, int *val)
 		return -EINVAL;
 	}
 
-	if (adc->info->flags & ADC_TSU_SUPPORT) {
+	if (!(adc->info->flags & ADC_TSU_SUPPORT)) {
 		dev_err(dev, "TSU usage is not supported");
 		return -ENOTSUPP;
 	}
