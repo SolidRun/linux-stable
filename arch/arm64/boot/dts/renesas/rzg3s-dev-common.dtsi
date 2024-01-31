@@ -281,6 +281,11 @@
 	pinctrl-0 = <&sound_clk_pins>;
 	pinctrl-names = "default";
 
+
+	adc_pins: adc {
+		pinmux = <RZG2L_PORT_PINMUX(5, 1, 4)>; /* ADC_TRG */
+	};
+
 	eth0-phy-irq-hog {
 		gpio-hog;
 		gpios = <RZG2L_GPIO(15, 0) GPIO_ACTIVE_LOW>;
@@ -727,4 +732,11 @@
 			};
 		};
 	};
+};
+
+&adc {
+	pinctrl-0 = <&adc_pins>;
+	pinctrl-names = "default";
+
+	status = "okay";
 };
