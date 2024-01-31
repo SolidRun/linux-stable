@@ -256,6 +256,106 @@ static const struct of_device_id rzg3s_thermal_dt_ids[] = {
 };
 MODULE_DEVICE_TABLE(of, rzg3s_thermal_dt_ids);
 
+static int rzg3s_thermal_power_off(struct rzg3s_thermal_priv *priv)
+{
+	u32 value;
+
+	/* Disabled the thermal sensor */
+	value = rzg3s_thermal_read(priv, TSU_SM);
+	value &= ~TSU_SM_EN;
+	rzg3s_thermal_write(priv, TSU_SM, value);
+	usleep_range(30, 50);
+
+	/* Disable output signal */
+	value = rzg3s_thermal_read(priv, TSU_SM);
+	value &= ~TSU_SM_OE;
+	rzg3s_thermal_write(priv, TSU_SM, value);
+
+	usleep_range(1000, 1020);
+
+	return 0;
+}
+
+static int rzg3s_toggle_thermal_zone(struct rzg3s_thermal_priv *priv, bool on)
+{
+	struct thermal_zone_device *zone;
+	int ret;
+
+	zone = priv->zone;
+	if (on) {
+		dev_dbg(priv->dev, "Enable thermal zone device\n");
+		ret = thermal_zone_device_enable(zone);
+	} else {
+		dev_dbg(priv->dev, "Disable thermal zone device\n");
+		ret = thermal_zone_device_disable(zone);
+	}
+
+	return ret;
+}
+
+static int __maybe_unused rzg3s_thermal_suspend(struct device *dev)
+{
+	struct rzg3s_thermal_priv *priv = dev_get_drvdata(dev);
+	int ret;
+
+	/* Disable registers thermal */
+	ret = rzg3s_thermal_power_off(priv);
+	if (ret) {
+		dev_err(priv->dev, "FAIL to turn off thermal, err %d\n", ret);
+		return ret;
+	}
+
+	/* Disable reset */
+	ret = reset_control_assert(priv->rstc);
+	if (ret) {
+		dev_err(priv->dev, "FAIL to assert reset, err %d\n", ret);
+		return ret;
+	}
+
+	/* Disable thermal zone */
+	ret = rzg3s_toggle_thermal_zone(priv, false);
+	if (ret) {
+		dev_err(priv->dev,
+			"FAIL to disable thermal zone, err %d\n", ret);
+		return ret;
+	}
+
+	return 0;
+}
+
+static int __maybe_unused rzg3s_thermal_resume(struct device *dev)
+{
+	struct rzg3s_thermal_priv *priv = dev_get_drvdata(dev);
+	int ret;
+
+	/* Dessert reset thermal */
+	ret = reset_control_deassert(priv->rstc);
+	if (ret) {
+		dev_err(priv->dev, "FAILED to deassert reset, err %d\n", ret);
+		return ret;
+	}
+
+	/* Init registers thermal */
+	ret = rzg3s_thermal_init(priv);
+	if (ret) {
+		dev_err(priv->dev, "FAILED to init TSU, err %d\n", ret);
+		return ret;
+	}
+
+	/* Enable thermal zone */
+	ret = rzg3s_toggle_thermal_zone(priv, true);
+	if (ret) {
+		dev_err(priv->dev,
+			"FAILED to enable thermal zone ret = %d\n", ret);
+		return ret;
+	}
+
+	return 0;
+}
+
+static SIMPLE_DEV_PM_OPS(rzg3s_thermal_pm_ops, rzg3s_thermal_suspend,
+			 rzg3s_thermal_resume);
+
 static struct platform_driver rzg3s_thermal_driver = {
 	.driver = {
 		.name = "rzg3s_thermal",
