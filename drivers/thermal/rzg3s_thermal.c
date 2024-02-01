@@ -359,6 +359,7 @@ static SIMPLE_DEV_PM_OPS(rzg3s_thermal_pm_ops, rzg3s_thermal_suspend,
 static struct platform_driver rzg3s_thermal_driver = {
 	.driver = {
 		.name = "rzg3s_thermal",
+		.pm = &rzg3s_thermal_pm_ops,
 		.of_match_table = rzg3s_thermal_dt_ids,
 	},
 	.probe = rzg3s_thermal_probe,
