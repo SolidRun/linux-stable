@@ -96,7 +96,7 @@
 	flash: flash@0 {
 		compatible = "issi,is25lp016d", "jedec,spi-nor";
 		reg = <0>;
-		spi-max-frequency = <133000000>;
+		spi-max-frequency = <95000000>;
 		m25p,fast-read;
 		spi-cpol;
 		spi-cpha;
