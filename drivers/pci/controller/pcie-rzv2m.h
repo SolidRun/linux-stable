@@ -9,17 +9,34 @@
 #define _PCIE_RZV2M_H
 
 /* PCI Express to AXI Access */
-#define AXI_WINDOW_BASE_REG(x)					(0x1000 + ((x) * 0x10))
-	#define AXI_WINDOW_ENABLE					(0x00000001)
-#define AXI_WINDOW_MASK_REG(x)					(0x1004 + ((x) * 0x10))
-#define AXI_DESTINATION_REG(x)					(0x1008 + ((x) * 0x10))
+#define AXI_WINDOW_BASE_REG(x, has_64bits_regs)		((has_64bits_regs) ?	 \
+							(0x1000 + ((x) * 0x20)) :\
+							(0x1000 + ((x) * 0x10)))
+#define AXI_WINDOW_BASEL_REG(x)				(0x1000 + ((x) * 0x20))
+#define AXI_WINDOW_BASEU_REG(x)				(0x1004 + ((x) * 0x20))
+#define AXI_WINDOW_ENABLE				BIT(0)
+#define AXI_WINDOW_MASK_REG(x, has_64bits_regs)		((has_64bits_regs) ?	 \
+							(0x1008 + ((x) * 0x20)) :\
+							(0x1004 + ((x) * 0x10)))
+#define AXI_WINDOW_MASKL_REG(x)				(0x1008 + ((x) * 0x20))
+#define AXI_WINDOW_MASKU_REG(x)				(0x100C + ((x) * 0x20))
+#define AXI_DESTINATION_REG(x, has_64bits_regs)		((has_64bits_regs) ?	 \
+							(0x1010 + ((x) * 0x20)) :\
+							(0x1008 + ((x) * 0x10)))
+#define AXI_DESTINATIONL_REG(x)				(0x1010 + ((x) * 0x20))
+#define AXI_DESTINATIONU_REG(x)				(0x1014 + ((x) * 0x20))
 
 /* AXI to PCI Express Access */
-#define PCIE_WINDOW_BASE_REG(x)					(0x1100 + ((x) * 0x10))
-	#define PCIE_WINDOW_ENABLE					(0x00000001)
-#define PCIE_WINDOW_MASK_REG(x)					(0x1104 + ((x) * 0x10))
-#define PCIE_DESTINATION_LO_REG(x)				(0x1108 + ((x) * 0x10))
-#define PCIE_DESTINATION_HI_REG(x)				(0x110C + ((x) * 0x10))
+#define PCIE_WINDOW_BASE_REG(x, has_64bits_regs)	((has_64bits_regs) ?	\
+							(0x1100 + (x) * 0x20) :	\
+							(0x1100 + (x) * 0x10))
+#define PCIE_WINDOW_ENABLE				BIT(0)
+#define PCIE_WINDOW_MASK_REG(x, has_64bits_regs)	((has_64bits_regs) ?	\
+							(0x1108 + (x) * 0x20) :	\
+							(0x1104 + (x) * 0x10))
+#define PCIE_DESTINATION_REG(x, has_64bits_regs)	((has_64bits_regs) ?	\
+							(0x1110 + (x) * 0x20) :	\
+							(0x1108 + (x) * 0x10))
 
 /* Request Issuing */
 #define REQUEST_DATA_REG(x)						(0x0080 + ((x) * 0x04))
@@ -77,6 +94,7 @@
 
 /* Macro Control */
 #define PERMISSION_REG							0x0300
+	#define PIPE_PHY_REG_EN						0x00000002
 	#define CFG_HWINIT_EN						0x00000004
 #define PCI_RESET_REG							0x0310
 	#define RESET_ALL_DEASSERT					0x0000007F
@@ -186,6 +204,7 @@
 #define PCI_RC_VID_REG							0x6000
 #define PCI_RC_RID_CC_REG						0x6008
 	#define  REVID_CLSCODE_INIT					0xFFFFFFDF
+
 #define PCI_RC_BARMSK00L_REG					0x60A0
 	#define  BASEADR_MKL_ALLM					0xFFFFFFFF
 #define PCI_RC_BARMSK00U_REG	 				0x60A4
@@ -226,6 +245,8 @@
 	#define PCI_RC_RID_CC_ADR					0x08
 	#define PCI_PM_CAPABILITIES					0x40
 	#define PCI_RC_LINK_CONTROL_STATUS			0x70
+	#define PCI_RC_LINK_CONTROL_STATUS_LINK_WIDTH(x)	(((x) & GENMASK(25, 20)) >> 20)
+	#define PCI_RC_LINK_CONTROL_STATUS_LINK_SPEED(x)	(((x) & GENMASK(19, 16)) >> 16)
 	#define PCI_RC_BARMSK00L_ADR				0xA0
 	#define PCI_RC_BARMSK00U_ADR				0xA4
 	#define PCI_RC_BSIZE00_01_ADR				0xC8
@@ -359,11 +380,36 @@
 #define PCIE_CONF_SUB_CLASS						0x04
 #define PCIE_CONF_PROGRAMING_IF					0x00
 
+/* RZ/G3S Specific */
+#define RZG3S_SIP_SVC_SET_PCIE_RST_RSMB		0x82000013
+#define RZG3S_SYS_PCIE_RST_RSM_B		0xD74
+#define RZG3S_SYS_PCIE_RST_RSM_B_EN		BIT(0)
+#define PCI_INTX_RCV_INTERRUPT_ENABLE_REG	0x0110
+	#define MSI_RECEIVE_INTERRUPT_ENABLE	0x00000010
+	#define INTX_RECEIVE_INTERRUPT_ENABLE	0x0000000F
+#define PCI_INTX_RCV_INTERRUPT_STATUS_REG	0x0114
+	#define MSI_RECEIVE_INTERRUPT_STATUS	0x00000010
+	#define INTX_RECEIVE_INTERRUPT_STATUS	0x0000000F
+	#define ALL_RECEIVE_INTERRUPT_STATUS	0x00000001F
+#define PCI_RC_MSIRCVE(x)			(0x600 + 0x10 * (x))
+#define PCI_RC_MSIRCVE_EN			BIT(0)
+#define PCI_RC_MSIRMD(x)			(0x604 + 0x10 * (x))
+#define PCI_RC_MSIRCVMSK(x)			(0x608 + 0x10 * (x))
+#define PCI_RC_MSIRCVMSK_MSI_MASK		0xFFFFFFFF
+#define PCI_RC_MSIRCVSTAT(x)			(0x60C + 0x10 * (x))
+
 /* ----------------------------------------------------
   RAMA Area
 -------------------------------------------------------*/
-#define RAMA_ADDRESS			 				0x80100000
-#define RAMA_SIZE				 				0x32000
+#define RAMA_ADDRESS				0x80100000
+#define RAMA_SIZE				0x32000
+
+/* HW info flags */
+#define PCIE_SRAM_USE				BIT(0)
+#define PCIE_HAS_SYS_BASE			BIT(1)
+#define PCIE_HAS_PHY_BASE			BIT(2)
+#define PCIE_HAS_RST_CTRL			BIT(3)
+#define PCIE_HAS_64BITS_ADDR_REG		BIT(4)
 
 struct rzv2m_axi_window_set {
 	u32	base[RZV2M_PCI_MAX_RESOURCES];
@@ -422,9 +468,15 @@ void rzv2m_rmw(struct rzv2m_pcie *pcie, int where, u32 mask, u32 data);
 u32 rzv2m_read_conf(struct rzv2m_pcie *pcie, int where);
 void rzv2m_write_conf(struct rzv2m_pcie *pcie, u32 data, int where);
 void rzv2m_pcie_set_outbound(struct rzv2m_pcie *pcie, int win,
-			    struct resource_entry *window);
+			     struct resource_entry *window,
+			     bool has_64bits_regs);
 void rzv2m_pcie_set_inbound(struct rzv2m_pcie *pcie, u64 cpu_addr,
-			   u64 pci_addr, u64 flags, int idx, bool host);
+			    u64 pci_addr, u64 flags, int idx, bool host,
+			    bool has_64bits_regs);
+
+void rzg3s_pcie_set_inbound(struct rzv2m_pcie *pcie, u64 cpu_addr,
+			    u64 pci_addr, u64 flags, int idx, bool host,
+			    bool has_64bits_regs);
 
 u32 rzv2m_read_conf_ep(struct rzv2m_pcie *pcie, int where, u8 fn);
 void rzv2m_write_conf_ep(struct rzv2m_pcie *pcie, u32 data, int where, u8 fn);
