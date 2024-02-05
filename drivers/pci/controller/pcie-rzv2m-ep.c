@@ -586,7 +586,7 @@ static int rzv2m_pcie_ep_set_bar(struct pci_epc *epc, u8 func_no,
 	mask &= ~0xf;
 
 	rzv2m_pcie_set_inbound(pcie, cpu_addr,
-			      0x0, mask | flags, idx, false);
+			      0x0, mask | flags, idx, false, 0);
 
 	return 0;
 }
@@ -598,7 +598,7 @@ static void rzv2m_pcie_ep_clear_bar(struct pci_epc *epc, u8 fn,
 	enum pci_barno bar = epf_bar->barno;
 	u32 atu_index = ep->bar_to_atu[bar];
 
-	rzv2m_pcie_set_inbound(&ep->pcie, 0x0, 0x0, 0x0, bar, false);
+	rzv2m_pcie_set_inbound(&ep->pcie, 0x0, 0x0, 0x0, bar, false, 0);
 
 	clear_bit(atu_index, ep->ib_window_map);
 	clear_bit(atu_index + 1, ep->ib_window_map);
@@ -676,7 +676,7 @@ static int rzv2m_pcie_ep_map_addr(struct pci_epc *epc, u8 fn,
 	res.flags = IORESOURCE_MEM;
 	win.res = &res;
 
-	rzv2m_pcie_set_outbound(pcie, window, &win);
+	rzv2m_pcie_set_outbound(pcie, window, &win, 0);
 
 	ep->ob_mapped_addr[window] = addr;
 
@@ -701,7 +701,7 @@ static void rzv2m_pcie_ep_unmap_addr(struct pci_epc *epc, u8 fn,
 	memset(&win, 0x0, sizeof(win));
 	memset(&res, 0x0, sizeof(res));
 	win.res = &res;
-	rzv2m_pcie_set_outbound(&ep->pcie, idx, &win);
+	rzv2m_pcie_set_outbound(&ep->pcie, idx, &win, 0);
 
 	ep->ob_mapped_addr[idx] = 0;
 }
