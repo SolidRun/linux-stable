@@ -282,6 +282,11 @@
 			 <RZG2L_PORT_PINMUX(15, 2, 1)>, /* MISO */
 			 <RZG2L_PORT_PINMUX(15, 3, 1)>; /* SSL */
 	};
+
+	pcie0_pins: pcie0 {
+		pinmux = <RZG2L_PORT_PINMUX(13, 3, 2)>, /* PCIE_CLKREQ_N */
+			 <RZG2L_PORT_PINMUX(13, 2, 2)>; /* PCIE_RST_OUT# */
+	};
 };
 
 &gpt0 {
@@ -436,4 +441,11 @@
 		};
 	};
 #endif
+};
+
+&pcie0 {
+	status = "okay";
+
+	pinctrl-0 = <&pcie0_pins>;
+	pinctrl-names = "default";
 };
