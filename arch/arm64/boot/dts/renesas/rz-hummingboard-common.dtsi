@@ -89,9 +89,14 @@
 };
 
 &canfd {
-	/delete-property/ pinctrl-0;
-	/delete-property/ pinctrl-names;
+	pinctrl-0 = <&can1_pins>;
+	pinctrl-names = "default";
 	status = "disabled";
+	/delete-node/ channel0;
+	channel1 {
+		renesas,channel = <1>;
+		status = "okay";
+	};
 };
 
 &cru {
