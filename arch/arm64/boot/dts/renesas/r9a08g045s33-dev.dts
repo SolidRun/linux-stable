@@ -30,3 +30,9 @@
 	compatible = "renesas,r9a08g045",
 		     "renesas,r9a08g045s33", "renesas,r9a08g045s33-dev";
 };
+
+&pcie0 {
+	pinctrl-0 = <&pcie0_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+};
