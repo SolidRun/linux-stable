@@ -9,7 +9,9 @@
  * Copyright (C) 2014 Cogent Embedded, Inc.
  */
 
+#if (defined(CONFIG_ARM) || defined(CONFIG_ARM64))
 #include <linux/arm-smccc.h>
+#endif
 #include <linux/extcon-provider.h>
 #include <linux/interrupt.h>
 #include <linux/io.h>
@@ -568,22 +570,26 @@ out:
 
 static int rz_g3s_phy_usb2_power_on(struct phy *p)
 {
+#if (defined(CONFIG_ARM) || defined(CONFIG_ARM64))
 	struct arm_smccc_res local_res;
 
 	/* Turning on the USB region power */
 	arm_smccc_smc(RZG3S_SIP_SVC_SET_USB_PWRRDY, RZG3S_SYS_USB_PWRRDY,
 		      RZG3S_SYS_USB_PWRRDY_PWRRDY, 0, 0, 0, 0, 0, &local_res);
+#endif
 
 	return rcar_gen3_phy_usb2_power_on(p);
 }
 
 static int rz_g3s_phy_usb2_power_off(struct phy *p)
 {
+#if (defined(CONFIG_ARM) || defined(CONFIG_ARM64))
 	struct arm_smccc_res local_res;
 
 	/* Turning off the USB region power */
 	arm_smccc_smc(RZG3S_SIP_SVC_SET_USB_PWRRDY, RZG3S_SYS_USB_PWRRDY,
 		      RZG3S_SYS_USB_PWRRDY_PWRRDY_N, 0, 0, 0, 0, 0, &local_res);
+#endif
 
 	return rcar_gen3_phy_usb2_power_off(p);
 }
