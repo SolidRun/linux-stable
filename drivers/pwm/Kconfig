@@ -442,6 +442,16 @@ config PWM_PXA
 	  To compile this driver as a module, choose M here: the module
 	  will be called pwm-pxa.
 
+config GPT_RZG2L
+	tristate "RZ/G2L gpt support"
+	depends on HAS_IOMEM
+	help
+	  This driver exposes the General PWM Timer (GPT) controller found
+	  in RZ/G2L through the PWM API.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called gpt-rzg2l.
+
 config PWM_RASPBERRYPI_POE
 	tristate "Raspberry Pi Firwmware PoE Hat PWM support"
 	# Make sure not 'y' when RASPBERRYPI_FIRMWARE is 'm'. This can only
