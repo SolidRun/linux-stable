@@ -61,18 +61,18 @@
 #define TRIANGLE_WAVE_MODE2	(0x05<<16)
 #define TRIANGLE_WAVE_MODE3	(0x06<<16)
 #define GTCR_MODE_MASK		(0x7<<16)
-#define GTCR_PRESCALE_MASK	(0x7<<24)
-#define GTIOR_CHANNEL_B_OUTPUT_MASK	(0x01FF<<16)
+#define GTIOR_OBE		BIT(24)
+#define GTIOR_CHANNEL_B_OUTPUT_MASK		(0x01FF<<16)
 #define GTIOB_OUTPUT_HIGH_END_TOGGLE_COMPARE	(0x11B<<16)
 #define GTIOB_OUTPUT_LOW_END_TOGGLE_COMPARE	(0x147<<16)
 /* GTIOR.GTIOB = 11001 */
 /* GTIOR.OBE = 1 */
-#define GTIOR_CHANNEL_A_OUTPUT_MASK	0x01FF
+#define GTIOR_OAE		BIT(8)
+#define GTIOR_CHANNEL_A_OUTPUT_MASK		0x01FF
 #define GTIOA_OUTPUT_HIGH_END_TOGGLE_COMPARE	0x11B
 #define GTIOA_OUTPUT_LOW_END_TOGGLE_COMPARE	0x147
 #define GTCR_CST	0x00000001
 #define UP_COUNTING	3
-#define P0_1024		(0x05<<24)
 #define INPUT_CAP_GTIOB_BOTH_EDGE	0x0000F000
 #define INPUT_CAP_GTIOB_RISING_EDGE	0x00003000
 #define INPUT_CAP_GTIOB_FALLING_EDGE	0x0000C000
@@ -80,17 +80,17 @@
 #define INPUT_CAP_GTIOA_RISING_EDGE	0x00000300
 #define INPUT_CAP_GTIOA_FALLING_EDGE	0x00000C00
 #define NOISE_FILT_BEN	(1<<29)
-#define NOISE_FILT_B_P0_64	(0x11<<30)
+#define NOISE_FILT_B_P0_64	(0x3<<30)
 #define NOISE_FILT_AEN	(1<<13)
-#define NOISE_FILT_A_P0_64	(0x11<<14)
+#define NOISE_FILT_A_P0_64	(0x3<<14)
 #define GTINTB	(1<<1)
 #define GTINTA	(1<<0)
 #define TCFB	(1<<1)
 #define TCFA	(1<<0)
 #define TCFPO	(1<<6)
-#define GTINTPROV	(0x01<<6)
+#define GTINTPROV		(0x01<<6)
 #define GTINTAD_GTINTPR_MASK	(3<<6)
-#define CCRSWT	(1<<22)
+#define CCRSWT			(1<<22)
 #define GTCCRB_BUFFER_SINGLE	(0x01<<18)
 #define GTCCRB_BUFFER_DOUBLE	(1<<19)
 #define GTCCRA_BUFFER_SINGLE	(0x01<<16)
@@ -124,6 +124,54 @@
 #define IOCF		(1 << 1)
 
 #define NR_GPT_OPERATION	6
+
+struct prescale_info {
+       u32 prescale_mask;      /* Mask of prescaler */
+       u32 prescale;           /* Core clock divide */
+       int *prescale_arr;      /* Array Clock Divide */
+       int n_prescale;         /* Related to number of prescale */
+       int shift_prescale;
+};
+
+struct rz_gpt_data_cfg {
+       bool has_ovf_irq;
+       struct prescale_info *presc;
+};
+
+unsigned int rzg2l_prescale_arr[] = {1, 4, 16, 64, 256, 1024};
+unsigned int rzv2h_prescale_arr[] = {1, 2, 4, 8, 16, 32, 64, 64, 256, 256, 1024};
+
+static struct prescale_info rzg2l_prescale_info = {
+       .prescale_mask = GENMASK(26,24),
+       .prescale = 0x05,
+       .prescale_arr = rzg2l_prescale_arr,
+       .n_prescale = ARRAY_SIZE(rzg2l_prescale_arr),
+       .shift_prescale = 24,
+};
+
+static struct prescale_info rzv2h_prescale_info = {
+       .prescale_mask = GENMASK(26,23),
+       .prescale = 0x0a,
+       .prescale_arr = rzv2h_prescale_arr,
+       .n_prescale = ARRAY_SIZE(rzv2h_prescale_arr),
+       .shift_prescale = 23,
+};
+
+static const struct rz_gpt_data_cfg rzg2l_cfg = {
+       .has_ovf_irq = true,
+       .presc = &rzg2l_prescale_info,
+};
+
+static const struct rz_gpt_data_cfg rzv2h_cfg = {
+       .has_ovf_irq = false,
+       .presc = &rzv2h_prescale_info,
+};
+
+static const char *const gpt_channel_enum[] = {
+       "channel_A",
+       "channel_B",
+       "both_AB",
+};
 
 static const char *const gpt_operation_enum[] = {
 	"normal_output",
@@ -334,6 +382,7 @@ struct rzg2l_gpt_chip {
 	struct reset_control *rstc;
 	wait_queue_head_t wait;
 	struct mutex mutex;
+	const struct rz_gpt_data_cfg *cfg;
 	u64 snapshot[3];
 	unsigned int index;
 	unsigned int overflow_count, buffer_mode_count_A, buffer_mode_count_B;
@@ -395,6 +444,7 @@ static u32 rzg2l_gpt_read_mask(struct rzg2l_gpt_chip *pc, u32 mask,
 static int rzg2l_calculate_prescale(struct rzg2l_gpt_chip *pc,
 						int period_ns)
 {
+	int *ps_arr = pc->cfg->presc->prescale_arr;
 	unsigned long long c, clk_rate;
 	unsigned long period_cycles;
 	int prescale;
@@ -406,31 +456,17 @@ static int rzg2l_calculate_prescale(struct rzg2l_gpt_chip *pc,
 	period_cycles = c;
 	if (period_cycles < 1)
 		period_cycles = 1;
-	/* prescale 1,4,16,64 */
-	/* 1 Dividing */
-	if ((period_cycles / GTPR_MAX_VALUE) == 0) {
-		prescale = 0;
-	/* 4 Dividing */
-	} else if ((period_cycles / (GTPR_MAX_VALUE * 4)) == 0) {
-		prescale = 1;
-	/* 16 Dividing */
-	} else if ((period_cycles / (GTPR_MAX_VALUE * 16)) == 0) {
-		prescale = 2;
-	/* 64 Dividing */
-	} else if ((period_cycles / (GTPR_MAX_VALUE * 64)) == 0) {
-		prescale = 3;
-	/* 256 Dividing */
-	} else if ((period_cycles / (GTPR_MAX_VALUE * 256)) == 0) {
-		prescale = 4;
-	/* 1024 Dividing */
-	} else if ((period_cycles / (GTPR_MAX_VALUE * 1024)) == 0) {
-		prescale = 5;
-	} else {
-		dev_err(pc->chip.dev, "gpt-rzg2l prescale over!!\n");
-		return -1;
+
+	for (prescale = 0; prescale <= pc->cfg->presc->n_prescale; prescale++) {
+		if (prescale == pc->cfg->presc->n_prescale)
+			break;
+
+		if (period_cycles / (GTPR_MAX_VALUE * ps_arr[prescale]) == 0)
+			return prescale;
 	}
 
-	return prescale;
+	dev_err(pc->chip.dev, "gpt prescale over!!\n");
+	return -1;
 }
 
 static unsigned long
@@ -448,26 +484,7 @@ rzg2l_time_to_tick_number(struct rzg2l_gpt_chip *pc, int time_ns,
 	if (period_cycles < 1)
 		period_cycles = 1;
 
-	switch (prescale) {
-	case 0:
-		period_cycles /= 1;
-		break;
-	case 1:
-		period_cycles /= 4;
-		break;
-	case 2:
-		period_cycles /= 16;
-		break;
-	case 3:
-		period_cycles /= 64;
-		break;
-	case 4:
-		period_cycles /= 256;
-		break;
-	case 5:
-		period_cycles /= 1024;
-		break;
-	}
+	period_cycles = period_cycles / pc->cfg->presc->prescale_arr[prescale];
 
 	return period_cycles;
 }
@@ -483,26 +500,7 @@ rzg2l_tick_number_to_time(struct rzg2l_gpt_chip *pc, u32 tick_number,
 	do_div(c, clk_rate);
 	time_ns = c;
 
-	switch (prescale) {
-	case 0:
-		time_ns *= 1;
-		break;
-	case 1:
-		time_ns *= 4;
-		break;
-	case 2:
-		time_ns *= 16;
-		break;
-	case 3:
-		time_ns *= 64;
-		break;
-	case 4:
-		time_ns *= 256;
-		break;
-	case 5:
-		time_ns *= 1024;
-		break;
-	}
+	time_ns = time_ns * pc->cfg->presc->prescale_arr[prescale];
 
 	return time_ns;
 }
@@ -567,6 +565,7 @@ static int rzg2l_gpt_config(struct pwm_chip *chip, struct pwm_device *pwm,
 				int duty_ns, int period_ns)
 {
 	struct rzg2l_gpt_chip *pc = to_rzg2l_gpt_chip(chip);
+	u32 prescale_mask = pc->cfg->presc->prescale_mask;
 	unsigned long pv, dc;
 	int prescale;
 
@@ -581,7 +580,8 @@ static int rzg2l_gpt_config(struct pwm_chip *chip, struct pwm_device *pwm,
 	}
 
 	if ((duty_ns > 0) && (pc->channel == BOTH_AB)) {
-		dev_err(chip->dev, "In both channel A and B output please set duty cycle via buff\n");
+		 dev_err(chip->dev, "In both channel A and B output please set duty cycle via buff\n");
+
 		return -EINVAL;
 	}
 
@@ -602,7 +602,8 @@ static int rzg2l_gpt_config(struct pwm_chip *chip, struct pwm_device *pwm,
 		rzg2l_gpt_write_mask(pc, SAW_WAVE, GTCR_MODE_MASK, GTCR);
 
 	/* Set prescale for GPT */
-	rzg2l_gpt_write_mask(pc, (prescale<<24), GTCR_PRESCALE_MASK, GTCR);
+	rzg2l_gpt_write_mask(pc, prescale << pc->cfg->presc->shift_prescale,
+				 prescale_mask, GTCR);
 	/* Set counting mode */
 	rzg2l_gpt_write(pc, UP_COUNTING, GTUDDTYC); //up-counting
 	/* Set period */
@@ -674,9 +675,12 @@ rzg2l_gpt_capture(struct pwm_chip *chip, struct pwm_device *pwm,
 	pc->overflow_count = 0;
 
 	/* Prepare capture measurement */
-	/* Set operating mode GTCR.MD[2:0] and count clock GTCR.TPCS[2:0]*/
+	/* Set operating mode GTCR.MD[2:0] and count clock GTCR.TPCS[2:0]
+	   In V2H and V2H SoCs count clock GTCR.TPCS[3:0]
+	*/
 	//Using lowest frequency P0/1024 to avoid overflow
-	rzg2l_gpt_write(pc, SAW_WAVE|P0_1024, GTCR);
+	rzg2l_gpt_write(pc, SAW_WAVE |
+		(pc->cfg->presc->prescale << pc->cfg->presc->shift_prescale), GTCR);
 	/* Set count direction with GTUDDTYC[1:0]*/
 	rzg2l_gpt_write(pc, UP_COUNTING, GTUDDTYC); //up-counting
 	/* Set cycle in GTPR */
@@ -764,14 +768,35 @@ static int rzg2l_gpt_set_polarity(struct pwm_chip *chip, struct pwm_device *pwm,
 	return 0;
 }
 
+static int rzg2l_gpt_apply(struct pwm_chip *chip, struct pwm_device *pwm,
+				const struct pwm_state *state)
+{
+	if (state->polarity != pwm->state.polarity)
+               rzg2l_gpt_set_polarity(chip, pwm, state->polarity);
+
+	if (state->period != pwm->state.period ||
+	    state->duty_cycle != pwm->state.duty_cycle) {
+		rzg2l_gpt_config(chip, pwm, state->duty_cycle, state->period);
+
+		if (state->enabled)
+			rzg2l_gpt_enable(chip, pwm);
+	}
+
+	if (state->enabled != pwm->state.enabled) {
+		if (state->enabled)
+			rzg2l_gpt_enable(chip, pwm);
+		else
+			rzg2l_gpt_disable(chip, pwm);
+	}
+
+	return 0;
+}
+
 static const struct pwm_ops rzg2l_gpt_ops = {
 	.request = rzg2l_gpt_request,
 	.free = rzg2l_gpt_free,
 	.capture = rzg2l_gpt_capture,
-	.config = rzg2l_gpt_config,
-	.set_polarity = rzg2l_gpt_set_polarity,
-	.enable = rzg2l_gpt_enable,
-	.disable = rzg2l_gpt_disable,
+	.apply = rzg2l_gpt_apply,
 	.owner = THIS_MODULE,
 };
 
@@ -1103,10 +1128,10 @@ static const struct iio_chan_spec_ext_info rzg2l_gpt_cnt_ext_info[] = {
 	},
 	IIO_ENUM("counter_mode", IIO_SEPARATE,
 		 &rzg2l_gpt_counter_mode_en),
-	IIO_ENUM_AVAILABLE("counter_mode", &rzg2l_gpt_counter_mode_en),
+	IIO_ENUM_AVAILABLE("counter_mode", IIO_SEPARATE, &rzg2l_gpt_counter_mode_en),
 	IIO_ENUM("reset_counter", IIO_SEPARATE,
 		&rzg2l_gpt_reset_counter_en),
-	IIO_ENUM_AVAILABLE("reset_counter", &rzg2l_gpt_reset_counter_en),
+	IIO_ENUM_AVAILABLE("reset_counter", IIO_SEPARATE, &rzg2l_gpt_reset_counter_en),
 	{}
 };
 
@@ -1339,7 +1364,8 @@ static ssize_t buffA0_store(struct device *dev, struct device_attribute *attr,
 
 	mutex_lock(&pc->mutex);
 
-	prescale = rzg2l_gpt_read(pc, GTCR) >> 24;
+	prescale = rzg2l_gpt_read(pc, GTCR) >> (pc->cfg->presc->shift_prescale);
+
 	pc->bufferA[0] = rzg2l_time_to_tick_number(pc, val, prescale);
 
 	/*Set compare match value in GTCCRA*/
@@ -1358,7 +1384,8 @@ static ssize_t buffA0_show(struct device *dev, struct device_attribute *attr,
 	unsigned long prescale, read_data;
 	unsigned long long time_ns;
 
-	prescale = rzg2l_gpt_read(pc, GTCR) >> 24;
+	prescale = rzg2l_gpt_read(pc, GTCR) >> (pc->cfg->presc->shift_prescale);
+
 	read_data = rzg2l_gpt_read(pc, GTCCRA);
 
 	if (pc->gpt_operation == DEADTIME_OUTPUT)
@@ -1406,7 +1433,8 @@ static ssize_t buffB0_store(struct device *dev, struct device_attribute *attr,
 
 	mutex_lock(&pc->mutex);
 
-	prescale = rzg2l_gpt_read(pc, GTCR) >> 24;
+	prescale = rzg2l_gpt_read(pc, GTCR) >> (pc->cfg->presc->shift_prescale);
+
 	pc->bufferB[0] = rzg2l_time_to_tick_number(pc, val, prescale);
 
 	/*Set compare match value in GTCCRB*/
@@ -1425,7 +1453,8 @@ static ssize_t buffB0_show(struct device *dev, struct device_attribute *attr,
 	unsigned long prescale, read_data;
 	unsigned long long time_ns;
 
-	prescale = rzg2l_gpt_read(pc, GTCR) >> 24;
+	prescale = rzg2l_gpt_read(pc, GTCR) >> (pc->cfg->presc->shift_prescale);
+
 	read_data = rzg2l_gpt_read(pc, GTCCRB);
 
 	if (pc->gpt_operation == DEADTIME_OUTPUT)
@@ -1473,7 +1502,8 @@ static ssize_t buffA1_store(struct device *dev, struct device_attribute *attr,
 
 	mutex_lock(&pc->mutex);
 
-	prescale = rzg2l_gpt_read(pc, GTCR) >> 24;
+	prescale = rzg2l_gpt_read(pc, GTCR) >> (pc->cfg->presc->shift_prescale);
+
 	pc->bufferA[1] = rzg2l_time_to_tick_number(pc, val, prescale);
 
 	/* Set buffer value for A in GTCCRC(single), GTCCRD(double)*/
@@ -1493,7 +1523,8 @@ static ssize_t buffA1_show(struct device *dev, struct device_attribute *attr,
 	unsigned long prescale;
 	unsigned long long time_ns;
 
-	prescale = rzg2l_gpt_read(pc, GTCR) >> 24;
+	prescale = rzg2l_gpt_read(pc, GTCR) >> (pc->cfg->presc->shift_prescale);
+
 	time_ns = rzg2l_tick_number_to_time(pc, pc->bufferA[1], prescale);
 
 	return sprintf(buf, "%llu\n", time_ns);
@@ -1534,7 +1565,8 @@ static ssize_t buffB1_store(struct device *dev, struct device_attribute *attr,
 
 	mutex_lock(&pc->mutex);
 
-	prescale = rzg2l_gpt_read(pc, GTCR) >> 24;
+	prescale = rzg2l_gpt_read(pc, GTCR) >> (pc->cfg->presc->shift_prescale);
+
 	pc->bufferB[1] = rzg2l_time_to_tick_number(pc, val, prescale);
 
 	/* Set buffer value for B in GTCCRE(single), GTCCRF(double)*/
@@ -1558,7 +1590,8 @@ static ssize_t buffB1_show(struct device *dev, struct device_attribute *attr,
 		return -EINVAL;
 	}
 
-	prescale = rzg2l_gpt_read(pc, GTCR) >> 24;
+	prescale = rzg2l_gpt_read(pc, GTCR) >> (pc->cfg->presc->shift_prescale);
+
 	time_ns = rzg2l_tick_number_to_time(pc, pc->bufferB[1], prescale);
 
 	return sprintf(buf, "%llu\n", time_ns);
@@ -1599,7 +1632,7 @@ static ssize_t buffA2_store(struct device *dev, struct device_attribute *attr,
 
 	mutex_lock(&pc->mutex);
 
-	prescale = rzg2l_gpt_read(pc, GTCR) >> 24;
+	prescale = rzg2l_gpt_read(pc, GTCR) >> (pc->cfg->presc->shift_prescale);
 
 	if (pc->gpt_operation == DEADTIME_OUTPUT) {
 		time_A1 = rzg2l_tick_number_to_time(pc,
@@ -1629,7 +1662,8 @@ static ssize_t buffA2_show(struct device *dev, struct device_attribute *attr,
 	unsigned long prescale;
 	unsigned long long time_ns;
 
-	prescale = rzg2l_gpt_read(pc, GTCR) >> 24;
+	prescale = rzg2l_gpt_read(pc, GTCR) >> (pc->cfg->presc->shift_prescale);
+
 	time_ns = rzg2l_tick_number_to_time(pc, pc->bufferA[2], prescale);
 
 	return sprintf(buf, "%llu\n", time_ns);
@@ -1669,7 +1703,8 @@ static ssize_t buffB2_store(struct device *dev, struct device_attribute *attr,
 
 	mutex_lock(&pc->mutex);
 
-	prescale = rzg2l_gpt_read(pc, GTCR) >> 24;
+	prescale = rzg2l_gpt_read(pc, GTCR) >> (pc->cfg->presc->shift_prescale);
+
 	pc->bufferB[2] = rzg2l_time_to_tick_number(pc, val, prescale);
 
 	/* Set buffer value for B in GTCCRE(single), GTCCRF(double)*/
@@ -1693,7 +1728,8 @@ static ssize_t buffB2_show(struct device *dev, struct device_attribute *attr,
 		return -EINVAL;
 	}
 
-	prescale = rzg2l_gpt_read(pc, GTCR) >> 24;
+	prescale = rzg2l_gpt_read(pc, GTCR) >> (pc->cfg->presc->shift_prescale);
+
 	time_ns = rzg2l_tick_number_to_time(pc, pc->bufferB[2], prescale);
 
 	return sprintf(buf, "%llu\n", time_ns);
@@ -1826,7 +1862,8 @@ static ssize_t deadtime_first_store(struct device *dev,
 
 	mutex_lock(&pc->mutex);
 
-	prescale = rzg2l_gpt_read(pc, GTCR) >> 24;
+	prescale = rzg2l_gpt_read(pc, GTCR) >> (pc->cfg->presc->shift_prescale);
+
 	if (!val)
 		pc->deadtime_first = 0;
 	else
@@ -1849,7 +1886,7 @@ static ssize_t deadtime_first_show(struct device *dev,
 	unsigned long prescale;
 	unsigned long long time_ns;
 
-	prescale = rzg2l_gpt_read(pc, GTCR) >> 24;
+	prescale = rzg2l_gpt_read(pc, GTCR) >> (pc->cfg->presc->shift_prescale);
 
 	if (!pc->deadtime_first)
 		time_ns = 0;
@@ -1885,7 +1922,8 @@ static ssize_t deadtime_second_store(struct device *dev,
 
 	mutex_lock(&pc->mutex);
 
-	prescale = rzg2l_gpt_read(pc, GTCR) >> 24;
+	prescale = rzg2l_gpt_read(pc, GTCR) >> (pc->cfg->presc->shift_prescale);
+
 	if (!val)
 		pc->deadtime_second = 0;
 	else
@@ -1908,7 +1946,7 @@ static ssize_t deadtime_second_show(struct device *dev,
 	unsigned long prescale;
 	unsigned long long time_ns;
 
-	prescale = rzg2l_gpt_read(pc, GTCR) >> 24;
+	prescale = rzg2l_gpt_read(pc, GTCR) >> (pc->cfg->presc->shift_prescale);
 
 	if (pc->gpt_operation != DEADTIME_OUTPUT)
 		time_ns = 0;
@@ -1917,6 +1955,59 @@ static ssize_t deadtime_second_show(struct device *dev,
 				pc->deadtime_second, prescale);
 
 	return sprintf(buf, "%llu\n", time_ns);
+}
+
+static ssize_t gpt_channel_available_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	unsigned int i;
+	size_t len = 0;
+
+	for (i = 0; i < NR_CHANNEL; i++)
+		len += sysfs_emit_at(buf, len, "%s ", gpt_channel_enum[i]);
+
+	/* replace last space with a newline */
+	buf[len - 1] = '\n';
+
+	return len;
+}
+
+static ssize_t gpt_channel_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	struct platform_device *pdev = to_platform_device(dev);
+	struct rzg2l_gpt_chip *pc = platform_get_drvdata(pdev);
+	int ret;
+
+	if (!pc->enable_clock) {
+		dev_err(pc->chip.dev, "Please export pwm module to enable clock first\n");
+		return -EINVAL;
+	}
+
+	ret = sysfs_match_string(gpt_channel_enum, buf);
+	if (ret < 0)
+		return ret;
+
+	mutex_lock(&pc->mutex);
+
+	pc->channel = ret;
+	/* Enablei/disable pin output */
+	rzg2l_gpt_write_mask(pc,
+	channel_set[pc->channel].phase.polar[pc->channel_polar[pc->channel]],
+	channel_set[pc->channel].phase.mask, GTIOR);
+
+	mutex_unlock(&pc->mutex);
+
+	return count;
+}
+
+static ssize_t gpt_channel_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct platform_device *pdev = to_platform_device(dev);
+	struct rzg2l_gpt_chip *pc = platform_get_drvdata(pdev);
+
+	return sysfs_emit(buf, "%s\n", gpt_channel_enum[pc->channel]);
 }
 
 static ssize_t gpt_operation_available_show(struct device *dev,
@@ -1939,6 +2030,7 @@ static ssize_t gpt_operation_store(struct device *dev,
 {
 	struct platform_device *pdev = to_platform_device(dev);
 	struct rzg2l_gpt_chip *pc = platform_get_drvdata(pdev);
+	const struct rz_gpt_data_cfg *dreg = pc->cfg;
 	int ret;
 
 	if (!pc->enable_clock) {
@@ -2007,7 +2099,7 @@ static ssize_t gpt_operation_store(struct device *dev,
 		/* Saw wave mode */
 		rzg2l_gpt_write_mask(pc, SAW_WAVE, GTCR_MODE_MASK, GTCR);
 		/* Maximum frequency*/
-		rzg2l_gpt_write_mask(pc, 0, GTCR_PRESCALE_MASK, GTCR);
+		rzg2l_gpt_write_mask(pc, 0, dreg->presc->prescale_mask, GTCR);
 		/* Default period */
 		rzg2l_gpt_write(pc, GTPR_MAX_VALUE, GTPR);
 		/* Set initial value for counter */
@@ -2170,6 +2262,8 @@ static DEVICE_ATTR_RW(polarityA);
 static DEVICE_ATTR_RW(polarityB);
 static DEVICE_ATTR_RW(deadtime_first);
 static DEVICE_ATTR_RW(deadtime_second);
+static DEVICE_ATTR_RO(gpt_channel_available);
+static DEVICE_ATTR_RW(gpt_channel);
 static DEVICE_ATTR_RO(gpt_operation_available);
 static DEVICE_ATTR_RW(gpt_operation);
 static DEVICE_ATTR_RO(POEG_available);
@@ -2187,6 +2281,8 @@ static struct attribute *buffer_attrs[] = {
 	&dev_attr_polarityB.attr,
 	&dev_attr_deadtime_first.attr,
 	&dev_attr_deadtime_second.attr,
+	&dev_attr_gpt_channel_available.attr,
+	&dev_attr_gpt_channel.attr,
 	&dev_attr_gpt_operation_available.attr,
 	&dev_attr_gpt_operation.attr,
 	&dev_attr_POEG_available.attr,
@@ -2214,6 +2310,8 @@ static int rzg2l_gpt_probe(struct platform_device *pdev)
 		return -ENOMEM;
 
 	rzg2l_gpt = iio_priv(indio_dev);
+
+	rzg2l_gpt->cfg = device_get_match_data(&pdev->dev);
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (res == NULL) {
@@ -2310,17 +2408,20 @@ static int rzg2l_gpt_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-	irq = platform_get_irq_byname(pdev, "gtciv");
-	if (irq < 0) {
-		dev_err(&pdev->dev, "Failed to obtain IRQ\n");
-		return irq;
-	}
 
-	ret = devm_request_irq(&pdev->dev, irq, gpt_gtciv_interrupt, 0,
-				dev_name(&pdev->dev), rzg2l_gpt);
-	if (ret < 0) {
-		dev_err(&pdev->dev, "Failed to request IRQ\n");
-		return ret;
+	if (rzg2l_gpt->cfg->has_ovf_irq) {
+		irq = platform_get_irq_byname(pdev, "gtciv");
+		if (irq < 0) {
+			dev_err(&pdev->dev, "Failed to obtain IRQ\n");
+			return irq;
+		}
+
+		ret = devm_request_irq(&pdev->dev, irq, gpt_gtciv_interrupt, 0,
+					dev_name(&pdev->dev), rzg2l_gpt);
+		if (ret < 0) {
+			dev_err(&pdev->dev, "Failed to request IRQ\n");
+			return ret;
+		}
 	}
 
 	ret = of_property_read_string(pdev->dev.of_node, "channel",
@@ -2385,11 +2486,15 @@ static int rzg2l_gpt_remove(struct platform_device *pdev)
 	sysfs_remove_group(&rzg2l_gpt->chip.dev->kobj, &buffer_attr_group);
 	pm_runtime_disable(&pdev->dev);
 
-	return pwmchip_remove(&rzg2l_gpt->chip);
+	pwmchip_remove(&rzg2l_gpt->chip);
+
+	return 0;
 }
 
 static const struct of_device_id rzg2l_gpt_of_table[] = {
-	{ .compatible = "renesas,gpt-r9a07g044", },
+	{ .compatible = "renesas,gpt-r9a07g044", .data = &rzg2l_cfg,},
+	{ .compatible = "renesas,gpt-r9a09g057", .data = &rzv2h_cfg,},
+	{ .compatible = "renesas,gpt-r9a09g047", .data = &rzv2h_cfg,},
 	{ },
 };
 
