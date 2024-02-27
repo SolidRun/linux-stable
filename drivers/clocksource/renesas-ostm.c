@@ -46,6 +46,7 @@ static struct ostm_clksrc {
 	void __iomem *system_clock;
 	struct timer_of *to;
 	struct clocksource clksrc;
+	struct reset_control *rstc;
 } *ostm_clksrc;
 
 static void ostm_timer_stop(struct timer_of *to)
@@ -63,15 +64,34 @@ static void ostm_timer_stop(struct timer_of *to)
 	}
 }
 
+static void ostm_clksrc_suspend(struct clocksource *c)
+{
+	struct ostm_clksrc *ostm_clksrc =
+			container_of(c, struct ostm_clksrc, clksrc);
+	struct timer_of *to = ostm_clksrc->to;
+
+	clk_disable_unprepare(to->of_clk.clk);
+	reset_control_assert(ostm_clksrc->rstc);
+}
+
 static void ostm_clksrc_resume(struct clocksource *c)
 {
 	struct ostm_clksrc *ostm_clksrc =
 		container_of(c, struct ostm_clksrc, clksrc);
 	struct timer_of *to = ostm_clksrc->to;
 
+	reset_control_deassert(ostm_clksrc->rstc);
+
+	if (clk_prepare_enable(to->of_clk.clk)) {
+		pr_err("Failed for enable clock for %pOF\n",
+					to->np->full_name);
+		reset_control_assert(ostm_clksrc->rstc);
+		return;
+	}
+
+	writel(0, timer_of_base(to) + OSTM_CMP);
 	writeb(CTL_FREERUN, timer_of_base(to) + OSTM_CTL);
 	writeb(TS, timer_of_base(to) + OSTM_TS);
-	writeb(TE, timer_of_base(to) + OSTM_TE);
 }
 
 static u64 ostm_clksrc_readl_up(struct clocksource *c)
@@ -97,6 +117,7 @@ static int __init ostm_clocksource_register_hz(struct ostm_clksrc *ostm_clksrc,
 	cs->mask = CLOCKSOURCE_MASK(bits);
 	cs->read = read;
 	cs->resume = ostm_clksrc_resume;
+	cs->suspend = ostm_clksrc_suspend;
 	cs->flags = CLOCK_SOURCE_IS_CONTINUOUS;
 
 	return clocksource_register_hz(cs, timer_of_rate(to));
@@ -248,6 +269,7 @@ static int __init ostm_init(struct device_node *np)
 		}
 
 		ostm_clksrc->to = to;
+		ostm_clksrc->rstc = rstc;
 		ret = ostm_init_clksrc(ostm_clksrc);
 		if (ret) {
 			kfree(ostm_clksrc);
