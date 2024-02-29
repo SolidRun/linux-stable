@@ -134,7 +134,13 @@
 	#define DL_DOWN_STATUS						0x00000001
 #define PCIE_LOOPBACK_TEST_REG					0x040C
 #define PCIE_CORE_CONTROL_2_REG					0x0410
+	#define UI_LINK_SPEED_CHANGE_REQ                        (1 << 0)
+	#define UI_LINK_SPEED_CHANGE_2_5_GTS_MASK               0xFFFFFCFF
+	#define UI_LINK_SPEED_CHANGE_5_0_GTS                    (1 << 8)
 #define PCIE_CORE_STATUS_2_REG					0x0414
+	#define UI_LINK_SPEED_CHANGE_DONE                       BIT(28)
+	#define LINK_SPEED_SUPPORT_2_5_GTS                      BIT(1)
+	#define LINK_SPEED_SUPPORT_5_0_GTS                      BIT(2)
 	#define STATE_RECEIVER_DETECTED                         (0xff << 8)
 
 /* MODE & Lane Control */
@@ -241,10 +247,16 @@
 
 /* PCIe Configuration Register */
 #define PCIE_CONFIGURATION_REG					0x6000
-	#define PCI_RC_VID_ADR						0x00
-	#define PCI_RC_RID_CC_ADR					0x08
-	#define PCI_PM_CAPABILITIES					0x40
+	#define PCI_RC_VID_ADR					0x00
+	#define PCI_RC_RID_CC_ADR				0x08
+	#define PCI_PM_CAPABILITIES				0x40
 	#define PCI_RC_LINK_CONTROL_STATUS			0x70
+		#define CURRENT_LINK_SPEED_2_5_GTS                      (1 << 16)
+		#define CURRENT_LINK_SPEED_5_0_GTS                      (2 << 16)
+	#define PCI_RC_LINK_CONTROL_STATUS_2                    0x90
+		#define LINKCS2_TARGET_LINK_SPEED_2_5_GTS               (1 << 0)
+		#define LINKCS2_TARGET_LINK_SPEED_5_0_GTS               (2 << 0)
+		#define LINKCS2_TARGET_LINK_SPEED_MASK                  0xF
 	#define PCI_RC_LINK_CONTROL_STATUS_LINK_WIDTH(x)	(((x) & GENMASK(25, 20)) >> 20)
 	#define PCI_RC_LINK_CONTROL_STATUS_LINK_SPEED(x)	(((x) & GENMASK(19, 16)) >> 16)
 	#define PCI_RC_BARMSK00L_ADR				0xA0

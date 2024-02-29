@@ -384,6 +384,53 @@ static struct pci_ops rzv2m_pcie_ops = {
 	.write	= rzv2m_pcie_write_conf,
 };
 
+static int rzv2m_pcie_set_max_link_speed(struct rzv2m_pcie *pcie)
+{
+	unsigned int timeout = 1000;
+	u32 lcs_reg, lcs2_reg, cs2_reg, ctr2_reg;
+
+	lcs_reg = rzv2m_read_conf(pcie, PCI_RC_LINK_CONTROL_STATUS);
+	cs2_reg = rzv2m_pci_read_reg(pcie, PCIE_CORE_STATUS_2_REG);
+
+	/*
+	 * just return if link speed has reached the maximum (5.0 GT/s) or
+	 * the opposing devices don't support it
+	 */
+	if ((lcs_reg & CURRENT_LINK_SPEED_5_0_GTS) || !(cs2_reg & LINK_SPEED_SUPPORT_5_0_GTS)) {
+		dev_info(pcie->dev, "PCIe : link up lane number x%ld / Speed Gen %ld\n",
+					PCI_RC_LINK_CONTROL_STATUS_LINK_WIDTH(lcs_reg),
+					PCI_RC_LINK_CONTROL_STATUS_LINK_SPEED(lcs_reg));
+		return 0;
+	}
+
+	/* set target Link speed to 5.0 GT/s */
+	lcs2_reg = rzv2m_read_conf(pcie, PCI_RC_LINK_CONTROL_STATUS_2);
+	rzv2m_write_conf(pcie, (lcs2_reg & (~LINKCS2_TARGET_LINK_SPEED_MASK)) |
+				LINKCS2_TARGET_LINK_SPEED_5_0_GTS,
+				PCI_RC_LINK_CONTROL_STATUS_2);
+
+	/* request link speed change */
+	while (timeout--) {
+		ctr2_reg = rzv2m_pci_read_reg(pcie, PCIE_CORE_CONTROL_2_REG);
+		rzv2m_pci_write_reg(pcie, ctr2_reg | UI_LINK_SPEED_CHANGE_REQ |
+				    UI_LINK_SPEED_CHANGE_5_0_GTS,
+				    PCIE_CORE_CONTROL_2_REG);
+		udelay(100);
+		/* Check completion of speeding up */
+		cs2_reg = rzv2m_pci_read_reg(pcie, PCIE_CORE_STATUS_2_REG);
+		if (cs2_reg & UI_LINK_SPEED_CHANGE_DONE) {
+			lcs_reg = rzv2m_read_conf(pcie, PCI_RC_LINK_CONTROL_STATUS);
+			dev_info(pcie->dev, "PCIe : link up lane number x%ld / Speed Gen %ld\n",
+					PCI_RC_LINK_CONTROL_STATUS_LINK_WIDTH(lcs_reg),
+					PCI_RC_LINK_CONTROL_STATUS_LINK_SPEED(lcs_reg));
+			return 0;
+		}
+	}
+
+	/* timed out */
+	return -ETIMEDOUT;
+}
+
 static void rzv2m_pcie_hw_enable(struct rzv2m_pcie_host *host)
 {
 	struct rzv2m_pcie *pcie = &host->pcie;
@@ -392,6 +439,10 @@ static void rzv2m_pcie_hw_enable(struct rzv2m_pcie_host *host)
 	LIST_HEAD(res);
 	int i = 0;
 	bool has_64bits_regs = host->has_64bits_regs;
+
+	/* Try to set maximum supported link speed (5.0 GT/s) */
+	if (!rzv2m_pcie_set_max_link_speed(pcie))
+		dev_err(pcie->dev, "fail to set link speed to 5.0 GT/s\n");
 
 	/* Setup PCI resources */
 	resource_list_for_each_entry(win, &bridge->windows) {
@@ -1101,11 +1152,6 @@ static int rzv2m_pcie_probe(struct platform_device *pdev)
 			return err;
 		}
 	}
-
-	reg = rzv2m_read_conf(pcie, PCI_RC_LINK_CONTROL_STATUS);
-	dev_info(&pdev->dev, "PCIe : link up Lane number x%ld / Speed Gen %ld\n",
-		 PCI_RC_LINK_CONTROL_STATUS_LINK_WIDTH(reg),
-		 PCI_RC_LINK_CONTROL_STATUS_LINK_SPEED(reg));
 
 	rzv2m_pcie_enable_dl_updown(host);
 
