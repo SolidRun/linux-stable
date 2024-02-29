@@ -83,6 +83,10 @@
 #define LINKSR_SQCHRUN1			BIT(4)
 #define LINKSR_SQCHRUN0			BIT(0)
 
+/* General Purpose Output 0 Register -- only for RZ/G3E */
+#define GPO0R				0xc0
+#define GPO0R_VICH(x)			((x) << 0)
+
 /* Tx Set Register */
 #define TXSETR				0x100
 #define TXSETR_NUMLANECAP		(0x3 << 16)
