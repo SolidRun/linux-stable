@@ -23,9 +23,6 @@
 #define AXI_DESTINATION_REG(x, has_64bits_regs)		((has_64bits_regs) ?	 \
 							(0x1010 + ((x) * 0x20)) :\
 							(0x1008 + ((x) * 0x10)))
-#define AXI_DESTINATIONL_REG(x)				(0x1010 + ((x) * 0x20))
-#define AXI_DESTINATIONU_REG(x)				(0x1014 + ((x) * 0x20))
-
 /* AXI to PCI Express Access */
 #define PCIE_WINDOW_BASE_REG(x, has_64bits_regs)	((has_64bits_regs) ?	\
 							(0x1100 + (x) * 0x20) :	\
@@ -56,6 +53,7 @@
 /* Interruption */
 #define MSI_RCV_WINDOW_ADDR_REG					0x0100
 		#define MSI_RCV_WINDOW_ENABLE			0x00000001
+
 #define MSI_RCV_WINDOW_MASK_REG					0x0108
 	#define MSI_RCV_NUM							32
 	#define MSI_RCV_WINDOW_SIZE					(MSI_RCV_NUM * sizeof(unsigned int))
@@ -422,27 +420,35 @@
 #define PCIE_HAS_PHY_BASE			BIT(2)
 #define PCIE_HAS_RST_CTRL			BIT(3)
 #define PCIE_HAS_64BITS_ADDR_REG		BIT(4)
+#define PCIE_RST_RSMB				BIT(5)
 
 struct rzv2m_axi_window_set {
 	u32	base[RZV2M_PCI_MAX_RESOURCES];
 	u32	base_u[RZV2M_PCI_MAX_RESOURCES];
 	u32	mask[RZV2M_PCI_MAX_RESOURCES];
+	u32     mask_u[RZV2M_PCI_MAX_RESOURCES];
 	u32	dest[RZV2M_PCI_MAX_RESOURCES];
 	u32	dest_u[RZV2M_PCI_MAX_RESOURCES];
 };
 
 struct rzv2m_pci_window_set {
 	u32	base[RZV2M_PCI_MAX_RESOURCES];
+	u32     base_u[RZV2M_PCI_MAX_RESOURCES];
 	u32	mask[RZV2M_PCI_MAX_RESOURCES];
+	u32     mask_u[RZV2M_PCI_MAX_RESOURCES];
 	u32	dest_u[RZV2M_PCI_MAX_RESOURCES];
 	u32	dest_l[RZV2M_PCI_MAX_RESOURCES];
 };
 
 struct rzv2m_interrupt_set {
 	u32	msi_win_addr;
+	u32     msi_win_addru;
 	u32	msi_win_mask;
+	u32     msi_win_masku;
 	u32	intx_ena;
 	u32	msi_ena;
+	u32     msi_mask;
+	u32	msi_data;
 };
 
 struct rzv2m_save_reg {
