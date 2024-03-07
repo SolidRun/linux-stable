@@ -583,10 +583,6 @@ static int rzg2l_cru_probe(struct platform_device *pdev)
 	if (ret)
 		goto error_dma_unregister;
 
-	ret = rzg2l_cru_parallel_init(cru);
-	if (ret)
-		goto error_dma_unregister;
-
 	/* Add the control about minimum amount of buffers */
 	num_ctrls = ARRAY_SIZE(rzg2l_cru_ctrls);
 	v4l2_ctrl_handler_init(&cru->ctrl_handler, num_ctrls + 1);
@@ -610,6 +606,10 @@ static int rzg2l_cru_probe(struct platform_device *pdev)
 		ret = cru->ctrl_handler.error;
 		goto free_ctrl;
 	}
+
+	ret = rzg2l_cru_parallel_init(cru);
+	if (ret)
+		goto error_dma_unregister;
 
 	cru->num_buf = HW_BUFFER_DEFAULT;
 
