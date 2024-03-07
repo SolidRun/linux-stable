@@ -526,6 +526,7 @@ static int rz_mtu3_pwm_probe(struct platform_device *pdev)
 
 	rz_mtu3_pwm->chip.ops = &rz_mtu3_pwm_ops;
 	rz_mtu3_pwm->chip.npwm = RZ_MTU3_MAX_PWM_CHANNELS;
+	rz_mtu3_pwm->chip.base = -1;
 	ret = devm_pwmchip_add(&pdev->dev, &rz_mtu3_pwm->chip);
 	if (ret)
 		return dev_err_probe(&pdev->dev, ret, "failed to add PWM chip\n");
