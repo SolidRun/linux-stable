@@ -33,10 +33,10 @@
 				 <&cpg R9A08G045_PCI_RST_LOAD_B>;
 			linux,pci-domain = <0x0>;
 			pcie,channel = <0>;
-			interrupts = <GIC_SPI 410 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 404 IRQ_TYPE_LEVEL_HIGH>;
 			#interrupt-cells = <1>;
 			interrupt-map-mask = <0 0 0 0>;
-			interrupt-map = <0 0 0 0 &gic GIC_SPI 410 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-map = <0 0 0 0 &gic GIC_SPI 404 IRQ_TYPE_LEVEL_HIGH>;
 			power-domains = <&cpg>;
 		};
 	};
