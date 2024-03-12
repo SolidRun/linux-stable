@@ -527,6 +527,7 @@
 			clock-names = "apb", "timclk";
 			resets = <&cpg R9A09G011_TIM_GPA_PRESETN>;
 			power-domains = <&cpg>;
+			status = "disabled";
 		};
 
 		tim4: timer@a4000200 {
@@ -552,6 +553,7 @@
 			clock-names = "apb", "timclk";
 			resets = <&cpg R9A09G011_TIM_GPA_PRESETN>;
 			power-domains = <&cpg>;
+			status = "disabled";
 		};
 
 		tim6: timer@a4000300 {
@@ -877,6 +879,7 @@
 			clock-names = "apb", "timclk";
 			resets = <&cpg R9A09G011_TIM_GPD_PRESETN>;
 			power-domains = <&cpg>;
+			status = "disabled";
 		};
 
 		tim31: timer@a4000f80 {
