@@ -281,11 +281,14 @@ static int rzg2l_wdt_probe(struct platform_device *pdev)
 	if (ret)
 		return dev_err_probe(dev, ret, "failed to deassert");
 
-	ret = device_property_read_u32(&pdev->dev, "channel,id", &channel);
-	if (ret)
-		return dev_err_probe(dev, ret, "no channel,id found");
-
 	priv->devtype = (uintptr_t)of_device_get_match_data(dev);
+
+	if (priv->devtype == WDT_RZG2L) {
+		ret = device_property_read_u32(&pdev->dev, "channel,id",
+					       &channel);
+		if (ret)
+			return dev_err_probe(dev, ret, "no channel,id found");
+	}
 
 	if (priv->devtype == WDT_RZV2M) {
 		priv->minimum_assertion_period = RZV2M_A_NSEC +
@@ -299,8 +302,10 @@ static int rzg2l_wdt_probe(struct platform_device *pdev)
 	priv->wdev.info = &rzg2l_wdt_ident;
 	priv->wdev.ops = &rzg2l_wdt_ops;
 	priv->wdev.parent = dev;
-	priv->wdev.bootstatus = rzg2l_cpg_wdt_ovf_sysrst(__clk_get_hw(priv->pclk), channel) ?
-									WDIOF_CARDRESET : 0;
+	if (priv->devtype == WDT_RZG2L)
+		priv->wdev.bootstatus =
+			rzg2l_cpg_wdt_ovf_sysrst(__clk_get_hw(priv->pclk),
+						 channel) ? WDIOF_CARDRESET : 0;
 	priv->wdev.min_timeout = 1;
 	priv->wdev.max_timeout = rzg2l_wdt_get_cycle_usec(priv->osc_clk_rate, 0xfff) /
 				 USEC_PER_SEC;
