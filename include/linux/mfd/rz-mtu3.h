@@ -12,6 +12,10 @@
 /* 8-bit shared register offsets macros */
 #define RZ_MTU3_TSTRA	0x080 /* Timer start register A */
 #define RZ_MTU3_TSTRB	0x880 /* Timer start register B */
+#define RZ_MTU3_TOERA	0x00A /* Timer output master enable register A */
+#define RZ_MTU3_TOERB	0x80A /* Timer output master enable register B */
+#define RZ_MTU3_TDERA	0x034 /* Timer dead time enable A */
+#define RZ_MTU3_TDERB	0x834 /* Timer dead time enable B */
 
 /* 16-bit shared register offset macros */
 #define RZ_MTU3_TDDRA	0x016 /* Timer dead time data register A */
@@ -40,6 +44,7 @@
 #define RZ_MTU3_TMDR1_MD		GENMASK(3, 0)
 #define RZ_MTU3_TMDR1_MD_NORMAL		FIELD_PREP(RZ_MTU3_TMDR1_MD, 0)
 #define RZ_MTU3_TMDR1_MD_PWMMODE1	FIELD_PREP(RZ_MTU3_TMDR1_MD, 2)
+#define RZ_MTU3_TMDR1_MD_COMP_PWMMODE3  FIELD_PREP(RZ_MTU3_TMDR1_MD, 15)
 
 #define RZ_MTU3_TIOR	6 /* Timer I/O control register */
 #define RZ_MTU3_TIORH	6 /* Timer I/O control register H */
@@ -102,12 +107,25 @@
 #define RZ_MTU3_TIOR_IOA			GENMASK(3, 0)
 #define RZ_MTU3_TIOR_OC_RETAIN			0
 #define RZ_MTU3_TIOR_OC_INIT_OUT_LO_HI_OUT	2
+#define RZ_MTU3_TIOR_OC_INIT_OUT_HI_LO_OUT      5
 #define RZ_MTU3_TIOR_OC_INIT_OUT_HI_TOGGLE_OUT	7
 
 #define RZ_MTU3_TIOR_OC_IOA_H_COMP_MATCH \
 	FIELD_PREP(RZ_MTU3_TIOR_IOA, RZ_MTU3_TIOR_OC_INIT_OUT_LO_HI_OUT)
+#define RZ_MTU3_TIOR_OC_IOA_L_COMP_MATCH \
+	FIELD_PREP(RZ_MTU3_TIOR_IOA, RZ_MTU3_TIOR_OC_INIT_OUT_HI_LO_OUT)
 #define RZ_MTU3_TIOR_OC_IOB_TOGGLE \
 	FIELD_PREP(RZ_MTU3_TIOR_IOB, RZ_MTU3_TIOR_OC_INIT_OUT_HI_TOGGLE_OUT)
+
+#define RZ_MTU3_TOER_MTIOC36B_EN	(1 << 0)
+#define RZ_MTU3_TOER_MTIOC47A_EN	(1 << 1)
+#define RZ_MTU3_TOER_MTIOC47B_EN	(1 << 2)
+#define RZ_MTU3_TOER_MTIOC36D_EN	(1 << 3)
+#define RZ_MTU3_TOER_MTIOC47C_EN	(1 << 4)
+#define RZ_MTU3_TOER_MTIOC47D_EN	(1 << 5)
+
+#define RZ_MTU3_TSTR_PWM_COMP_EN	(3 << 6)
+#define RZ_MTU3_TDER_EN			(1 << 0)
 
 enum rz_mtu3_channels {
 	RZ_MTU3_CHAN_0,
