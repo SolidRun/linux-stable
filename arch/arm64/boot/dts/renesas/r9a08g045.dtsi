@@ -1476,12 +1476,12 @@
 			};
 			trips {
 				sensor_crit: sensor-crit {
-					temperature = <125000>;
+					temperature = <118000>;
 					hysteresis = <1000>;
 					type = "critical";
 				};
 				target: trip-point {
-					temperature = <100000>;
+					temperature = <93000>;
 					hysteresis = <1000>;
 					type = "passive";
 				};
