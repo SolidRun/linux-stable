@@ -491,6 +491,13 @@
 			 <RZG2L_PORT_PINMUX(4, 3, 2)>; /* SSL */
 	};
 #endif
+
+#if (SW_ET0_EN_N && PMOD_MTU3_EN)
+	mtu3_pins: mtu3 {
+		pinmux = <RZG2L_PORT_PINMUX(4, 0, 4)>; /* MTIOC2A */
+	};
+#endif
+
 };
 
 &scif0 {
@@ -542,10 +549,6 @@
 	bus-width = <4>;
 	sd-uhs-sdr50;
 	sd-uhs-sdr104;
-	status = "okay";
-};
-
-&mtu3 {
 	status = "okay";
 };
 
@@ -641,3 +644,16 @@
 #endif
         status = "okay";
 };
+
+#if (SW_ET0_EN_N && PMOD_MTU3_EN)
+&mtu3 {
+	pinctrl-0 = <&mtu3_pins>;
+	pinctrl-names = "default";
+
+	status = "okay";
+};
+
+&spi1 {
+	status = "disabled";
+};
+#endif
