@@ -80,9 +80,9 @@
 #define INPUT_CAP_GTIOA_RISING_EDGE	0x00000300
 #define INPUT_CAP_GTIOA_FALLING_EDGE	0x00000C00
 #define NOISE_FILT_BEN	(1<<29)
-#define NOISE_FILT_B_P0_64	(0x11<<30)
+#define NOISE_FILT_B_P0_64	(0x3 << 30)
 #define NOISE_FILT_AEN	(1<<13)
-#define NOISE_FILT_A_P0_64	(0x11<<14)
+#define NOISE_FILT_A_P0_64	(0x3 << 14)
 #define GTINTB	(1<<1)
 #define GTINTA	(1<<0)
 #define TCFB	(1<<1)
