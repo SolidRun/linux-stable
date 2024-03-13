@@ -740,10 +740,27 @@ static unsigned long rzg3s_cpg_pll_clk_recalc_rate(struct clk_hw *hw,
 	struct pll_clk *pll_clk = to_pll(hw);
 	struct rzg2l_cpg_priv *priv = pll_clk->priv;
 	u32 nir, nfr, mr, pr, val;
-	u64 rate;
+	u64 rate, min_rate, max_rate, actual_rate;
 
 	if (pll_clk->type != CLK_TYPE_G3S_PLL)
 		return parent_rate;
+
+	switch (GET_REG_SAMPLL_CLK1(pll_clk->conf)) {
+	case 0x04:			/* PLL1 */
+		max_rate = 1100000000;
+		min_rate = 1100000000;
+		break;
+	case 0x34:			/* PLL4 */
+		max_rate = 800000000;
+		min_rate = 400000000;
+		break;
+	case 0x54:			/* PLL6 */
+		max_rate = 500000000;
+		min_rate = 500000000;
+		break;
+	default:
+		return parent_rate;
+	};
 
 	val = readl(priv->base + GET_REG_SAMPLL_CLK1(pll_clk->conf));
 
@@ -758,7 +775,14 @@ static unsigned long rzg3s_cpg_pll_clk_recalc_rate(struct clk_hw *hw,
 
 	rate = mul_u64_u32_shr(parent_rate, 4096 * nir + nfr, 12);
 
-	return DIV_ROUND_CLOSEST_ULL(rate, (mr * pr));
+	actual_rate = DIV_ROUND_CLOSEST_ULL(rate, (mr * pr));
+
+	if (actual_rate < min_rate)
+		actual_rate = min_rate;
+	else if (actual_rate > max_rate)
+		actual_rate = max_rate;
+
+	return actual_rate;
 }
 
 static const struct clk_ops rzg3s_cpg_pll_ops = {
