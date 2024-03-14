@@ -126,8 +126,9 @@
 					  "ch1_err", "ch0_trx", "ch1_trx";
 			clocks = <&cpg CPG_MOD R9A08G045_CANFD_CLK_RAM>,
 				 <&cpg CPG_MOD R9A08G045_CANFD_PCLK>,
+				 <&cpg CPG_CORE R9A08G045_CLK_CANFD>,
 				 <&can_clk>;
-			clock-names = "fck", "canfd", "can_clk";
+			clock-names = "ram_clk", "fck", "canfd", "can_clk";
 			assigned-clocks = <&cpg CPG_MOD R9A08G045_CANFD_PCLK>;
 			assigned-clock-rates = <80000000>;
 			resets = <&cpg R9A08G045_CANFD_RSTP_N>,
