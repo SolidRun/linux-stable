@@ -315,6 +315,9 @@ static const struct mfd_cell rz_mtu3_devs[] = {
 	{
 		.name = "pwm-rz-mtu3",
 	},
+	{
+		.name = "rz-mtu3-clk",
+	}
 };
 
 static int rz_mtu3_probe(struct platform_device *pdev)
@@ -333,6 +336,7 @@ static int rz_mtu3_probe(struct platform_device *pdev)
 		return -ENOMEM;
 
 	priv = ddata->priv_data;
+	ddata->pdev = pdev;
 
 	priv->mmio = devm_platform_ioremap_resource(pdev, 0);
 	if (IS_ERR(priv->mmio))
