@@ -441,7 +441,7 @@ static void rzv2m_pcie_hw_enable(struct rzv2m_pcie_host *host)
 	bool has_64bits_regs = host->has_64bits_regs;
 
 	/* Try to set maximum supported link speed (5.0 GT/s) */
-	if (!rzv2m_pcie_set_max_link_speed(pcie))
+	if (rzv2m_pcie_set_max_link_speed(pcie))
 		dev_err(pcie->dev, "fail to set link speed to 5.0 GT/s\n");
 
 	/* Setup PCI resources */
