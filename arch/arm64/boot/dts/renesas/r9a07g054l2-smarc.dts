@@ -8,7 +8,7 @@
 /dts-v1/;
 
 /* Enable SCIF2 (SER0) on PMOD1 (CN7) */
-#define PMOD1_SER0	1
+//#define PMOD1_SER0	1
 
 /*
  * To enable MTU3a PWM on PMOD0,
