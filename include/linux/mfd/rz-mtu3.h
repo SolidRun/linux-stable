@@ -171,6 +171,7 @@ struct rz_mtu3_channel {
 struct rz_mtu3 {
 	struct clk *clk;
 	struct rz_mtu3_channel channels[RZ_MTU_NUM_CHANNELS];
+	struct platform_device *pdev;
 
 	void *priv_data;
 };
