@@ -530,6 +530,16 @@ config SH_TIMER_MTU2
 	  Timer Pulse Unit 2 (MTU2) hardware available on SoCs from Renesas.
 	  This hardware comes with 16-bit timer registers.
 
+
+config RZ_TIMER_MTU3
+	tristate "Renesas MTU3 timer driver"
+	depends on RZ_MTU3
+	help
+	  This enables build of a clocksource, clockevent driver for the
+	  Multi-Function Timer Pulse Unit 3 (MTU3) hardware available on
+	  SoCs from Renesas.
+	  This hardware comes with 16/32 bits timer registers.
+
 config RENESAS_POE3
 	bool "Renesas POE3 driver"
 	depends on RZ_MTU3
