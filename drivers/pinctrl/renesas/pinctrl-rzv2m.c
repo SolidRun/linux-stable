@@ -12,10 +12,12 @@
 #include <linux/bitops.h>
 #include <linux/clk.h>
 #include <linux/gpio/driver.h>
+#include <linux/interrupt.h>
 #include <linux/io.h>
 #include <linux/module.h>
 #include <linux/mutex.h>
 #include <linux/of_device.h>
+#include <linux/of_irq.h>
 #include <linux/pm_runtime.h>
 #include <linux/pinctrl/pinconf-generic.h>
 #include <linux/pinctrl/pinconf.h>
@@ -66,6 +68,22 @@
 #define RZV2M_DEDICATED_PORT_IDX	22
 
 /*
+ * p indicates the port number, n the pin number (0-15), r the register number
+ * (0-2), and b the bit number inside the register (0-15).
+ */
+#define RZV2M_INEXINT_PACK(p, n, r, b)	(((p) << 10) | ((n) << 6) | ((r) << 4) \
+					 | (b))
+#define RZV2M_INEXINT_GET_PORT(x)	((x) >> 10)
+#define RZV2M_INEXINT_GET_PIN(x)	(((x) >> 6) & 0xF)
+#define RZV2M_INEXINT_GET_REGISTER(x)	(((x) >> 4) & 0x3)
+#define RZV2M_INEXINT_GET_BIT(x)	((x) & 0xF)
+#define RZV2M_INEXINT_GET_HWIRQ(x)	((RZV2M_INEXINT_GET_PORT(x) * \
+					 RZV2M_PINS_PER_PORT) + \
+					 RZV2M_INEXINT_GET_PIN(x))
+
+#define RZV2M_INEXINT_NAME_MAX_LENGTH	10
+
+/*
  * BIT(31) indicates dedicated pin, b is the register bits (b * 16)
  * and f is the pin configuration capabilities supported.
  */
@@ -93,6 +111,9 @@
 #define DI_MSK(n)	(0x30 + (n) * 0x40)
 #define EN_MSK(n)	(0x34 + (n) * 0x40)
 
+#define PFC_EXTINT_MSK(n)	(0x5b0 + (n) * 4)
+#define PFC_EXTINT_INV(n)	(0x5a0 + (n) * 4)
+
 #define PFC_MASK	0x07
 #define PUPD_MASK	0x03
 #define DRV_MASK	0x03
@@ -108,6 +129,8 @@ struct rzv2m_pinctrl_data {
 	const struct rzv2m_dedicated_configs *dedicated_pins;
 	unsigned int n_port_pins;
 	unsigned int n_dedicated_pins;
+	const u16 *inexint_configs;
+	u16 n_inexint_pins;
 };
 
 struct rzv2m_pinctrl {
@@ -121,10 +144,16 @@ struct rzv2m_pinctrl {
 	struct clk			*clk;
 
 	struct gpio_chip		gpio_chip;
+	struct irq_chip			irq_chip;
 	struct pinctrl_gpio_range	gpio_range;
 
 	spinlock_t			lock; /* lock read/write registers */
 	struct mutex			mutex; /* serialize adding groups and functions */
+};
+
+struct rzv2m_irq_priv {
+	struct rzv2m_pinctrl		*pctrl;
+	unsigned int			hwirq;
 };
 
 static const unsigned int drv_1_8V_group2_uA[] = { 1800, 3800, 7800, 11000 };
@@ -841,6 +870,137 @@ static void rzv2m_gpio_free(struct gpio_chip *chip, unsigned int offset)
 	rzv2m_gpio_direction_input(chip, offset);
 }
 
+static int rzv2m_hwirq_to_inexint(irq_hw_number_t hwirq,
+				  struct rzv2m_pinctrl *pctrl)
+{
+	u16 inexint_config;
+	unsigned int i;
+
+	for (i = 0; i < pctrl->data->n_inexint_pins; i++) {
+		inexint_config = pctrl->data->inexint_configs[i];
+		if (RZV2M_INEXINT_GET_HWIRQ(inexint_config) == hwirq)
+			return i;
+	}
+
+	return -EINVAL;
+}
+
+static int rzv2m_gpio_irq_set_type(struct irq_data *d, unsigned int type)
+{
+	struct gpio_chip *gc = irq_data_get_irq_chip_data(d);
+	struct rzv2m_pinctrl *pctrl = gpiochip_get_data(gc);
+	irq_hw_number_t hwirq = irqd_to_hwirq(d);
+	u16 inexint_config;
+	int inexint;
+	u8 reg, bit;
+
+	inexint = rzv2m_hwirq_to_inexint(hwirq, pctrl);
+	if (inexint < 0) {
+		dev_err(pctrl->dev, "Invalid hwirq %lu\n", hwirq);
+		return -EINVAL;
+	}
+
+	inexint_config = pctrl->data->inexint_configs[inexint];
+	reg = RZV2M_INEXINT_GET_REGISTER(inexint_config);
+	bit = RZV2M_INEXINT_GET_BIT(inexint_config);
+
+	dev_dbg(pctrl->dev, "sense irq = %lu, type = %d\n", hwirq, type);
+
+	switch (type & IRQ_TYPE_SENSE_MASK) {
+	case IRQ_TYPE_LEVEL_HIGH:
+		rzv2m_writel_we(pctrl->base + PFC_EXTINT_INV(reg), bit, 0);
+		break;
+	case IRQ_TYPE_LEVEL_LOW:
+		rzv2m_writel_we(pctrl->base + PFC_EXTINT_INV(reg), bit, 1);
+		break;
+	default:
+		return -EINVAL;
+	}
+	return 0;
+}
+
+static void rzv2m_gpio_irq_mask(struct irq_data *d)
+{
+	struct gpio_chip *gc = irq_data_get_irq_chip_data(d);
+	struct rzv2m_pinctrl *pctrl = container_of(gc, struct rzv2m_pinctrl,
+						   gpio_chip);
+	irq_hw_number_t hwirq = irqd_to_hwirq(d);
+	u8 port, pin, reg, bit;
+	u16 inexint_config;
+	int inexint;
+
+	inexint = rzv2m_hwirq_to_inexint(hwirq, pctrl);
+	if (inexint < 0) {
+		dev_err(pctrl->dev, "Invalid hwirq %lu\n", hwirq);
+		return;
+	}
+
+	inexint_config = pctrl->data->inexint_configs[inexint];
+	port = RZV2M_INEXINT_GET_PORT(inexint_config);
+	pin = RZV2M_INEXINT_GET_PIN(inexint_config);
+	reg = RZV2M_INEXINT_GET_REGISTER(inexint_config);
+	bit = RZV2M_INEXINT_GET_BIT(inexint_config);
+
+	rzv2m_writel_we(pctrl->base + PFC_EXTINT_MSK(reg), bit, 1);
+	rzv2m_pinctrl_set_pfc_mode(pctrl, port, pin, 0);
+	gpiochip_disable_irq(gc, hwirq);
+}
+
+static void rzv2m_gpio_irq_unmask(struct irq_data *d)
+{
+	struct gpio_chip *gc = irq_data_get_irq_chip_data(d);
+	struct rzv2m_pinctrl *pctrl = container_of(gc, struct rzv2m_pinctrl,
+						   gpio_chip);
+	irq_hw_number_t hwirq = irqd_to_hwirq(d);
+	u8 port, pin, reg, bit;
+	u16 inexint_config;
+	int inexint;
+
+	inexint = rzv2m_hwirq_to_inexint(hwirq, pctrl);
+	if (inexint < 0) {
+		dev_err(pctrl->dev, "Invalid hwirq %lu\n", hwirq);
+		return;
+	}
+
+	inexint_config = pctrl->data->inexint_configs[inexint];
+	port = RZV2M_INEXINT_GET_PORT(inexint_config);
+	pin = RZV2M_INEXINT_GET_PIN(inexint_config);
+	reg = RZV2M_INEXINT_GET_REGISTER(inexint_config);
+	bit = RZV2M_INEXINT_GET_BIT(inexint_config);
+
+	rzv2m_pinctrl_set_pfc_mode(pctrl, port, pin, 2);
+	gpiochip_enable_irq(gc, hwirq);
+	rzv2m_writel_we(pctrl->base + PFC_EXTINT_MSK(reg), bit, 0);
+}
+
+static irqreturn_t rzv2m_irq_handler(int irq, void *dev_id)
+{
+	struct rzv2m_irq_priv *p = dev_id;
+	int ret;
+
+	ret = generic_handle_irq(irq_find_mapping(p->pctrl->gpio_chip.irq.domain,
+						  p->hwirq));
+
+	return ret ? IRQ_NONE : IRQ_HANDLED;
+}
+
+static void rzv2m_init_irq_valid_mask(struct gpio_chip *gc,
+				      unsigned long *valid_mask,
+				      unsigned int ngpios)
+{
+	struct rzv2m_pinctrl *pctrl = gpiochip_get_data(gc);
+	const struct rzv2m_pinctrl_data *data = pctrl->data;
+	u16 inexint_config;
+	unsigned int i;
+
+	bitmap_zero(valid_mask, ngpios);
+
+	for (i = 0; i < data->n_inexint_pins; i++) {
+		inexint_config = data->inexint_configs[i];
+		set_bit(RZV2M_INEXINT_GET_HWIRQ(inexint_config), valid_mask);
+	}
+}
+
 static const char * const rzv2m_gpio_names[] = {
 	"P0_0", "P0_1", "P0_2", "P0_3", "P0_4", "P0_5", "P0_6", "P0_7",
 	"P0_8", "P0_9", "P0_10", "P0_11", "P0_12", "P0_13", "P0_14", "P0_15",
@@ -913,6 +1073,48 @@ static const u32 rzv2m_gpio_configs[] = {
 	RZV2M_GPIO_PORT_PACK(1,  21, PIN_CFG_GRP_SWIO_1 | PIN_CFG_DRV | PIN_CFG_SLEW),
 };
 
+static const u16 rzv2m_inexint_configs[] = {
+	RZV2M_INEXINT_PACK(2, 0, 0, 0),		/* INEXINT0 */
+	RZV2M_INEXINT_PACK(2, 1, 0, 1),
+	RZV2M_INEXINT_PACK(2, 2, 0, 2),
+	RZV2M_INEXINT_PACK(2, 3, 0, 3),
+	RZV2M_INEXINT_PACK(2, 4, 0, 4),
+	RZV2M_INEXINT_PACK(2, 5, 0, 5),		/* INEXINT5 */
+	RZV2M_INEXINT_PACK(2, 6, 0, 6),
+	RZV2M_INEXINT_PACK(2, 7, 0, 7),
+	RZV2M_INEXINT_PACK(1, 0, 0, 8),
+	RZV2M_INEXINT_PACK(1, 1, 0, 9),
+	RZV2M_INEXINT_PACK(1, 2, 0, 10),	/* INEXINT10 */
+	RZV2M_INEXINT_PACK(1, 3, 0, 11),
+	RZV2M_INEXINT_PACK(1, 4, 0, 12),
+	RZV2M_INEXINT_PACK(1, 5, 0, 13),
+	RZV2M_INEXINT_PACK(1, 6, 0, 14),
+	RZV2M_INEXINT_PACK(1, 7, 0, 15),	/* INEXINT15 */
+	RZV2M_INEXINT_PACK(1, 8, 1, 0),
+	RZV2M_INEXINT_PACK(1, 9, 1, 1),
+	RZV2M_INEXINT_PACK(1, 10, 1, 2),
+	RZV2M_INEXINT_PACK(1, 11, 1, 3),
+	RZV2M_INEXINT_PACK(1, 12, 1, 4),	/* INEXINT20 */
+	RZV2M_INEXINT_PACK(1, 13, 1, 5),
+	RZV2M_INEXINT_PACK(1, 14, 1, 6),
+	RZV2M_INEXINT_PACK(1, 15, 1, 7),
+	RZV2M_INEXINT_PACK(9, 6, 1, 8),
+	RZV2M_INEXINT_PACK(9, 7, 1, 9),		/* INEXINT25 */
+	RZV2M_INEXINT_PACK(10, 6, 1, 10),
+	RZV2M_INEXINT_PACK(10, 7, 1, 11),
+	RZV2M_INEXINT_PACK(11, 6, 1, 12),
+	RZV2M_INEXINT_PACK(11, 7, 1, 13),
+	RZV2M_INEXINT_PACK(12, 0, 1, 14),	/* INEXINT30 */
+	RZV2M_INEXINT_PACK(12, 1, 1, 15),
+	RZV2M_INEXINT_PACK(12, 2, 2, 0),
+	RZV2M_INEXINT_PACK(12, 3, 2, 1),
+	RZV2M_INEXINT_PACK(13, 9, 2, 2),
+	RZV2M_INEXINT_PACK(13, 10, 2, 3),	/* INEXINT35 */
+	RZV2M_INEXINT_PACK(13, 11, 2, 4),
+	RZV2M_INEXINT_PACK(14, 2, 2, 5),
+	RZV2M_INEXINT_PACK(14, 6, 2, 6),
+};
+
 static const struct rzv2m_dedicated_configs rzv2m_dedicated_pins[] = {
 	{ "NAWPN", RZV2M_SINGLE_PIN_PACK(0,
 		(PIN_CFG_GRP_SWIO_2 | PIN_CFG_DRV | PIN_CFG_SLEW)) },
@@ -936,6 +1138,8 @@ static int rzv2m_gpio_register(struct rzv2m_pinctrl *pctrl)
 	struct gpio_chip *chip = &pctrl->gpio_chip;
 	const char *name = dev_name(pctrl->dev);
 	struct of_phandle_args of_args;
+	struct gpio_irq_chip *girq;
+	struct irq_chip *irq_chip;
 	int ret;
 
 	ret = of_parse_phandle_with_fixed_args(np, "gpio-ranges", 3, 0, &of_args);
@@ -963,6 +1167,24 @@ static int rzv2m_gpio_register(struct rzv2m_pinctrl *pctrl)
 	chip->owner = THIS_MODULE;
 	chip->base = -1;
 	chip->ngpio = of_args.args[2];
+
+	irq_chip = &pctrl->irq_chip;
+	irq_chip->name = "rzv2m-gpio";
+	irq_chip->parent_device = pctrl->dev;
+	irq_chip->irq_mask = rzv2m_gpio_irq_mask;
+	irq_chip->irq_unmask = rzv2m_gpio_irq_unmask;
+	irq_chip->irq_set_type = rzv2m_gpio_irq_set_type;
+	irq_chip->flags = IRQCHIP_SET_TYPE_MASKED;
+
+	girq = &chip->irq;
+	girq->chip = irq_chip;
+	/* This will let us handle the parent IRQ in the driver */
+	girq->parent_handler = NULL;
+	girq->num_parents = 0;
+	girq->parents = NULL;
+	girq->default_type = IRQ_TYPE_NONE;
+	girq->handler = handle_level_irq;
+	girq->init_valid_mask = rzv2m_init_irq_valid_mask;
 
 	pctrl->gpio_range.id = 0;
 	pctrl->gpio_range.pin_base = 0;
@@ -1055,7 +1277,7 @@ static void rzv2m_pinctrl_clk_disable(void *data)
 static int rzv2m_pinctrl_probe(struct platform_device *pdev)
 {
 	struct rzv2m_pinctrl *pctrl;
-	int ret;
+	int ret, i;
 
 	pctrl = devm_kzalloc(&pdev->dev, sizeof(*pctrl), GFP_KERNEL);
 	if (!pctrl)
@@ -1102,6 +1324,39 @@ static int rzv2m_pinctrl_probe(struct platform_device *pdev)
 	if (ret)
 		goto err;
 
+	for (i = 0; i < pctrl->data->n_inexint_pins; i++) {
+		char inexint_irq_name[RZV2M_INEXINT_NAME_MAX_LENGTH];
+		struct rzv2m_irq_priv *irq_priv;
+		u16 inexint_config;
+		int irq;
+
+		snprintf(inexint_irq_name, sizeof(inexint_irq_name),
+			 "inexint%d", i);
+
+		irq = platform_get_irq_byname_optional(pdev, inexint_irq_name);
+		if (irq == -ENODATA)
+			continue;
+		if (irq < 0) {
+			ret = irq;
+			goto err;
+		}
+
+		irq_priv = devm_kzalloc(&pdev->dev, sizeof(*irq_priv),
+					GFP_KERNEL);
+		if (!irq_priv) {
+			ret = -ENOMEM;
+			goto err;
+		}
+
+		inexint_config = pctrl->data->inexint_configs[i];
+		irq_priv->pctrl = pctrl;
+		irq_priv->hwirq = RZV2M_INEXINT_GET_HWIRQ(inexint_config);
+		ret = devm_request_irq(&pdev->dev, irq, rzv2m_irq_handler,
+				       0, dev_name(&pdev->dev), irq_priv);
+		if (ret)
+			goto err;
+	}
+
 	dev_info(pctrl->dev, "%s support registered\n", DRV_NAME);
 	return 0;
 
@@ -1116,8 +1371,10 @@ static struct rzv2m_pinctrl_data r9a09g011_data = {
 	.port_pins = rzv2m_gpio_names,
 	.port_pin_configs = rzv2m_gpio_configs,
 	.dedicated_pins = rzv2m_dedicated_pins,
+	.inexint_configs = rzv2m_inexint_configs,
 	.n_port_pins = ARRAY_SIZE(rzv2m_gpio_configs) * RZV2M_PINS_PER_PORT,
 	.n_dedicated_pins = ARRAY_SIZE(rzv2m_dedicated_pins),
+	.n_inexint_pins = ARRAY_SIZE(rzv2m_inexint_configs),
 };
 
 static const struct of_device_id rzv2m_pinctrl_of_table[] = {
