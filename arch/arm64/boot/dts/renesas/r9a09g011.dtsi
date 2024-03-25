@@ -434,6 +434,8 @@
 			gpio-controller;
 			#gpio-cells = <2>;
 			gpio-ranges = <&pinctrl 0 0 352>;
+			interrupt-controller;
+			#interrupt-cells = <2>;
 			interrupts = <GIC_SPI 68 IRQ_TYPE_LEVEL_HIGH>,
 				     <GIC_SPI 69 IRQ_TYPE_LEVEL_HIGH>,
 				     <GIC_SPI 70 IRQ_TYPE_LEVEL_HIGH>,
@@ -473,6 +475,26 @@
 				     <GIC_SPI 104 IRQ_TYPE_LEVEL_HIGH>,
 				     <GIC_SPI 105 IRQ_TYPE_LEVEL_HIGH>,
 				     <GIC_SPI 106 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "inexint0", "inexint1",
+					  "inexint2", "inexint3",
+					  "inexint4", "inexint5",
+					  "inexint6", "inexint7",
+					  "inexint8", "inexint9",
+					  "inexint10", "inexint11",
+					  "inexint12", "inexint13",
+					  "inexint14", "inexint15",
+					  "inexint16", "inexint17",
+					  "inexint18", "inexint19",
+					  "inexint20", "inexint21",
+					  "inexint22", "inexint23",
+					  "inexint24", "inexint25",
+					  "inexint26", "inexint27",
+					  "inexint28", "inexint29",
+					  "inexint30", "inexint31",
+					  "inexint32", "inexint33",
+					  "inexint34", "inexint35",
+					  "inexint36", "inexint37",
+					  "inexint38";
 			clocks = <&cpg CPG_MOD R9A09G011_PFC_PCLK>;
 			power-domains = <&cpg>;
 			resets = <&cpg R9A09G011_PFC_PRESETN>;
