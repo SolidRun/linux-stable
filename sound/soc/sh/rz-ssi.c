@@ -644,6 +644,13 @@ static irqreturn_t rz_ssi_interrupt(int irq, void *data)
 			return IRQ_HANDLED;
 
 		if (irq == ssi->irq_int) { /* error or idle */
+			int i, count;
+
+			if (rz_ssi_is_dma_enabled(ssi))
+				count = 4;
+			else
+				count = 1;
+
 			if (ssi->capture.substream) {
 				if (ssisr & SSISR_RUIRQ)
 					strm_capture->uerr_num++;
@@ -664,6 +671,17 @@ static irqreturn_t rz_ssi_interrupt(int irq, void *data)
 			rz_ssi_reg_mask_setl(ssi, SSISR, SSISR_TOIRQ |
 					     SSISR_TUIRQ | SSISR_ROIRQ |
 					     SSISR_RUIRQ, 0);
+
+			/* Add/remove more data */
+			if (ssi->capture.substream) {
+				for (i = 0; i < count; i++)
+					strm_capture->transfer(ssi, strm_capture);
+			}
+
+			if (ssi->playback.substream) {
+				for (i = 0; i < count; i++)
+					strm_playback->transfer(ssi, strm_playback);
+			}
 
 			/* Resume */
 			if (strm_playback)
@@ -819,9 +837,6 @@ static int rz_ssi_dma_request(struct rz_ssi_priv *ssi, struct device *dev)
 	}
 
 	if (!rz_ssi_is_dma_enabled(ssi))
-		goto no_dma;
-
-	if (ssi->is_full_duplex)
 		goto no_dma;
 
 	return 0;
