@@ -225,7 +225,8 @@ struct cpg_param {
 	u32	sel_pll5_4;
 };
 
-#define OSCLK_HZ 24000000
+#define OSCLK_HZ		24000000
+#define FOUTVCO_MIN		800000000
 #define reg_write(x, a)		iowrite32(a, x)
 #define CPG_LPCLK_DIV		0
 
@@ -248,15 +249,16 @@ static void rcar_du_crtc_set_display_timing(struct rcar_du_crtc *rcrtc)
 		u32 ditr0, ditr1, ditr2, ditr3, ditr4, ditr5, pbcr0;
 		u32 bus_flags = 0;
 		void __iomem *cpg_base = ioremap(0x11010000, 0x1000);
-		u32 i, found;
+		u32 i, found = 0;
 		u32 parallel_out;
 		struct cpg_param param;
 		int lanes, bpp;
 		u32 pix_clk = mode->clock * 1000;
 		unsigned long long hs_clk;
-		unsigned long long pll5_clk;
+		unsigned long long pll5_clk, foutvco;
 		unsigned long long divide_val;
 		u32 dsi_div;
+		u8 pdiv1, pdiv2;
 
 		/* Common settings */
 		param.frequency = 0;
@@ -282,7 +284,6 @@ static void rcar_du_crtc_set_display_timing(struct rcar_du_crtc *rcrtc)
 			pll5_clk = pix_clk * 2;
 
 			/* Find a valid value for INTIN */
-			found = 0;
 			for(param.pl5_postdiv1 = 7; param.pl5_postdiv1 > 1; param.pl5_postdiv1--) {
 				for(param.pl5_postdiv2 = 7; param.pl5_postdiv2 > 1; param.pl5_postdiv2--) {
 					divide_val = pll5_clk * param.pl5_refdiv * param.pl5_postdiv1 * param.pl5_postdiv2;
@@ -320,10 +321,6 @@ static void rcar_du_crtc_set_display_timing(struct rcar_du_crtc *rcrtc)
 			
 			parallel_out = 0;
 
-			/* Recommended values */
-			param.pl5_postdiv1 = 1;
-			param.pl5_postdiv2 = 1;
-
 			/* Calculate MIPI DSI High Speed clock and PLL clock(16x) */
 			hs_clk = ((long long)bpp * pix_clk) / (8 * lanes);
 			pll5_clk = hs_clk * 16;
@@ -333,24 +330,54 @@ static void rcar_du_crtc_set_display_timing(struct rcar_du_crtc *rcrtc)
 					return;
 				}
 				param.sel_pll5_4 = 0;	/* 3.0 GHz */
-			}
-			else {
+			} else {
 				param.sel_pll5_4 = 1;	/* 1.5 GHz */
 			}
 
-			/* Divide raw bit clock by source clock. */
-			/* Numerator portion (integer) */
-			divide_val = pll5_clk * param.pl5_refdiv * param.pl5_postdiv1 * param.pl5_postdiv2;
-			param.pl5_intin = divide_val / OSCLK_HZ;
+			/*
+			 * Below conditions must be set for PLL5 parameters:
+			 * - REFDIV must be between 1 and 2.
+			 * - POSTDIV1/2 must be between 1 and 7.
+			 * - INTIN must be between 20 and 320.
+			 * - FOUTVCO must not be less than 800MHz.
+			 */
+			for (param.pl5_refdiv = 1; param.pl5_refdiv < 3; param.pl5_refdiv++) {
+				for (pdiv1 = 1; pdiv1 < 8; pdiv1++) {
+					for (pdiv2 = 1; pdiv2 < 8; pdiv2++) {
+						/* Compare foutvco with minimum value */
+						foutvco = pll5_clk * pdiv1 * pdiv2;
+						if (foutvco < FOUTVCO_MIN)
+							continue;
 
-			/* Denominator portion (multiplied by 16k to become an integer) */
-			/* Remove integer portion */
-			divide_val = divide_val % OSCLK_HZ;
-			/* Convert from decimal to integer */
-			divide_val = divide_val * 16 * 1024 * 1024;
-			/* Now we can divide */
-			divide_val = divide_val / OSCLK_HZ;
-			param.pl5_fracin = divide_val;
+						/* Divide raw bit clock by source clock. */
+						/* Numerator portion (integer) */
+						divide_val = foutvco * param.pl5_refdiv;
+						param.pl5_intin = divide_val / OSCLK_HZ;
+						if ((param.pl5_intin < 20) || (param.pl5_intin > 320))
+							continue;
+
+						/* Denominator portion (multiplied by 16k to become an integer) */
+						/* Remove integer portion */
+						divide_val = divide_val % OSCLK_HZ;
+						/* Convert from decimal to integer */
+						divide_val = divide_val * 16 * 1024 * 1024;
+						/* Now we can divide */
+						divide_val = divide_val / OSCLK_HZ;
+
+						param.pl5_fracin = divide_val;
+						param.pl5_postdiv1 = pdiv1;
+						param.pl5_postdiv2 = pdiv2;
+						found = 1;
+						goto found_clk;
+					}
+				}
+			}
+
+found_clk:
+			if (!found) {
+				dev_err(rcdu->dev, "Cannot calculate frequency\n");
+				return;
+			}
 
 			/* How much we need to divide own our PLL */
 			dsi_div = pll5_clk / pix_clk;
