@@ -16,6 +16,7 @@
 #include <linux/module.h>
 #include <linux/mutex.h>
 #include <linux/of_device.h>
+#include <linux/pm_runtime.h>
 #include <linux/pinctrl/pinconf-generic.h>
 #include <linux/pinctrl/pinconf.h>
 #include <linux/pinctrl/pinctrl.h>
@@ -1070,10 +1071,10 @@ static int rzv2m_pinctrl_probe(struct platform_device *pdev)
 	if (IS_ERR(pctrl->base))
 		return PTR_ERR(pctrl->base);
 
-	pctrl->clk = devm_clk_get(pctrl->dev, NULL);
-	if (IS_ERR(pctrl->clk)) {
-		ret = PTR_ERR(pctrl->clk);
-		dev_err(pctrl->dev, "failed to get GPIO clk : %i\n", ret);
+	pm_runtime_enable(&pdev->dev);
+	ret = pm_runtime_get_sync(&pdev->dev);
+	if (ret < 0) {
+		pm_runtime_disable(&pdev->dev);
 		return ret;
 	}
 
@@ -1099,10 +1100,16 @@ static int rzv2m_pinctrl_probe(struct platform_device *pdev)
 
 	ret = rzv2m_pinctrl_register(pctrl);
 	if (ret)
-		return ret;
+		goto err;
 
 	dev_info(pctrl->dev, "%s support registered\n", DRV_NAME);
 	return 0;
+
+err:
+	pm_runtime_put(&pdev->dev);
+	pm_runtime_disable(&pdev->dev);
+
+	return ret;
 }
 
 static struct rzv2m_pinctrl_data r9a09g011_data = {
