@@ -96,6 +96,9 @@
 
 #define ADIN1300_CDIAG_FLT_DIST(x)		(0xba21 + (x))
 
+#define ADIN1300_LED_A_INV_EN_REG		0xbc01
+#define   ADIN1300_LED_A_INV_EN			BIT(0)
+
 #define ADIN1300_GE_SOFT_RESET_REG		0xff0c
 #define   ADIN1300_GE_SOFT_RESET		BIT(0)
 
@@ -130,6 +133,9 @@
 #define ADIN1300_RMII_16_BITS			0x0003
 #define ADIN1300_RMII_20_BITS			0x0004
 #define ADIN1300_RMII_24_BITS			0x0005
+
+#define ADIN1300_GE_LNK_STAT_INV_EN_REG		0xff3c
+#define   ADIN1300_GE_LNK_STAT_INV_EN		BIT(0)
 
 /**
  * struct adin_cfg_reg_map - map a config value to aregister value
@@ -433,6 +439,49 @@ static int adin_set_tunable(struct phy_device *phydev,
 	}
 }
 
+static int adin_config_pin_polarity(struct phy_device *phydev)
+{
+	struct device *dev = &phydev->mdio.dev;
+	int ret;
+	u32 val;
+
+	/* set led polarity, if property present */
+	if (device_property_present(dev, "adi,led-polarity")) {
+		ret = device_property_read_u32(dev, "adi,led-polarity", &val);
+		if (ret)  {
+			return ret;
+		} else if (val > 1) {
+			phydev_err(phydev, "invalid adi,led-polarity\n");
+			return -EINVAL;
+		}
+
+		ret = phy_modify_mmd(phydev, MDIO_MMD_VEND1,
+				     ADIN1300_LED_A_INV_EN_REG,
+				     ADIN1300_LED_A_INV_EN, val);
+		if (ret)
+			return ret;
+	}
+
+	/* set link-status polarity, default to active-high (0) */
+	if (device_property_present(dev, "adi,link-st-polarity")) {
+		ret = device_property_read_u32(dev, "adi,link-st-polarity", &val);
+		if (ret) {
+			return ret;
+		} else if (val > 1) {
+			phydev_err(phydev, "invalid adi,link-st-polarity\n");
+			return -EINVAL;
+		}
+	} else {
+		val = 0;
+	}
+
+	ret = phy_modify_mmd(phydev, MDIO_MMD_VEND1,
+			     ADIN1300_GE_LNK_STAT_INV_EN_REG,
+			     ADIN1300_GE_LNK_STAT_INV_EN, val);
+
+	return ret;
+}
+
 static int adin_config_init(struct phy_device *phydev)
 {
 	int rc;
@@ -452,6 +501,10 @@ static int adin_config_init(struct phy_device *phydev)
 		return rc;
 
 	rc = adin_set_edpd(phydev, ETHTOOL_PHY_EDPD_DFLT_TX_MSECS);
+	if (rc < 0)
+		return rc;
+
+	rc = adin_config_pin_polarity(phydev);
 	if (rc < 0)
 		return rc;
 
