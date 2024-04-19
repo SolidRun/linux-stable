@@ -51,6 +51,24 @@ properties:
     description: Enable 25MHz reference clock output on CLK25_REF pin.
     type: boolean
 
+  adi,led-polarity:
+    $ref: /schemas/types.yaml#/definitions/uint32
+    description:
+      LED_0 pin polarity. If unspecified keep phy reset-default derived
+      from hardware configuration pins.
+    enum:
+      - 0 # active high
+      - 1 # active low
+
+  adi,link-st-polarity:
+    $ref: /schemas/types.yaml#/definitions/uint32
+    description:
+      LINK_ST pin polarity.
+    enum:
+      - 0 # active high
+      - 1 # active low
+    default: 0
+
 unevaluatedProperties: false
 
 examples:
