@@ -17,6 +17,7 @@
 #include "xhci.h"
 #include "xhci-plat.h"
 #include "xhci-rzv2m.h"
+#include "xhci-rzv2h.h"
 
 #define XHCI_RCAR_FIRMWARE_NAME_V1	"r8a779x_usb3_v1.dlmem"
 #define XHCI_RCAR_FIRMWARE_NAME_V2	"r8a779x_usb3_v2.dlmem"
@@ -263,6 +264,12 @@ static const struct xhci_plat_priv xhci_plat_renesas_rzv2m = {
 	.plat_start = xhci_rzv2m_start,
 };
 
+static const struct xhci_plat_priv xhci_plat_renesas_rzv2h = {
+	.quirks = XHCI_RESET_ON_RESUME,
+	.plat_start = xhci_rzv2h_start,
+	.resume_quirk = xhci_rzv2h_resume,
+};
+
 static const struct of_device_id usb_xhci_of_match[] = {
 	{
 		.compatible = "renesas,xhci-r8a7790",
@@ -288,6 +295,9 @@ static const struct of_device_id usb_xhci_of_match[] = {
 	}, {
 		.compatible = "renesas,rzv2m-xhci",
 		.data = &xhci_plat_renesas_rzv2m,
+	}, {
+		.compatible = "renesas,rzv2h-xhci",
+		.data = &xhci_plat_renesas_rzv2h,
 	},
 	{ },
 };
