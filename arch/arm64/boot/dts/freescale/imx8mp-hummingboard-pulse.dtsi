@@ -104,8 +104,8 @@
 		compatible = "rfkill-gpio";
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_m2_rfkill>;
-		rfkill-name = "m2_wdis";
-		rfkill-type = <5>;
+		label = "m2_wdis";
+		radio-type = "wwan";
 		shutdown-gpio = <&gpio1 13 GPIO_ACTIVE_HIGH>;
 		status = "okay";
 	};
@@ -114,8 +114,8 @@
 		compatible = "rfkill-gpio";
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_m2_gps_rfkill>;
-		rfkill-name = "m2_gps";
-		rfkill-type = <6>;
+		label = "m2_gps";
+		radio-type = "gps";
 		shutdown-gpio = <&gpio1 7 GPIO_ACTIVE_HIGH>;
 		status = "okay";
 	};
@@ -124,8 +124,8 @@
 		compatible = "rfkill-gpio";
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_mpcie_rfkill>;
-		rfkill-name = "mpcie_wdis";
-		rfkill-type = <5>;
+		label = "mpcie_wdis";
+		radio-type = "wwan";
 		reset-gpio = <&gpio1 1 GPIO_ACTIVE_HIGH>;
 		shutdown-gpio = <&gpio1 5 GPIO_ACTIVE_HIGH>;
 		status = "okay";
