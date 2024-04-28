@@ -69,6 +69,18 @@
 		};
 	};
 
+	reg_modem_vbat: regulator-modem-vbat {
+		compatible = "regulator-fixed";
+		regulator-name = "modem-vbat";
+		pinctrl-names = "default";
+		pinctrl-0 = <&regulator_modem_vbat_pins>;
+		regulator-min-microvolt = <3800000>;
+		regulator-max-microvolt = <3800000>;
+		gpio = <&gpio3 25 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+		regulator-always-on;
+	};
+
 	/* power to lte modems behind hub ports 2/3 */
 	reg_modem_vbus: regulator-modem-vbus {
 		compatible = "regulator-fixed";
@@ -119,6 +131,15 @@
 		gpio = <&gpio2 19 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
 		off-on-delay-us = <250>;
+	};
+
+	rfkill {
+		compatible = "rfkill-gpio";
+		label = "rfkill-wwan";
+		radio-type = "wwan";
+		pinctrl-names = "default";
+		pinctrl-0 = <&modem_pins>;
+		reset-gpios = <&gpio1 7 GPIO_ACTIVE_HIGH>;
 	};
 
 	usdhc1_pwrseq: usdhc1-pwrseq {
@@ -420,7 +441,7 @@
 
 &iomuxc {
 	pinctr-names = "default";
-	pinctrl-0 = <&modem_pins>, <&tamper_pins>, <&usb_hub_pins>;
+	pinctrl-0 = <&tamper_pins>, <&usb_hub_pins>;
 
 	ieee802151_radio_pins: ieee802151-radio-pins {
 		fsl,pins = <
@@ -530,16 +551,22 @@
 
 	modem_pins: modem-pins {
 		fsl,pins = <
-			/* RESET_N */
+			/* RESET_N: modem-internal pull-down */
 			MX8MN_IOMUXC_GPIO1_IO07_GPIO1_IO7	0x0
-			/* PWRKEY */
-			MX8MN_IOMUXC_GPIO1_IO08_GPIO1_IO8	0x0
+			/* PWRKEY: pull-down ensures always-on */
+			MX8MN_IOMUXC_GPIO1_IO08_GPIO1_IO8	0x100
 		>;
 	};
 
 	pmic_pins: pmic-pins {
 		fsl,pins = <
 			MX8MN_IOMUXC_GPIO1_IO03_GPIO1_IO3	0x140
+		>;
+	};
+
+	regulator_modem_vbat_pins: regulator-modem-vbat-pins {
+		fsl,pins = <
+			MX8MN_IOMUXC_SAI5_MCLK_GPIO3_IO25	0x0
 		>;
 	};
 
