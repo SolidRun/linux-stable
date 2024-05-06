@@ -141,7 +141,7 @@
 #define SPCMD_CPOL		0x00000002	/* Clock Polarity Setting */
 #define SPCMD_CPHA		0x00000001	/* Clock Phase Setting */
 #define SPCMD_BRDV(brdv)	((brdv) << 2)
-#define SPCMD_SSLA(i)		((i) << 4)	/* SSL Assert Signal Setting */
+#define SPCMD_SSLA(i)		((i) << 24)	/* SSL Assert Signal Setting */
 
 struct rspi_data {
 	void __iomem *addr;
@@ -620,6 +620,7 @@ static int rspi_setup(struct spi_device *spi)
 		sslp |= SSLP_SSLP(spi->chip_select);
 	else
 		sslp &= ~SSLP_SSLP(spi->chip_select);
+
 	rspi_write8(rspi, sslp, RSPI_SSLP);
 
 	spin_unlock_irq(&rspi->lock);
