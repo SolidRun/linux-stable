@@ -92,6 +92,13 @@
 		#clock-cells = <1>;
 		clocks = <&x1_clk>;
 		clock-names = "x1";
+
+		renesas,settings = [
+			80 00 11 19 4c 02 23 7f 83 19 08 a9 5f 25 24 bf
+			00 14 7a e1 00 00 00 00 01 55 59 bb 3f 30 90 b6
+			80 b0 45 c4 95
+		];
+
 		assigned-clocks = <&versa3 0>,
 				   <&versa3 1>,
 				   <&versa3 2>,
