@@ -1140,10 +1140,6 @@ static int rz_ssi_probe(struct platform_device *pdev)
 				     "no audio clk1 or audio clk2");
 
 	ssi->audio_mck = ssi->audio_clk_1 ? ssi->audio_clk_1 : ssi->audio_clk_2;
-	ssi->is_full_duplex = device_property_read_bool(&pdev->dev,
-							"full-duplex");
-	if (ssi->is_full_duplex)
-		dev_info(&pdev->dev, "Full duplex communication enabled");
 
 	/* Detect DMA support */
 	ret = rz_ssi_dma_request(ssi, &pdev->dev);
@@ -1159,6 +1155,16 @@ static int rz_ssi_probe(struct platform_device *pdev)
 
 	ssi->playback.priv = ssi;
 	ssi->capture.priv = ssi;
+
+	/* Not support Full Duplex communication for channel that uses dma_rt */
+	if (ssi->dma_rt)
+		ssi->is_full_duplex = false;
+	else
+		ssi->is_full_duplex = device_property_read_bool(&pdev->dev,
+								"full-duplex");
+
+	if (ssi->is_full_duplex)
+		dev_info(&pdev->dev, "Full duplex communication enabled");
 
 	spin_lock_init(&ssi->lock);
 	dev_set_drvdata(&pdev->dev, ssi);
