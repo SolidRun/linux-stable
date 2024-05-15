@@ -73,11 +73,11 @@
 #define SPCR_TXMD		BIT(28)
 
 /* SPPCR - Pin Control Register */
-#define SPPCR_MOIFE		0x10	/* MOSI Idle Value Fixing Enable */
-#define SPPCR_MOIFV		0x08	/* MOSI Idle Fixed Value */
-#define SPPCR_SPOM		0x02
-#define SPPCR_SPLP2		0x01	/* Loopback Mode 2 (non-inverting) */
-#define SPPCR_SPLP		0x00	/* Loopback Mode (inverting) */
+#define SPPCR_MOIFE		0x20	/* MOSI Idle Value Fixing Enable */
+#define SPPCR_MOIFV		0x10	/* MOSI Idle Fixed Value */
+#define SPPCR_SPOM		0x04
+#define SPPCR_SPLP2		0x02	/* Loopback Mode 2 (non-inverting) */
+#define SPPCR_SPLP		0x01	/* Loopback Mode (inverting) */
 
 #define SPPCR_IO3FV		0x04	/* Single-/Dual-SPI Mode IO3 Output Fixed Value */
 #define SPPCR_IO2FV		0x04	/* Single-/Dual-SPI Mode IO2 Output Fixed Value */
