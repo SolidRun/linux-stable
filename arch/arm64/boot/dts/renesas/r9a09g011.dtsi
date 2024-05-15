@@ -71,7 +71,7 @@
 		ranges;
 
 		gic: interrupt-controller@82010000 {
-			compatible = "arm,gic-400";
+			compatible = "arm,gic-400-rzv2m";
 			#interrupt-cells = <3>;
 			#address-cells = <0>;
 			interrupt-controller;
