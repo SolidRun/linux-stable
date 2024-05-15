@@ -13,6 +13,7 @@
 #include <linux/module.h>
 #include <linux/of.h>
 #include <linux/regmap.h>
+#include <linux/reboot.h>
 
 #define RAA215300_FAULT_LATCHED_STATUS_1	0x59
 #define RAA215300_FAULT_LATCHED_STATUS_2	0x5a
@@ -27,6 +28,7 @@
 #define RAA215300_INT_MASK_6	0x68
 
 #define RAA215300_REG_BLOCK_EN	0x6c
+#define RAA215300_SW_RST        0x6d
 #define RAA215300_HW_REV	0xf8
 
 #define RAA215300_INT_MASK_1_ALL	GENMASK(5, 0)
@@ -37,6 +39,25 @@
 
 #define RAA215300_REG_BLOCK_EN_RTC_EN	BIT(6)
 #define RAA215300_RTC_DEFAULT_ADDR	0x6f
+
+#define RAA215300_SW_COLD_RST	0x01
+#define RAA215300_SW_WARM_RST	0x02
+
+struct raa215300 {
+	/* Control interface */
+	struct regmap	*regmap;
+	struct notifier_block raa215300_reset_nb;
+};
+
+static int raa215300_reset(struct notifier_block *this,
+					unsigned long mode, void *cmd)
+{
+	struct raa215300 *raa215300 = container_of(this, struct raa215300,
+						   raa215300_reset_nb);
+	regmap_write(raa215300->regmap, RAA215300_SW_RST, RAA215300_SW_WARM_RST);
+
+	return NOTIFY_DONE;
+}
 
 static const struct regmap_config raa215300_regmap_config = {
 	.reg_bits = 8,
@@ -63,12 +84,17 @@ static int raa215300_clk_present(struct i2c_client *client, const char *name)
 static int raa215300_i2c_probe(struct i2c_client *client)
 {
 	struct device *dev = &client->dev;
+	struct raa215300 *raa215300;
 	const char *clkin_name = "clkin";
 	unsigned int pmic_version, val;
 	const char *xin_name = "xin";
 	const char *clk_name = NULL;
 	struct regmap *regmap;
 	int ret;
+
+	raa215300 = devm_kzalloc(dev, sizeof(struct raa215300), GFP_KERNEL);
+	if (!raa215300)
+		return -ENOMEM;
 
 	regmap = devm_regmap_init_i2c(client, &raa215300_regmap_config);
 	if (IS_ERR(regmap))
@@ -116,6 +142,17 @@ static int raa215300_i2c_probe(struct i2c_client *client)
 			return ret;
 		if (ret)
 			clk_name = clkin_name;
+	}
+
+	if (of_property_read_bool(client->dev.of_node, "reset-output")) {
+		raa215300->regmap = regmap;
+		raa215300->raa215300_reset_nb.notifier_call = raa215300_reset,
+		raa215300->raa215300_reset_nb.priority = 1,
+		ret = register_restart_handler(&raa215300->raa215300_reset_nb);
+		if (ret) {
+			dev_warn(dev, "failed to register restart handler\n");
+			return ret;
+		}
 	}
 
 	if (clk_name) {
