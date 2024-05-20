@@ -52,25 +52,25 @@
 #define RSPI_SPFCR		0x6c	/* FIFO Clear Register */
 
 /* SPCR - Control Register - V2H */
-#define SPCR_SPE		BIT(0)		/* Function Enable */
-#define SPCR_SPSCKSEL		(1 << 7)	/* Master Receive Clock Select */
-#define SPCR_SPPE		(1 << 8)	/* Parity Enable */
-#define SPCR_SPOE		(1 << 9)	/* Parity Mode */
-#define SPCR_PTE		(1 << 11)	/* Parity Self-Diagnosis Enable */
-#define SPCR_SCKASE		(1 << 12)	/* RSPCK Auto-Stop Function Enable */
-#define SPCR_BFDS		(1 << 13)	/* Between Burst Transfer Frames Delay Select */
-#define SPCR_MODFEN		(1 << 14)	/* Mode Fault Error Detection Enable */
-#define SPCR_SPEIE		(1 << 16)	/* Error Interrupt Enable */
-#define SPCR_SPRIE		(1 << 17)	/* Receive Buffer Full Interrupt Enable */
-#define SPCR_SPIIE		0x00		/* Idle Interrupt Enable */
-#define SPCR_SPDRES		(1 << 19)	/* Receive Data Ready Error Select */
-#define SPCR_SPTIE		(1 << 20)	/* Transmit Buffer Empty Interrupt Enable */
-#define SPCR_CENDIE		0x00		/* SPI Communication End Interrupt Enable */
-#define SPCR_SPMS		(1 << 24)	/* Function Enable */
-#define SPCR_SPFRF		(1 << 25)	/* Frame Format Select */
-#define SPCR_MSTR		BIT(30)		/* Master/Slave Mode Select */
-#define SPCR_BPEN		(1 << 31)	/* Synchronization Circuit Bypass Enable */
-#define SPCR_TXMD		BIT(28)
+#define SPCR_SPE		BIT(0)	/* Function Enable */
+#define SPCR_SPSCKSEL		BIT(7)	/* Master Receive Clock Select */
+#define SPCR_SPPE		BIT(8)	/* Parity Enable */
+#define SPCR_SPOE		BIT(9)	/* Parity Mode */
+#define SPCR_PTE		BIT(11)	/* Parity Self-Diagnosis Enable */
+#define SPCR_SCKASE		BIT(12)	/* RSPCK Auto-Stop Function Enable */
+#define SPCR_BFDS		BIT(13)	/* Between Burst Transfer Frames Delay Select */
+#define SPCR_MODFEN		BIT(14)	/* Mode Fault Error Detection Enable */
+#define SPCR_SPEIE		BIT(16)	/* Error Interrupt Enable */
+#define SPCR_SPRIE		BIT(17)	/* Receive Buffer Full Interrupt Enable */
+#define SPCR_SPIIE		0x00	/* Idle Interrupt Enable */
+#define SPCR_SPDRES		BIT(19)	/* Receive Data Ready Error Select */
+#define SPCR_SPTIE		BIT(20)	/* Transmit Buffer Empty Interrupt Enable */
+#define SPCR_CENDIE		0x00	/* SPI Communication End Interrupt Enable */
+#define SPCR_SPMS		BIT(24)	/* Function Enable */
+#define SPCR_SPFRF		BIT(25)	/* Frame Format Select */
+#define SPCR_MSTR		BIT(30)	/* Master/Slave Mode Select */
+#define SPCR_BPEN		BIT(31)	/* Synchronization Circuit Bypass Enable */
+#define SPCR_TXMD		BIT(28)	/* Communication Mode Select */
 
 /* SPPCR - Pin Control Register */
 #define SPPCR_MOIFE		0x20	/* MOSI Idle Value Fixing Enable */
@@ -84,12 +84,14 @@
 
 /* SPSR - Status Register - V2H*/
 #define SPSR_SPRF		BIT(15)		/* Receive Buffer Full Flag */
+#define SPSR_CENDF		BIT(14)		/* Communication completed */
 #define SPSR_SPTEF		BIT(13)		/* Transmit Buffer Empty Flag */
 #define SPSR_PERF		BIT(11)		/* Parity Error Flag */
+#define SPSR_UDRF		BIT(12)		/* Underrun Error Flag */
 #define SPSR_MODF		BIT(10)		/* Mode Fault Error Flag */
 #define SPSR_IDLNF		BIT(9)		/* RSPI Idle Flag */
 #define SPSR_OVRF		BIT(8)		/* Overrun Error Flag (RSPI only) */
-#define SPSR_CENDF		BIT(14)		/* Communication completed */
+#define SPSR_SPDRF		BIT(7)		/* SPI Receive Data Ready Flag */
 
 /* V2H only */
 #define SPDCR_BYSW		0x00	/* Byte Swap Operating Mode Select */
@@ -100,12 +102,14 @@
 #define SPDCR2_RTRG		0x0000	/* Receive FIFO threshold setting */
 
  /* SPSRC - Status Clear Register */
+#define SPSRC_SPRFC		BIT(15) /* SPI Receive Buffer Full Flag Clear */
+#define SPSRC_CENDFC		BIT(14)	/* Communication End Flag Clear */
+#define SPSRC_SPTEFC		BIT(13) /* SPI Transmit Buffer Empty Flag Clear */
+#define SPSRC_UDRFC		BIT(12) /* Underrun Error Flag Clear */
 #define SPSRC_PERFC		BIT(11) /* Clear Parity Error */
 #define SPSRC_MODFC		BIT(10) /* CLear Mode Fault Error Flag */
 #define SPSRC_OVRFC		BIT(8)	/* Clear Overrun Error Flag */
 #define SPSRC_SPDRFC		BIT(7)	/* Clear Data Ready Flag */
-#define SPSRC_SPTEFC		BIT(13) /* SPI Transmit Buffer Empty Flag Clear */
-#define SPSRC_SPRFC		BIT(15) /* SPI Receive Buffer Full Flag Clear */
 
  /* SPFCR - FIFO Clear Register */
 #define SPFCR_SPFRST		BIT(0)	/* Clear FIFO Register */
@@ -123,23 +127,20 @@
 #define SSLP_SSLP(i)		BIT(i)	/* SSLi Signal Polarity Setting */
 
  /* SPCR2 - Control Register 2 */
-#define SPCR2_PTE		0x08	/* Parity Self-Test Enable */
-#define SPCR2_SPIE		0x04	/* Idle Interrupt Enable */
-#define SPCR2_SPOE		0x02	/* Odd Parity Enable (vs. Even) */
-#define SPCR2_SPPE		0x01	/* Parity Enable */
+#define SPCR2_SPSCKDL_MASK	0x07	/* SPI Master Receive Clock Analog Delay (0-7.7ns) */
 
 /* SPCMDn - Command Registers V2H */
-#define SPCMD_SCKDEN		0x00008000	/* Clock Delay Setting Enable */
-#define SPCMD_SLNDEN		0x00004000	/* SSL Negation Delay Setting Enable */
-#define SPCMD_SPNDEN		0x00002000	/* Next-Access Delay Enable */
-#define SPCMD_LSBF		0x00001000	/* LSB First */
+#define SPCMD_SCKDEN		BIT(15)		/* Clock Delay Setting Enable */
+#define SPCMD_SLNDEN		BIT(14)		/* SSL Negation Delay Setting Enable */
+#define SPCMD_SPNDEN		BIT(13)		/* Next-Access Delay Enable */
+#define SPCMD_LSBF		BIT(12)		/* LSB First */
 #define SPCMD_SPB_MASK		GENMASK(20, 16)
-#define SPCMD_SPB_8BIT		0x00070000
-#define SPCMD_SPB_16BIT		0x000F0000
-#define SPCMD_SPB_32BIT		0x001F0000
-#define SPCMD_SSLKP		0x00000080	/* SSL Signal Level Keeping */
-#define SPCMD_CPOL		0x00000002	/* Clock Polarity Setting */
-#define SPCMD_CPHA		0x00000001	/* Clock Phase Setting */
+#define SPCMD_SPB_8BIT		(0x7 << 16)
+#define SPCMD_SPB_16BIT		(0xf << 16)
+#define SPCMD_SPB_32BIT		(0x1f << 16)
+#define SPCMD_SSLKP		BIT(7)		/* SSL Signal Level Keeping */
+#define SPCMD_CPOL		BIT(1)		/* Clock Polarity Setting */
+#define SPCMD_CPHA		BIT(0)		/* Clock Phase Setting */
 #define SPCMD_BRDV(brdv)	((brdv) << 2)
 #define SPCMD_SSLA(i)		((i) << 24)	/* SSL Assert Signal Setting */
 
