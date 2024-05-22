@@ -328,6 +328,7 @@ config ARCH_R9A09G011
 	select PM
 	select PM_GENERIC_DOMAINS
 	select PWC_RZV2M
+	select ARM_GIC_RZV2M
 	help
 	  This enables support for the Renesas RZ/V2M SoC.
 
