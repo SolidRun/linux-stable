@@ -248,6 +248,7 @@
 			power-domains = <&cpg>;
 			resets = <&cpg R9A07G044_MTU_X_PRESET_MTU3>;
 			#pwm-cells = <2>;
+			status = "disabled";
 		};
 
 		poe3: poe3@10049800 {
