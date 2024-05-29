@@ -26,15 +26,6 @@
 		stdout-path = "serial0:115200n8";
 	};
 
-	memory@58000000 {
-		device_type = "memory";
-		/*
-		 * first 1.25GiB is reserved for ISP Firmware,
-		 * next 128MiB is reserved for secure area.
-		 */
-		reg = <0x0 0x58000000 0x0 0x28000000>;
-	};
-
 	memory@180000000 {
 		device_type = "memory";
 		reg = <0x1 0x80000000 0x0 0x7FC00000>;
