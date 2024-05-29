@@ -83,6 +83,9 @@ static unsigned long global_flags;
 /* RZ/A2 does not have the ADRR_MODE bit */
 #define SDHI_INTERNAL_DMAC_ADDR_MODE_FIXED_ONLY 2
 
+/* RZ/V2M does not support 32-bit memory address in linux */
+#define SDHI_INTERNAL_DMAC_USE_64_BIT_DMA      3
+
 /* Definitions for sampling clocks */
 static struct renesas_sdhi_scc rcar_gen3_scc_taps[] = {
 	{
@@ -403,7 +406,8 @@ static const struct soc_device_attribute soc_dma_quirks[] = {
 	{ .soc_id = "r8a7796", .revision = "ES1.0",
 	  .data = (void *)BIT(SDHI_INTERNAL_DMAC_ONE_RX_ONLY) },
 	{ .soc_id = "r9a09g011",
-	  .data = (void *)BIT(SDHI_INTERNAL_DMAC_ADDR_MODE_FIXED_ONLY) },
+	  .data = (void *)(BIT(SDHI_INTERNAL_DMAC_ADDR_MODE_FIXED_ONLY) |
+			   BIT(SDHI_INTERNAL_DMAC_USE_64_BIT_DMA)) },
 	{ .soc_id = "r9a09g055",
 	  .data = (void *)BIT(SDHI_INTERNAL_DMAC_ADDR_MODE_FIXED_ONLY) },
 	{ /* sentinel */ }
@@ -421,6 +425,12 @@ static int renesas_sdhi_internal_dmac_probe(struct platform_device *pdev)
 	dma_set_max_seg_size(dev, 0xffffffff);
 
 #ifndef CONFIG_MMC_SDHI_PIO
+	/* Try 64-bit mask if hardware is capable of it when using DMA mode */
+	if (test_bit(SDHI_INTERNAL_DMAC_USE_64_BIT_DMA, &global_flags)) {
+	        if (dma_set_mask_and_coherent(dev, DMA_BIT_MASK(64)))
+	                dev_err(dev, "Failed to set 64-bit DMA mask!");
+	}
+
 	return renesas_sdhi_probe(pdev, &renesas_sdhi_internal_dmac_dma_ops);
 #else
 	return renesas_sdhi_probe(pdev, NULL);
