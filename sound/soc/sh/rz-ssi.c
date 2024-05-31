@@ -385,8 +385,9 @@ static int rz_ssi_stop(struct rz_ssi_priv *ssi, struct rz_ssi_stream *strm)
 {
 	int timeout;
 
+	if (strm->running)
+		ssi->power_count--;
 	strm->running = 0;
-	ssi->power_count--;
 
 	if (!ssi->power_count) {
 		/* Disable TX/RX */
