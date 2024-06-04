@@ -1334,7 +1334,7 @@ static int rzv2m_pinctrl_probe(struct platform_device *pdev)
 			 "inexint%d", i);
 
 		irq = platform_get_irq_byname_optional(pdev, inexint_irq_name);
-		if (irq == -ENODATA)
+		if ((irq == -ENODATA) | (irq == -ENXIO))
 			continue;
 		if (irq < 0) {
 			ret = irq;
