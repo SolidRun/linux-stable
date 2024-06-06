@@ -126,6 +126,12 @@
 };
 
 &i2c2 {
+	pinctrl-0 = <&i2c2_pins>;
+	pinctrl-names = "default";
+	clock-frequency = <400000>;
+
+	status = "okay";
+
 	raa215300: pmic@12 {
 		compatible = "renesas,raa215300";
 		reg = <0x12>, <0x6f>;

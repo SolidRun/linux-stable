@@ -14,9 +14,7 @@
 / {
 	aliases {
 		serial1 = &scif1;
-#if (!SW_I2S0_I2S1)
 		i2c2 = &i2c2;
-#endif
 	};
 
 #if (SW_I2S0_I2S1)
@@ -57,12 +55,6 @@
 };
 
 &i2c2 {
-	pinctrl-0 = <&i2c2_pins>;
-	pinctrl-names = "default";
-	clock-frequency = <400000>;
-
-	status = "okay";
-
 	versa3: versa3@68 {
 		compatible = "renesas,5p35023";
 		reg = <0x68>;
