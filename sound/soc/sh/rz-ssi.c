@@ -1091,11 +1091,60 @@ static struct snd_soc_dai_driver rz_ssi_soc_dai[] = {
 	},
 };
 
+static int rz_ssi_full_duplex_mode_get(struct snd_kcontrol *kcontrol,
+				       struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_component *component = snd_kcontrol_chip(kcontrol);
+	struct device *dev = component->dev;
+	struct platform_device *pdev = to_platform_device(dev);
+	struct rz_ssi_priv *ssi = platform_get_drvdata(pdev);
+
+	ucontrol->value.integer.value[0] = ssi->is_full_duplex;
+	return 0;
+}
+
+static int rz_ssi_full_duplex_mode_put(struct snd_kcontrol *kcontrol,
+				       struct snd_ctl_elem_value *ucontrol)
+{
+	int new_value = ucontrol->value.integer.value[0];
+	struct snd_soc_component *component = snd_kcontrol_chip(kcontrol);
+	struct device *dev = component->dev;
+	struct platform_device *pdev = to_platform_device(dev);
+	struct rz_ssi_priv *ssi = platform_get_drvdata(pdev);
+
+	ssi->is_full_duplex = new_value;
+
+	/* Not support Full Duplex communication for channel that uses dma_rt */
+	if (ssi->dma_rt)
+		ssi->is_full_duplex = false;
+
+	if (ssi->is_full_duplex)
+		dev_info(&pdev->dev, "Full duplex communication enabled");
+	else
+		dev_info(&pdev->dev, "Half duplex communication enabled");
+
+	return 0;
+}
+
+static const struct snd_kcontrol_new rz_ssi_snd_kcontrol[] = {
+	{
+		.iface = SNDRV_CTL_ELEM_IFACE_MIXER,
+		.name = "Full duplex mode",
+		.index = 0,
+		.access = SNDRV_CTL_ELEM_ACCESS_READWRITE,
+		.info = snd_ctl_boolean_mono_info,
+		.get = rz_ssi_full_duplex_mode_get,
+		.put = rz_ssi_full_duplex_mode_put,
+	}
+};
+
 static const struct snd_soc_component_driver rz_ssi_soc_component = {
 	.name		= "rz-ssi",
 	.open		= rz_ssi_pcm_open,
 	.pointer	= rz_ssi_pcm_pointer,
 	.pcm_construct	= rz_ssi_pcm_new,
+	.controls	= rz_ssi_snd_kcontrol,
+	.num_controls	= ARRAY_SIZE(rz_ssi_snd_kcontrol),
 };
 
 static int rz_ssi_probe(struct platform_device *pdev)
@@ -1156,16 +1205,6 @@ static int rz_ssi_probe(struct platform_device *pdev)
 
 	ssi->playback.priv = ssi;
 	ssi->capture.priv = ssi;
-
-	/* Not support Full Duplex communication for channel that uses dma_rt */
-	if (ssi->dma_rt)
-		ssi->is_full_duplex = false;
-	else
-		ssi->is_full_duplex = device_property_read_bool(&pdev->dev,
-								"full-duplex");
-
-	if (ssi->is_full_duplex)
-		dev_info(&pdev->dev, "Full duplex communication enabled");
 
 	spin_lock_init(&ssi->lock);
 	dev_set_drvdata(&pdev->dev, ssi);
