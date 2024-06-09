@@ -317,7 +317,7 @@ static int rzv2h_adc_probe(struct platform_device *pdev)
 		return PTR_ERR(adc->adclk);
 	}
 
-	adc->adrstn = devm_reset_control_get_exclusive(dev, "adrst-n");
+	adc->adrstn = devm_reset_control_get_shared(dev, "adrst-n");
 	if (IS_ERR(adc->adrstn)) {
 		dev_err(dev, "failed to get adrstn\n");
 		return PTR_ERR(adc->adrstn);
