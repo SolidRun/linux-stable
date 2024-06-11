@@ -2251,8 +2251,7 @@ static struct rzg2l_dedicated_configs rzg3s_dedicated_pins[] = {
 static int rzg2l_gpio_register(struct rzg2l_pinctrl *pctrl)
 {
 	struct device_node *np = pctrl->dev->of_node;
-	struct gpio_chip *chip = &pctrl->gpio_chip;
-	struct irq_chip *irq_chip = &pctrl->irq_chip;
+	struct gpio_irq_chip *girq;
 	const char *name = dev_name(pctrl->dev);
 	struct of_phandle_args of_args;
 	int ret;
@@ -2269,46 +2268,45 @@ static int rzg2l_gpio_register(struct rzg2l_pinctrl *pctrl)
 		return -EINVAL;
 	}
 
-	chip->names = pctrl->data->port_pins;
-	chip->request = rzg2l_gpio_request;
-	chip->free = rzg2l_gpio_free;
-	chip->get_direction = rzg2l_gpio_get_direction;
-	chip->direction_input = rzg2l_gpio_direction_input;
-	chip->direction_output = rzg2l_gpio_direction_output;
-	chip->get = rzg2l_gpio_get;
-	chip->set = rzg2l_gpio_set;
-	chip->set_config = rzg2l_gpio_set_config;
-	chip->label = name;
-	chip->parent = pctrl->dev;
-	chip->owner = THIS_MODULE;
-	chip->base = -1;
-	chip->ngpio = of_args.args[2];
+	pctrl->gpio_chip.names = pctrl->data->port_pins;
+	pctrl->gpio_chip.request = rzg2l_gpio_request;
+	pctrl->gpio_chip.free = rzg2l_gpio_free;
+	pctrl->gpio_chip.get_direction = rzg2l_gpio_get_direction;
+	pctrl->gpio_chip.direction_input = rzg2l_gpio_direction_input;
+	pctrl->gpio_chip.direction_output = rzg2l_gpio_direction_output;
+	pctrl->gpio_chip.get = rzg2l_gpio_get;
+	pctrl->gpio_chip.set = rzg2l_gpio_set;
+	pctrl->gpio_chip.set_config = rzg2l_gpio_set_config;
+	pctrl->gpio_chip.label = name;
+	pctrl->gpio_chip.parent = pctrl->dev;
+	pctrl->gpio_chip.owner = THIS_MODULE;
+	pctrl->gpio_chip.base = -1;
+	pctrl->gpio_chip.ngpio = of_args.args[2];
 
 	pctrl->gpio_range.id = 0;
 	pctrl->gpio_range.pin_base = 0;
 	pctrl->gpio_range.base = 0;
-	pctrl->gpio_range.npins = chip->ngpio;
-	pctrl->gpio_range.name = chip->label;
-	pctrl->gpio_range.gc = chip;
+	pctrl->gpio_range.npins = pctrl->gpio_chip.ngpio;
+	pctrl->gpio_range.name = pctrl->gpio_chip.label;
+	pctrl->gpio_range.gc = &pctrl->gpio_chip;
 
-	irq_chip->name = dev_name(pctrl->dev);
-	irq_chip->irq_shutdown = rzg2l_gpio_irq_shutdown;
-	irq_chip->irq_mask = rzg2l_gpio_irq_mask;
-	irq_chip->irq_unmask = rzg2l_gpio_irq_unmask;
-	irq_chip->irq_set_type = rzg2l_gpio_irq_set_type;
-	irq_chip->irq_set_wake = rzg2l_gpio_irq_set_wake;
-	irq_chip->flags = IRQCHIP_SET_TYPE_MASKED | IRQCHIP_MASK_ON_SUSPEND;
+	pctrl->irq_chip.name = dev_name(pctrl->dev);
+	pctrl->irq_chip.irq_shutdown = rzg2l_gpio_irq_shutdown;
+	pctrl->irq_chip.irq_mask = rzg2l_gpio_irq_mask;
+	pctrl->irq_chip.irq_unmask = rzg2l_gpio_irq_unmask;
+	pctrl->irq_chip.irq_set_type = rzg2l_gpio_irq_set_type;
+	pctrl->irq_chip.irq_set_wake = rzg2l_gpio_irq_set_wake;
+	pctrl->irq_chip.flags = IRQCHIP_SET_TYPE_MASKED | IRQCHIP_MASK_ON_SUSPEND;
 
-	ret = gpiochip_irqchip_add(chip, irq_chip, 0, handle_level_irq,
-				   IRQ_TYPE_NONE);
-	if (ret) {
-		dev_err(pctrl->dev, "cannot add irqchip\n");
-		return ret;
-	}
+	girq = &pctrl->gpio_chip.irq;
+	girq->chip = &pctrl->irq_chip;
+	girq->parent_handler = NULL;
+	girq->num_parents = 0;
+	girq->parents = NULL;
+	girq->default_type = IRQ_TYPE_NONE;
+	girq->handler = handle_level_irq;
 
-	dev_dbg(pctrl->dev, "Registered interrupt controller\n");
-
-	ret = devm_gpiochip_add_data(pctrl->dev, chip, pctrl);
+	ret = devm_gpiochip_add_data(pctrl->dev, &pctrl->gpio_chip, pctrl);
 	if (ret) {
 		dev_err(pctrl->dev, "failed to add GPIO controller\n");
 		return ret;
