@@ -1112,6 +1112,10 @@ static int rz_ssi_full_duplex_mode_put(struct snd_kcontrol *kcontrol,
 	struct platform_device *pdev = to_platform_device(dev);
 	struct rz_ssi_priv *ssi = platform_get_drvdata(pdev);
 
+	/* Only set mode when all is stopped */
+	if (ssi->playback.running || ssi->capture.running)
+		return -EBUSY;
+
 	ssi->is_full_duplex = new_value;
 
 	/* Not support Full Duplex communication for channel that uses dma_rt */
