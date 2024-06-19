@@ -46,6 +46,18 @@ enum rzg3e_lvds_link_type {
 	RZG3E_LVDS_DUAL_LINK_ODD_EVEN_PIXELS = 2,
 };
 
+/*
+ * Hardware information for LVDS:
+ * @max_dclk: maximum dotclock for a single LVDS channel (kHz)
+ * @min_dclk: minimum dotclock for a single LVDS channel (kHz)
+ * @max_dual_dclk: maximum dotclock for dual LVDS channels (kHz)
+ */
+struct rzg3e_lvds_hw_info {
+	unsigned long max_dclk;
+	unsigned long min_dclk;
+	unsigned long max_dual_dclk;
+};
+
 struct rzg3e_lvds {
 	struct device *dev;
 
@@ -63,6 +75,8 @@ struct rzg3e_lvds {
 	struct drm_bridge *companion;
 	enum rzg3e_lvds_link_type link_type;
 	u32 ch, mode;
+
+	const struct rzg3e_lvds_hw_info *info;
 };
 
 #define bridge_to_rzg3e_lvds(b) \
@@ -185,15 +199,6 @@ static void rzg3e_lvds_link_atomic_disable(struct drm_bridge *bridge,
 	rzg3e_lvds_reset_assert_pclk_disable(lvds->dev->parent);
 }
 
-static bool rzg3e_lvds_link_mode_fixup(struct drm_bridge *bridge,
-				       const struct drm_display_mode *mode,
-				       struct drm_display_mode *adjusted_mode)
-{
-	adjusted_mode->clock = clamp(adjusted_mode->clock, 5400, 187500);
-
-	return true;
-}
-
 static int rzg3e_lvds_link_attach(struct drm_bridge *bridge,
 				  enum drm_bridge_attach_flags flags)
 {
@@ -206,6 +211,29 @@ static int rzg3e_lvds_link_attach(struct drm_bridge *bridge,
 				 flags);
 }
 
+static enum drm_mode_status
+rzg3e_lvds_link_mode_valid(struct drm_bridge *bridge,
+			   const struct drm_display_info *info,
+			   const struct drm_display_mode *mode)
+{
+	struct rzg3e_lvds *lvds = bridge_to_rzg3e_lvds(bridge);
+
+	if (lvds->link_type == RZG3E_LVDS_SINGLE_LINK) {
+		if ((lvds->info->max_dclk) &&
+		    (mode->clock > lvds->info->max_dclk))
+			return MODE_CLOCK_HIGH;
+	} else {
+		if ((lvds->info->max_dual_dclk) &&
+		    (mode->clock > lvds->info->max_dual_dclk))
+			return MODE_CLOCK_HIGH;
+	}
+
+	if ((lvds->info->min_dclk) && (mode->clock < lvds->info->min_dclk))
+		return MODE_CLOCK_LOW;
+
+	return MODE_OK;
+}
+
 static const struct drm_bridge_funcs rzg3e_lvds_link_bridge_ops = {
 	.attach = rzg3e_lvds_link_attach,
 	.atomic_duplicate_state = drm_atomic_helper_bridge_duplicate_state,
@@ -213,7 +241,7 @@ static const struct drm_bridge_funcs rzg3e_lvds_link_bridge_ops = {
 	.atomic_reset = drm_atomic_helper_bridge_reset,
 	.atomic_enable = rzg3e_lvds_link_atomic_enable,
 	.atomic_disable = rzg3e_lvds_link_atomic_disable,
-	.mode_fixup = rzg3e_lvds_link_mode_fixup,
+	.mode_valid = rzg3e_lvds_link_mode_valid,
 };
 
 bool rzg3e_lvds_link_dual_link(struct drm_bridge *bridge)
@@ -379,6 +407,11 @@ static int rzg3e_lvds_link_probe(struct platform_device *pdev)
 	if (IS_ERR(lvds->mmio))
 		return PTR_ERR(lvds->mmio);
 
+	lvds->info = of_device_get_match_data(lvds->dev);
+	if (!lvds->info)
+		return dev_err_probe(lvds->dev, -ENODEV,
+				     "missing device data\n");
+
 	ret = rzg3e_lvds_link_get_clocks(lvds);
 	if (ret < 0)
 		return ret;
@@ -410,8 +443,14 @@ static int rzg3e_lvds_link_remove(struct platform_device *pdev)
 	return 0;
 }
 
+static const struct rzg3e_lvds_hw_info rzg3e_info = {
+	.max_dclk	= 87000,
+	.min_dclk	= 5400,
+	.max_dual_dclk	= 187500,
+};
+
 static const struct of_device_id rzg3e_lvds_link_of_table[] = {
-	{ .compatible = "renesas,rzg3e-lvds-link" },
+	{ .compatible = "renesas,rzg3e-lvds-link", .data = &rzg3e_info },
 	{ /* sentinel */ }
 };
 
