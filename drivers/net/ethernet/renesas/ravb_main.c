@@ -2145,6 +2145,11 @@ static int ravb_close(struct net_device *ndev)
 	if (info->gptp)
 		ravb_ptp_stop(ndev);
 
+	/* Stop TX, RX Function of TOE */
+	ravb_write(ndev, ravb_read(ndev, CSR0) & ~(CSR0_RPE | CSR0_TPE), CSR0);
+	if (ravb_wait(ndev, CSR0, CSR0_RPE | CSR0_TPE, 0))
+		netdev_err(ndev, "Timeout to disable HW CSUM\n");
+
 	/* Set the config mode to stop the AVB-DMAC's processes */
 	if (ravb_stop_dma(ndev) < 0)
 		netdev_err(ndev,
