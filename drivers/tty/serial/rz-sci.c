@@ -1026,6 +1026,8 @@ done:
 
 	if (port->type == PORT_SCIF)
 		ccr3_val |= CCR3_FM;
+	if (port->type == PORT_SCI)
+		ccr3_val |= CCR3_RXDESEL;
 	serial_port_out(port, CCR3, ccr3_val);
 
 	ccr2_val |= (cks << 20) | (brr << 8);
