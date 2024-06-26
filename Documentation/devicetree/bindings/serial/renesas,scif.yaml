@@ -178,6 +178,9 @@ allOf:
           maxItems: 1
 
         interrupt-names: false
+    else:
+      required:
+        - interrupt-names
 
   - if:
       properties:
