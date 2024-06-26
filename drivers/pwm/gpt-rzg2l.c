@@ -2295,6 +2295,11 @@ static const struct attribute_group buffer_attr_group = {
 	.attrs = buffer_attrs,
 };
 
+static void gpt_reset_control_assert(void *data)
+{
+	reset_control_assert(data);
+}
+
 static int rzg2l_gpt_probe(struct platform_device *pdev)
 {
 	struct rzg2l_gpt_chip *rzg2l_gpt;
@@ -2374,13 +2379,24 @@ static int rzg2l_gpt_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-	rzg2l_gpt->rstc = devm_reset_control_get_shared(&pdev->dev, NULL);
+	rzg2l_gpt->rstc = devm_reset_control_array_get(&pdev->dev, true, false);
 	if (IS_ERR(rzg2l_gpt->rstc)) {
 		dev_err(&pdev->dev, "failed to get cpg reset\n");
 		return PTR_ERR(rzg2l_gpt->rstc);
 	}
 
-	reset_control_deassert(rzg2l_gpt->rstc);
+	ret = reset_control_deassert(rzg2l_gpt->rstc);
+	if (ret) {
+		dev_err(&pdev->dev, "failed to deassert reset %d\n", ret);
+		return ret;
+	}
+
+	ret = devm_add_action_or_reset(&pdev->dev, gpt_reset_control_assert,
+				       rzg2l_gpt->rstc);
+	if (ret) {
+		dev_err(&pdev->dev, "failed to register assert devm action, %d\n", ret);
+		return ret;
+	}
 
 	irq = platform_get_irq_byname(pdev, "gtcib");
 	if (irq < 0) {
