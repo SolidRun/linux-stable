@@ -182,9 +182,12 @@ static int rsnd_dmaen_cleanup(struct rsnd_mod *mod,
 	 * Thus, it shouldn't be called under spinlock.
 	 * Let's call it under prepare
 	 */
-	if (dmaen->chan)
-		dma_release_channel(dmaen->chan);
+	if (dmaen->chan) {
+		if (rsnd_is_rzv2h(priv))
+			dmaengine_terminate_all(dmaen->chan);
 
+		dma_release_channel(dmaen->chan);
+	}
 	dmaen->chan = NULL;
 
 	return 0;
