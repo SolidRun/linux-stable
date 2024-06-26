@@ -690,6 +690,15 @@ retry:
 		 * Mac platforms.
 		 */
 		val |= RH_A_NPS;
+	} else if (ohci->flags & OHCI_QUIRK_SPURIOUS_OC) {
+		/* On Renesas platforms and possibly others that have
+		 * over-current pins that can be mux'd to other functions.
+		 * This leads to over-current warnings when the devices
+		 * are released from reset. Since the OC pins aren't 
+		 * used on the board add a quirk to disable the OC support
+		 * in the root hub.
+		 */
+		val |= RH_A_NOCP;
 	}
 	ohci_writel(ohci, val, &ohci->regs->roothub.a);
 

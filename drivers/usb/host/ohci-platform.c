@@ -137,6 +137,9 @@ static int ohci_platform_probe(struct platform_device *dev)
 		if (of_property_read_bool(dev->dev.of_node, "no-big-frame-no"))
 			ohci->flags |= OHCI_QUIRK_FRAME_NO;
 
+		if (of_property_read_bool(dev->dev.of_node, "spurious-oc"))
+			ohci->flags |= OHCI_QUIRK_SPURIOUS_OC;
+
 		if (of_property_read_bool(dev->dev.of_node,
 					  "remote-wakeup-connected"))
 			ohci->hc_control = OHCI_CTRL_RWC;
