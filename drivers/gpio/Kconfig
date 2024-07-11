@@ -507,6 +507,12 @@ config GPIO_RCAR
 	help
 	  Say yes here to support GPIO on Renesas R-Car or RZ/G SoCs.
 
+config GPIO_DUMMY
+	tristate "Renesas Dummy GPIO driver"
+	depends on ARCH_RENESAS || COMPILE_TEST
+	help
+	  Say yes here to build support for the Dummy GPIO.
+
 config GPIO_RDA
 	bool "RDA Micro GPIO controller support"
 	depends on ARCH_RDA || COMPILE_TEST
