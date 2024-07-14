@@ -743,6 +743,7 @@
 		device-wakeup-gpios = <&gpio2 7 GPIO_ACTIVE_HIGH>;
 		host-wakeup-gpios = <&gpio2 8 GPIO_ACTIVE_HIGH>;
 		shutdown-gpios = <&gpio2 6 GPIO_ACTIVE_HIGH>;
+		max-speed = <1500000>;
 	};
 };
 
