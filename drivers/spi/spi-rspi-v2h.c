@@ -24,6 +24,7 @@
 #include <linux/spi/spi.h>
 #include <linux/spi/rspi.h>
 #include <linux/spinlock.h>
+#include <linux/iopoll.h>
 
 /* V2H register*/
 #define RSPI_SPDR		0x00	/* Data Register */
@@ -151,7 +152,7 @@ struct rspi_data {
 	struct platform_device *pdev;
 	wait_queue_head_t wait;
 	spinlock_t lock;	/* Protects RMW-access to RSPI_SSLP */
-	struct clk *clk;
+	struct clk *tclk;
 	u32 spcmd;
 	u16 spsr;
 	u8 sppcr;
@@ -161,6 +162,7 @@ struct rspi_data {
 
 	unsigned dma_callbacked:1;
 	unsigned byte_access:1;
+	struct reset_control *rstc;
 };
 
 static void rspi_write8(const struct rspi_data *rspi, u8 data, u16 offset)
@@ -222,7 +224,7 @@ static void rspi_set_rate(struct rspi_data *rspi)
 	int brdv = 0, spbr;
 
 	if (!spi_controller_is_slave(rspi->ctlr)) {
-		clksrc = clk_get_rate(rspi->clk);
+		clksrc = clk_get_rate(rspi->tclk);
 		spbr = DIV_ROUND_UP(clksrc, 2 * rspi->speed_hz) - 1;
 		while (spbr > 255 && brdv < 3) {
 			brdv++;
@@ -265,6 +267,7 @@ static int rspi_v2h_set_config_register(struct rspi_data *rspi, int access_size)
 	/* Sets RSPI mode */
 	if (!spi_controller_is_slave(rspi->ctlr))
 		rspi_write32(rspi, SPCR_MSTR, RSPI_SPCR);
+
 	return 0;
 }
 
@@ -286,10 +289,12 @@ static int rspi_wait_for_interrupt(struct rspi_data *rspi, u16 wait_mask,
 	rspi->spsr = rspi_read16(rspi, RSPI_SPSR);
 	if (rspi->spsr & wait_mask)
 		return 0;
+
 	rspi_enable_irq(rspi, enable_bit);
 	ret = wait_event_timeout(rspi->wait, rspi->spsr & wait_mask, 10 * HZ);
 	if (ret == 0 && !(rspi->spsr & wait_mask))
 		return -ETIMEDOUT;
+
 	return 0;
 }
 
@@ -369,6 +374,7 @@ static int rspi_pio_transfer(struct rspi_data *rspi, const void *tx, void *rx,
 	default:
 		return -EINVAL;
 	}
+
 	for (count = 0; count < words; count++) {
 		if (tx) {
 			ret = rspi_wait_for_tx_empty(rspi);
@@ -390,6 +396,7 @@ static int rspi_pio_transfer(struct rspi_data *rspi, const void *tx, void *rx,
 			rx_fifo(rspi, rx, count);
 		}
 	}
+
 	return 0;
 }
 
@@ -518,6 +525,7 @@ static void rspi_receive_init(const struct rspi_data *rspi)
 	spsr = rspi_read16(rspi, RSPI_SPSR);
 	if (spsr & SPSR_SPRF)
 		rspi_read_data(rspi);	/* dummy read */
+
 	if (spsr & SPSR_OVRF)
 		rspi_write16(rspi, rspi_read16(rspi, RSPI_SPSR) & ~SPSR_OVRF,
 								RSPI_SPSR);
@@ -559,6 +567,7 @@ static int rspi_dma_check_then_transfer(struct rspi_data *rspi,
 		width = DMA_SLAVE_BUSWIDTH_2_BYTES;
 	else
 		width = DMA_SLAVE_BUSWIDTH_4_BYTES;
+
 	cfg.dst_addr = rspi->pdev->resource->start + RSPI_SPDR;
 	cfg.src_addr = rspi->pdev->resource->start + RSPI_SPDR;
 	cfg.dst_addr_width = width;
@@ -592,6 +601,7 @@ static int rspi_common_transfer(struct rspi_data *rspi,
 
 	/* Wait for the last transmission */
 	rspi_wait_for_tx_empty(rspi);
+
 	return 0;
 }
 
@@ -602,6 +612,7 @@ static int rspi_v2h_transfer_one(struct spi_controller *ctlr,
 	struct rspi_data *rspi = spi_controller_get_devdata(ctlr);
 
 	rspi_v2h_receive_init(rspi);
+
 	return rspi_common_transfer(rspi, xfer);
 }
 
@@ -621,11 +632,11 @@ static int rspi_setup(struct spi_device *spi)
 		sslp |= SSLP_SSLP(spi->chip_select);
 	else
 		sslp &= ~SSLP_SSLP(spi->chip_select);
-
 	rspi_write8(rspi, sslp, RSPI_SSLP);
 
 	spin_unlock_irq(&rspi->lock);
 	pm_runtime_put(&rspi->pdev->dev);
+
 	return 0;
 }
 
@@ -680,7 +691,7 @@ static int rspi_prepare_message(struct spi_controller *ctlr,
 	rspi_write16(rspi, rspi_read16(rspi, RSPI_SPSRC) | SPSRC_SPDRFC, RSPI_SPSRC);
 
 	/* FIFO Clear */
-	rspi_write16(rspi, SPFCR_SPFRST, RSPI_SPFCR);
+	rspi_write8(rspi, SPFCR_SPFRST, RSPI_SPFCR);
 
 	/* Prohibit SPII and SPCEND interrupt */
 
@@ -701,7 +712,6 @@ static int rspi_unprepare_message(struct spi_controller *ctlr,
 	rspi_write32(rspi, rspi_read32(rspi, RSPI_SPCR) & ~SPCR_SPE, RSPI_SPCR);
 
 	/* Reset sequencer for Single SPI Transfers */
-
 	rspi_write32(rspi, rspi->spcmd, RSPI_SPCMD0);
 	rspi_write8(rspi, 0, RSPI_SPSCR);
 
@@ -862,6 +872,7 @@ static int rspi_mode(struct device *dev)
 
 static int rspi_parse_dt(struct device *dev, struct spi_controller *ctlr)
 {
+	struct rspi_data *rspi = dev_get_drvdata(dev);
 	struct reset_control *rstc;
 	u32 num_cs;
 	int error;
@@ -875,10 +886,11 @@ static int rspi_parse_dt(struct device *dev, struct spi_controller *ctlr)
 
 	ctlr->num_chipselect = num_cs;
 
-	rstc = devm_reset_control_get_optional_exclusive(dev, NULL);
+	rstc = devm_reset_control_array_get(dev, false, false);
 	if (IS_ERR(rstc))
 		return dev_err_probe(dev, PTR_ERR(rstc),
 						"failed to get reset ctrl\n");
+	rspi->rstc = rstc;
 
 	error = reset_control_deassert(rstc);
 	if (error) {
@@ -929,8 +941,13 @@ static int rspi_probe(struct platform_device *pdev)
 		ctlr = spi_alloc_master(&pdev->dev, sizeof(struct rspi_data));
 	else
 		ctlr = spi_alloc_slave(&pdev->dev, sizeof(struct rspi_data));
+
 	if (ctlr == NULL)
 		return -ENOMEM;
+
+	rspi = spi_controller_get_devdata(ctlr);
+	platform_set_drvdata(pdev, rspi);
+
 	ops = of_device_get_match_data(&pdev->dev);
 	if (ops) {
 		ret = rspi_parse_dt(&pdev->dev, ctlr);
@@ -945,8 +962,6 @@ static int rspi_probe(struct platform_device *pdev)
 			ctlr->num_chipselect = 2; /* default */
 	}
 
-	rspi = spi_controller_get_devdata(ctlr);
-	platform_set_drvdata(pdev, rspi);
 	rspi->ops = ops;
 	rspi->ctlr = ctlr;
 
@@ -957,16 +972,16 @@ static int rspi_probe(struct platform_device *pdev)
 		goto error1;
 	}
 
-	rspi->clk = devm_clk_get(&pdev->dev, NULL);
-	if (IS_ERR(rspi->clk)) {
+	rspi->tclk = devm_clk_get(&pdev->dev, "tclk");
+	if (IS_ERR(rspi->tclk)) {
 		dev_err(&pdev->dev, "cannot get clock\n");
-		ret = PTR_ERR(rspi->clk);
+		ret = PTR_ERR(rspi->tclk);
 		goto error1;
 	}
 
 	rspi->pdev = pdev;
 	pm_runtime_enable(&pdev->dev);
-	ret = pm_runtime_resume_and_get(&pdev->dev);
+	pm_runtime_resume_and_get(&pdev->dev);
 
 	init_waitqueue_head(&rspi->wait);
 	spin_lock_init(&rspi->lock);
@@ -979,7 +994,7 @@ static int rspi_probe(struct platform_device *pdev)
 	ctlr->unprepare_message = rspi_unprepare_message;
 	ctlr->mode_bits = SPI_CPHA | SPI_CPOL | SPI_CS_HIGH | SPI_LSB_FIRST |
 						SPI_LOOP | ops->extra_mode_bits;
-	clksrc = clk_get_rate(rspi->clk);
+	clksrc = clk_get_rate(rspi->tclk);
 	ctlr->min_speed_hz = DIV_ROUND_UP(clksrc, ops->max_div);
 	ctlr->max_speed_hz = DIV_ROUND_UP(clksrc, ops->min_div);
 	ctlr->flags = ops->flags;
@@ -1054,12 +1069,23 @@ static int rspi_suspend(struct device *dev)
 {
 	struct rspi_data *rspi = dev_get_drvdata(dev);
 
+	reset_control_assert(rspi->rstc);
+	pm_runtime_put(dev);
+
 	return spi_controller_suspend(rspi->ctlr);
 }
 
 static int rspi_resume(struct device *dev)
 {
 	struct rspi_data *rspi = dev_get_drvdata(dev);
+
+	int ret;
+
+	ret = reset_control_deassert(rspi->rstc);
+	if (ret < 0)
+		return ret;
+
+	pm_runtime_get(dev);
 
 	return spi_controller_resume(rspi->ctlr);
 }
