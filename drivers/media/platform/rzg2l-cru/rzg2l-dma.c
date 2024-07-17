@@ -71,6 +71,11 @@
 #define AMnMBS				0x14C
 #define AMnMBS_MBSTS			0x7
 
+/* AXI Bus Master Transfer Setting Register */
+#define AMnAXIATTR			0x158
+#define AMnAXIATTR_AXILEN_MASK		GENMASK(3, 0)
+#define AMnAXIATTR_AXILEN(x)		((x) << 0)
+
 /* AXI Master FIFO Setting Register for CRU Image Data */
 #define AMnFIFO				0x160
 
@@ -572,6 +577,7 @@ static void rzg2l_cru_fill_hw_slot(struct rzg2l_cru_dev *cru, int slot)
 
 static void rzg2l_cru_initialize_axi(struct rzg2l_cru_dev *cru)
 {
+	u32 reg;
 	int slot;
 
 	/* Set image data memory banks.
@@ -604,6 +610,10 @@ static void rzg2l_cru_initialize_axi(struct rzg2l_cru_dev *cru)
 		for (slot = 0; slot < cru->num_buf; slot++)
 			rzg2l_cru_fill_hw_slot(cru, slot);
 	}
+
+	/* Set AXI burst max length to recommended setting */
+	reg = rzg2l_cru_read(cru, AMnAXIATTR) & ~AMnAXIATTR_AXILEN_MASK;
+	rzg2l_cru_write(cru, AMnAXIATTR, reg | AMnAXIATTR_AXILEN(0xF));
 }
 
 static void rzg2l_cru_csi2_setup(struct rzg2l_cru_dev *cru)
