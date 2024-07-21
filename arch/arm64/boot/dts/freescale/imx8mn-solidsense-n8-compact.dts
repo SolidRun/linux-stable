@@ -736,6 +736,9 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&uart1_pins>;
 	uart-has-rtscts;
+	/* select 80MHz parent clock to support maximum baudrate 4Mbps */
+	assigned-clocks = <&clk IMX8MN_CLK_UART1>;
+	assigned-clock-parents = <&clk IMX8MN_SYS_PLL1_80M>;
 	status = "okay";
 
 	bluetooth {
@@ -743,7 +746,7 @@
 		device-wakeup-gpios = <&gpio2 7 GPIO_ACTIVE_HIGH>;
 		host-wakeup-gpios = <&gpio2 8 GPIO_ACTIVE_HIGH>;
 		shutdown-gpios = <&gpio2 6 GPIO_ACTIVE_HIGH>;
-		max-speed = <1500000>;
+		max-speed = <3000000>;
 	};
 };
 
