@@ -638,8 +638,10 @@ static void __rsnd_spdif_interrupt(struct rsnd_mod *mod,
 		do
 			udata = rsnd_mod_read(mod, SPDIF_RUI);
 		while (rsnd_mod_read(mod, SPDIF_STAT) & SPDIF_RUIR_BIT);
-		/* Store the data */
-		if (udata != 0)
+		/* Detect the end and Store the data */
+		if (udata == 0)
+			spdif->spdin.u_idx = 0;
+		else
 			spdif->spdin.u_buf.data32[spdif->spdin.u_idx++] = udata;
 
 		if (spdif->spdin.u_idx >= SPDIF_USER_BUFSZ)
