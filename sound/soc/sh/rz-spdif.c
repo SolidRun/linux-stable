@@ -14,6 +14,7 @@
 #include <sound/pcm_params.h>
 #include <sound/soc.h>
 #include <linux/dmaengine.h>
+#include <sound/asoundef.h>
 
 /* Register offset	*/
 #define SPDIF_TLCA		0x00
@@ -77,6 +78,10 @@
 #define FS_32K			(12 << 24)
 #define FS_44K			(0 << 24)
 #define FS_48K			(4 << 24)
+#define CALC_MASK		(0x30000000)
+#define CALC_LV2		(0 << 28)
+#define CALC_LV1		(1 << 28)
+#define CALC_LV3		(2 << 28)
 
 #define WIDTH_MASK		(0xF << 22)
 #define WIDTH_16		(0 << 22)
@@ -561,11 +566,109 @@ static struct snd_soc_dai_driver rz_spdif_rx_dai = {
 	.ops = &rz_spdif_dai_ops,
 };
 
+static int rz_spdif_cs_info(struct snd_kcontrol *kcontrol,
+			    struct snd_ctl_elem_info *uinfo)
+{
+	uinfo->type = SNDRV_CTL_ELEM_TYPE_IEC958;
+	uinfo->count = 1;
+
+	return 0;
+}
+
+static int rz_spdif_ub_info(struct snd_kcontrol *kcontrol,
+			    struct snd_ctl_elem_info *uinfo)
+{
+	uinfo->type = SNDRV_CTL_ELEM_TYPE_BYTES;
+	uinfo->count = sizeof(user_msg);
+
+	return 0;
+}
+
+static int rz_spdif_kctrl_cs_get(struct snd_kcontrol *kcontrol,
+				 struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_component *component = snd_kcontrol_chip(kcontrol);
+	struct device *dev = component->dev;
+	struct spdif_dev_data *spdif = dev_get_drvdata(dev);
+
+	ucontrol->value.iec958.status[0] = IEC958_AES0_CON_NOT_COPYRIGHT |
+					   IEC958_AES0_CON_EMPHASIS_NONE;
+	ucontrol->value.iec958.status[1] = IEC958_AES1_CON_GENERAL;
+	ucontrol->value.iec958.status[2] = IEC958_AES2_CON_SOURCE_UNSPEC |
+					   IEC958_AES2_CON_CHANNEL_UNSPEC;
+	ucontrol->value.iec958.status[3] = IEC958_AES3_CON_FS_NOTID |
+					   IEC958_AES3_CON_CLOCK;
+
+	if (spdif->spdin.s_buf[SPDIF_CH1] == 0)
+		return 0;
+
+	switch (spdif->spdin.s_buf[SPDIF_CH1] & FS_MASK) {
+	case FS_32K:
+		ucontrol->value.iec958.status[3] = IEC958_AES3_CON_FS_32000;
+		break;
+	case FS_44K:
+		ucontrol->value.iec958.status[3] = IEC958_AES3_CON_FS_44100;
+		break;
+	case FS_48K:
+		ucontrol->value.iec958.status[3] = IEC958_AES3_CON_FS_48000;
+		break;
+	}
+
+	switch (spdif->spdin.s_buf[SPDIF_CH1] & CALC_MASK) {
+	case CALC_LV2:
+		ucontrol->value.iec958.status[3] |= IEC958_AES3_CON_CLOCK_1000PPM;
+		break;
+	case CALC_LV1:
+		ucontrol->value.iec958.status[3] |= IEC958_AES3_CON_CLOCK_50PPM;
+		break;
+	case CALC_LV3:
+		ucontrol->value.iec958.status[3] |= IEC958_AES3_CON_CLOCK_VARIABLE;
+		break;
+	}
+
+	return 0;
+}
+
+static int rz_spdif_kctrl_ub_get(struct snd_kcontrol *kcontrol,
+				 struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_component *component = snd_kcontrol_chip(kcontrol);
+	struct device *dev = component->dev;
+	struct spdif_dev_data *spdif = dev_get_drvdata(dev);
+
+	memcpy(ucontrol->value.bytes.data, spdif->spdin.u_buf.data, SPDIF_USER_BUFSZ * 4);
+
+	return 0;
+}
+
+static const struct snd_kcontrol_new rz_spdif_snd_kcontrol[] = {
+	/* Chanel status controller */
+	{
+		.iface	= SNDRV_CTL_ELEM_IFACE_PCM,
+		.name	= SNDRV_CTL_NAME_IEC958("", PLAYBACK, DEFAULT),
+		.access	= SNDRV_CTL_ELEM_ACCESS_READ |
+			  SNDRV_CTL_ELEM_ACCESS_VOLATILE,
+		.info	= rz_spdif_cs_info,
+		.get	= rz_spdif_kctrl_cs_get,
+	},
+	/* User bits controller */
+	{
+		.iface	= SNDRV_CTL_ELEM_IFACE_PCM,
+		.name	= "IEC958 User Data Receive",
+		.access	= SNDRV_CTL_ELEM_ACCESS_READ |
+			  SNDRV_CTL_ELEM_ACCESS_VOLATILE,
+		.info	= rz_spdif_ub_info,
+		.get	= rz_spdif_kctrl_ub_get,
+	},
+};
+
 static const struct snd_soc_component_driver rz_spdif_component = {
 	.name		= "rz-spdif",
 	.open		= rz_spdif_pcm_open,
 	.pointer	= rz_spdif_pcm_pointer,
 	.pcm_construct	= rz_spdif_pcm_new,
+	.controls	= rz_spdif_snd_kcontrol,
+	.num_controls	= ARRAY_SIZE(rz_spdif_snd_kcontrol),
 };
 
 static bool rz_spdif_pio_interrupt(int irq, struct spdif_dev_data *spdif)
