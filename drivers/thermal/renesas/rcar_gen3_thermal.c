@@ -17,8 +17,8 @@
 #include <linux/sys_soc.h>
 #include <linux/thermal.h>
 
-#include "thermal_core.h"
-#include "thermal_hwmon.h"
+#include "../thermal_core.h"
+#include "../thermal_hwmon.h"
 
 /* Register offsets */
 #define REG_GEN3_IRQSTR		0x04
