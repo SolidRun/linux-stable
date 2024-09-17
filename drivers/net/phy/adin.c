@@ -104,6 +104,9 @@
 #define ADIN1300_RMII_20_BITS			0x0004
 #define ADIN1300_RMII_24_BITS			0x0005
 
+#define ADIN1300_GE_LNK_STAT_INV_EN_REG		0xff3c
+#define ADIN1300_GE_LNK_STAT_INV_EN		BIT(0)
+
 /**
  * struct adin_cfg_reg_map - map a config value to aregister value
  * @cfg:	value in device configuration
@@ -178,6 +181,7 @@ static const struct adin_hw_stat adin_hw_stats[] = {
  */
 struct adin_priv {
 	u64			stats[ARRAY_SIZE(adin_hw_stats)];
+	int			link_st_polarity_inv;
 };
 
 static int adin_lookup_reg_value(const struct adin_cfg_reg_map *tbl, int cfg)
@@ -409,7 +413,14 @@ static int adin_set_tunable(struct phy_device *phydev,
 
 static int adin_config_init(struct phy_device *phydev)
 {
+	struct adin_priv *priv = phydev->priv;
 	int rc;
+
+	rc = phy_modify_mmd(phydev, MDIO_MMD_VEND1,
+			    ADIN1300_GE_LNK_STAT_INV_EN_REG,
+			    ADIN1300_GE_LNK_STAT_INV_EN, priv->link_st_polarity_inv);
+	if (rc < 0)
+		return rc;
 
 	phydev->mdix_ctrl = ETH_TP_MDI_AUTO;
 
@@ -711,6 +722,34 @@ static void adin_get_stats(struct phy_device *phydev,
 		data[i] = adin_get_stat(phydev, i);
 }
 
+static int adin_led_polarity_set(struct phy_device *phydev, int index,
+				 unsigned long modes)
+{
+	struct adin_priv *priv = phydev->priv;
+	u16 polarity = 0;
+	u32 mode;
+
+	/* only the LINK_ST pin allows polarity inversion */
+	if (index != 0x3e)
+		return -EINVAL;
+
+	for_each_set_bit(mode, &modes, __PHY_LED_MODES_NUM) {
+		switch (mode) {
+		case PHY_LED_ACTIVE_LOW:
+			polarity = 1;
+			break;
+		default:
+			return -EINVAL;
+		}
+	}
+
+	priv->link_st_polarity_inv = polarity;
+
+	return phy_modify_mmd(phydev, MDIO_MMD_VEND1,
+			      ADIN1300_GE_LNK_STAT_INV_EN_REG,
+			      ADIN1300_GE_LNK_STAT_INV_EN, polarity);
+}
+
 static int adin_probe(struct phy_device *phydev)
 {
 	struct device *dev = &phydev->mdio.dev;
@@ -719,6 +758,9 @@ static int adin_probe(struct phy_device *phydev)
 	priv = devm_kzalloc(dev, sizeof(*priv), GFP_KERNEL);
 	if (!priv)
 		return -ENOMEM;
+
+	/* Init LINK_ST polarity to 0 the default */
+	priv->link_st_polarity_inv = 0;
 
 	phydev->priv = priv;
 
@@ -745,6 +787,7 @@ static struct phy_driver adin_driver[] = {
 		.suspend	= genphy_suspend,
 		.read_mmd	= adin_read_mmd,
 		.write_mmd	= adin_write_mmd,
+		.led_polarity_set = adin_led_polarity_set,
 	},
 	{
 		PHY_ID_MATCH_MODEL(PHY_ID_ADIN1300),
