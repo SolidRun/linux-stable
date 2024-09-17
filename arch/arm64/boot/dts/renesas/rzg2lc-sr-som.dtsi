@@ -59,6 +59,14 @@
 		* interrupt-parent = <&pinctrl>;
 		* interrupts = <RZG2L_GPIO(27, 0) IRQ_TYPE_LEVEL_LOW>;
 		*/
+		leds {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			link_st: led@3e {
+				reg = <0x3e>;
+				active-low;
+			};
+		};
 	};
 };
 
