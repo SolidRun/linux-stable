@@ -149,24 +149,6 @@
 	};
 };
 
-#if SW_SD0_DEV_SEL
-/* eMMC */
-&sdhi0 {
-	pinctrl-0 = <&sdhi0_emmc_pins>;
-	pinctrl-1 = <&sdhi0_emmc_pins>;
-	pinctrl-names = "default", "state_uhs";
-
-	vmmc-supply = <&reg_3p3v>;
-	vqmmc-supply = <&reg_sdhi0_vccq>;
-	bus-width = <8>;
-	mmc-hs200-1_8v;
-	non-removable;
-	fixed-emmc-driver-type = <1>;
-	status = "okay";
-};
-#endif
-
-
 /* WiFi - CYW43439 */
 &sdhi1 {
 	brcmf: wifi@1 {

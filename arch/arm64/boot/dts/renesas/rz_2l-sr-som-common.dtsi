@@ -69,13 +69,13 @@
 
 	reg_sdhi0_vccq: regulator-vccq-sdhi0 {
 		compatible = "regulator-gpio";
-
 		regulator-name = "SDHI0_VCCQ";
 		regulator-min-microvolt = <1800000>;
 		regulator-max-microvolt = <3300000>;
 		states = <3300000 1>, <1800000 0>;
 		gpios = <&pinctrl RZG2L_GPIO(39, 0) GPIO_ACTIVE_HIGH>;
-		regulator-boot-on;
+		ramp_delay = <8>;
+  		regulator-boot-on;
 		regulator-always-on;
 	};
 
@@ -84,10 +84,17 @@
 		reset-gpios = <&pinctrl RZG2L_GPIO(23, 1) GPIO_ACTIVE_LOW>;
 	};
 
-	x1_clk: x1-clock {
+	x1_clk: xin24m-clock {
 		compatible = "fixed-clock";
 		#clock-cells = <0>;
 		clock-frequency = <24000000>;
+	};
+
+	/* 32.768kHz crystal */
+	xin32k: xin32k-clock {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <32768>;
 	};
 };
 
@@ -142,11 +149,16 @@
 
 	status = "okay";
 
-	pmic: raa215300@12 {
+	raa215300: pmic@12 {
 		compatible = "renesas,raa215300";
-		reg = <0x12>;
-		rtc-enable;
-		mpio2-32k-enable;
+		reg = <0x12>, <0x6f>;
+		reg-names = "main", "rtc";
+
+		clocks = <&xin32k>;
+		clock-names = "xin";
+
+		#clock-cells = <0>;
+		clock-output-names = "xin32k", "rk805-clkout2";
 	};
 };
 
@@ -190,11 +202,10 @@
 	};
 };
 
-#if SW_SD0_DEV_SEL
 /* eMMC */
 &sdhi0 {
-	pinctrl-0 = <&sdhi0_emmc_pins>;
-	pinctrl-1 = <&sdhi0_emmc_pins>;
+	pinctrl-0 = <&sdhi0_pins>;
+	pinctrl-1 = <&sdhi0_pins_uhs>;
 	pinctrl-names = "default", "state_uhs";
 
 	vmmc-supply = <&reg_3p3v>;
@@ -203,17 +214,16 @@
 	mmc-hs200-1_8v;
 	non-removable;
 	fixed-emmc-driver-type = <1>;
+	broken-cd;
 	status = "okay";
 };
-#endif
 
 /* WiFi - CYW43439 */
 &sdhi1 {
 	#address-cells = <1>;
 	#size-cells = <0>;
 	pinctrl-0 = <&sdhi1_pins>;
-	pinctrl-1 = <&sdhi1_pins_uhs>;
-	pinctrl-names = "default", "state_uhs";
+	pinctrl-names = "default";
 	status = "okay";
 
 	non-removable;

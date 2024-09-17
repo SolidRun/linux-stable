@@ -8,14 +8,6 @@
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/pinctrl/rzg2l-pinctrl.h>
 
-/*
- * DIP-Switch S3 setting on SoM
- * 1 : High; 0: Low
- * S3[1] : SW_SD0_DEV_SEL	(1: eMMC; 0: uSD)
- */
-
-#define SW_SD0_DEV_SEL	1
-
 /dts-v1/;
 #include "rzg2lc-sr-som.dtsi"
 #include "rz-hummingboard-common.dtsi"

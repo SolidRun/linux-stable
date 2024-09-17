@@ -18,6 +18,11 @@
 		line-name = "gpio_sd0_dev_sel";
 	};
 
+	can1_pins: can1 {
+		pinmux = <RZG2L_PORT_PINMUX(40, 0, 3)>, /* TxD */
+			 <RZG2L_PORT_PINMUX(40, 1, 3)>; /* RxD */
+	};
+
 	eth0_pins: eth0 {
 		pinmux = <RZG2L_PORT_PINMUX(28, 1, 1)>, /* ET0_LINKSTA */
 			<RZG2L_PORT_PINMUX(27, 1, 1)>, /* ET0_MDC */
@@ -100,28 +105,10 @@
 			 <RZG2L_PORT_PINMUX(48, 4, 1)>; /* RTS# */
 	};
 
-#if SW_SD0_DEV_SEL
-	sdhi0_emmc_pins: sd0emmc {
-		sd0_emmc_data {
-			pins = "SD0_DATA0", "SD0_DATA1", "SD0_DATA2", "SD0_DATA3",
-				   "SD0_DATA4", "SD0_DATA5", "SD0_DATA6", "SD0_DATA7";
-			power-source = <1800>;
-		};
-
-		sd0_emmc_ctrl {
-			pins = "SD0_CLK", "SD0_CMD";
-			power-source = <1800>;
-		};
-
-		sd0_emmc_rst {
-			pins = "SD0_RST#";
-			power-source = <1800>;
-		};
-	};
-#else
 	sdhi0_pins: sd0 {
 		sd0_data {
-			pins = "SD0_DATA0", "SD0_DATA1", "SD0_DATA2", "SD0_DATA3";
+			pins = "SD0_DATA0", "SD0_DATA1", "SD0_DATA2", "SD0_DATA3",
+				   "SD0_DATA4", "SD0_DATA5", "SD0_DATA6", "SD0_DATA7";
 			power-source = <3300>;
 		};
 
@@ -133,7 +120,8 @@
 
 	sdhi0_pins_uhs: sd0_uhs {
 		sd0_data_uhs {
-			pins = "SD0_DATA0", "SD0_DATA1", "SD0_DATA2", "SD0_DATA3";
+			pins = "SD0_DATA0", "SD0_DATA1", "SD0_DATA2", "SD0_DATA3",
+				   "SD0_DATA4", "SD0_DATA5", "SD0_DATA6", "SD0_DATA7";
 			power-source = <1800>;
 		};
 
@@ -141,8 +129,12 @@
 			pins = "SD0_CLK", "SD0_CMD";
 			power-source = <1800>;
 		};
+
+		sd0_emmc_rst {
+			pins = "SD0_RST#";
+			power-source = <1800>;
+		};
 	};
-#endif
 
 	sdhi1_pins: sd1 {
 		sd1_data {
@@ -153,18 +145,6 @@
 		sd1_ctrl {
 			pins = "SD1_CLK", "SD1_CMD";
 			power-source = <3300>;
-		};
-	};
-
-	sdhi1_pins_uhs: sd1_uhs {
-		sd1_data_uhs {
-			pins = "SD1_DATA0", "SD1_DATA1", "SD1_DATA2", "SD1_DATA3";
-			power-source = <1800>;
-		};
-
-		sd1_ctrl_uhs {
-			pins = "SD1_CLK", "SD1_CMD";
-			power-source = <1800>;
 		};
 	};
 
@@ -192,11 +172,6 @@
 			 <RZG2L_PORT_PINMUX(46, 1, 1)>, /* RCK */
 			 <RZG2L_PORT_PINMUX(46, 2, 1)>, /* TXD */
 			 <RZG2L_PORT_PINMUX(46, 3, 1)>; /* RXD */
-	};
-
-    can1_pins: can1 {
-		pinmux = <RZG2L_PORT_PINMUX(40, 0, 3)>, /* TxD */
-			<RZG2L_PORT_PINMUX(40, 1, 3)>; /* RxD */
 	};
 };
 

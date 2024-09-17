@@ -75,12 +75,6 @@
 		enable-active-high;
 	};
 
-	imx219_clk: osc25250_clk {
-		compatible = "fixed-clock";
-		#clock-cells = <0>;
-		clock-frequency = <24000000>;
-	};
-
 	ar0521_clk: osc27000_clk {
 		compatible = "fixed-clock";
 		#clock-cells = <0>;
@@ -218,27 +212,6 @@
 		pagesize = <16>;
 	};
 
-
-	imx219: sensor@10 {
-		compatible = "sony,imx219";
-		reg = <0x10>;
-		clocks = <&imx219_clk>;
-		clock-names = "extclk";
-		VANA-supply = <&cam_ext_2v8>;
-		VDIG-supply = <&cam_ext_1v8>;
-		VDDL-supply = <&cam_ext_1v2>;
-		status = "disabled";
-
-		port {
-			imx219_0: endpoint {
-				remote-endpoint = <&csi2_in>;
-				clock-lanes = <0>;
-				data-lanes = <1 2>;
-				link-frequencies = /bits/ 64 <456000000>;
-			};
-		};
-	};
-
 	ar0521: sensor@36 {
 		compatible = "onnn,ar0521";
 		reg = <0x36>;
@@ -292,7 +265,12 @@
 
 /* uSD */
 &sdhi0 {
-#if (!SW_SD0_DEV_SEL)
+#if 0
+	/* This is just a reference node if a customer is not using
+	 * the sdhi0 node on the SOM for the eMMC. These properties
+	 * are adjusted in our boot-loader depending on the sdio_select
+	 * env variable.
+	 */
 	pinctrl-0 = <&sdhi0_pins>;
 	pinctrl-1 = <&sdhi0_pins_uhs>;
 	pinctrl-names = "default", "state_uhs";

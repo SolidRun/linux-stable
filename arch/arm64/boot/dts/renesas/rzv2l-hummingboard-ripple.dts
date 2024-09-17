@@ -5,14 +5,6 @@
  * Copyright (C) 2023 SolidRun Ltd.
  */
 
-/*
- * DIP-Switch S3 setting on SoM
- * 1 : High; 0: Low
- * S3[1] : SW_SD0_DEV_SEL	(1: eMMC; 0: uSD)
- */
-
-#define SW_SD0_DEV_SEL	1
-
 /dts-v1/;
 #include "rzv2l-sr-som.dtsi"
 #include "rz-hummingboard-common.dtsi"
