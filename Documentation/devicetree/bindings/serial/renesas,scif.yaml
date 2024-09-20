@@ -77,8 +77,10 @@ properties:
               - renesas,scif-r9a07g054      # RZ/V2L
               - renesas,scif-r9a08g045      # RZ/G3S
               - renesas,scif-r9a09g057      # RZ/V2H
+              - renesas,scif-r9a09g056      # RZ/V2N
           - const: renesas,scif-r9a07g044   # RZ/G2{L,LC} fallback
       - const: renesas,scif-r9a09g057       # RZ/V2H(P)
+      - const: renesas,scif-r9a09g056       # RZ/V2N(P)
 
   reg:
     maxItems: 1
@@ -168,6 +170,7 @@ allOf:
               - renesas,rcar-gen4-scif
               - renesas,scif-r9a07g044
               - renesas,scif-r9a09g057
+              - renesas,scif-r9a09g056
     then:
       required:
         - resets
@@ -228,6 +231,7 @@ allOf:
         compatible:
           contains:
             const: renesas,scif-r9a09g057
+            const: renesas,scif-r9a09g056
     then:
       properties:
         clocks:
