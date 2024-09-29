@@ -1,0 +1,15 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+    fragment@0 {
+        target = <&sdhi0>;
+        __overlay__ {
+            pinctrl-0 = <&sdhi0_pins>;
+            pinctrl-names = "default";
+            vqmmc-supply = <&reg_3p3v>;
+            cap-sd-highspeed;
+            bus-width = <4>;
+        };
+    };
+};
