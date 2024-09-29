@@ -242,14 +242,14 @@ static int renesas_sdhi_start_signal_voltage_switch(struct mmc_host *mmc,
 	struct tmio_mmc_host *host = mmc_priv(mmc);
 	struct renesas_sdhi *priv = host_to_priv(host);
 	struct pinctrl_state *pin_state;
-	struct pinctrl_state *uhs_pin_state;
 	int ret;
 
 	switch (ios->signal_voltage) {
 	case MMC_SIGNAL_VOLTAGE_330:
-	case MMC_SIGNAL_VOLTAGE_180:
 		pin_state = priv->pins_default;
-		uhs_pin_state = priv->pins_uhs;
+		break;
+	case MMC_SIGNAL_VOLTAGE_180:
+		pin_state = priv->pins_uhs;
 		break;
 	default:
 		return -EINVAL;
@@ -259,31 +259,13 @@ static int renesas_sdhi_start_signal_voltage_switch(struct mmc_host *mmc,
 	 * If anything is missing, assume signal voltage is fixed at
 	 * 3.3V and succeed/fail accordingly.
 	 */
-	if (IS_ERR(pin_state) && IS_ERR(uhs_pin_state))
+	if (IS_ERR(priv->pinctrl) || IS_ERR(pin_state))
 		return ios->signal_voltage ==
 			MMC_SIGNAL_VOLTAGE_330 ? 0 : -EINVAL;
 
-	if (!IS_ERR(mmc->supply.vqmmc)) {
-		ret = mmc_regulator_set_vqmmc(host->mmc, ios);
-		if (ret < 0) {
-			pr_info("%s: set vqmmc failed\n", mmc_hostname(mmc));
-			return ret;
-		}
-	}
-
-	switch (ios->signal_voltage) {
-	case MMC_SIGNAL_VOLTAGE_330:
-		if (IS_ERR(pin_state))
-			return -EINVAL;
-		break;
-	case MMC_SIGNAL_VOLTAGE_180:
-		if (IS_ERR(uhs_pin_state))
-			return -EINVAL;
-		pin_state = uhs_pin_state;
-		break;
-	default:
-		return -EINVAL;
-	}
+	ret = mmc_regulator_set_vqmmc(host->mmc, ios);
+	if (ret < 0)
+		return ret;
 
 	return pinctrl_select_state(priv->pinctrl, pin_state);
 }
