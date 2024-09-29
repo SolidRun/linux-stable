@@ -67,17 +67,30 @@
   		regulator-always-on;
   	};
 
-	reg_sdhi0_vccq: regulator-vccq-sdhi0 {
-		compatible = "regulator-gpio";
-		regulator-name = "SDHI0_VCCQ";
-		regulator-min-microvolt = <1800000>;
-		regulator-max-microvolt = <3300000>;
-		states = <3300000 1>, <1800000 0>;
-		gpios = <&pinctrl RZG2L_GPIO(39, 0) GPIO_ACTIVE_HIGH>;
-		ramp_delay = <8>;
-  		regulator-boot-on;
-		regulator-always-on;
-	};
+	// reg_sdhi0_vccq: regulator-vccq-sdhi0 {
+	// 	compatible = "regulator-gpio";
+	// 	regulator-name = "SDHI0_VCCQ";
+	// 	regulator-min-microvolt = <1800000>;
+	// 	regulator-max-microvolt = <3300000>;
+	// 	// states = <3300000 1>, <1800000 0>;
+	// 	// gpios = <&pinctrl RZG2L_GPIO(39, 0) GPIO_ACTIVE_LOW>;
+	// 	// ramp_delay = <8>;
+  	// 	// regulator-boot-on;
+	// 	// regulator-always-on;
+	// };
+
+	// reg_sdhi0_vccq: regulator-vccq-sdhi0 {
+	// 	compatible = "regulator-fixed";
+	// 	regulator-name = "SDHI0_VCCQ";
+	// 	regulator-min-microvolt = <1800000>;
+	// 	regulator-max-microvolt = <3300000>;
+	// 	// states = <3300000 1>, <1800000 0>;
+	// 	// gpios = <&pinctrl RZG2L_GPIO(39, 0) GPIO_ACTIVE_LOW>;
+	// 	// ramp_delay = <8>;
+  	// 	regulator-boot-on;
+	// 	regulator-always-on;
+	// };
+
 
 	sdio_pwrseq: sdio-pwrseq {
 		compatible = "mmc-pwrseq-simple";
@@ -202,43 +215,152 @@
 	};
 };
 
-/* eMMC */
-&sdhi0 {
-	pinctrl-0 = <&sdhi0_pins>;
-	pinctrl-1 = <&sdhi0_pins_uhs>;
-	pinctrl-names = "default", "state_uhs";
+&pinctrl {
 
-	vmmc-supply = <&reg_3p3v>;
-	vqmmc-supply = <&reg_sdhi0_vccq>;
-	bus-width = <8>;
-	mmc-hs200-1_8v;
-	non-removable;
-	fixed-emmc-driver-type = <1>;
-	broken-cd;
-	status = "okay";
-};
 
-/* WiFi - CYW43439 */
-&sdhi1 {
-	#address-cells = <1>;
-	#size-cells = <0>;
-	pinctrl-0 = <&sdhi1_pins>;
-	pinctrl-names = "default";
-	status = "okay";
+	// gpio-reserved-ranges = <&pinctrl RZG2L_GPIO(22, 1) 0>, <&pinctrl RZG2L_GPIO(39, 0) 1>;
+	// sel_emmc: gpio-sd0-dev-sel-hog {
+	// 	gpio-hog;
+	// 	gpios = <RZG2L_GPIO(22, 1) GPIO_ACTIVE_LOW>;
+	// 	// #if (!SW_SD0_DEV_SEL)
+	// 		output-low; /*uSD*/
+	// 	// #else
+	// 	// 	output-high; /*eMMC*/
+	// 	// #endif
+	// 	line-name = "gpio_sd0_dev_sel_emmc";
+	// 	status = "okay";
+	// };
 
-	non-removable;
-	vmmc-supply = <&reg_3p3v>;
-	mmc-pwrseq = <&sdio_pwrseq>;
-	bus-width = <4>;
-	max-frequency = <50000000>;
-	fsl,delay-line = <12>;
-	keep-power-in-suspend;
+	// /* P39_0 - LDO_SEL1 (High: 3.3v [SD]; Low: 1.8v [eMMC]) */
+	// gpio_sel_emmc: gpio-sd0-vdd-18v-hog {
+	// 	gpio-hog;
+	// 	gpios = <RZG2L_GPIO(39, 0) GPIO_ACTIVE_LOW>;
+	// 	// #if (!SW_SD0_DEV_SEL)
+	// 		output-low; /*uSD*/
+	// 	// #else
+	// 	// 	output-high; /*eMMC*/
+	// 	// #endif
+	// 	line-name = "gpio_sd0_vdd_1.8v";
+	// 	status = "okay";
+	// };
 
-	brcmf: wifi@1 {
-		reg = <1>;
-		compatible = "brcm,bcm4329-fmac";
+	sdhi0_emmc_pins: sd0emmc {
+		sd0_emmc_data {
+			pins = "SD0_DATA0", "SD0_DATA1", "SD0_DATA2", "SD0_DATA3",
+				"SD0_DATA4", "SD0_DATA5", "SD0_DATA6", "SD0_DATA7";
+			power-source = <1800>;
+		};
+
+		sd0_emmc_ctrl {
+			pins = "SD0_CLK", "SD0_CMD";
+			power-source = <1800>;
+		};
+
+		sd0_emmc_rst {
+			pins = "SD0_RST#";
+			power-source = <1800>;
+		};
+	};
+
+	sdhi0_pins: sd0 {
+		sd0_data {
+			pins = "SD0_DATA0", "SD0_DATA1", "SD0_DATA2", "SD0_DATA3";
+			power-source = <3300>;
+		};
+
+		sd0_ctrl {
+			pins = "SD0_CLK", "SD0_CMD";
+			power-source = <3300>;
+		};
+
+		sd0_mux {
+			pinmux = <RZG2L_PORT_PINMUX(18, 0, 1)>; /* SD0_CD */
+		};
+	};
+
+	sdhi0_pins_uhs: sd0_uhs {
+		sd0_data_uhs {
+			pins = "SD0_DATA0", "SD0_DATA1", "SD0_DATA2", "SD0_DATA3";
+			power-source = <1800>;
+		};
+
+		sd0_ctrl_uhs {
+			pins = "SD0_CLK", "SD0_CMD";
+			power-source = <1800>;
+		};
+
+		sd0_mux_uhs {
+			pinmux = <RZG2L_PORT_PINMUX(18, 0, 1)>; /* SD0_CD */
+		};
 	};
 };
+
+/* Common SDIO */
+&sdhi0 {
+	pinctrl-0 = <&sdhi0_emmc_pins>;
+	pinctrl-names = "default";
+
+	vmmc-supply = <&reg_3p3v>;
+	// vqmmc-supply = <&reg_1p8v>;
+	bus-width = <8>;
+	status = "okay";
+
+};
+
+/*
+&sdhi0 {
+	pinctrl-0 = <&sdhi0_pins>;
+	// pinctrl-1 = <&sdhi0_pins>;
+	// pinctrl-names = "default", "state_uhs";
+	pinctrl-names = "default";
+
+	vmmc-supply = <&reg_3p3v>;
+	vqmmc-supply = <&reg_3p3v>;
+	bus-width = <4>;
+	//	non-removable;
+	// max-frequency = <50000000>;
+	cap-sd-highspeed;
+
+	status = "okay";
+};
+*/
+
+// // /* eMMC */
+// &sdhi0 {
+// 	pinctrl-0 = <&sdhi0_emmc_pins>;
+// 	pinctrl-1 = <&sdhi0_emmc_pins>;
+// 	pinctrl-names = "default", "state_uhs";
+
+// 	vmmc-supply = <&reg_3p3v>;
+// 	vqmmc-supply = <&reg_1p8v>;
+// 	bus-width = <8>;
+// 	mmc-hs200-1_8v;
+// 	non-removable;
+// 	fixed-emmc-driver-type = <1>;
+// 	status = "okay";
+// };
+
+/* WiFi - CYW43439 */
+// &sdhi1 {
+// 	#address-cells = <1>;
+// 	#size-cells = <0>;
+// 	pinctrl-0 = <&sdhi1_pins>;
+// 	pinctrl-names = "default";
+// 	status = "okay";
+
+// 	non-removable;
+// 	vmmc-supply = <&reg_3p3v>;
+// 	mmc-pwrseq = <&sdio_pwrseq>;
+// 	bus-width = <4>;
+// 	max-frequency = <50000000>;
+// 	fsl,delay-line = <12>;
+// 	keep-power-in-suspend;
+
+// 	brcmf: wifi@1 {
+// 		reg = <1>;
+// 		compatible = "brcm,bcm4329-fmac";
+// 	};
+// };
 
 &wdt0 {
 	status = "okay";

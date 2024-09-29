@@ -11,12 +11,12 @@
 &pinctrl {
 	pinctrl-names = "default";
 
-	gpio-sd0-dev-sel-hog {
-		gpio-hog;
-		gpios = <RZG2L_GPIO(22, 1) GPIO_ACTIVE_HIGH>;
-		output-high;
-		line-name = "gpio_sd0_dev_sel";
-	};
+	// gpio-sd0-dev-sel-hog {
+	// 	gpio-hog;
+	// 	gpios = <RZG2L_GPIO(22, 1) GPIO_ACTIVE_HIGH>;
+	// 	output-high;
+	// 	line-name = "gpio_sd0_dev_sel";
+	// };
 
 	can1_pins: can1 {
 		pinmux = <RZG2L_PORT_PINMUX(40, 0, 3)>, /* TxD */
@@ -69,10 +69,10 @@
 		input-enable;
 	};
 
-	i2c3_pins: i2c3 {
-		pinmux = <RZG2L_PORT_PINMUX(18, 0, 3)>, /* SDA */
-			 <RZG2L_PORT_PINMUX(18, 1, 3)>; /* SCL */
-	};
+	// i2c3_pins: i2c3 {
+	// 	pinmux = <RZG2L_PORT_PINMUX(18, 0, 3)>, /* SDA */
+	// 		 <RZG2L_PORT_PINMUX(18, 1, 3)>; /* SCL */
+	// };
 
 	qspi0_pins: qspi0 {
 		qspi0-data {
@@ -105,36 +105,36 @@
 			 <RZG2L_PORT_PINMUX(48, 4, 1)>; /* RTS# */
 	};
 
-	sdhi0_pins: sd0 {
-		sd0_data {
-			pins = "SD0_DATA0", "SD0_DATA1", "SD0_DATA2", "SD0_DATA3",
-				   "SD0_DATA4", "SD0_DATA5", "SD0_DATA6", "SD0_DATA7";
-			power-source = <3300>;
-		};
+	// sdhi0_pins: sd0 {
+	// 	sd0_data {
+	// 		pins = "SD0_DATA0", "SD0_DATA1", "SD0_DATA2", "SD0_DATA3",
+	// 			   "SD0_DATA4", "SD0_DATA5", "SD0_DATA6", "SD0_DATA7";
+	// 		power-source = <3300>;
+	// 	};
 
-		sd0_ctrl {
-			pins = "SD0_CLK", "SD0_CMD";
-			power-source = <3300>;
-		};
-	};
+	// 	sd0_ctrl {
+	// 		pins = "SD0_CLK", "SD0_CMD";
+	// 		power-source = <3300>;
+	// 	};
+	// };
 
-	sdhi0_pins_uhs: sd0_uhs {
-		sd0_data_uhs {
-			pins = "SD0_DATA0", "SD0_DATA1", "SD0_DATA2", "SD0_DATA3",
-				   "SD0_DATA4", "SD0_DATA5", "SD0_DATA6", "SD0_DATA7";
-			power-source = <1800>;
-		};
+	// sdhi0_pins_uhs: sd0_uhs {
+	// 	sd0_data_uhs {
+	// 		pins = "SD0_DATA0", "SD0_DATA1", "SD0_DATA2", "SD0_DATA3",
+	// 			   "SD0_DATA4", "SD0_DATA5", "SD0_DATA6", "SD0_DATA7";
+	// 		power-source = <1800>;
+	// 	};
 
-		sd0_ctrl_uhs {
-			pins = "SD0_CLK", "SD0_CMD";
-			power-source = <1800>;
-		};
+	// 	sd0_ctrl_uhs {
+	// 		pins = "SD0_CLK", "SD0_CMD";
+	// 		power-source = <1800>;
+	// 	};
 
-		sd0_emmc_rst {
-			pins = "SD0_RST#";
-			power-source = <1800>;
-		};
-	};
+	// 	sd0_emmc_rst {
+	// 		pins = "SD0_RST#";
+	// 		power-source = <1800>;
+	// 	};
+	// };
 
 	sdhi1_pins: sd1 {
 		sd1_data {
