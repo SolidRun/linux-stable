@@ -1,0 +1,15 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+    fragment@0 {
+        target = <&sdhi0>;
+        __overlay__ {
+            	pinctrl-1 = <&sdhi0_emmc_pins>;
+            	pinctrl-names = "default", "state_uhs";
+            	mmc-hs200-1_8v;
+            	non-removable;
+            	fixed-emmc-driver-type = <1>;
+        };
+    };
+};

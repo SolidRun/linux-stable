@@ -119,12 +119,12 @@
 	/delete-node/ eth1;
 	/delete-node/ i2c3;
 
-        gpio-sd0-dev-sel-hog {
-                gpio-hog;
-                gpios = <RZG2L_GPIO(22, 1) GPIO_ACTIVE_LOW>;
-                output-high;
-                line-name = "gpio_sd0_dev_sel";
-        };
+        // sd_card_power_on {
+        //         gpio-hog;
+        //         gpios = <RZG2L_GPIO(18, 1) GPIO_ACTIVE_LOW>;
+        //         output-high;
+        //         line-name = "sd_card_power_on";
+        // };
 
         i2c2_pins: i2c2 {
                 pinmux = <RZG2L_PORT_PINMUX(42, 3, 1)>, /* SDA */
@@ -139,10 +139,9 @@
 	};
 };
 
-&reg_sdhi0_vccq {
-	states = <3300000 0>, <1800000 1>;
-	gpios = <&pinctrl RZG2L_GPIO(39, 0) GPIO_ACTIVE_LOW>;
-};
+// &reg_sdhi0_vccq {
+// 	gpios = <&pinctrl RZG2L_GPIO(39, 0) GPIO_ACTIVE_LOW>;
+// };
 
 &sbc {
 	pinctrl-0 = <&qspi0_pins>;

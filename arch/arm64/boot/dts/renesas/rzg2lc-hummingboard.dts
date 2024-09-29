@@ -32,9 +32,9 @@
 	};
 };
 
-&reg_sdhi0_vmmc {
-	gpio = <&pinctrl RZG2L_GPIO(18, 1) GPIO_ACTIVE_LOW>;
-};
+// &reg_sdhi0_vmmc {
+// 	gpio = <&pinctrl RZG2L_GPIO(18, 1) GPIO_ACTIVE_LOW>;
+// };
 
 &scif1 {
 	pinctrl-0 = <&scif1_pins>;
@@ -44,9 +44,9 @@
 	status = "okay";
 };
 
-&sdhi0 {
-	cd-gpios = <&pinctrl RZG2L_GPIO(18, 0) GPIO_ACTIVE_LOW>;
-};
+// &sdhi0 {
+// 	cd-gpios = <&pinctrl RZG2L_GPIO(18, 0) GPIO_ACTIVE_LOW>;
+// };
 
 &usb0_vbus_otg {
 	gpio = <&pinctrl RZG2L_GPIO(4, 0) GPIO_ACTIVE_HIGH>;
