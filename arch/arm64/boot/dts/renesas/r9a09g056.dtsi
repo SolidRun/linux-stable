@@ -1228,6 +1228,120 @@
 				};
 			};
 		};
+
+		adc0: adc@11c00000 {
+			compatible = "renesas,r9a09g056-adc", "renesas,rzv2n-adc";
+			reg = <0 0x11C00000 0 0x400>;
+			clocks = <&cpg CPG_MOD 0x108>,
+				 <&cpg CPG_MOD 0x107>;
+			clock-names = "adclk", "pclk";
+			resets =  <&cpg 0xf6>;
+			reset-names = "adrst-n";
+			power-domains = <&cpg>;
+			status = "disabled";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			channel@0 {
+				reg = <0>;
+			};
+			channel@1 {
+				reg = <1>;
+			};
+			channel@2 {
+				reg = <2>;
+			};
+			channel@3 {
+				reg = <3>;
+			};
+			channel@4 {
+				reg = <4>;
+			};
+			channel@5 {
+				reg = <5>;
+			};
+			channel@6 {
+				reg = <6>;
+			};
+			channel@7 {
+				reg = <7>;
+			};
+		};
+
+		adc1: adc@11c02800 {
+			compatible = "renesas,r9a09g056-adc", "renesas,rzv2n-adc";
+			reg = <0 0x11c02800 0 0x400>;
+			clocks = <&cpg CPG_MOD 0x108>,
+				 <&cpg CPG_MOD 0x107>;
+			clock-names = "adclk", "pclk";
+			resets =  <&cpg 0xf6>;
+			reset-names = "adrst-n";
+			power-domains = <&cpg>;
+			status = "disabled";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			channel@0 {
+				reg = <0>;
+			};
+			channel@1 {
+				reg = <1>;
+			};
+			channel@2 {
+				reg = <2>;
+			};
+			channel@3 {
+				reg = <3>;
+			};
+			channel@4 {
+				reg = <4>;
+			};
+			channel@5 {
+				reg = <5>;
+			};
+			channel@6 {
+				reg = <6>;
+			};
+			channel@7 {
+				reg = <7>;
+			};
+		};
+
+		adc2: adc@11c02c00 {
+			compatible = "renesas,r9a09g056-adc", "renesas,rzv2n-adc";
+			reg = <0 0x11c02c00 0 0x400>;
+			clocks = <&cpg CPG_MOD 0x108>,
+				 <&cpg CPG_MOD 0x107>;
+			clock-names = "adclk", "pclk";
+			resets =  <&cpg 0xf6>;
+			reset-names = "adrst-n";
+			power-domains = <&cpg>;
+			status = "disabled";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			channel@0 {
+				reg = <0>;
+			};
+			channel@1 {
+				reg = <1>;
+			};
+			channel@2 {
+				reg = <2>;
+			};
+			channel@3 {
+				reg = <3>;
+			};
+			channel@4 {
+				reg = <4>;
+			};
+			channel@5 {
+				reg = <5>;
+			};
+			channel@6 {
+				reg = <6>;
+			};
+			channel@7 {
+				reg = <7>;
+			};
+		};
 	};
 
 	timer {
