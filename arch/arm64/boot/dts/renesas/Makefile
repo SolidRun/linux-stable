@@ -1,4 +1,8 @@
 # SPDX-License-Identifier: GPL-2.0
+
+# Enables support for device-tree overlays
+DTC_FLAGS := -@
+
 dtb-$(CONFIG_ARCH_R8A774A1) += r8a774a1-beacon-rzg2m-kit.dtb
 dtb-$(CONFIG_ARCH_R8A774A1) += r8a774a1-hihope-rzg2m.dtb
 dtb-$(CONFIG_ARCH_R8A774A1) += r8a774a1-hihope-rzg2m-ex.dtb
@@ -89,8 +93,8 @@ dtb-$(CONFIG_ARCH_R9A07G043) += r9a07g043u11-dev.dtb
 
 dtb-$(CONFIG_ARCH_R9A07G044) += r9a07g044c2-smarc.dtb
 dtb-$(CONFIG_ARCH_R9A07G044) += rzg2lc-hummingboard.dtb
-dtb-$(CONFIG_ARCH_R9A07G044) += rzg-solidrun-sd-overlay.dtb
-dtb-$(CONFIG_ARCH_R9A07G044) += rzg-solidrun-mmc-overlay.dtb
+dtb-$(CONFIG_ARCH_R9A07G044) += rzg-solidrun-sd-overlay.dtbo
+dtb-$(CONFIG_ARCH_R9A07G044) += rzg-solidrun-mmc-overlay.dtbo
 dtb-$(CONFIG_ARCH_R9A07G044) += rzg2lc-compact.dtb
 dtb-$(CONFIG_ARCH_R9A07G044) += r9a07g044c2-dev.dtb
 dtb-$(CONFIG_ARCH_R9A07G044) += r9a07g044l2-smarc.dtb
