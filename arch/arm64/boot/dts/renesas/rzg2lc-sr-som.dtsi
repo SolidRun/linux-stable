@@ -139,9 +139,13 @@
 	};
 };
 
-// &reg_sdhi0_vccq {
-// 	gpios = <&pinctrl RZG2L_GPIO(39, 0) GPIO_ACTIVE_LOW>;
-// };
+&reg_sdhi0_vccq {
+	regulator-min-microvolt = <1800000>;
+	regulator-max-microvolt = <1800000>;
+
+	states = <1800000 1>;
+ 	gpios = <&pinctrl RZG2L_GPIO(39, 0) GPIO_ACTIVE_LOW>;
+};
 
 &sbc {
 	pinctrl-0 = <&qspi0_pins>;

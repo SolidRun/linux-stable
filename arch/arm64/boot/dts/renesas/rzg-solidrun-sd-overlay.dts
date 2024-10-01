@@ -1,3 +1,6 @@
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/pinctrl/rzg2l-pinctrl.h>
+
 /dts-v1/;
 /plugin/;
 
@@ -7,9 +10,25 @@
         __overlay__ {
             pinctrl-0 = <&sdhi0_pins>;
             pinctrl-names = "default";
-            vqmmc-supply = <&reg_3p3v>;
             cap-sd-highspeed;
             bus-width = <4>;
         };
+    };
+
+    fragment@1 {
+        target = <&reg_sdhi0_vccq>;
+        __overlay__ {
+            regulator-min-microvolt = <3300000>;
+            regulator-max-microvolt = <3300000>;
+	    states = <3300000 1>;
+	    gpios = <&pinctrl RZG2L_GPIO(39, 0) GPIO_ACTIVE_HIGH>;
+        };
+    };
+
+    fragment@2 {
+        target = <&sdhi0_dev_sel_gpio>;
+	__overlay__ {
+	    output-low;
+	};
     };
 };
