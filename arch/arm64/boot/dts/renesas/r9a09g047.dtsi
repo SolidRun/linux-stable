@@ -1953,7 +1953,10 @@
 			clocks = <&cpg CPG_MOD 84>,
 				 <&cpg CPG_MOD 85>,
 				 <&cpg CPG_MOD 86>;
-			resets = <&cpg 123>;
+			clock-names = "pclk", "pclksfr", "tclk";
+			resets = <&cpg 123>,
+				 <&cpg 124>;
+			reset-names = "presetn", "tresetn";
 			dmas = <&dmac1 0x7F4C8D>, <&dmac1 0x7F4C8C>;
 			dma-names = "tx", "rx";
 			power-domains = <&cpg>;
@@ -1973,7 +1976,10 @@
 			clocks = <&cpg CPG_MOD 87>,
 				<&cpg CPG_MOD 88>,
 				<&cpg CPG_MOD 89>;
-			resets = <&cpg 125>;
+			clock-names = "pclk", "pclksfr", "tclk";
+			resets = <&cpg 125>,
+				 <&cpg 126>;
+			reset-names = "presetn", "tresetn";
 			power-domains = <&cpg>;
 			num-cs = <1>;
 			#address-cells = <1>;
@@ -1991,7 +1997,10 @@
 			clocks = <&cpg CPG_MOD 90>,
 				<&cpg CPG_MOD 91>,
 				<&cpg CPG_MOD 92>;
-			resets = <&cpg 127>;
+			clock-names = "pclk", "pclksfr", "tclk";
+			resets = <&cpg 127>,
+				 <&cpg 128>;
+			reset-names = "presetn", "tresetn";
 			power-domains = <&cpg>;
 			num-cs = <1>;
 			#address-cells = <1>;
