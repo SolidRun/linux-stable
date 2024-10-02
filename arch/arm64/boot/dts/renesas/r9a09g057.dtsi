@@ -2023,9 +2023,10 @@
 			compatible = "renesas,rspi-v2h";
 			reg = <0 0x12800000 0 0x400>;
 			interrupts = <GIC_SPI 106 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 107 IRQ_TYPE_EDGE_RISING>,
 				     <GIC_SPI 500 IRQ_TYPE_EDGE_RISING>,
 				     <GIC_SPI 501 IRQ_TYPE_EDGE_RISING>;
-			interrupt-names = "error", "rx", "tx";
+			interrupt-names = "error", "cend", "rx", "tx";
 			clocks = <&cpg CPG_MOD 84>,
 				 <&cpg CPG_MOD 85>,
 				 <&cpg CPG_MOD 86>;
@@ -2044,9 +2045,10 @@
 			compatible = "renesas,rspi-v2h";
 			reg = <0 0x12800400 0 0x400>;
 			interrupts = <GIC_SPI 109 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 110 IRQ_TYPE_EDGE_RISING>,
 				     <GIC_SPI 502 IRQ_TYPE_EDGE_RISING>,
 				     <GIC_SPI 503 IRQ_TYPE_EDGE_RISING>;
-			interrupt-names = "error", "rx", "tx";
+			interrupt-names = "error", "cend", "rx", "tx";
 			clocks = <&cpg CPG_MOD 87>,
 				<&cpg CPG_MOD 88>,
 				<&cpg CPG_MOD 89>;
@@ -2065,9 +2067,10 @@
 			compatible = "renesas,rspi-v2h";
 			reg = <0 0x12800800 0 0x400>;
 			interrupts = <GIC_SPI 112 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 113 IRQ_TYPE_EDGE_RISING>,
 				     <GIC_SPI 504 IRQ_TYPE_EDGE_RISING>,
 				     <GIC_SPI 505 IRQ_TYPE_EDGE_RISING>;
-			interrupt-names = "error", "rx", "tx";
+			interrupt-names = "error", "cend", "rx", "tx";
 			clocks = <&cpg CPG_MOD 90>,
 				<&cpg CPG_MOD 91>,
 				<&cpg CPG_MOD 92>;
