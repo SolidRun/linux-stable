@@ -774,8 +774,12 @@ static irqreturn_t rzv2h_pcie_msi_irq(int irq, void *data)
 	reg = rzv2h_pci_read_reg(pcie, PCI_INTX_RCV_INTERRUPT_STATUS_REG);
 
 	msi_stat = rzv2h_pci_read_reg(pcie, PCI_RC_MSIRCVSTAT(0));
-	if (!msi_stat)
+	if (!msi_stat) {
+		rzv2h_pci_write_reg(pcie, reg, PCI_INTX_RCV_INTERRUPT_STATUS_REG);
+		reg = rzv2h_pci_read_reg(pcie, PCI_RC_MSGRCVIS_REG);
+		rzv2h_pci_write_reg(pcie, reg, PCI_RC_MSGRCVIS_REG);
 		return IRQ_NONE;
+	}
 
 	while (msi_stat) {
 		unsigned int index = find_first_bit(&msi_stat, 32);
@@ -825,8 +829,13 @@ static void rzv2h_msi_irq_ack(struct irq_data *d)
 {
 	struct rzv2h_msi *msi = irq_data_get_irq_chip_data(d);
 	struct rzv2h_pcie *pcie = &msi_to_host(msi)->pcie;
+	unsigned long reg;
 
-	rzv2h_pci_write_reg(pcie, ALL_RECEIVE_INTERRUPT_STATUS, PCI_INTX_RCV_INTERRUPT_STATUS_REG);
+	reg = rzv2h_pci_read_reg(pcie, PCI_INTX_RCV_INTERRUPT_STATUS_REG);
+
+	rzv2h_pci_write_reg(pcie, reg, PCI_INTX_RCV_INTERRUPT_STATUS_REG);
+	reg = rzv2h_pci_read_reg(pcie, PCI_RC_MSGRCVIS_REG);
+	rzv2h_pci_write_reg(pcie, reg, PCI_RC_MSGRCVIS_REG);
 }
 
 static void rzv2h_msi_irq_mask(struct irq_data *d)
