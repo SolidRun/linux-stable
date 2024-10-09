@@ -231,6 +231,36 @@
 };
 #endif
 
+#if (POEGD_SUPPORT)
+&poega {
+	status = "okay";
+};
+
+&poegb {
+	status = "okay";
+};
+
+&poegc {
+	status = "okay";
+};
+
+&poegd {
+	status = "okay";
+};
+#endif
+
+#if (SCIF1_GPT3)
+&gpt3 {
+	pinctrl-0 = <&gpt3_pins>;
+	pinctrl-names = "default";
+	channel = "both_AB";
+#if (POEGD_SUPPORT)
+	poeg = <&poega &poegb &poegc &poegd>;
+#endif
+	status = "okay";
+};
+#endif
+
 &vmmc_sdhi0 {
 	gpios = <&pinctrl RZG2L_GPIO(18, 1) GPIO_ACTIVE_HIGH>;
 	enable-active-high;

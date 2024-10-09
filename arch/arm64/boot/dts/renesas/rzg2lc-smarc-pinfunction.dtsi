@@ -132,5 +132,11 @@
 		pinmux = <RZG2L_PORT_PINMUX(42, 0, 1)>, /* VBUS */
 			 <RZG2L_PORT_PINMUX(42, 1, 1)>; /* OVC */
 	};
-};
 
+#if (SCIF1_GPT3)
+	gpt3_pins: gpt3 {
+		pinmux = <RZG2L_PORT_PINMUX(41, 0, 4)>, /* Channel A */
+			 <RZG2L_PORT_PINMUX(41, 1, 4)>; /* Channel B */
+	};
+#endif
+};
