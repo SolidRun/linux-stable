@@ -950,6 +950,8 @@ static int renesas_i3c_master_send_ccc_cmd(struct i3c_master_controller *m,
 		renesas_i3c_master_dequeue_xfer(master, xfer);
 
 	ret = xfer->ret;
+	if (ret)
+		ccc->err = I3C_ERROR_M2;
 	renesas_i3c_master_free_xfer(xfer);
 
 	return ret;
