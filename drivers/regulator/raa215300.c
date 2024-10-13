@@ -43,6 +43,9 @@
 #define RAA215300_SW_COLD_RST	0x01
 #define RAA215300_SW_WARM_RST	0x02
 
+#define RAA215300_REG_MPIO2_CONFIG		0x8C
+#define RAA215300_MPIO2_32K_PP			0b00011001
+
 struct raa215300 {
 	/* Control interface */
 	struct regmap	*regmap;
@@ -130,6 +133,9 @@ static int raa215300_i2c_probe(struct i2c_client *client)
 	regmap_write(regmap, RAA215300_INT_MASK_3, RAA215300_INT_MASK_3_ALL);
 	regmap_write(regmap, RAA215300_INT_MASK_4, RAA215300_INT_MASK_4_ALL);
 	regmap_write(regmap, RAA215300_INT_MASK_6, RAA215300_INT_MASK_6_ALL);
+
+	if (of_property_read_bool(client->dev.of_node, "mpio2-32k-enable"))
+		regmap_write(regmap, RAA215300_REG_MPIO2_CONFIG, RAA215300_MPIO2_32K_PP);
 
 	ret = raa215300_clk_present(client, xin_name);
 	if (ret < 0) {
