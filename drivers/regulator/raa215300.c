@@ -38,6 +38,9 @@
 #define RAA215300_REG_BLOCK_EN_RTC_EN	BIT(6)
 #define RAA215300_RTC_DEFAULT_ADDR	0x6f
 
+#define RAA215300_REG_MPIO2_COMFIG		0x8C
+#define RAA215300_MPIO2_32K_PP			0b00011001
+
 static const struct regmap_config raa215300_regmap_config = {
 	.reg_bits = 8,
 	.val_bits = 8,
@@ -104,6 +107,9 @@ static int raa215300_i2c_probe(struct i2c_client *client)
 	regmap_write(regmap, RAA215300_INT_MASK_3, RAA215300_INT_MASK_3_ALL);
 	regmap_write(regmap, RAA215300_INT_MASK_4, RAA215300_INT_MASK_4_ALL);
 	regmap_write(regmap, RAA215300_INT_MASK_6, RAA215300_INT_MASK_6_ALL);
+
+	if (of_property_read_bool(client->dev.of_node, "mpio2-32k-enable"))
+		regmap_write(regmap, RAA215300_REG_MPIO2_COMFIG, RAA215300_MPIO2_32K_PP);
 
 	ret = raa215300_clk_present(client, xin_name);
 	if (ret < 0) {
