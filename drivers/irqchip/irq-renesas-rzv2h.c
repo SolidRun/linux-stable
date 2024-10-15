@@ -80,7 +80,16 @@
 
 #define ICU_TINT_EXTRACT_HWIRQ(x)		FIELD_GET(GENMASK(15, 0), (x))
 #define ICU_TINT_EXTRACT_GPIOINT(x)		FIELD_GET(GENMASK(31, 16), (x))
-#define ICU_PB5_TINT				0x55
+
+struct rzv2h_hw_info {
+        u8 irqc_irq_count;
+        u16 tint_offset;
+        u8 tint_tssel_shift;
+        u16 tint_tien;
+        u16 tssr_offset;
+        u16 tint_tssel_mask;
+	u8 icu_tint;
+};
 
 /**
  * struct rzv2h_icu_priv - Interrupt Control Unit controller private data
@@ -95,6 +104,27 @@ struct rzv2h_icu_priv {
 	const struct irq_chip		*irqchip;
 	struct irq_fwspec		fwspec[ICU_NUM_IRQ];
 	raw_spinlock_t			lock;
+	const struct rzv2h_hw_info *hw_info;
+};
+
+static const struct rzv2h_hw_info rzv2h_params = {
+        .irqc_irq_count = 16,
+        .tint_offset = 0,
+        .tint_tssel_shift = 8,
+        .tint_tien = BIT(7),
+        .tssr_offset = 4,
+        .tint_tssel_mask = GENMASK(7, 0),
+	.icu_tint = 0x55,
+};
+
+static const struct rzv2h_hw_info rzg3e_params = {
+       .irqc_irq_count = 16,
+       .tint_offset = 0x800,
+       .tint_tssel_shift = 16,
+       .tint_tien = BIT(15),
+       .tssr_offset = 2,
+       .tint_tssel_mask = GENMASK(15, 0),
+       .icu_tint = 0x8C,
 };
 
 static inline struct rzv2h_icu_priv *irq_data_to_priv(struct irq_data *data)
@@ -138,8 +168,9 @@ static void rzv2h_clear_tint_int(struct rzv2h_icu_priv *priv,
 	u32 tsctr, titsr, titsel;
 	u32 bit = BIT(tint_nr);
 	int k = tint_nr / 16;
+	u16 tint_offset = priv->hw_info->tint_offset;
 
-	tsctr = readl_relaxed(priv->base + ICU_TSCTR);
+	tsctr = readl_relaxed(priv->base + ICU_TSCTR + tint_offset);
 	titsr = readl_relaxed(priv->base + ICU_TITSR(k));
 	titsel = ICU_TITSR_TITSEL_GET(titsr, titsel_n);
 
@@ -150,7 +181,7 @@ static void rzv2h_clear_tint_int(struct rzv2h_icu_priv *priv,
 	 */
 	if ((tsctr & bit) && ((titsel == ICU_TINT_EDGE_RISING) ||
 			      (titsel == ICU_TINT_EDGE_FALLING)))
-		writel_relaxed(bit, priv->base + ICU_TSCLR);
+		writel_relaxed(bit, priv->base + ICU_TSCLR + tint_offset);
 }
 
 static void rzv2h_icu_eoi(struct irq_data *d)
@@ -174,22 +205,25 @@ static void rzv2h_tint_irq_endisable(struct irq_data *d, bool enable)
 {
 	struct rzv2h_icu_priv *priv = irq_data_to_priv(d);
 	unsigned int hw_irq = irqd_to_hwirq(d);
-	u32 tint_nr, tssel_n, k, tssr;
+	u32 tint_nr, tssr, tssr_offset, tssel_shift;
+	u8 tssr_index;
+	u16 tint_offset = priv->hw_info->tint_offset;
 
 	if (hw_irq < ICU_TINT_START)
 		return;
 
 	tint_nr = hw_irq - ICU_TINT_START;
-	k = ICU_TSSR_K(tint_nr);
-	tssel_n = ICU_TSSR_TSSEL_N(tint_nr);
+	tssr_index = tint_nr / priv->hw_info->tssr_offset;
+	tssr_offset = tint_nr % priv->hw_info->tssr_offset;
+	tssel_shift = priv->hw_info->tint_tssel_shift * tssr_offset;
 
 	raw_spin_lock(&priv->lock);
-	tssr = readl_relaxed(priv->base + ICU_TSSR(k));
+	tssr = readl_relaxed(priv->base + ICU_TSSR(tssr_index) + tint_offset);
 	if (enable)
-		tssr |= ICU_TSSR_TIEN(tssel_n);
+		tssr |= (priv->hw_info->tint_tien << tssel_shift);
 	else
-		tssr &= ~ICU_TSSR_TIEN(tssel_n);
-	writel_relaxed(tssr, priv->base + ICU_TSSR(k));
+		tssr &= ~(priv->hw_info->tint_tien << tssel_shift);
+	writel_relaxed(tssr, priv->base + ICU_TSSR(tssr_index) + tint_offset);
 	raw_spin_unlock(&priv->lock);
 }
 
@@ -270,11 +304,13 @@ static int rzv2h_irq_set_type(struct irq_data *d, unsigned int type)
 static int rzv2h_tint_set_type(struct irq_data *d, unsigned int type)
 {
 	u32 titsr, titsr_k, titsel_n, tien;
-	struct rzv2h_icu_priv *priv;
-	u32 tssr, tssr_k, tssel_n;
+	struct rzv2h_icu_priv *priv = irq_data_to_priv(d);
+	u32 tssr, tssr_offset, tssel_shift;
+	u8 tssr_index;
 	unsigned int hwirq;
 	u32 tint, sense;
 	int tint_nr;
+	u16 tint_offset = priv->hw_info->tint_offset;
 
 	switch (type & IRQ_TYPE_SENSE_MASK) {
 	case IRQ_TYPE_LEVEL_LOW:
@@ -298,7 +334,7 @@ static int rzv2h_tint_set_type(struct irq_data *d, unsigned int type)
 	}
 
 	tint = (u32)(uintptr_t)irq_data_get_irq_chip_data(d);
-	if (tint > ICU_PB5_TINT)
+	if (tint > priv->hw_info->icu_tint)
 		return -EINVAL;
 
 	priv = irq_data_to_priv(d);
@@ -306,20 +342,21 @@ static int rzv2h_tint_set_type(struct irq_data *d, unsigned int type)
 
 	tint_nr = hwirq - ICU_TINT_START;
 
-	tssr_k = ICU_TSSR_K(tint_nr);
-	tssel_n = ICU_TSSR_TSSEL_N(tint_nr);
+	tssr_index = tint_nr / priv->hw_info->tssr_offset;
+	tssr_offset = tint_nr % priv->hw_info->tssr_offset;
 
 	titsr_k = ICU_TITSR_K(tint_nr);
 	titsel_n = ICU_TITSR_TITSEL_N(tint_nr);
-	tien = ICU_TSSR_TIEN(titsel_n);
+	tssel_shift = priv->hw_info->tint_tssel_shift * tssr_offset;
+	tien = priv->hw_info->tint_tien << tssel_shift;
 
 	raw_spin_lock(&priv->lock);
 
-	tssr = readl_relaxed(priv->base + ICU_TSSR(tssr_k));
-	tssr &= ~(ICU_TSSR_TSSEL_MASK(tssel_n) | tien);
-	tssr |= ICU_TSSR_TSSEL_PREP(tint, tssel_n);
+	tssr = readl_relaxed(priv->base + ICU_TSSR(tssr_index) + tint_offset);
+	tssr &= ~(ICU_TSSR_TSSEL_MASK(tssr_offset) | tien);
+	tssr |= ICU_TSSR_TSSEL_PREP(tint, tssr_offset);
 
-	writel_relaxed(tssr, priv->base + ICU_TSSR(tssr_k));
+	writel_relaxed(tssr, priv->base + ICU_TSSR(tssr_index) + tint_offset);
 
 	titsr = readl_relaxed(priv->base + ICU_TITSR(titsr_k));
 	titsr &= ~ICU_TITSR_TITSEL_MASK(titsel_n);
@@ -329,7 +366,7 @@ static int rzv2h_tint_set_type(struct irq_data *d, unsigned int type)
 
 	rzv2h_clear_tint_int(priv, hwirq);
 
-	writel_relaxed(tssr | tien, priv->base + ICU_TSSR(tssr_k));
+	writel_relaxed(tssr | tien, priv->base + ICU_TSSR(tssr_index) + tint_offset);
 
 	raw_spin_unlock(&priv->lock);
 
@@ -433,8 +470,9 @@ static int rzv2h_icu_parse_interrupts(struct rzv2h_icu_priv *priv,
 	return 0;
 }
 
-static int rzv2h_icu_init(struct device_node *node,
-				 struct device_node *parent)
+static int icu_common_init(struct device_node *node,
+				 struct device_node *parent,
+				 const struct rzv2h_hw_info *hw_info)
 {
 	struct irq_domain *irq_domain, *parent_domain;
 	struct rzv2h_icu_priv *rzv2h_icu_data;
@@ -506,6 +544,14 @@ static int rzv2h_icu_init(struct device_node *node,
 		goto pm_put;
 	}
 
+	if (!hw_info) {
+		dev_err(&pdev->dev, "missing hardware info\n");
+		ret = -ENOENT;
+		goto pm_put;
+	}
+
+	rzv2h_icu_data->hw_info = hw_info;
+
 	put_device(&pdev->dev);
 	return 0;
 
@@ -520,8 +566,21 @@ put_dev:
 	return ret;
 }
 
+static int __init rzv2h_icu_init(struct device_node *node,
+                                                  struct device_node *parent)
+{
+               return icu_common_init(node, parent, &rzv2h_params);
+}
+
+static int __init rzg3e_icu_init(struct device_node *node,
+                                                  struct device_node *parent)
+{
+               return icu_common_init(node, parent, &rzg3e_params);
+}
+
 IRQCHIP_PLATFORM_DRIVER_BEGIN(rzv2h_icu)
 IRQCHIP_MATCH("renesas,r9a09g057-icu", rzv2h_icu_init)
+IRQCHIP_MATCH("renesas,r9a09g047-icu", rzg3e_icu_init)
 IRQCHIP_PLATFORM_DRIVER_END(rzv2h_icu)
 MODULE_AUTHOR("Fabrizio Castro <fabrizio.castro.jz@renesas.com>");
 MODULE_DESCRIPTION("Renesas RZ/V2H(P) ICU Driver");
