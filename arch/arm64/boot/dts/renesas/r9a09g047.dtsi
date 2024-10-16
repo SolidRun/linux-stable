@@ -1716,9 +1716,10 @@
 				 <&cpg CPG_MOD 233>,
 				 <&cpg CPG_MOD 232>,
 				 <&cpg CPG_MOD 234>,
+				 <&cpg CPG_MOD 400>,
 				 <&cpg CPG_MOD 235>;
 			clock-names = "pllclk", "aclk",
-				      "pclk", "vclk", "lpclk";
+				      "pclk", "vclk1", "vclk2", "lpclk";
 			resets = <&cpg 216>,
 				 <&cpg 215>;
 			reset-names = "arst", "prst";
@@ -1732,7 +1733,7 @@
 				port@0 {
 					reg = <0>;
 					dsi0_in: endpoint {
-						remote-endpoint = <&du0_out_dsi0>;
+						remote-endpoint = <&du_out_dsi0>;
 					};
 				};
 
@@ -1744,17 +1745,24 @@
 			};
 		};
 
-		du0: display@16460000 {
+		du: display@16460000 {
 			compatible = "renesas,r9a09g047-du";
-			reg = <0 0x16460000 0 0x10000>;
+			reg = <0 0x16460000 0 0x10000>,
+			      <0 0x16490000 0 0x10000>;
+			reg-names = "du0", "du1";
 			interrupts = <GIC_SPI 882 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&cpg CPG_MOD 237>,
 				 <&cpg CPG_MOD 238>,
-				 <&cpg CPG_MOD 239>;
-			clock-names = "aclk", "pclk", "vclk";
+				 <&cpg CPG_MOD 239>,
+				 <&cpg CPG_MOD 424>,
+				 <&cpg CPG_MOD 425>,
+				 <&cpg CPG_MOD 426>;
+			clock-names = "aclk0", "pclk0", "vclk0",
+				      "aclk1", "pclk1", "vclk1";
 			power-domains = <&cpg>;
-			resets = <&cpg 220>;
-			renesas,vsps = <&vspd0 0>;
+			resets = <&cpg 220>,
+				 <&cpg 286>;
+			renesas,vsps = <&vspd0 0>, <&vspd1 0>;
 			status = "disabled";
 
 			ports {
@@ -1763,8 +1771,14 @@
 
 				port@0 {
 					reg = <0>;
-					du0_out_dsi0: endpoint {
+					du_out_dsi0: endpoint {
 						remote-endpoint = <&dsi0_in>;
+					};
+				};
+
+				port@1 {
+					reg = <1>;
+					du_out_rgb: endpoint {
 					};
 				};
 			};
@@ -1793,6 +1807,31 @@
 			resets = <&cpg 220>;
 			power-domains = <&cpg>;
 			renesas,fcp = <&fcpvd0>;
+		};
+
+		fcpvd1: fcp@164A0000 {
+			compatible = "renesas,r9a09g047-fcpvd",
+				     "renesas,fcpv";
+			reg = <0 0x164A0000 0 0x10000>;
+			clocks = <&cpg CPG_MOD 424>,
+				 <&cpg CPG_MOD 425>,
+				 <&cpg CPG_MOD 426>;
+			clock-names = "aclk", "pclk", "vclk";
+			resets = <&cpg 286>;
+			power-domains = <&cpg>;
+		};
+
+		vspd1: vsp@164B0000 {
+			compatible = "renesas,r9a07g044-vsp2";
+			reg = <0 0x164B0000 0 0x10000>;
+			interrupts = <GIC_SPI 921 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 424>,
+				 <&cpg CPG_MOD 425>,
+				 <&cpg CPG_MOD 426>;
+			clock-names = "aclk", "pclk", "vclk";
+			resets = <&cpg 286>;
+			power-domains = <&cpg>;
+			renesas,fcp = <&fcpvd1>;
 		};
 	};
 
