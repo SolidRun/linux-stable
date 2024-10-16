@@ -432,6 +432,9 @@
 #define RCANFD_V3U_CFDCFG		(0x1314)
 #define RCANFD_V3U_DCFG(m)		(0x1400 + (0x20 * (m)))
 
+/* RZ/V2H Classical and CAN FD mode specific register map */
+#define RCANFD_V2H_FDCFG(m)             (0x1404 + (0x20 * (m)))
+
 #define RCANFD_V3U_GAFL_OFFSET		(0x1800)
 
 /* CAN FD mode specific register map */
@@ -754,7 +757,8 @@ static int rcar_canfd_reset_controller(struct rcar_canfd_global *gpriv)
 	rcar_canfd_write(gpriv->base, RCANFD_GERFL, 0x0);
 
 	/* Set the controller into appropriate mode */
-	rcar_canfd_set_mode(gpriv);
+	if (!is_rzv2h(gpriv))
+		rcar_canfd_set_mode(gpriv);
 
 	/* Transition all Channels to reset mode */
 	for_each_set_bit(ch, &gpriv->channels_mask, gpriv->info->max_channels) {
@@ -773,6 +777,18 @@ static int rcar_canfd_reset_controller(struct rcar_canfd_global *gpriv)
 			dev_dbg(&gpriv->pdev->dev,
 				"channel %u reset failed\n", ch);
 			return err;
+		}
+
+		/* Set mode for the RZ/V2H controller */
+		if (is_rzv2h(gpriv)) {
+			if (gpriv->fdmode)
+				rcar_canfd_set_bit(gpriv->base,
+						   RCANFD_V2H_FDCFG(ch),
+						   RCANFD_FDCFG_FDOE);
+			else
+				rcar_canfd_set_bit(gpriv->base,
+						   RCANFD_V2H_FDCFG(ch),
+						   RCANFD_FDCFG_CLOE);
 		}
 	}
 	return 0;
