@@ -45,10 +45,14 @@ struct rzg2l_du_output_routing {
  * struct rzg2l_du_device_info - DU model-specific information
  * @channels_mask: bit mask of available DU channels
  * @routes: array of CRTC to output routes, indexed by output (RZG2L_DU_OUTPUT_*)
+ * @max_dclk: maximum dotclock (kHz) support for the parallel output
+ * @min_dclk: minimum dotclock (kHz) support for the parallel output
  */
 struct rzg2l_du_device_info {
 	unsigned int channels_mask;
 	struct rzg2l_du_output_routing routes[RZG2L_DU_OUTPUT_MAX];
+	unsigned long max_dclk;
+	unsigned long min_dclk;
 };
 
 #define RZG2L_DU_MAX_CRTCS		2
