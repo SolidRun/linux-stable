@@ -22,6 +22,8 @@
 #include <media/v4l2-common.h>
 #include <media/v4l2-ioctl.h>
 #include <media/v4l2-uvc.h>
+#include <linux/of.h>
+#include <linux/of_reserved_mem.h>
 
 #include "uvcvideo.h"
 
@@ -2111,6 +2113,7 @@ static int uvc_probe(struct usb_interface *intf,
 	struct uvc_device *dev;
 	const struct uvc_device_info *info =
 		(const struct uvc_device_info *)id->driver_info;
+	struct device *usb_root = udev->bus->controller;
 	int function;
 	int ret;
 
@@ -2252,6 +2255,17 @@ static int uvc_probe(struct usb_interface *intf,
 
 	uvc_dbg(dev, PROBE, "UVC device initialized\n");
 	usb_enable_autosuspend(udev);
+	/* Take the first memory-region property of controller device node to
+	 * set as reserved memory region.
+	 */
+	ret = of_reserved_mem_device_init_by_idx(dev->vdev.dev,
+						 usb_root->of_node, 0);
+
+	if (ret)
+		dev_err(dev->mdev.dev, "Init reserved memory failed.\n");
+	else
+		dma_set_coherent_mask(dev->vdev.dev, DMA_BIT_MASK(64));
+
 	return 0;
 
 error:
@@ -2264,6 +2278,8 @@ static void uvc_disconnect(struct usb_interface *intf)
 {
 	struct uvc_device *dev = usb_get_intfdata(intf);
 
+	/* Release reserved memory region in device */
+	of_reserved_mem_device_release(dev->vdev.dev);
 	/*
 	 * Set the USB interface data to NULL. This can be done outside the
 	 * lock, as there's no other reader.
