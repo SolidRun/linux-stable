@@ -113,10 +113,14 @@
 &ehci0 {
 	dr_mode = "otg";
 	status = "okay";
+
+	memory-region = <&global_cma>;
 };
 
 &ehci1 {
 	status = "okay";
+
+	memory-region = <&global_cma>;
 };
 
 &hsusb {
@@ -141,10 +145,14 @@
 &ohci0 {
 	dr_mode = "otg";
 	status = "okay";
+
+	memory-region = <&global_cma>;
 };
 
 &ohci1 {
 	status = "okay";
+
+	memory-region = <&global_cma>;
 };
 
 &phyrst {
