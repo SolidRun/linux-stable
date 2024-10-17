@@ -2518,6 +2518,29 @@ static void rzg2l_gpio_irq_enable(struct irq_data *d)
 
 static int rzg2l_gpio_irq_set_type(struct irq_data *d, unsigned int type)
 {
+	struct gpio_chip *gc = irq_data_get_irq_chip_data(d);
+	struct rzg2l_pinctrl *pctrl = container_of(gc, struct rzg2l_pinctrl, gpio_chip);
+	int hw_irq = irqd_to_hwirq(d);
+	const struct rzg2l_register_offsets *regs = &pctrl->data->hwcfg->regs;
+	const struct pinctrl_pin_desc *pin_desc = &pctrl->desc.pins[hw_irq];
+	unsigned long flags;
+	u64 *pin_data = pin_desc->drv_data;
+	u32 off = RZG2L_PIN_CFG_TO_PORT_OFFSET(*pin_data);
+	u8 bit = RZG2L_PIN_ID_TO_PIN(hw_irq);
+	u8 reg8;
+
+	spin_lock_irqsave(&pctrl->lock, flags);
+	writel(0x0, pctrl->base + regs->pwpr);
+	writel(PWPR_PFCWE, pctrl->base + regs->pwpr);
+
+	reg8 = readb(pctrl->base + PMC(off));
+	reg8 &= ~BIT(bit);
+	writeb(reg8, pctrl->base + PMC(off));
+
+	writel(0x0, pctrl->base + regs->pwpr);
+	writel(PWPR_B0WI, pctrl->base + regs->pwpr);
+	spin_unlock_irqrestore(&pctrl->lock, flags);
+
 	return irq_chip_set_type_parent(d, type);
 }
 
