@@ -66,6 +66,39 @@
 		/* first 128MB is reserved for secure area. */
 		reg = <0x0 0x48000000 0x0 0x78000000>;
 	};
+	reserved-memory {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		/* global autoconfigured region for contiguous allocations */
+		global_cma: linux,cma@58000000 {
+			compatible = "shared-dma-pool";
+			reusable;
+			reg = <0x00000000 0x58000000 0x0 0x10000000>;
+			linux,cma-default;
+		};
+
+		/* device specific region for contiguous allocations */
+		mmp_reserved: linux,multimedia {
+			compatible = "shared-dma-pool";
+			reusable;
+			reg = <0x00000000 0x68000000 0x0 0x08000000>;
+		};
+	};
+
+	mmngr {
+		compatible = "renesas,mmngr";
+		memory-region = <&mmp_reserved>;
+	};
+
+	mmngrbuf {
+		compatible = "renesas,mmngrbuf";
+	};
+
+	vspm_if {
+		compatible = "renesas,vspm_if";
+	};
 
 	reg_12p0v: regulator-12p0v {
 		compatible = "regulator-fixed";
@@ -181,6 +214,7 @@
 
 &ehci0 {
 	dr_mode = "host";
+	memory-region = <&global_cma>;
 	status = "okay";
 };
 
@@ -284,6 +318,7 @@
 
 &ohci0 {
 	dr_mode = "host";
+	memory-region = <&global_cma>;
 	status = "okay";
 };
 
@@ -450,6 +485,6 @@
 &xhci0 {
 	pinctrl-0 = <&usb30_pins>;
 	pinctrl-names = "default";
-
+	memory-region = <&global_cma>;
 	status = "okay";
 };
