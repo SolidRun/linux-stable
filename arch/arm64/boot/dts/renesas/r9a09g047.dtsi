@@ -1634,6 +1634,34 @@
 			#thermal-sensor-cells = <1>;
 		};
 
+		vspi0: vspm@16050000 {
+			compatible = "renesas,vspm";
+			reg = <0 0x16050000 0 0x8000>, <0 0x16060000 0 0x200>;
+			interrupts = <GIC_SPI 923 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 421>, <&cpg CPG_MOD 422>,
+				 <&cpg CPG_MOD 423>;
+			clock-names = "vsp_mclk", "vsp_aclk", "vsp_pclk";
+			renesas,#ch = <0>;
+			renesas,#rpf = <1>;
+			renesas,#rpf_clut = <1>;
+			renesas,#wpf_rot = <1>;
+			renesas,has-sru;
+			renesas,has-uds;
+			renesas,has-lut;
+			renesas,has-clu;
+			renesas,has-hst;
+			renesas,has-hsi;
+			renesas,has-hgo;
+			renesas,has-hgt;
+			renesas,has-shp;
+			renesas,#read_outstanding = <2>;
+			renesas,#start_reservation = <2>;
+			power-domains = <&cpg>;
+			resets = <&cpg 283>, <&cpg 284>, <&cpg 285>;
+			reset-names = "smreset_vspiss", "sreset_vsp1z",
+				      "spreset_fcpvi0";
+		};
+
 		wdt0: watchdog@11c00400 {
 			compatible = "renesas,r9a09g047-wdt";
 			reg = <0 0x11c00400 0 0x400>;
