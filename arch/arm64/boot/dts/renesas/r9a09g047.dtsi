@@ -1662,6 +1662,20 @@
 				      "spreset_fcpvi0";
 		};
 
+		fdp1: fdpm@16300000 {
+			compatible = "renesas,fdpm";
+			reg = <0 0x16300000 0 0x2400>, <0 0x16310000 0 0x200>;
+			interrupts = <GIC_SPI 925 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 433>, <&cpg CPG_MOD 434>,
+				 <&cpg CPG_MOD 435>;
+			clock-names = "fdp_mclk", "fdp_aclk", "fdp_pclk";
+			power-domains = <&cpg>;
+			resets = <&cpg 292>, <&cpg 293>, <&cpg 294>;
+			reset-names = "brdg_resetn", "fdp1_resetn",
+				      "fcpf1_resetp";
+			renesas,#ch = <0>;
+		};
+
 		wdt0: watchdog@11c00400 {
 			compatible = "renesas,r9a09g047-wdt";
 			reg = <0 0x11c00400 0 0x400>;
