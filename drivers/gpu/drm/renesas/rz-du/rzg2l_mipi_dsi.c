@@ -60,6 +60,8 @@ struct rzg2l_mipi_dsi_hw_info {
 	u32 phy_reg_offset;
 	u32 link_reg_offset;
 	u8 vclk_input;
+	unsigned long max_dclk;
+	unsigned long min_dclk;
 };
 
 struct rzg2l_mipi_dsi {
@@ -1037,8 +1039,13 @@ rzg2l_mipi_dsi_bridge_mode_valid(struct drm_bridge *bridge,
 				 const struct drm_display_info *info,
 				 const struct drm_display_mode *mode)
 {
-	if (mode->clock > 148500)
+	struct rzg2l_mipi_dsi *dsi = bridge_to_rzg2l_mipi_dsi(bridge);
+
+	if ((dsi->info->max_dclk) && (mode->clock > dsi->info->max_dclk))
 		return MODE_CLOCK_HIGH;
+
+	if ((dsi->info->min_dclk) && (mode->clock < dsi->info->min_dclk))
+		return MODE_CLOCK_LOW;
 
 	return MODE_OK;
 }
@@ -1282,6 +1289,8 @@ static const struct rzg2l_mipi_dsi_hw_info rzg2l_mipi_dsi_info = {
 	.phy_reg_offset = 0,
 	.link_reg_offset = 0x10000,
 	.vclk_input = 1,
+	.max_dclk = 148500,
+	.min_dclk = 5803,
 };
 
 static const struct rzg2l_mipi_dsi_hw_info rzv2h_mipi_dsi_info = {
@@ -1292,6 +1301,8 @@ static const struct rzg2l_mipi_dsi_hw_info rzv2h_mipi_dsi_info = {
 	.phy_reg_offset = 0x10000,
 	.link_reg_offset = 0,
 	.vclk_input = 1,
+	.max_dclk = 187500,
+	.min_dclk = 5440,
 };
 
 static const struct rzg2l_mipi_dsi_hw_info rzg3e_mipi_dsi_info = {
@@ -1302,6 +1313,8 @@ static const struct rzg2l_mipi_dsi_hw_info rzg3e_mipi_dsi_info = {
 	.phy_reg_offset = 0x10000,
 	.link_reg_offset = 0,
 	.vclk_input = 2,
+	.max_dclk = 187500,
+	.min_dclk = 5440,
 };
 
 static const struct of_device_id rzg2l_mipi_dsi_of_table[] = {
