@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
 /*
- * Device Tree Source for the RZ Solidrun HummingBoards
- *
- * Copyright (C) 2023 SolidRun Ltd.
- */
+* Device Tree Source for the RZ Solidrun HummingBoards
+*
+* Copyright (C) 2023 SolidRun Ltd.
+*/
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/pinctrl/rzg2l-pinctrl.h>
@@ -15,7 +15,7 @@
 
 		port {
 			hdmi_con_out: endpoint {
-			remote-endpoint = <&adv7535_out>;
+				remote-endpoint = <&adv7535_out>;
 			};
 		};
 	};
@@ -43,15 +43,6 @@
 		regulator-max-microvolt = <1200000>;
 		regulator-always-on;
 	};
-
-	// reg_sdhi0_vmmc: regulator-sdhi0 {
-	// 	compatible = "regulator-fixed";
-	// 	regulator-name = "VSD_3V3";
-	// 	regulator-min-microvolt = <3300000>;
-	// 	regulator-max-microvolt = <3300000>;
-	// 	gpio = <&pinctrl RZG2L_GPIO(4, 1) GPIO_ACTIVE_LOW>;
-	// 	regulator-always-on;
-	// };
 
 	usb0_vbus_otg: regulator-usb0-vbus-otg {
 		compatible = "regulator-fixed";
@@ -260,29 +251,6 @@
 	//uart-has-rtscts;
 	status = "okay";
 };
-
-// /* uSD */
-// &sdhi0 {
-// #if 0
-// 	/* This is just a reference node if a customer is not using
-// 	 * the sdhi0 node on the SOM for the eMMC. These properties
-// 	 * are adjusted in our boot-loader depending on the sdio_select
-// 	 * env variable.
-// 	 */
-// 	pinctrl-0 = <&sdhi0_pins>;
-// 	pinctrl-1 = <&sdhi0_pins_uhs>;
-// 	pinctrl-names = "default", "state_uhs";
-
-// 	vmmc-supply = <&reg_sdhi0_vmmc>;
-// 	vqmmc-supply = <&reg_sdhi0_vccq>;
-// 	sd-uhs-sdr50;
-// 	sd-uhs-sdr104;
-// 	bus-width = <4>;
-// 	max-frequency = <50000000>; /* 50MiB */
-// 	status = "disabled";
-// #endif
-// 	// cd-gpios = <&pinctrl RZG2L_GPIO(47, 0) GPIO_ACTIVE_LOW>;
-// };
 
 &spi1 {
 	pinctrl-0 = <&spi1_pins>;

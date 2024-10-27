@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
 /*
- * Device Tree Source for the RZ/G2L Solidrun HummingBoard Pro
- *
- * Copyright (C) 2023 SolidRun Ltd.
- */
+* Device Tree Source for the RZ/G2L Solidrun HummingBoard Pro
+*
+* Copyright (C) 2023 SolidRun Ltd.
+*/
 
 #include "rzg2l-hummingboard-pro.dts"

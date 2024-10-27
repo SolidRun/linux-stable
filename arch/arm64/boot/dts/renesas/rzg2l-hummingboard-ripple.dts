@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
 /*
- * Device Tree Source for the RZ/G2L Solidrun HummingBoard Ripple
- *
- * Copyright (C) 2023 SolidRun Ltd.
- */
+* Device Tree Source for the RZ/G2L Solidrun HummingBoard Ripple
+*
+* Copyright (C) 2023 SolidRun Ltd.
+*/
 
 /dts-v1/;
 #include "rzg2l-sr-som.dtsi"
@@ -13,4 +13,3 @@
 	model = "Solidrun RZ/G2L HummingBoard-Ripple";
 	compatible = "renesas,rzg2l-sr-som", "renesas,r9a07g044l2", "renesas,r9a07g044";
 };
-
