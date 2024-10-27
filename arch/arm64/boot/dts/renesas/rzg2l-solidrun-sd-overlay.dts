@@ -1,0 +1,32 @@
+// SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+/*
+* Device Tree Overlay for the RZ/G2L/V2L Solidrun SOM SD
+*
+* Copyright (C) 2024 SolidRun Ltd.
+*/
+
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/pinctrl/rzg2l-pinctrl.h>
+
+/dts-v1/;
+/plugin/;
+
+/ {
+    fragment@0 {
+        target = <&sdhi0>;
+        __overlay__ {
+            pinctrl-0 = <&sdhi0_pins>;
+            pinctrl-1 = <&sdhi0_pins_uhs>;
+            sd-uhs-sdr104;
+            bus-width = <4>;
+        };
+    };
+
+    fragment@1 {
+        target = <&sdhi0_dev_sel_gpio>;
+        __overlay__ {
+            output-low;
+        };
+    };
+};

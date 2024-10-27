@@ -1,0 +1,28 @@
+// SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+/*
+* Device Tree Overlay for the RZ/G2LC/G2UL Solidrun SOM eMMC
+*
+* Copyright (C) 2024 SolidRun Ltd.
+*/
+
+
+/dts-v1/;
+/plugin/;
+
+/ {
+    fragment@0 {
+        target = <&sdhi0>;
+        __overlay__ {
+            	mmc-hs200-1_8v;
+            	non-removable;
+            	fixed-emmc-driver-type = <1>;
+        };
+    };
+
+    fragment@1 {
+        target = <&sdhi0_dev_sel_gpio>;
+        __overlay__ {
+            output-high;
+        };
+    };
+};
