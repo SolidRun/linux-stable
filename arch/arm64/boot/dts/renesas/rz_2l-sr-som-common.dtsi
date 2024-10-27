@@ -185,8 +185,9 @@
 	uart-has-rtscts;
 	status = "okay";
 
-	bluetooth {
-		compatible = "brcm,bcm4330-bt";
+	bluetooth: cyw {
+		max-speed = <460800>;
+		compatible = "brcm,bcm43438-bt";
 		shutdown-gpios = <&pinctrl RZG2L_GPIO(23, 0) GPIO_ACTIVE_HIGH>;
 	};
 };
