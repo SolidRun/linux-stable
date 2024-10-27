@@ -163,15 +163,9 @@
 		compatible = "adi,adv7535";
 		reg = <0x3d>;
 		adi,dsi-lanes = <4>;
-		pd-gpios = <&pinctrl RZG2L_GPIO(3, 0) GPIO_ACTIVE_LOW>; // ADV_PD / DSI_EN J9-34 / P4_0
-		/*
-		 * With interrupts enabled and hdmi connected during boot,
-		 * rzg2l_mipi_dsi_enable never happens and display receives no signal.
-		 * Re-enable once issue has been resolved.
-		 *
-		 * interrupt-parent = <&pinctrl>;
-		 * interrupts = <RZG2L_GPIO(9, 1) IRQ_TYPE_EDGE_FALLING>; // DSI_TS_nINT J5001-43 P9_1
-		 */
+		pd-gpios = <&pinctrl RZG2L_GPIO(3, 0) GPIO_ACTIVE_LOW>;// ADV_PD / DSI_EN J9-34 / P4_0
+		interrupt-parent = <&pinctrl>;
+		interrupts = <RZG2L_GPIO(9, 1) IRQ_TYPE_EDGE_FALLING>;// DSI_TS_nINT J5001-43 P9_1
 		status = "okay";
 
 		ports {
