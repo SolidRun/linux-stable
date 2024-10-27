@@ -150,19 +150,8 @@
 	status = "disabled";
 };
 
-&scif2 {
-	bluetooth {
-		compatible = "brcm,bcm4330-bt";
-		shutdown-gpios = <&pinctrl RZG2L_GPIO(23, 1) GPIO_ACTIVE_HIGH>;
-	};
-};
-
-/* WiFi - CYW43439 */
-&sdhi1 {
-	brcmf: wifi@1 {
-		reg = <1>;
-		compatible = "brcm,bcm4329-fmac";
-	};
+&bluetooth {
+	shutdown-gpios = <&pinctrl RZG2L_GPIO(23, 1) GPIO_ACTIVE_HIGH>;
 };
 
 &sdio_pwrseq {
