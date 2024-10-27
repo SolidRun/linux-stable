@@ -13,9 +13,16 @@
 
 	sdhi0_dev_sel_gpio: gpio-sd0-dev-sel-hog {
 	 	gpio-hog;
-	 	gpios = <RZG2L_GPIO(22, 1) GPIO_ACTIVE_LOW>;
-	 	output-high;
-	 	line-name = "gpio_sd0_dev_sel";
+		gpios = <RZG2L_GPIO(22, 1) GPIO_ACTIVE_HIGH>;
+		output-high;
+		line-name = "gpio_sd0_dev_sel";
+	};
+
+	sdhi0_pwr_en_gpio: gpio-sd0-pwr-en-hog {
+		gpio-hog;
+		gpios = <RZG2L_GPIO(4, 1) GPIO_ACTIVE_LOW>;
+		output-high;
+		line-name = "gpio_sd0_pwr_en";
 	};
 
 	can1_pins: can1 {

@@ -136,6 +136,26 @@
 	};
 };
 
+&sdhi0_pins {
+	sd0_cd {
+		pinmux = <RZG2L_PORT_PINMUX(18, 0, 1)>;
+	};
+};
+
+&sdhi0_pins_uhs {
+	sd0_cd {
+		pinmux = <RZG2L_PORT_PINMUX(18, 0, 1)>;
+	};
+};
+
+&sdhi0_dev_sel_gpio {
+	gpios = <RZG2L_GPIO(22, 1) GPIO_ACTIVE_LOW>;
+};
+
+&sdhi0_pwr_en_gpio {
+	gpios = <RZG2L_GPIO(18, 1) GPIO_ACTIVE_LOW>;
+};
+
 &reg_sdhi0_vccq {
 	regulator-min-microvolt = <1800000>;
 	regulator-max-microvolt = <1800000>;
