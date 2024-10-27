@@ -94,18 +94,15 @@
 
 	status = "okay";
 
-	pmic: raa215300@12 {
+	raa215300: raa215300@12 {
 		compatible = "renesas,raa215300";
-		reg = <0x12>;
-		rtc-enable;
+		reg = <0x12>, <0x6f>;
+		reg-names = "main", "rtc";
+
+		clocks = <&xin32k>;
+		clock-names = "xin";
 		mpio2-32k-enable;
 	};
-
-	rtc: isl1208@6f {
-		compatible = "isil,isl1208";
-		reg = <0x6f>;
-	};
-
 };
 
 &i2c3 {
