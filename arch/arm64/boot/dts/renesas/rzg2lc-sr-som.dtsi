@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
 /*
- * Device Tree Source for the RZ/G2LC Solidrun SOM
- *
- * Copyright (C) 2021 Renesas Electronics Corp.
- */
+* Device Tree Source for the RZ/G2LC Solidrun SOM
+*
+* Copyright (C) 2023 SolidRun Ltd.
+*/
 
 /dts-v1/;
 /* RZ/G2LC R9A07G044C2 SoC */
@@ -36,11 +36,11 @@
 		#size-cells = <2>;
 		ranges;
 
-                multimedia_cma: linux,multimedia {
-                        compatible = "shared-dma-pool";
-                        reusable;
-                        size = <0x0 0x10000000>;
-                };
+		multimedia_cma: linux,multimedia {
+			compatible = "shared-dma-pool";
+			reusable;
+			size = <0x0 0x10000000>;
+		};
 
 		mmp_reserved: linux,mmp {
 			compatible = "shared-dma-pool";
@@ -116,23 +116,16 @@
 	/delete-node/ eth1;
 	/delete-node/ i2c3;
 
-        // sd_card_power_on {
-        //         gpio-hog;
-        //         gpios = <RZG2L_GPIO(18, 1) GPIO_ACTIVE_LOW>;
-        //         output-high;
-        //         line-name = "sd_card_power_on";
-        // };
-
-        i2c2_pins: i2c2 {
-                pinmux = <RZG2L_PORT_PINMUX(42, 3, 1)>, /* SDA */
-                         <RZG2L_PORT_PINMUX(42, 4, 1)>; /* SCL */
-        };
+	i2c2_pins: i2c2 {
+		pinmux = <RZG2L_PORT_PINMUX(42, 3, 1)>, /* SDA */
+		<RZG2L_PORT_PINMUX(42, 4, 1)>; /* SCL */
+	};
 
 	scif2_pins: scif2 {
 		pinmux = <RZG2L_PORT_PINMUX(42, 0, 4)>, /* TxD */
-			 <RZG2L_PORT_PINMUX(42, 1, 4)>, /* RxD */
-			 <RZG2L_PORT_PINMUX(5, 1, 2)>, /* CTS# */
-			 <RZG2L_PORT_PINMUX(5, 2, 2)>; /* RTS# */
+		<RZG2L_PORT_PINMUX(42, 1, 4)>, /* RxD */
+		<RZG2L_PORT_PINMUX(5, 1, 2)>, /* CTS# */
+		<RZG2L_PORT_PINMUX(5, 2, 2)>; /* RTS# */
 	};
 };
 
@@ -161,7 +154,7 @@
 	regulator-max-microvolt = <1800000>;
 
 	states = <1800000 1>;
- 	gpios = <&pinctrl RZG2L_GPIO(39, 0) GPIO_ACTIVE_LOW>;
+	gpios = <&pinctrl RZG2L_GPIO(39, 0) GPIO_ACTIVE_LOW>;
 };
 
 &sbc {

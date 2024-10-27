@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
 /*
- * Device Tree Source for the RZ/G2LC Solidrun SOM
- *
- * Copyright (C) 2021 Renesas Electronics Corp.
- */
+* Device Tree Source for the RZ/G2LC Solidrun Hummingboard
+*
+* Copyright (C) 2023 SolidRun Ltd.
+*/
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/pinctrl/rzg2l-pinctrl.h>
@@ -33,9 +33,6 @@
 	};
 };
 
-// &reg_sdhi0_vmmc {
-// 	gpio = <&pinctrl RZG2L_GPIO(18, 1) GPIO_ACTIVE_LOW>;
-// };
 
 &scif1 {
 	pinctrl-0 = <&scif1_pins>;
@@ -44,10 +41,6 @@
 	//uart-has-rtscts;
 	status = "okay";
 };
-
-// &sdhi0 {
-// 	cd-gpios = <&pinctrl RZG2L_GPIO(18, 0) GPIO_ACTIVE_LOW>;
-// };
 
 &usb0_vbus_otg {
 	gpio = <&pinctrl RZG2L_GPIO(4, 0) GPIO_ACTIVE_HIGH>;
@@ -58,4 +51,3 @@
 	gpio = <&pinctrl RZG2L_GPIO(5, 0) GPIO_ACTIVE_HIGH>;
 	gpio-open-drain;
 };
-

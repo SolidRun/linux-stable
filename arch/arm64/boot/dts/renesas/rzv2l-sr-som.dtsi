@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
 /*
- * Device Tree Source for the RZ/V2L Solidrun SOM
- *
- * Copyright (C) 2023 SolidRun Ltd.
- */
+* Device Tree Source for the RZ/V2L Solidrun SOM
+*
+* Copyright (C) 2023 SolidRun Ltd.
+*/
 
 /dts-v1/;
 
@@ -13,19 +13,19 @@
 
 
 / {
-        aliases {
-                serial0 = &scif0;
-                serial1 = &scif1;
-                serial2 = &scif2;
-                serial3 = &scif3;
-                i2c0 = &i2c0;
-                i2c1 = &i2c1;
-                i2c3 = &i2c3;
-                mmc0 = &sdhi0;
-                mmc1 = &sdhi1;
-                ethernet0 = &eth0;
-                ethernet1 = &eth1;
-        };
+	aliases {
+		serial0 = &scif0;
+		serial1 = &scif1;
+		serial2 = &scif2;
+		serial3 = &scif3;
+		i2c0 = &i2c0;
+		i2c1 = &i2c1;
+		i2c3 = &i2c3;
+		mmc0 = &sdhi0;
+		mmc1 = &sdhi1;
+		ethernet0 = &eth0;
+		ethernet1 = &eth1;
+	};
 
 	memory@48000000 {
 		device_type = "memory";
@@ -38,34 +38,34 @@
 		#size-cells = <2>;
 		ranges;
 
-                multimedia_cma: linux,multimedia {
-                        compatible = "shared-dma-pool";
-                        reusable;
-                        size = <0x0 0x10000000>;
-                };
+		multimedia_cma: linux,multimedia {
+			compatible = "shared-dma-pool";
+			reusable;
+			size = <0x0 0x10000000>;
+		};
 
-                mmp_reserved: linux,mmp {
-                        compatible = "shared-dma-pool";
-                        reusable;
-                        reg = <0x00000000 0x68000000 0x0 0x8000000>;
-                };
+		mmp_reserved: linux,mmp {
+			compatible = "shared-dma-pool";
+			reusable;
+			reg = <0x00000000 0x68000000 0x0 0x8000000>;
+		};
 
 		/* device specific region for contiguous allocations */
 		drp_reserved: DRP-AI {
-				reusable;
-				reg = <0x0 0x80000000 0x0 0x20000000>;
+			reusable;
+			reg = <0x0 0x80000000 0x0 0x20000000>;
 		};
 
 		image_buf0: image_buf@0 {
-				compatible = "shared-dma-pool";
-				reusable;
-				reg = <0x0 0xB0000000 0x0 0x04000000>;
-				label = "image_buf0";
+			compatible = "shared-dma-pool";
+			reusable;
+			reg = <0x0 0xB0000000 0x0 0x04000000>;
+			label = "image_buf0";
 		};
 
 		isp_work0: SIMPLE_ISP {
-				reusable;
-				reg = <0x0 0xB4000000 0x0 0x03000000>;
+			reusable;
+			reg = <0x0 0xB4000000 0x0 0x03000000>;
 		};
 	};
 
@@ -80,31 +80,30 @@
 };
 
 &eth1 {
-        pinctrl-0 = <&eth1_pins>;
-        pinctrl-names = "default";
-        phy-handle = <&phy1>;
-        phy-mode = "rgmii-id";
-        status = "disabled";
-        renesas,no-ether-link;
+	pinctrl-0 = <&eth1_pins>;
+	pinctrl-names = "default";
+	phy-handle = <&phy1>;
+	phy-mode = "rgmii-id";
+	status = "disabled";
+	renesas,no-ether-link;
 
-        phy1: ethernet-phy@0 {
-                reg = <0>;
-                mxl-8611x,led0_cfg = <(
-                        MXL8611X_LEDX_CFG_LINK_UP_TX_ACT_ON |
-                        MXL8611X_LEDX_CFG_LINK_UP_RX_ACT_ON |
-                        MXL8611X_LEDX_CFG_LINK_UP_1GB_ON |
-                        MXL8611X_LEDX_CFG_LINK_UP_100MB_ON |
-                        MXL8611X_LEDX_CFG_LINK_UP_10MB_ON
-                )>;
-                mxl-8611x,rx-internal-delay-ps = <0>;
-                mxl-8611x,tx-internal-delay-ps-100m = <2250>;
-                mxl-8611x,tx-internal-delay-ps-1g = <300>;
-        };
+	phy1: ethernet-phy@0 {
+		reg = <0>;
+		mxl-8611x,led0_cfg = <(
+		MXL8611X_LEDX_CFG_LINK_UP_TX_ACT_ON |
+		MXL8611X_LEDX_CFG_LINK_UP_RX_ACT_ON |
+		MXL8611X_LEDX_CFG_LINK_UP_1GB_ON |
+		MXL8611X_LEDX_CFG_LINK_UP_100MB_ON |
+		MXL8611X_LEDX_CFG_LINK_UP_10MB_ON
+		)>;
+		mxl-8611x,rx-internal-delay-ps = <0>;
+		mxl-8611x,tx-internal-delay-ps-100m = <2250>;
+		mxl-8611x,tx-internal-delay-ps-1g = <300>;
+	};
 };
 
 &drpai0 {
 	memory-region = <&drp_reserved>;
 	linux-memory-region = < &{/memory@48000000} >;
-	status = "okay"; 
+	status = "okay";
 };
-

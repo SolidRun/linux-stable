@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
 /*
- * Device Tree Source common for the RZ/G2L and RZ/V2L Solidrun SOM
- *
- * Copyright (C) 2023 SolidRun Ltd.
- */
+* Device Tree Source common for the RZ/G2L and RZ/V2L Solidrun SOM
+*
+* Copyright (C) 2023 SolidRun Ltd.
+*/
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/net/mxl-8611x.h>
@@ -41,13 +41,13 @@
 	};
 
 	reg_1p1v: regulator-vdd-core {
-  		compatible = "regulator-fixed";
-  		regulator-name = "fixed-1.1V";
-  		regulator-min-microvolt = <1100000>;
-  		regulator-max-microvolt = <1100000>;
-  		regulator-boot-on;
-  		regulator-always-on;
-  	};
+		compatible = "regulator-fixed";
+		regulator-name = "fixed-1.1V";
+		regulator-min-microvolt = <1100000>;
+		regulator-max-microvolt = <1100000>;
+		regulator-boot-on;
+		regulator-always-on;
+	};
 
 	reg_3p3v: regulator1 {
 		compatible = "regulator-fixed";
@@ -59,15 +59,15 @@
 	};
 
 	reg_sdhi0_vccq: regulator-vccq-sdhi0 {
-	 	compatible = "regulator-gpio";
-	 	regulator-name = "SDHI0_VCCQ";
-	 	regulator-min-microvolt = <1800000>;
-	 	regulator-max-microvolt = <3300000>;
-	 	states = <3300000 1>, <1800000 0>;
-	 	gpios = <&pinctrl RZG2L_GPIO(39, 0) GPIO_ACTIVE_LOW>;
-	 	ramp_delay = <8>;
-  	 	regulator-boot-on;
-	 	regulator-always-on;
+		compatible = "regulator-gpio";
+		regulator-name = "SDHI0_VCCQ";
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <3300000>;
+		states = <3300000 1>, <1800000 0>;
+		gpios = <&pinctrl RZG2L_GPIO(39, 0) GPIO_ACTIVE_HIGH>;
+		ramp_delay = <8>;
+		regulator-boot-on;
+		regulator-always-on;
 	};
 
 	sdio_pwrseq: sdio-pwrseq {
@@ -100,11 +100,11 @@
 	phy0: ethernet-phy@0 {
 		reg = <0>;
 		mxl-8611x,led0_cfg = <(
-			MXL8611X_LEDX_CFG_LINK_UP_TX_ACT_ON |
-			MXL8611X_LEDX_CFG_LINK_UP_RX_ACT_ON |
-			MXL8611X_LEDX_CFG_LINK_UP_1GB_ON |
-			MXL8611X_LEDX_CFG_LINK_UP_100MB_ON |
-			MXL8611X_LEDX_CFG_LINK_UP_10MB_ON
+		MXL8611X_LEDX_CFG_LINK_UP_TX_ACT_ON |
+		MXL8611X_LEDX_CFG_LINK_UP_RX_ACT_ON |
+		MXL8611X_LEDX_CFG_LINK_UP_1GB_ON |
+		MXL8611X_LEDX_CFG_LINK_UP_100MB_ON |
+		MXL8611X_LEDX_CFG_LINK_UP_10MB_ON
 		)>;
 		mxl-8611x,rx-internal-delay-ps = <0>;
 		mxl-8611x,tx-internal-delay-ps-100m = <2250>;
@@ -192,7 +192,7 @@
 	};
 };
 
-/* Common SDIO */
+/* SD/eMMC */
 &sdhi0 {
 	pinctrl-0 = <&sdhi0_pins_1_8_v>;
 	pinctrl-1 = <&sdhi0_pins_1_8_v>;
@@ -206,24 +206,24 @@
 
 /* WiFi - CYW43439 */
 &sdhi1 {
- 	#address-cells = <1>;
- 	#size-cells = <0>;
- 	pinctrl-0 = <&sdhi1_pins>;
- 	pinctrl-names = "default";
- 	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+	pinctrl-0 = <&sdhi1_pins>;
+	pinctrl-names = "default";
+	status = "okay";
 
- 	non-removable;
- 	vmmc-supply = <&reg_3p3v>;
- 	mmc-pwrseq = <&sdio_pwrseq>;
- 	bus-width = <4>;
- 	max-frequency = <50000000>;
- 	fsl,delay-line = <12>;
- 	keep-power-in-suspend;
+	non-removable;
+	vmmc-supply = <&reg_3p3v>;
+	mmc-pwrseq = <&sdio_pwrseq>;
+	bus-width = <4>;
+	max-frequency = <50000000>;
+	fsl,delay-line = <12>;
+	keep-power-in-suspend;
 
- 	brcmf: wifi@1 {
- 		reg = <1>;
- 		compatible = "brcm,bcm4329-fmac";
- 	};
+	brcmf: wifi@1 {
+		reg = <1>;
+		compatible = "brcm,bcm4329-fmac";
+	};
 };
 
 &wdt0 {
