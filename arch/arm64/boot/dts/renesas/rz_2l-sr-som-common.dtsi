@@ -140,16 +140,13 @@
 
 	status = "okay";
 
-	raa215300: pmic@12 {
+	raa215300: raa215300@12 {
 		compatible = "renesas,raa215300";
 		reg = <0x12>, <0x6f>;
 		reg-names = "main", "rtc";
 
 		clocks = <&xin32k>;
 		clock-names = "xin";
-
-		#clock-cells = <0>;
-		clock-output-names = "xin32k", "rk805-clkout2";
 	};
 };
 
