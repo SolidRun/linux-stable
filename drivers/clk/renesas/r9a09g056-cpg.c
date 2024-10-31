@@ -70,6 +70,8 @@ enum clk_ids {
 	CLK_PLLDTY_ACPU,
 	CLK_PLLDTY_ACPU_DIV2,
 	CLK_PLLDTY_ACPU_DIV4,
+	CLK_PLLDTY_DRP,
+	CLK_PLLDTY_DRP_DIV2,
 	CLK_PLLDTY_RCPU,
 	CLK_PLLDTY_RCPU_DIV4,
 	CLK_PLLVDO_CRU0,
@@ -234,6 +236,8 @@ static const struct cpg_core_clk r9a09g056_core_clks[] __initconst = {
 	DEF_DDIV(".plldty_acpu", CLK_PLLDTY_ACPU, CLK_PLLDTY, CDDIVx_DIVCTLy(0, 2, 3), dtable_2_64),
 	DEF_FIXED(".plldty_acpu_div2", CLK_PLLDTY_ACPU_DIV2, CLK_PLLDTY_ACPU, 1, 2),
 	DEF_FIXED(".plldty_acpu_div4", CLK_PLLDTY_ACPU_DIV4, CLK_PLLDTY_ACPU, 1, 4),
+	DEF_DDIV(".plldty_drp", CLK_PLLDTY_DRP, CLK_PLLDTY, CDDIVx_DIVCTLy(2, 2, 3), dtable_2_64),
+	DEF_FIXED(".plldty_drp_div2", CLK_PLLDTY_DRP_DIV2, CLK_PLLDTY_DRP, 1, 2),
 	DEF_DDIV(".plldty_rcpu", CLK_PLLDTY_RCPU, CLK_PLLDTY, CDDIVx_DIVCTLy(3, 2, 3), dtable_2_64),
 	DEF_FIXED(".plldty_rcpu_div4", CLK_PLLDTY_RCPU_DIV4, CLK_PLLDTY_RCPU, 1, 4),
 	DEF_DDIV(".pllgpu_gear", CLK_PLLGPU_GEAR, CLK_PLLGPU, CDDIVx_DIVCTLy(3, 1, 3), dtable_2_64),
@@ -428,6 +432,10 @@ static const struct rzv2h_mod_clk r9a09g056_mod_clks[] __initconst = {
 	DEF_MOD("adc_adclk",			CLK_PLLCM33_ADC_ADCLK, 16, 8, 8, 8),
 	DEF_MOD("tsu0_pclk",			CLK_QEXTAL, 16, 9, 8, 9),
 	DEF_MOD("tsu1_pclk",			CLK_QEXTAL, 16, 10, 8, 10),
+	DEF_MOD("drpai_dclkin",			CLK_PLLDRP, 17, 3, 8, 19),
+	DEF_MOD("drpai_aclk",			CLK_PLLDTY_DRP_DIV2, 17, 4, 8, 20),
+	DEF_MOD("drpai_initclk",		R9A09G056_MAINCLK, 17, 5, 8, 21),
+	DEF_MOD("drpai_mclk",			CLK_PLLETH, 17, 6, 8, 22),
 };
 
 static const struct rzv2h_reset r9a09g056_resets[] __initconst = {
@@ -554,6 +562,7 @@ static const struct rzv2h_reset r9a09g056_resets[] __initconst = {
 	DEF_RST(15, 6, 7, 7),		/* ADC_ADRST_N */
 	DEF_RST(15, 7, 7, 8),		/* TSU0_PRESETN */
 	DEF_RST(15, 8, 7, 9),		/* TSU1_PRESETN */
+	DEF_RST(15, 13, 7, 14),		/* DRPAI0_ARESETN */
 };
 
 const struct rzv2h_cpg_info r9a09g056_cpg_info __initconst = {
