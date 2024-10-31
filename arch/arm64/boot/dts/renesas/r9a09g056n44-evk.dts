@@ -10,6 +10,36 @@
 #include <dt-bindings/pinctrl/rzg2l-pinctrl.h>
 #include <dt-bindings/gpio/gpio.h>
 
+/*
+ * SSI-DA7212
+ *
+ * These commands are required when Playback/Capture
+ *
+ *      amixer -q cset name='Aux Switch' on
+ *      amixer -q cset name='Mixin Left Aux Left Switch' on
+ *      amixer -q cset name='Mixin Right Aux Right Switch' on
+ *      amixer -q cset name='ADC Switch' on
+ *      amixer -q cset name='Mixout Right Mixin Right Switch' off
+ *      amixer -q cset name='Mixout Left Mixin Left Switch' off
+ *      amixer -q cset name='Headphone Volume' 70%
+ *      amixer -q cset name='Headphone Switch' on
+ *      amixer -q cset name='Mixout Left DAC Left Switch' on
+ *      amixer -q cset name='Mixout Right DAC Right Switch' on
+ *      amixer -q cset name='DAC Left Source MUX' 'DAI Input Left'
+ *      amixer -q cset name='DAC Right Source MUX' 'DAI Input Right'
+ *      amixer -q sset 'Mic 1 Amp Source MUX' 'MIC_P'
+ *      amixer -q sset 'Mic 2 Amp Source MUX' 'MIC_P'
+ *      amixer -q sset 'Mixin Left Mic 1' on
+ *      amixer -q sset 'Mixin Right Mic 2' on
+ *      amixer -q sset 'Mic 1' 90% on
+ *      amixer -q sset 'Mic 2' 90% on
+ *      amixer -q sset 'Lineout' 80% on
+ *      amixer -q set "Headphone" 100% on
+ *
+ * When Capture, use this command to amplify sound
+ *      amixer set 'DVC In',0 100%
+ */
+
 /* SD0-eMMC selection
  *
  * CN15 can be connected to SD0 or eMMC sub-board.
@@ -220,6 +250,69 @@
 		#clock-cells = <0>;
 		clock-frequency = <12000000>;
 	};
+
+	codec_test0: codec_test {
+		compatible = "linux,snd-soc-dummy";
+		#sound-dai-cells = <0>;
+	};
+
+	codec_test1: codec_test {
+		compatible = "linux,snd-soc-dummy";
+		#sound-dai-cells = <0>;
+	};
+
+	snd_rzv2n: sound {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		compatible = "simple-audio-card";
+		simple-audio-card,name = "rsnd_rzv2n";
+		status="okay";
+
+		ssi_link: simple-audio-card,dai-link@0 {
+			format = "i2s";
+			reg = <0>;
+			bitclock-master = <&cpu_dai0>;
+			frame-master = <&cpu_dai0>;
+			mclk-fs = <256>;
+
+			cpu_dai0: cpu {
+				sound-dai = <&rcar_sound 0>;
+			};
+
+			codec {
+				sound-dai = <&da7212>;
+				clocks = <&rcar_sound>;
+			};
+		};
+
+		spdif_link0: simple-audio-card,dai-link@1 {
+			reg = <1>;
+			bitclock-master = <&cpu_dai1>;
+			frame-master = <&cpu_dai1>;
+
+			cpu_dai1: cpu {
+				sound-dai = <&rcar_sound 1>;
+			};
+
+			codec {
+				sound-dai = <&codec_test0>;
+			};
+		};
+
+		spdif_link1: simple-audio-card,dai-link@2 {
+			reg = <1>;
+			bitclock-master = <&cpu_dai2>;
+			frame-master = <&cpu_dai2>;
+
+			cpu_dai2: cpu {
+				sound-dai = <&rcar_sound 2>;
+			};
+
+			codec {
+				sound-dai = <&codec_test1>;
+			};
+		};
+	};
 };
 
 &du {
@@ -340,6 +433,18 @@
 	};
 };
 
+&audio_clka {
+	clock-frequency = <22579200>;
+};
+
+&audio_clkb {
+	clock-frequency = <24576000>;
+};
+
+&audio_clkc {
+	clock-frequency = <22579200>;
+};
+
 &pinctrl {
 	i2c3_pins: i2c3 {
 		pinmux = <RZG2L_PORT_PINMUX(3, 6, 1)>, /* I2C3_SDA */
@@ -401,6 +506,11 @@
 			 <RZG2L_PORT_PINMUX(3, 3, 1)>; /* I2C1_SCL */
 	};
 
+	i2c2_pins: i2c2 {
+		pinmux = <RZG2L_PORT_PINMUX(2, 0, 4)>, /* I2C2_SDA */
+			 <RZG2L_PORT_PINMUX(2, 1, 4)>; /* I2C2_SCL */
+	};
+
 	spi2_pins: spi2 {
 		pinmux = <RZG2L_PORT_PINMUX(11, 3, 5)>, /* MISO */
 			 <RZG2L_PORT_PINMUX(11, 4, 5)>, /* MOSI */
@@ -414,6 +524,29 @@
 		gpios = <RZG2L_GPIO(11, 2) GPIO_ACTIVE_HIGH>;
 		output-high;
 		line-name = "cam0_pwr_en";
+	};
+
+	spdif0_pins: spdif0 {
+		pinmux = <RZG2L_PORT_PINMUX(8, 0, 8)>, /* SPDIF0_OUT */
+			 <RZG2L_PORT_PINMUX(8, 1, 8)>; /* SPDIF0_IN */
+	};
+
+	spdif2_pins: spdif2 {
+		pinmux = <RZG2L_PORT_PINMUX(8, 2, 8)>, /* SPDIF2_OUT */
+			 <RZG2L_PORT_PINMUX(8, 3, 8)>; /* SPDIF2_IN */
+	};
+
+	sound_clk_pins: sound_clk {
+		pinmux = <RZG2L_PORT_PINMUX(1, 0, 7)>, /* AUDIO_CLKB */
+			 <RZG2L_PORT_PINMUX(1, 1, 7)>, /* AUDIO_CLKC */
+			 <RZG2L_PORT_PINMUX(9, 7, 8)>; /* AUDIO_CLKOUT */
+	};
+
+	sound_pins: sound {
+		pinmux = <RZG2L_PORT_PINMUX(1, 2, 7)>, /* SSI3_SCK */
+			 <RZG2L_PORT_PINMUX(1, 3, 7)>, /* SSI3_WS */
+			 <RZG2L_PORT_PINMUX(0, 4, 7)>, /* SSI3_SDATA */
+			 <RZG2L_PORT_PINMUX(1, 5, 7)>; /* SSI4_SDATA */
 	};
 };
 
@@ -644,6 +777,35 @@
 	};
 };
 
+&i2c2 {
+	pinctrl-0 = <&i2c2_pins>;
+	pinctrl-names = "default";
+
+	status = "okay";
+
+	da7212: codec@1a {
+		compatible = "dlg,da7212";
+		#sound-dai-cells = <0>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <0x1a>;
+
+		clocks = <&rcar_sound>;
+		clock-names = "mclk";
+
+		dlg,micbias1-lvl = <2500>;
+		dlg,micbias2-lvl = <2500>;
+		dlg,dmic-data-sel = "lrise_rfall";
+		dlg,dmic-samplephase = "between_clkedge";
+		dlg,dmic-clkrate = <3000000>;
+
+		VDDA-supply = <&reg_1p8v>;
+		VDDSP-supply = <&reg_3p3v>;
+		VDDMIC-supply = <&reg_3p3v>;
+		VDDIO-supply = <&reg_1p8v>;
+	};
+};
+
 &cru1 {
 	status = "okay";
 };
@@ -680,4 +842,40 @@
 
 &cmtw1 {
 	status = "okay";
+};
+
+&rcar_sound {
+	pinctrl-0 = <&sound_clk_pins &sound_pins &spdif0_pins &spdif2_pins>;
+	pinctrl-names = "default";
+
+	status = "okay";
+
+	/* audio_clkout */
+	#clock-cells = <0>;
+	clock-frequency = <11289600>;
+
+	/* Multi DAI */
+	#sound-dai-cells = <1>;
+
+	rcar_sound,dai {
+		dai0 {
+			playback = <&ssi3>;
+			capture  = <&ssi4 &src0 &dvc0>;
+		};
+
+		dai1 {
+			playback = <&spdif0>;
+			capture  = <&spdif0>;
+		};
+
+		dai2 {
+			playback = <&spdif2>;
+			capture  = <&spdif2>;
+		};
+
+	};
+};
+
+&ssi4 {
+	shared-pin;
 };
