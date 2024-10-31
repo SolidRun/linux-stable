@@ -269,6 +269,7 @@
 			gpio-ranges = <&pinctrl 0 0 96>;
 			#interrupt-cells = <2>;
 			interrupt-controller;
+			interrupt-parent = <&icu>;
 			power-domains = <&cpg>;
 			resets = <&cpg 165>, <&cpg 166>;
 		};
