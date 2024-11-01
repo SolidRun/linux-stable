@@ -7,6 +7,7 @@
 
 #include <linux/delay.h>
 #include <linux/of_dma.h>
+#include <linux/reset.h>
 #include "rsnd.h"
 
 /*
@@ -790,6 +791,8 @@ static int rsnd_dma_alloc(struct rsnd_dai_stream *io, struct rsnd_mod *mod,
 	struct device *dev = rsnd_priv_to_dev(priv);
 	struct rsnd_dma *dma;
 	struct rsnd_mod_ops *ops;
+	struct clk *clk;
+	struct reset_control *rstc;
 	enum rsnd_mod_type type;
 	int (*attach)(struct rsnd_dai_stream *io, struct rsnd_dma *dma,
 		      struct rsnd_mod *mod_from, struct rsnd_mod *mod_to);
@@ -834,10 +837,20 @@ static int rsnd_dma_alloc(struct rsnd_dai_stream *io, struct rsnd_mod *mod,
 
 	*dma_mod = rsnd_mod_get(dma);
 
-	ret = rsnd_mod_init(priv, *dma_mod, ops, NULL,
+	clk = devm_clk_get_optional(dev, "audmac-pp");
+	if (IS_ERR(clk))
+		dev_dbg(dev, "Not use audmac-pp\n");
+
+	rstc = devm_reset_control_get_optional_shared(dev, "audmac-pp");
+	if (IS_ERR(rstc))
+		dev_dbg(dev, "failed to get cpg reset\n");
+
+	ret = rsnd_mod_init(priv, *dma_mod, ops, clk, rstc,
 			    type, dma_id);
 	if (ret < 0)
 		return ret;
+
+	rsnd_mod_power_on(*dma_mod);
 
 	dev_dbg(dev, "%s %s -> %s\n",
 		rsnd_mod_name(*dma_mod),
@@ -867,6 +880,24 @@ int rsnd_dma_attach(struct rsnd_dai_stream *io, struct rsnd_mod *mod,
 	}
 
 	return rsnd_dai_connect(*dma_mod, io, (*dma_mod)->type);
+}
+
+void rsnd_dma_detach(struct rsnd_dai_stream *io, struct rsnd_mod *mod,
+		    struct rsnd_mod **dma_mod)
+{
+	struct rsnd_priv *priv = rsnd_io_to_priv(io);
+	struct device *dev = rsnd_priv_to_dev(priv);
+	struct clk *clk;
+
+	if (!(*dma_mod)) {
+		clk = devm_clk_get_optional(dev, "audmac-pp");
+		if (IS_ERR(clk))
+			dev_dbg(dev, "Not use audmac-pp\n");
+
+		clk_disable_unprepare(clk);
+	}
+
+	rsnd_dai_disconnect(*dma_mod, io, (*dma_mod)->type);
 }
 
 int rsnd_dma_probe(struct rsnd_priv *priv)
@@ -901,5 +932,5 @@ int rsnd_dma_probe(struct rsnd_priv *priv)
 	priv->dma = dmac;
 
 	/* dummy mem mod for debug */
-	return rsnd_mod_init(NULL, &mem, &mem_ops, NULL, 0, 0);
+	return rsnd_mod_init(NULL, &mem, &mem_ops, NULL, NULL, 0, 0);
 }
