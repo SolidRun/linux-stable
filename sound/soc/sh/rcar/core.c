@@ -521,6 +521,7 @@ static enum rsnd_mod_type rsnd_mod_sequence[][RSND_MOD_MAX] = {
 		RSND_MOD_SSIM1,
 		RSND_MOD_SSIP,
 		RSND_MOD_SSI,
+		RSND_MOD_SPDIF,
 	}, {
 		/* PLAYBACK */
 		RSND_MOD_AUDMAPP,
@@ -536,6 +537,7 @@ static enum rsnd_mod_type rsnd_mod_sequence[][RSND_MOD_MAX] = {
 		RSND_MOD_CTU,
 		RSND_MOD_CMD,
 		RSND_MOD_SRC,
+		RSND_MOD_SPDIF,
 	},
 };
 
@@ -1406,6 +1408,7 @@ static void __rsnd_dai_probe(struct rsnd_priv *priv,
 		rsnd_parse_connect_ctu(rdai, playback, capture);
 		rsnd_parse_connect_mix(rdai, playback, capture);
 		rsnd_parse_connect_dvc(rdai, playback, capture);
+		rsnd_parse_connect_spdif(rdai, playback, capture);
 
 		of_node_put(playback);
 		of_node_put(capture);
@@ -1901,6 +1904,7 @@ static int rsnd_probe(struct platform_device *pdev)
 		rsnd_dvc_probe,
 		rsnd_cmd_probe,
 		rsnd_adg_probe,
+		rsnd_spdif_probe,
 		rsnd_dai_probe,
 	};
 	int ret, i;
@@ -1982,6 +1986,7 @@ static int rsnd_remove(struct platform_device *pdev)
 		rsnd_dvc_remove,
 		rsnd_cmd_remove,
 		rsnd_adg_remove,
+		rsnd_spdif_remove,
 	};
 	int i;
 
