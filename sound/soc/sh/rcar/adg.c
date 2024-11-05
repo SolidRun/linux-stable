@@ -24,6 +24,7 @@
 
 #define SSI_NAME "ssi"
 #define ADG_NAME "adg"
+#define SPDIF_NAME "spdif"
 
 static struct rsnd_mod_ops adg_ops = {
 	.name = "adg",
@@ -387,6 +388,79 @@ int rsnd_adg_ssi_clk_try_start(struct rsnd_mod *ssi_mod, unsigned int rate)
 	ret = clk_prepare_enable(clk);
 	if (ret < 0)
 		dev_dbg(dev, "Can not enable ssif_supply_clk\n");
+
+	dev_dbg(dev, "CLKOUT is based on BRG%c (= %dHz)\n",
+		(ckr) ? 'B' : 'A',
+		(ckr) ?	adg->rbgb_rate_for_48khz :
+			adg->rbga_rate_for_441khz);
+
+	return 0;
+}
+
+static void rsnd_adg_set_spdif_clk(struct rsnd_mod *spdif_mod, u32 val)
+{
+	struct rsnd_priv *priv = rsnd_mod_to_priv(spdif_mod);
+	struct rsnd_adg *adg = rsnd_priv_to_adg(priv);
+	struct rsnd_mod *adg_mod = rsnd_mod_get(adg);
+	struct device *dev = rsnd_priv_to_dev(priv);
+	int id = rsnd_mod_id(spdif_mod);
+	int shift = (id % 4) * 8;
+	u32 mask = 0xFF << shift;
+
+	rsnd_mod_confirm_spdif(spdif_mod);
+
+	val = val << shift;
+
+	rsnd_mod_bset(adg_mod, AUDIO_CLK_SEL3, mask, val);
+
+	dev_dbg(dev, "AUDIO_CLK_SEL3 is 0x%x\n", val);
+}
+
+int rsnd_adg_spdif_clk_stop(struct rsnd_mod *spdif_mod)
+{
+	rsnd_adg_set_spdif_clk(spdif_mod, 0);
+
+	return 0;
+}
+
+int rsnd_adg_spdif_clk_try_start(struct rsnd_mod *spdif_mod, unsigned int rate)
+{
+	struct rsnd_priv *priv = rsnd_mod_to_priv(spdif_mod);
+	struct rsnd_adg *adg = rsnd_priv_to_adg(priv);
+	struct device *dev = rsnd_priv_to_dev(priv);
+	struct rsnd_mod *adg_mod = rsnd_mod_get(adg);
+	struct clk *clk;
+	int data, ret;
+	u32 ckr = 0;
+	char name[16];
+
+	data = rsnd_adg_clk_query(priv, rate);
+	if (data < 0)
+		return data;
+
+	rsnd_adg_set_spdif_clk(spdif_mod, data);
+
+	if (rsnd_flags_has(adg, LRCLK_ASYNC)) {
+		if (rsnd_flags_has(adg, AUDIO_OUT_48))
+			ckr = 0x80000000;
+	} else {
+		if (0 == (rate % 8000))
+			ckr = 0x80000000;
+	}
+
+	rsnd_mod_bset(adg_mod, BRGCKR, 0x80770000, adg->ckr | ckr);
+	rsnd_mod_write(adg_mod, BRRA,  adg->rbga);
+	rsnd_mod_write(adg_mod, BRRB,  adg->rbgb);
+
+	snprintf(name, 16, "%s.%s.%d", ADG_NAME, SPDIF_NAME, rsnd_mod_id(spdif_mod));
+
+	clk = devm_clk_get_optional(dev, name);
+	if (IS_ERR(clk))
+		dev_dbg(dev, "Not use %s\n", name);
+
+	ret = clk_prepare_enable(clk);
+	if (ret < 0)
+		dev_dbg(dev, "Can not enable %s\n", name);
 
 	dev_dbg(dev, "CLKOUT is based on BRG%c (= %dHz)\n",
 		(ckr) ? 'B' : 'A',
