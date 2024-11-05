@@ -638,6 +638,8 @@ void __iomem *rsnd_gen_get_base_addr(struct rsnd_priv *priv, int reg_id);
 int rsnd_adg_clk_query(struct rsnd_priv *priv, unsigned int rate);
 int rsnd_adg_ssi_clk_stop(struct rsnd_mod *ssi_mod);
 int rsnd_adg_ssi_clk_try_start(struct rsnd_mod *ssi_mod, unsigned int rate);
+int rsnd_adg_spdif_clk_stop(struct rsnd_mod *spdif_mod);
+int rsnd_adg_spdif_clk_try_start(struct rsnd_mod *spdif_mod, unsigned int rate);
 int rsnd_adg_probe(struct rsnd_priv *priv);
 void rsnd_adg_remove(struct rsnd_priv *priv);
 int rsnd_adg_set_src_timesel_gen2(struct rsnd_mod *src_mod,
@@ -916,10 +918,12 @@ void rsnd_mod_make_sure(struct rsnd_mod *mod, enum rsnd_mod_type type);
 #define rsnd_mod_confirm_ssi(mssi)	rsnd_mod_make_sure(mssi, RSND_MOD_SSI)
 #define rsnd_mod_confirm_src(msrc)	rsnd_mod_make_sure(msrc, RSND_MOD_SRC)
 #define rsnd_mod_confirm_dvc(mdvc)	rsnd_mod_make_sure(mdvc, RSND_MOD_DVC)
+#define rsnd_mod_confirm_spdif(mspdif)	rsnd_mod_make_sure(mspdif, RSND_MOD_SPDIF)
 #else
 #define rsnd_mod_confirm_ssi(mssi)
 #define rsnd_mod_confirm_src(msrc)
 #define rsnd_mod_confirm_dvc(mdvc)
+#define rsnd_mod_confirm_spdif(mspdif)
 #endif
 
 /*
