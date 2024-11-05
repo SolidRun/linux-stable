@@ -394,7 +394,7 @@ static void rz_dmac_prepare_descs_for_slave_sg(struct rz_dmac_chan *channel)
 		if (register_dmac_req_signal(dmac->icu_dev,
 					dmac->dev->id, channel->index, channel->dmac_req) < 0)
 			dev_info(dmac->dev, "%s: Register dmac req fail\n", __func__);
-		if (register_dmac_ack_signal(dmac->icu_dev, channel->dmac_ack, 0) < 0)
+		if (register_dmac_ack_signal(dmac->icu_dev, channel->dmac_ack, channel->index) < 0)
 			dev_info(dmac->dev, "%s: Register dmac ack fail\n", __func__);
 	} else
 		rz_dmac_set_dmars_register(dmac, channel->index, channel->mid_rid);
