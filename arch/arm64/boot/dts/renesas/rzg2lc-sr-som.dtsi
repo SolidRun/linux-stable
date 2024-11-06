@@ -159,7 +159,6 @@
 	vmmc-supply = <&reg_3p3v>;
 	vqmmc-supply = <&reg_sdhi0_vccq>;
 	bus-width = <8>;
-	mmc-hs200-1_8v;
 	non-removable;
 	fixed-emmc-driver-type = <1>;
 	status = "okay";
