@@ -471,6 +471,9 @@ config OXNAS_RPS_TIMER
 config SYS_SUPPORTS_SH_CMT
 	bool
 
+config SYS_SUPPORTS_RZ_CMTW
+	bool
+
 config MTK_TIMER
 	bool "Mediatek timer driver" if COMPILE_TEST
 	depends on HAS_IOMEM
@@ -514,6 +517,15 @@ config SH_TIMER_CMT
 	  This enables build of a clocksource and clockevent driver for
 	  the Compare Match Timer (CMT) hardware available in 16/32/48-bit
 	  variants on a wide range of Mobile and Automotive SoCs from Renesas.
+
+config RZ_TIMER_CMTW
+	bool "Renesas CMTW timer driver" if COMPILE_TEST
+	depends on HAS_IOMEM
+	default SYS_SUPPORTS_RZ_CMTW
+	help
+	  This enables build of a clocksource and clockevent driver for
+	  the 32-bit Compare Match Timer W Unit (CMTW) hardware available
+	  on a wide range RZ SoCs from Renesas.
 
 config SH_TIMER_MTU2
 	bool "Renesas MTU2 timer driver" if COMPILE_TEST
