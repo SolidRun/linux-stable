@@ -673,3 +673,11 @@
 &adc2 {
 	status = "okay";
 };
+
+&cmtw0 {
+	status = "okay";
+};
+
+&cmtw1 {
+	status = "okay";
+};
