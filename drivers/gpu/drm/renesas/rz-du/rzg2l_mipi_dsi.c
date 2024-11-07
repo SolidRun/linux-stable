@@ -59,6 +59,7 @@ struct rzg2l_mipi_dsi_hw_info {
 	void (*dphy_exit)(struct rzg2l_mipi_dsi *dsi);
 	u32 phy_reg_offset;
 	u32 link_reg_offset;
+	u8 vclk_input;
 };
 
 struct rzg2l_mipi_dsi {
@@ -75,7 +76,7 @@ struct rzg2l_mipi_dsi {
 
 	const struct rzg2l_mipi_dsi_hw_info *info;
 
-	struct clk *vclk;
+	struct clk *vclk[RZG2L_MIPI_DSI_MAX_INPUT];
 	struct clk *lpclk;
 
 	enum mipi_dsi_pixel_format format;
@@ -704,9 +705,9 @@ static int rzg2l_mipi_dsi_startup(struct rzg2l_mipi_dsi *dsi,
 	u32 golpbkt;
 	int ret;
 
-	clk_set_rate(dsi->vclk, mode->clock * 1000);
+	clk_set_rate(dsi->vclk[dsi->vclk_input], mode->clock * 1000);
 	/* To get the precise vclk for MIPI DPHY PLL calculation */
-	vclk_rate = clk_get_rate(dsi->vclk);
+	vclk_rate = clk_get_rate(dsi->vclk[dsi->vclk_input]);
 
 	/*
 	 * Relationship between hsclk and vclk must follow
@@ -725,11 +726,15 @@ static int rzg2l_mipi_dsi_startup(struct rzg2l_mipi_dsi *dsi,
 	if (ret < 0)
 		return ret;
 
-	clk_set_rate(dsi->vclk, mode->clock * 1000);
+	clk_set_rate(dsi->vclk[dsi->vclk_input], mode->clock * 1000);
 
 	ret = dsi->info->dphy_init(dsi, hsfreq);
 	if (ret < 0)
 		goto err_phy;
+
+	/* Set VCLK input clock for MIPI DSI */
+	if (dsi->info->vclk_input > 1)
+		rzg2l_mipi_dsi_link_write(dsi, GPO0R, dsi->vclk_input);
 
 	/* Enable Data lanes and Clock lanes */
 	txsetr = TXSETR_DLEN | TXSETR_NUMLANEUSE(dsi->lanes - 1) | TXSETR_CLEN;
@@ -992,6 +997,8 @@ static void rzg2l_mipi_dsi_atomic_enable(struct drm_bridge *bridge,
 	crtc = drm_atomic_get_new_connector_state(state, connector)->crtc;
 	mode = &drm_atomic_get_new_crtc_state(state, crtc)->adjusted_mode;
 
+	dsi->vclk_input = crtc->index;
+
 	ret = rzg2l_mipi_dsi_startup(dsi, mode);
 	if (ret < 0)
 		return;
@@ -1155,7 +1162,8 @@ static int rzg2l_mipi_dsi_probe(struct platform_device *pdev)
 	unsigned int num_data_lanes;
 	struct rzg2l_mipi_dsi *dsi;
 	u32 txsetr;
-	int ret;
+	int ret, i;
+	char clk_name[9];
 
 	dsi = devm_kzalloc(&pdev->dev, sizeof(*dsi), GFP_KERNEL);
 	if (!dsi)
@@ -1180,9 +1188,12 @@ static int rzg2l_mipi_dsi_probe(struct platform_device *pdev)
 	if (IS_ERR(dsi->mmio))
 		return PTR_ERR(dsi->mmio);
 
-	dsi->vclk = devm_clk_get(dsi->dev, "vclk");
-	if (IS_ERR(dsi->vclk))
-		return PTR_ERR(dsi->vclk);
+	for (i = 0; i < dsi->info->vclk_input; i++) {
+		sprintf(clk_name, "vclk%u", i + 1);
+		dsi->vclk[i] = devm_clk_get(dsi->dev, clk_name);
+		if (IS_ERR(dsi->vclk[i]))
+			return PTR_ERR(dsi->vclk[i]);
+	}
 
 	dsi->lpclk = devm_clk_get(dsi->dev, "lpclk");
 	if (IS_ERR(dsi->lpclk))
@@ -1270,6 +1281,7 @@ static const struct rzg2l_mipi_dsi_hw_info rzg2l_mipi_dsi_info = {
 	.dphy_exit = rzg2l_mipi_dsi_dphy_exit,
 	.phy_reg_offset = 0,
 	.link_reg_offset = 0x10000,
+	.vclk_input = 1,
 };
 
 static const struct rzg2l_mipi_dsi_hw_info rzv2h_mipi_dsi_info = {
@@ -1279,6 +1291,17 @@ static const struct rzg2l_mipi_dsi_hw_info rzv2h_mipi_dsi_info = {
 	.dphy_exit = rzv2h_mipi_dsi_dphy_exit,
 	.phy_reg_offset = 0x10000,
 	.link_reg_offset = 0,
+	.vclk_input = 1,
+};
+
+static const struct rzg2l_mipi_dsi_hw_info rzg3e_mipi_dsi_info = {
+	.type = MIPI_DSI_DPHY_RZV2H,
+	.has_dphy_rstc = 0,
+	.dphy_init = rzv2h_mipi_dsi_dphy_init,
+	.dphy_exit = rzv2h_mipi_dsi_dphy_exit,
+	.phy_reg_offset = 0x10000,
+	.link_reg_offset = 0,
+	.vclk_input = 2,
 };
 
 static const struct of_device_id rzg2l_mipi_dsi_of_table[] = {
@@ -1287,7 +1310,7 @@ static const struct of_device_id rzg2l_mipi_dsi_of_table[] = {
 	{ .compatible = "renesas,rzv2h-mipi-dsi",
 	  .data = &rzv2h_mipi_dsi_info, },
 	{ .compatible = "renesas,rzg3e-mipi-dsi",
-	  .data = &rzv2h_mipi_dsi_info, },
+	  .data = &rzg3e_mipi_dsi_info, },
 	{ /* sentinel */ }
 };
 
