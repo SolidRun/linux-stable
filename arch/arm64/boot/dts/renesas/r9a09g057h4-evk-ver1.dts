@@ -216,6 +216,13 @@
 };
 
 &pinctrl {
+	spi2_pins: spi2 {
+		pinmux = <RZV2H_PORT_PINMUX(B, 3, 5)>, /* MISO */
+			 <RZV2H_PORT_PINMUX(B, 4, 5)>, /* MOSI */
+			 <RZV2H_PORT_PINMUX(A, 7, 5)>, /* SSL */
+			 <RZV2H_PORT_PINMUX(B, 5, 5)>; /* RSPCK */
+	};
+
 	can0_pins: can0 {
 		pinmux = <RZV2H_PORT_PINMUX(8, 0, 5)>, /* TX */
 			 <RZV2H_PORT_PINMUX(8, 1, 5)>; /* RX */
@@ -350,6 +357,13 @@
 	channel1 {
 		status = "okay";
 	};
+};
+
+&spi2 {
+	pinctrl-0 = <&spi2_pins>;
+	pinctrl-names = "default";
+
+	status = "okay";
 };
 
 &sdhi0 {
