@@ -355,6 +355,7 @@ config ARCH_R9A09G057
 	bool "ARM64 Platform support for RZ/V2H"
 	select ARCH_RZV2H
 	select SYS_SUPPORTS_RZ_CMTW
+	select RENESAS_RZV2H_ICU
 	help
 	  This enables support for the Renesas RZ/V2H SoC variants.
 
