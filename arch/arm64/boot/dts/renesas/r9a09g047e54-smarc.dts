@@ -14,4 +14,16 @@
 #define SW_GPIO8_CAN0_STB		0
 #define SW_GPIO9_CAN1_STB		0
 
+/*
+ * Display support selection:
+ * 0 - disable display selection support
+ * 1 - enable display selection support
+ * for:
+ * - MIPI DSI: RZG3E_SMARC_MIPI_DSI_ENABLE
+ * - Parallel RGB: SW_LCD_EN from above switch selection settings
+ */
+
 #include "rzg3e-smarc-common.dtsi"
+#if (SW_LCD_EN)
+#include "rzg3e-smarc-rgb.dtsi"
+#endif

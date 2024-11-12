@@ -1,0 +1,118 @@
+// SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+/*
+ * Device Tree Source for the Parallel RGB to HDMI sub board,
+ * connects to RZ/G3E Smarc SoM.
+ *
+ * Copyright (C) 2024 Renesas Electronics Corp.
+ */
+
+/ {
+	rgb-to-hdmi-out {
+		compatible = "hdmi-connector";
+		type = "d";
+
+		port {
+			rgb_to_hdmi_out: endpoint {
+				remote-endpoint = <&adv7513_out>;
+			};
+		};
+	};
+};
+
+&pinctrl {
+	du_pins: du {
+		clk {
+			pinmux = <RZV2H_PORT_PINMUX(5, 0, 1)>; /* LCD_CLK */
+			renesas,output-impedance = <3>;
+		};
+
+		sync {
+			pinmux = <RZV2H_PORT_PINMUX(5, 1, 1)>, /* LCD_HSYNC */
+				 <RZV2H_PORT_PINMUX(5, 2, 1)>; /* LCD_VSYNC */
+		};
+
+		de {
+			pinmux = <RZV2H_PORT_PINMUX(5, 3, 1)>; /* LCD_DE */
+		};
+
+		data {
+			pinmux = <RZV2H_PORT_PINMUX(5, 4, 1)>, /* LCD_G7 */
+				 <RZV2H_PORT_PINMUX(5, 5, 1)>, /* LCD_B7 */
+				 <RZV2H_PORT_PINMUX(5, 6, 1)>, /* LCD_R7 */
+				 <RZV2H_PORT_PINMUX(6, 0, 1)>, /* LCD_G6 */
+				 <RZV2H_PORT_PINMUX(6, 1, 1)>, /* LCD_B6 */
+				 <RZV2H_PORT_PINMUX(6, 2, 1)>, /* LCD_R6 */
+				 <RZV2H_PORT_PINMUX(6, 3, 1)>, /* LCD_G5 */
+				 <RZV2H_PORT_PINMUX(6, 4, 1)>, /* LCD_B5 */
+				 <RZV2H_PORT_PINMUX(6, 5, 1)>, /* LCD_R5 */
+				 <RZV2H_PORT_PINMUX(6, 6, 1)>, /* LCD_G4 */
+				 <RZV2H_PORT_PINMUX(7, 0, 1)>, /* LCD_B4 */
+				 <RZV2H_PORT_PINMUX(7, 1, 1)>, /* LCD_R4 */
+				 <RZV2H_PORT_PINMUX(7, 2, 1)>, /* LCD_G3 */
+				 <RZV2H_PORT_PINMUX(7, 3, 1)>, /* LCD_B3 */
+				 <RZV2H_PORT_PINMUX(7, 4, 1)>, /* LCD_R3 */
+				 <RZV2H_PORT_PINMUX(7, 5, 1)>, /* LCD_G2 */
+				 <RZV2H_PORT_PINMUX(7, 6, 1)>, /* LCD_B2 */
+				 <RZV2H_PORT_PINMUX(7, 7, 1)>, /* LCD_R2 */
+				 <RZV2H_PORT_PINMUX(8, 0, 1)>, /* LCD_G1 */
+				 <RZV2H_PORT_PINMUX(8, 1, 1)>, /* LCD_B1 */
+				 <RZV2H_PORT_PINMUX(8, 2, 1)>, /* LCD_R1 */
+				 <RZV2H_PORT_PINMUX(8, 3, 1)>, /* LCD_G0 */
+				 <RZV2H_PORT_PINMUX(8, 4, 1)>, /* LCD_B0 */
+				 <RZV2H_PORT_PINMUX(8, 5, 1)>; /* LCD_R0 */
+		};
+	};
+};
+
+&du {
+	pinctrl-0 = <&du_pins>;
+	pinctrl-names = "default";
+
+	ports {
+		port@1 {
+			du_out_rgb: endpoint {
+				remote-endpoint = <&adv7513_in>;
+			};
+		};
+	};
+};
+
+&i2c7 {
+	adv7513: hdmi@39 {
+		compatible = "adi,adv7513";
+		reg = <0x39>, <0x29>, <0x49>, <0x59>;
+		reg-names = "main", "cec", "edid", "packet";
+
+		clocks = <&osc1>;
+		clock-names = "cec";
+
+		avdd-supply = <&reg_1p8v>;
+		dvdd-supply = <&reg_1p8v>;
+		pvdd-supply = <&reg_1p8v>;
+		dvdd-3v-supply = <&reg_3p3v>;
+		bgvdd-supply = <&reg_1p8v>;
+
+		adi,input-depth = <8>;
+		adi,input-colorspace = "rgb";
+		adi,input-clock = "1x";
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+				adv7513_in: endpoint {
+					remote-endpoint = <&du_out_rgb>;
+				};
+			};
+
+			port@1 {
+				reg = <1>;
+				adv7513_out: endpoint {
+					remote-endpoint = <&rgb_to_hdmi_out>;
+				};
+			};
+		};
+	};
+};

@@ -14,6 +14,9 @@
  *
  * Please change the corresponding selection to below Macros:
  *
+ * SW_LCD_EN:
+ *	0 - Connects to Carrier for CAN, GPIO, Serial, SPI (default)
+ *	1 - Connects to Parallel display
  * SW_SD0_DEV_SEL:
  *      0 - SD0 is connected to eMMC (default)
  *      1 - SD0 is connected to uSD0 card
