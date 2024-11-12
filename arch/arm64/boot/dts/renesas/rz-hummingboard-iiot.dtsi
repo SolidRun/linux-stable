@@ -1,0 +1,393 @@
+// SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+/*
+* Device Tree Source for the RZ Solidrun HummingBoard IIoT
+*
+* Copyright (C) 2024 SolidRun Ltd.
+*/
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/pinctrl/rzg2l-pinctrl.h>
+#include <dt-bindings/leds/common.h>
+
+/ {
+	spi_carrier_mux: spi_carrier_mux {
+		compatible = "gpio-mux";
+		#mux-control-cells = <0>;
+		mux-gpios = <&tca6416_21 0 GPIO_ACTIVE_HIGH>;
+		// idle-state = <0>;
+	};
+
+
+	lcd_i2c_rst: lcd_i2c_rst {
+		compatible = "regulator-fixed";
+		regulator-name = "lcd_i2c_rst";
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		gpio = <&tca6416_21 4 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+	};
+
+	mipi_backlight: backlight {
+		compatible = "gpio-backlight";
+		gpios = <&gpio_dsi_expander 3 GPIO_ACTIVE_LOW>;
+		default-on;
+	};
+};
+
+&pinctrl {
+	spi1_pins_no_ss: spi1_no_ss {
+			pinmux = <RZG2L_PORT_PINMUX(44, 0, 1)>, /* CK */
+			<RZG2L_PORT_PINMUX(44, 1, 1)>, /* MOSI */
+			<RZG2L_PORT_PINMUX(44, 2, 1)>; /* MISO */
+		};
+};
+
+&ehci0 {
+	spurious-oc;
+	status = "okay";
+};
+
+&ehci1 {
+	spurious-oc;
+	status = "okay";
+};
+
+&eth0 {
+	status = "okay";
+};
+
+&hsusb {
+	status = "okay";
+};
+
+&ohci0 {
+	spurious-oc;
+	dr_mode = "otg";
+	status = "okay";
+};
+
+&ohci1 {
+	spurious-oc;
+	status = "okay";
+};
+
+&usb2_phy0 {
+	status = "okay";
+};
+
+&usb2_phy1 {
+	status = "okay";
+};
+
+&sdhi0_pwr_en_gpio {
+	/delete-property/ output-high;
+	output-low;
+};
+
+// Carrier I2C3
+&i2c0 {
+	status = "okay";
+
+	tca6416_20: gpio@20 {
+		compatible = "nxp,pcal6416";
+		reg = <0x20>;
+		gpio-controller;
+		#gpio-cells = <2>;
+		gpio-line-names =
+		"TCA_INT/EXT_UART",
+		"TCA_UARTA_232/485",
+		"TCA_UARTB_232/485",
+		"TCA_INT/EXT_CAN",
+		"TCA_NXP/REN",
+		"TCA_M.2B_3V3_EN",
+		"TCA_M.2M_3V3_EN",
+		"TCA_M.2M_RESET#",
+		"TCA_M.2B_RESET#",
+		"TCA_M.2B_W_DIS#",
+		"TCA_M.2B_GPS_EN#",
+		"TCA_USB-HUB_RST#",
+		"TCA_USB_HUB3_PWR_EN",
+		"TCA_USB_HUB4_PWR_EN",
+		"TCA_USB1_PWR_EN",
+		"TCA_VIDEO_PWR_EN";
+
+		TCA_VIDEO_PWR_EN {
+			gpio-hog;
+			gpios = <15 GPIO_ACTIVE_HIGH>;
+			output-high;
+			line-name = "TCA_VIDEO_PWR_EN";
+		};
+	};
+
+	tca6416_21: gpio@21 {
+		compatible = "nxp,pcal6416";
+		reg = <0x21>;
+		gpio-controller;
+		#gpio-cells = <2>;
+		interrupt-controller;
+		#interrupt-cells = <2>;
+		interrupt-parent = <&pinctrl>;
+		interrupts = <RZG2L_GPIO(4, 0) IRQ_TYPE_LEVEL_LOW>;
+		gpio-line-names =
+		"TCA_SPI_TPM/EXT",
+		"TCA_TPM_RST#",
+		"TCA_I2C_RST",
+		"TCA_RS232_SHTD#",
+		"TCA_LCD_I2C_RST",
+		"TCA_DIG_OUT1",
+		"TCA_bDIG_IN1",
+		"TCA_SENS_INT",
+		"TCA_ALERT#",
+		"TCA_TPM_PIRQ#",
+		"TCA_RTC_INT",
+		"TCA_M.2M_WAKW_ON_LAN",
+		"TCA_M.2M_CLKREQ#",
+		"TCA_LVDS_INT#",
+		"TCA_NC",
+		"TCA_POE_AT";
+	};
+
+	carrier_eeprom: at24c02@57 {
+		compatible = "atmel,24c02";
+		reg = <0x57>;
+	};
+
+	leds: led-controller@30 {
+		compatible = "ti,lp5562";
+		reg = <0x30>;
+		clock-mode = /bits/ 8 <1>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		pwr-sel = <0>;
+
+		chan@0 {
+			chan-name = "R";
+			led-cur = /bits/ 8 <0x20>;
+			max-cur = /bits/ 8 <0x60>;
+			reg = <0>;
+			color = <LED_COLOR_ID_RED>;
+		};
+
+		chan@1 {
+			chan-name = "G";
+			led-cur = /bits/ 8 <0x20>;
+			max-cur = /bits/ 8 <0x60>;
+			reg = <1>;
+			color = <LED_COLOR_ID_GREEN>;
+		};
+
+		chan@2 {
+			chan-name = "B";
+			led-cur = /bits/ 8 <0x20>;
+			max-cur = /bits/ 8 <0x60>;
+			reg = <2>;
+			color = <LED_COLOR_ID_BLUE>;
+		};
+
+		chan@3 {
+			chan-name = "D8";
+			led-cur = /bits/ 8 <0x20>;
+			max-cur = /bits/ 8 <0x60>;
+			reg = <3>;
+			color = <LED_COLOR_ID_GREEN>;
+		};
+	};
+
+	rtc: am1805@69 {
+		compatible = "abracon,ab1805";
+		reg = <0x69>;
+		abracon,tc-diode = "schottky";
+		abracon,tc-resistor = <3>;
+	};
+
+	charger: battery-charger@68 {
+		// Not assembled
+		status = "disabled";
+		compatible = "lltc,ltc4162-l";
+		reg = <0x68>;
+		// lltc,rsnsb-micro-ohms = <10000>;
+		// lltc,rsnsi-micro-ohms = <16000>;
+		// lltc,cell-count = <2>;
+	};
+
+	accelerometer: accelerometer@2a {
+		// Not assembled
+		status = "disabled";
+		compatible = "adi,adxl345";
+		reg = <0x53>;
+		interrupt-parent = <&tca6416_21>;
+		interrupts = <7 IRQ_TYPE_LEVEL_HIGH>;
+	};
+
+	ambient_light: ambient_light@44 {
+		// Not assembled
+		status = "disabled";
+		compatible = "isil,isl29023";
+		reg = <0x44>;
+		interrupt-parent = <&tca6416_21>;
+		interrupts = <7 IRQ_TYPE_LEVEL_HIGH>;
+	};
+};
+
+// Carrier I2C2
+&i2c1{
+	i2c-switch@70 {
+		compatible = "nxp,pca9546";
+		reg = <0x70>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reset-gpios = <&tca6416_21 2 GPIO_ACTIVE_LOW>;
+
+		i2c_ext: i2c@0 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0>;
+		};
+
+		i2c_csi: i2c@1 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <1>;
+		};
+
+		i2c_dsi: i2c@2 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <2>;
+
+			gpio_dsi_expander: tca6408@21 {
+				compatible = "ti,tca6408";
+				reg = <0x21>;
+				gpio-controller;
+				#gpio-cells = <2>;
+				vcc-supply = <&lcd_i2c_rst>;
+				gpio-line-names =
+				"NC",
+				"DSI_RESET",
+				"DSI_STBYB",
+				"DSI_PWM_BL",
+				"DSI_L/R",
+				"DSI_U/D",
+				"DSI_CTP_/RST",
+				"NC";
+			};
+
+			touchscreen@41 {
+				/* ili2130 part of the Winstart Display WJ70N3TYJHMNG0 */
+				compatible = "ilitek,ili2130";
+				reg = <0x41>;
+				interrupt-parent = <&tca6416_21>;
+				interrupts = <13 IRQ_TYPE_EDGE_FALLING>;// <13 IRQ_TYPE_LEVEL_LOW>;
+				reset-gpios = <&gpio_dsi_expander 6 GPIO_ACTIVE_LOW>; // DSI_CTP/RST U48_P[6] (External Reset, Low is active)
+			};
+		};
+
+		i2c_lvds: i2c@3 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <3>;
+
+			gpio_lvds_expander: tca6408@20 {
+				compatible = "ti,tca6408";
+				reg = <0x20>;
+				gpio-controller;
+				#gpio-cells = <2>;
+				vcc-supply = <&lcd_i2c_rst>;
+				gpio-line-names =
+				"SELB",
+				"LVDS_RESET",
+				"LVDS_STBYB",
+				"LVDS_PWM_BL",
+				"LVDS_L/R",
+				"LVDS_U/D",
+				"LVDS_CTP_/RST",
+				"NC";
+			};
+		};
+	};
+
+	/* usb_hub: CYUSB3304@60 {}; */
+};
+
+&spi1 {
+	pinctrl-0 = <&spi1_pins_no_ss>;
+	pinctrl-names = "default";
+	status = "okay";
+	cs-gpios = <&pinctrl RZG2L_GPIO(44, 3) GPIO_ACTIVE_LOW>;
+
+	spi_carrier_muxed: spi_carrier@0 {
+		compatible = "spi-mux";
+		reg = <0>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		spi-max-frequency = <1000000>;
+		mux-controls = <&spi_carrier_mux>;
+
+		spi_carrier_tpm: tpm@0 {
+			compatible = "infineon,slb9670", "tcg,tpm_tis-spi";
+			reg = <0>;
+			spi-max-frequency = <1000000>;
+		};
+
+		spi_carrier_conn: spi_carrier_conn@1 {
+			status = "disabled";
+			compatible = "spidev";
+			reg = <1>;
+		};
+	};
+};
+
+&dsi0 {
+	status = "okay";
+	panel@0 {
+		compatible = "ronbo,rb070d30";
+		reg = <0>;
+		
+		power-gpios = <&gpio_dsi_expander 2 GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&gpio_dsi_expander 1 GPIO_ACTIVE_HIGH>;
+		updn-gpios = <&gpio_dsi_expander 5 GPIO_ACTIVE_HIGH>;
+		shlr-gpios = <&gpio_dsi_expander 4 GPIO_ACTIVE_LOW>;
+		backlight = <&mipi_backlight>;
+
+		port {
+			dsi_in_panel: endpoint {
+				remote-endpoint = <&dsi0_out>;
+			};
+		};
+	};
+};
+
+&dsi0_out {
+	remote-endpoint = <&dsi_in_panel>;
+	data-lanes = <1 2 3 4>;
+};
+
+&du {
+	status = "okay";
+};
+
+&scif1 {
+	pinctrl-0 = <&scif1_pins_no_hw_flow>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&scif3 {
+	pinctrl-0 = <&scif3_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&canfd {
+	pinctrl-names = "default";
+	pinctrl-0 = <&can0_pins_iiot &can1_pins_iiot>;
+	status = "okay";
+	channel0 {
+		renesas,channel = <0>;
+		status = "okay";
+	};
+	channel1 {
+		renesas,channel = <1>;
+		status = "okay";
+	};
+};
