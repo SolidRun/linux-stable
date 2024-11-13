@@ -50,6 +50,22 @@
 		states = <3300000 0 1800000 1>;
 	};
 #endif
+
+	gpio-keys {
+		compatible = "gpio-keys";
+
+		pinctrl-0 = <&icu_pins>;
+		pinctrl-names = "default";
+
+		nmi {
+		        interrupt-parent = <&icu>;
+		        interrupts = <0 IRQ_TYPE_EDGE_FALLING>;
+		        linux,code = <4>;
+		        label = "NMI";
+		        wakeup-source;
+		};
+	};
+
 	ov5645_fixed_clk: osc25250-clk {
 		compatible = "fixed-clock";
 		#clock-cells = <0>;
@@ -147,6 +163,12 @@
 	gpt0_1_pins: gpt0_1 {
 			pinmux = <RZV2H_PORT_PINMUX(3, 2, 10)>,
 				 <RZV2H_PORT_PINMUX(3, 3, 10)>;
+	};
+
+	icu_pins: icu {
+		nmi {
+			pinmux = <RZV2H_PORT_PINMUX(S, 0, 0)>; /* NMI */
+		};
 	};
 
 	i2c0_pins: i2c0 {
