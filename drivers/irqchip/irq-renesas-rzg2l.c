@@ -19,7 +19,6 @@
 #include <linux/reset.h>
 #include <linux/spinlock.h>
 #include <linux/syscore_ops.h>
-#include <linux/irqchip/icu-v2h.h>
 
 #define IRQC_NMI			0
 #define IRQC_IRQ_START			1
@@ -61,10 +60,6 @@
 
 #define NITSR_NTSEL_EDGE_FALLING	0
 #define NITSR_NTSEL_EDGE_RISING		1
-
-#define DMxSELy(x, y)	(0x0420 + (x) * 0x0020 + (y) * 0x0004) /* DMACx Factor Selection Register y */
-#define DMACKSEL(x)	(0x0500 + (x) * 0x0004) /* DMAC ACK Selection Register x */
-#define DMTENDSEL(x)	(0x055C + (x) * 0x0004) /* DMAC TEND Selection Register x */
 
 #define TINT_EXTRACT_HWIRQ(x)		FIELD_GET(GENMASK(15, 0), (x))
 #define TINT_EXTRACT_GPIOINT(x)		FIELD_GET(GENMASK(31, 16), (x))
@@ -519,65 +514,6 @@ static const struct irq_chip rzfive_irqc_chip = {
 				  IRQCHIP_SKIP_SET_WAKE,
 };
 
-int register_dmac_req_signal(struct platform_device *icu_dev, unsigned int dmac,
-                                unsigned int channel, int dmac_req)
-{
-	struct rzg2l_irqc_priv *priv = platform_get_drvdata(icu_dev);
-	u32 y, low_up, dmsel;
-	u32 mask = 0x0000FFFF;
-
-	if ((dmac_req < 0) || (dmac_req > 0x1B4))
-		dev_dbg(&icu_dev->dev, "%s: Disable dmac req signal\n", __func__);
-
-	if ((channel < 0) || (channel > 15)) {
-		dev_dbg(&icu_dev->dev, "%s: Invalid channel\n", __func__);
-		return -EINVAL;
-	}
-
-	y = channel / 2;
-	low_up = channel % 2;
-
-	dmsel = readl(priv->base + DMxSELy(dmac, y));
-
-	if (low_up) {
-		dmac_req <<= 16;
-		mask <<= 16;
-	}
-
-	dmsel = (dmsel & (~mask)) | dmac_req;
-
-	writel(dmsel, priv->base + DMxSELy(dmac, y));
-
-	return 0;
-}
-
-EXPORT_SYMBOL(register_dmac_req_signal);
-
-int register_dmac_ack_signal(struct platform_device *icu_dev, int dmac_ack, int dmac_ack_channel)
-{
-	struct rzg2l_irqc_priv *priv = platform_get_drvdata(icu_dev);
-	u32 reg_position, dmacksel, mask;
-
-	if ((dmac_ack_channel < 0) || (dmac_ack_channel > 0x4F))
-		dev_dbg(&icu_dev->dev, "%s: Disable dmac ack signal\n", __func__);
-
-	if ((dmac_ack < 0) || (dmac_ack > 88))
-		dev_dbg(&icu_dev->dev, "%s: Not use dmac ack\n", __func__);
-
-	reg_position = dmac_ack / 4;
-	dmacksel = readl(priv->base + DMACKSEL(reg_position));
-
-	mask = 0x7F << (8 * (dmac_ack % 4));
-	dmac_ack_channel <<= (8 * (dmac_ack % 4));
-	dmacksel = (dmacksel  & (~mask)) | dmac_ack_channel;
-
-	writel(dmacksel, priv->base + DMACKSEL(reg_position));
-
-	return 0;
-}
-
-EXPORT_SYMBOL(register_dmac_ack_signal);
-
 static int rzg2l_irqc_alloc(struct irq_domain *domain, unsigned int virq,
 			    unsigned int nr_irqs, void *arg)
 {
@@ -664,7 +600,6 @@ static int rzg2l_irqc_common_init(struct device_node *node, struct device_node *
 		return -ENOMEM;
 
 	rzg2l_irqc_data->irqchip = irq_chip;
-	platform_set_drvdata(pdev, rzg2l_irqc_data);
 
 	rzg2l_irqc_data->base = devm_of_iomap(&pdev->dev, pdev->dev.of_node, 0, NULL);
 	if (IS_ERR(rzg2l_irqc_data->base))
@@ -730,8 +665,6 @@ static int __init rzfive_irqc_init(struct device_node *node,
 
 IRQCHIP_PLATFORM_DRIVER_BEGIN(rzg2l_irqc)
 IRQCHIP_MATCH("renesas,rzg2l-irqc", rzg2l_irqc_init)
-IRQCHIP_MATCH("renesas,rzv2h-irqc", rzg2l_irqc_init)
-IRQCHIP_MATCH("renesas,rzg3e-irqc", rzg2l_irqc_init)
 IRQCHIP_MATCH("renesas,r9a07g043f-irqc", rzfive_irqc_init)
 IRQCHIP_PLATFORM_DRIVER_END(rzg2l_irqc)
 MODULE_AUTHOR("Lad Prabhakar <prabhakar.mahadev-lad.rj@bp.renesas.com>");
