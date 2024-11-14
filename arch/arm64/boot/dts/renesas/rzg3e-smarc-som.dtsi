@@ -225,6 +225,9 @@
 			txd1-skew-psec = <0>;
 			txd2-skew-psec = <0>;
 			txd3-skew-psec = <0>;
+
+			interrupt-parent = <&icu>;
+			interrupts = <RZG2L_IRQ2 IRQ_TYPE_LEVEL_LOW>;
 		};
 	};
 };
@@ -256,6 +259,9 @@
 			txd1-skew-psec = <0>;
 			txd2-skew-psec = <0>;
 			txd3-skew-psec = <0>;
+
+			interrupt-parent = <&icu>;
+			interrupts = <RZG2L_IRQ15 IRQ_TYPE_LEVEL_LOW>;
 		};
 	};
 };
