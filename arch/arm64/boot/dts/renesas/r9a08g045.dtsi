@@ -473,6 +473,8 @@
 				     <GIC_SPI 42 IRQ_TYPE_LEVEL_HIGH>;
 			interrupt-names = "lpm_int", "ca55stbydone_int",
 					  "cm33stbyr_int", "ca55_deny";
+			#renesas,sysc-signal-cells = <2>;
+			status = "disabled";
 		};
 
 		pinctrl: pinctrl@11030000 {
