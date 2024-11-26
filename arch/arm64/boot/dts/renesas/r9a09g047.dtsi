@@ -323,10 +323,11 @@
 		};
 
 		sys: system-controller@10430000 {
-			compatible = "renesas,r9a09g047-sys";
+			compatible = "renesas,r9a09g047-sys", "syscon";
 			reg = <0 0x10430000 0 0x10000>;
 			clocks = <&cpg CPG_CORE R9A09G047_SYS_0_PCLK>;
 			resets = <&cpg 48>;
+			#renesas,sysc-signal-cells = <2>;
 			status = "disabled";
 		};
 
