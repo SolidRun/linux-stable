@@ -252,30 +252,16 @@
 		clock-frequency = <24000000>;
 	};
 
-	snd_rzv2h: sound {
-		#address-cells = <1>;
-		#size-cells = <0>;
-		compatible = "simple-audio-card";
-		simple-audio-card,name = "rsnd_rzv2h";
-		status="okay";
+	sound_card: sound {
+		compatible = "audio-graph-card";
 
-		ssi_link: simple-audio-card,dai-link@0 {
-			format = "i2s";
-			reg = <0>;
-			bitclock-master = <&cpu_dai0>;
-			frame-master = <&cpu_dai0>;
-			mclk-fs = <256>;
+		label = "rcar-sound";
+		mclk-fs = <256>;
 
-			cpu_dai0: cpu {
-				sound-dai = <&rcar_sound 0>;
-			};
-
-			codec {
-				sound-dai = <&da7212>;
-				clocks = <&rcar_sound>;
-			};
-		};
+		dais = <&rsnd_port0	/* DA7211 */
+			>;
 	};
+
 };
 
 &pinctrl {
@@ -825,6 +811,12 @@
 		VDDSP-supply = <&reg_3p3v>;
 		VDDMIC-supply = <&reg_3p3v>;
 		VDDIO-supply = <&reg_1p8v>;
+
+		port {
+			da7212_endpoint: endpoint {
+				remote-endpoint = <&rsnd_endpoint0>;
+			};
+		};
 	};
 };
 
@@ -1047,10 +1039,21 @@
 	/* Multi DAI */
 	#sound-dai-cells = <1>;
 
-	rcar_sound,dai {
-		dai0 {
-			playback = <&ssi3>;
-			capture  = <&ssi4 &src0 &dvc0>;
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		rsnd_port0: port@0 {
+			reg = <0>;
+			rsnd_endpoint0: endpoint {
+				remote-endpoint = <&da7212_endpoint>;
+
+				dai-format = "i2s";
+				bitclock-master = <&rsnd_endpoint0>;
+				frame-master = <&rsnd_endpoint0>;
+
+				playback = <&ssi3>;
+				capture = <&ssi4>, <&src0>, <&dvc0>;
+			};
 		};
 	};
 };
