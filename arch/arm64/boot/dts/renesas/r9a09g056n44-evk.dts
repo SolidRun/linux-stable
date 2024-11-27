@@ -145,6 +145,12 @@
 		compatible = "renesas,vspm_if";
 	};
 
+       x1_clk: x1-clock {
+               compatible = "fixed-clock";
+               #clock-cells = <0>;
+               clock-frequency = <24000000>;
+       };
+
 	reg_1p8v: regulator0 {
 		compatible = "regulator-fixed";
 
@@ -511,6 +517,11 @@
 			 <RZG2L_PORT_PINMUX(2, 1, 4)>; /* I2C2_SCL */
 	};
 
+       i2c8_pins: i2c8 {
+               pinmux = <RZG2L_PORT_PINMUX(0, 6, 1)>, /* I2C8_SDA */
+                        <RZG2L_PORT_PINMUX(0, 7, 1)>; /* I2C8_SCL */
+       };
+
 	spi2_pins: spi2 {
 		pinmux = <RZG2L_PORT_PINMUX(11, 3, 5)>, /* MISO */
 			 <RZG2L_PORT_PINMUX(11, 4, 5)>, /* MOSI */
@@ -804,6 +815,32 @@
 		VDDMIC-supply = <&reg_3p3v>;
 		VDDIO-supply = <&reg_1p8v>;
 	};
+};
+
+&i2c8 {
+       pinctrl-0 = <&i2c8_pins>;
+       pinctrl-names = "default";
+
+       status = "okay";
+
+       versa3: versa3@69 {
+               compatible = "renesas,5p35023";
+               reg = <0x69>;
+               #clock-cells = <1>;
+               clocks = <&x1_clk>;
+               clock-names = "x1";
+               assigned-clocks = <&versa3 5>,
+                                 <&versa3 4>,
+                                 <&versa3 3>,
+                                 <&versa3 2>,
+                                 <&versa3 1>,
+                                 <&versa3 0>;
+               assigned-clock-rates =  <100000000>, <100000000>,
+                                       <22579200>, <32768>,
+                                       <24576000>, <24000000>;
+               clock-divider-read-only = <1>, <1>, <1>, <1>, <1>;
+               clock-flags = <2176>, <2176>, <2176>, <2052>, <2176>, <2048>;
+       };
 };
 
 &cru1 {
