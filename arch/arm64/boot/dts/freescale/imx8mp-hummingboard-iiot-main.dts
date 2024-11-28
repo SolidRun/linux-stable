@@ -1,0 +1,10 @@
+/dts-v1/;
+
+#include <dt-bindings/usb/pd.h>
+#include "imx8mp-sr-som.dtsi"
+#include "imx8mp-hummingboard-iiot.dtsi"
+
+/ {
+        model = "SolidRun i.MX8MP HummingBoard IIOT Main Board";
+        compatible = "fsl,imx8mp-sr-som", "fsl,imx8mp";
+};

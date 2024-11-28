@@ -1,0 +1,1201 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2024 SolidRun Ltd.
+ */
+
+#include <dt-bindings/leds/common.h>
+#include <dt-bindings/usb/pd.h>
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/interrupt-controller/irq.h>
+#include "imx8mp-sr-som.dtsi"
+
+/* UARTA (UART3): Select RS232 or RS485 */
+#define UARTA_SEL_RS232_RS485 1 // {0:RS323,1:RS485}
+/* UARTB (UART4): Select RS232 or RS485 */
+#define UARTB_SEL_RS232_RS485 1 // {0:RS323,1:RS485}
+/* UARTA and UARTB: Select Internal or External */
+#define UARTA_UARTB_SEL_INT_EXT 0 // {0:INT,1:EXT}
+/* CANA and CANB: Select Internal or External */
+#define CANA_CANB_SEL_INT_EXT 0 // {0:INT,1:EXT}
+/* SPI MUX TPM/EXT {Select TPM or EXTERNAL_SPI_DEVICE} */
+#define SPI_SEL_TPM_EXT 0 // {0:TPM,1:EXT}
+
+/ {
+	/* USB1_VBUS */
+	power-usb-port1 {
+		compatible = "reg-userspace-consumer";
+		regulator-name = "usb-port1-pwr-consumer";
+		regulator-boot-on;
+		regulator-supplies = "vcc";
+		vcc-supply = <&reg_usb1_vbus>;
+		comment = "USB Port1 vbus power switch";
+	};
+
+	/* USB_HOST3_VBUS */
+	power-usb-port2 {
+		compatible = "reg-userspace-consumer";
+		regulator-name = "usb-port2-pwr-consumer";
+		regulator-boot-on;
+		regulator-supplies = "vcc";
+		vcc-supply = <&reg_usb_host3_vbus>;
+		comment = "USB Port2 vbus power switch";
+	};
+
+	/* USB_HOST4_VBUS */
+	power-usb-port3 {
+		compatible = "reg-userspace-consumer";
+		regulator-name = "usb-port3-pwr-consumer";
+		regulator-boot-on;
+		regulator-supplies = "vcc";
+		vcc-supply = <&reg_usb_host4_vbus>;
+		comment = "USB Port3 vbus power switch";
+	};
+
+	/* USB1_PWR_EN (USB1_VBUS) */
+	reg_usb1_vbus: regulator-usb1-vbus {
+		compatible = "regulator-fixed";
+		regulator-name = "usb1_vbus";
+		pinctrl-names = "default";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		gpio = <&io_expander_u20 14 GPIO_ACTIVE_HIGH>; /* TBD - USB1_PWR_EN */
+		enable-active-high;
+	};
+
+	/* USB_HUB3_PWR_EN (USB_HOST3_VBUS) */
+	reg_usb_host3_vbus: regulator-usb1-vbus {
+		compatible = "regulator-fixed";
+		regulator-name = "usb_host3_vbus";
+		pinctrl-names = "default";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		gpio = <&io_expander_u20 12 GPIO_ACTIVE_HIGH>; /* TBD - USB1_PWR_EN */
+		enable-active-high;
+	};
+
+	/* USB_HUB4_PWR_EN (USB_HOST4_VBUS) */
+	reg_usb_host4_vbus: regulator-usb1-host-vbus {
+		compatible = "regulator-fixed";
+		regulator-name = "usb_host4_vbus";
+		pinctrl-names = "default";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		gpio = <&io_expander_u20 13 GPIO_ACTIVE_HIGH>; /* TBD - USB_HUB3_PWR_EN */
+		enable-active-high;
+	};
+
+	/* uSD regulator */
+	reg_usdhc2_vmmc: regulator-usdhc2 {
+		compatible = "regulator-fixed";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_reg_usdhc2_vmmc>;
+		regulator-name = "VSD_3V3";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		//gpio = <&gpio2 19 GPIO_ACTIVE_HIGH>;
+		regulator-always-on;
+	};
+
+	reg_vdd_1v8: regulator-vdd-1v8 {
+		compatible = "regulator-fixed";
+		regulator-name = "VDD_1V8";
+		vdd-3v3-supply = <&buck4>;
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		regulator-always-on;
+	};
+
+	/* CAN-1 Regulator */
+	reg_can1_stby: regulator-can1-stby {
+		compatible = "regulator-fixed";
+		regulator-name = "can1-stby";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_flexcan1_reg>;
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		gpio = <&gpio5 5 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+	};
+
+	/* CAN-2 Regulator */
+	reg_can2_stby: regulator-can2-stby {
+		compatible = "regulator-fixed";
+		regulator-name = "can2-stby";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_flexcan2_reg>;
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		gpio = <&gpio4 27 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+	};
+
+	/*
+		* J4: M.2 Support PCIe only (M.2 KEY-M)
+		* J6: M.2 Support USB3.0/USB2.0 (M.2 KEY-B)
+		*
+	*/
+
+	/* J4: M.2M_3V3_EN */
+	reg_m2_pcie_j4_pwr: regulator-m2-pcie-j4-pwr {
+		compatible = "regulator-fixed";
+		regulator-name = "m2-j4-pcie-pwr";
+		pinctrl-names = "default";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		gpio = <&io_expander_u20 6 GPIO_ACTIVE_HIGH>; // U20[P6]
+		enable-active-high;
+	};
+
+	/* J6: M.2B_3V3 */
+	power-m2-j6 {
+		compatible = "reg-userspace-consumer";
+		regulator-name = "m2-j6-pwr-consumer";
+		regulator-boot-on;
+		regulator-supplies = "vcc";
+		vcc-supply = <&reg_m2_j6_pwr>;
+		comment = "m.2 j6 3.3V connector switch";
+	};
+
+	/* J6: M.2B_3V3_EN */
+	reg_m2_j6_pwr: regulator-m2-j6-pwr {
+		compatible = "regulator-fixed";
+		regulator-name = "m2-j6-pwr";
+		pinctrl-names = "default";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		gpio = <&io_expander_u20 5 GPIO_ACTIVE_HIGH>; // U20[P5]
+		enable-active-high;
+	};
+
+	/* Enable this node for M.2 LTE modem rfkill support (M.2 J6) */
+	rfkill_m2_wdis {
+		compatible = "rfkill-gpio";
+		pinctrl-names = "default";
+		rfkill-name = "m2_wdis";
+		rfkill-type = <5>;
+		shutdown-gpio = <&io_expander_u20 9 GPIO_ACTIVE_HIGH>; // M.2B_W_DIS U20_P[11]
+		status = "okay";
+	};
+
+	/* GPIO Controll M.2-J6 rfkill */
+	rfkill_m2_gps {
+		compatible = "rfkill-gpio";
+		pinctrl-names = "default";
+		rfkill-name = "m2_gps";
+		rfkill-type = <6>;
+		shutdown-gpio = <&io_expander_u20 10 GPIO_ACTIVE_HIGH>;// M.2B_GPS_EN U20_P[12]
+		status = "okay";
+	};
+
+	/* M.2M-J4 PCIe Wake-On LAN */
+	gpio-m2m-wakew-on-lan-hog {
+		gpio-hog;
+		gpios = <&io_expander_u21 11 GPIO_ACTIVE_HIGH>;// M.2M_WAKW_ON_LAN U21_P[13]
+		input;
+		line-name = "M.2M_WAKW_ON_LAN-J4";
+	};
+
+	/* M.2M-J4 PCIe CLKREQ */
+	gpio-m2m-clkreq-hog {
+		gpio-hog;
+		gpios = <&io_expander_u21 12 GPIO_ACTIVE_HIGH>; // M.2M_CLKREQ U21_P[14]
+		input;
+		line-name = "M.2M_CLKREQ-J4";
+	};
+
+	/* M.2B-J4 Reset */
+	lte-reset {
+		compatible = "gpio-reset";
+		reset-gpios = <&io_expander_u20 8 GPIO_ACTIVE_LOW>; // M.2B_RESET U20_P[10]
+		reset-delay-us = <2000>;
+		reset-post-delay-ms = <40>;
+		#reset-cells = <0>;
+	};
+
+	/* UARTA (UART3): Select RS232 or RS485 */
+    carrier_uarta_mux: uarta-mux-controller_carrier {
+        compatible = "gpio-mux";
+        #mux-control-cells = <0>;
+        mux-gpios = <&io_expander_u20 1 GPIO_ACTIVE_HIGH>; // UARTA_232/485 U20_P[1]
+		#if UARTA_SEL_RS232_RS485
+			idle-state = <1>; /* RS485 */
+		#else
+		idle-state = <0>; /* RS232 */
+		#endif
+    };
+
+	/* UARTB (UART4): Select RS232 or RS485 */
+    carrier_uartb_mux: uartb-mux-controller_carrier {
+        compatible = "gpio-mux";
+        #mux-control-cells = <0>;
+        mux-gpios = <&io_expander_u20 2 GPIO_ACTIVE_HIGH>; // UARTB_232/485 U20_P[2]
+		#if UARTB_SEL_RS232_RS485
+			idle-state = <1>; /* RS485 */
+		#else
+			idle-state = <0>; /* RS232 */
+		#endif
+    };
+
+	/* UARTA and UARTB: Select Internal or External */
+    carrier_int_ext_uart_mux: int-ext-uart-mux-controller_carrier {
+        compatible = "gpio-mux";
+        #mux-control-cells = <0>;
+        mux-gpios = <&io_expander_u20 0 GPIO_ACTIVE_HIGH>; // INT/EXT_UART U20_P[0]
+		#if UARTA_UARTB_SEL_INT_EXT
+			idle-state = <1>; /* External */
+		#else
+		idle-state = <0>; /* Internal */
+		#endif
+    };
+
+	/* CANA and CANB: Select Internal or External */
+    carrier_int_ext_can_mux: int-ext-can-mux-controller_carrier {
+        compatible = "gpio-mux";
+        #mux-control-cells = <0>;
+        mux-gpios = <&io_expander_u20 3 GPIO_ACTIVE_HIGH>; // INT/EXT_CAN U20_P[3]
+		#if CANA_CANB_SEL_INT_EXT
+			idle-state = <1>; /* External */
+		#else
+		idle-state = <0>; /* Internal */
+		#endif
+    };
+
+	/* SPI MUX TPM/EXT {Select TPM or EXTERNAL_SPI_DEVICE} */
+    carrier_spi_mux: spi-mux-controller_carrier {
+        compatible = "gpio-mux"; // MUX Type: 'TMUX1574Dx'
+        #mux-control-cells = <0>;
+        mux-gpios = <&io_expander_u21 3 GPIO_ACTIVE_HIGH>; // SPI_TPM/EXT U21_P[0]
+		#if SPI_SEL_TPM_EXT
+			idle-state = <1>; /* External */
+		#else
+		idle-state = <0>; /* Internal */
+		#endif
+    };
+
+	/* MIPI-DSI and LVDS I/O Exapnders (U37, U48) Reset */
+    lcd_i2c_rst: lcd-i2c-rst {
+        compatible = "regulator-fixed";
+        regulator-name = "lcd_i2c_rst";
+        regulator-min-microvolt = <1800000>;
+        regulator-max-microvolt = <1800000>;
+        gpios = <&io_expander_u21 4 GPIO_ACTIVE_HIGH>; //
+        enable-active-high;
+    };
+
+    /* LVDS [J24] */
+	/* Setting for Winstar Display 'WF70A8SYJHLNGA' */
+	lvds0_panel {
+		compatible = "panel-lvds";
+		status = "okay";
+		width-mm = <154>;
+		height-mm = <86>;
+		//backlight = <&backlight_lvds>;
+		data-mapping = "vesa-24";
+
+		panel-timing {
+			/* timing for panel WF70A8SYJHLNGA */
+			/* 1024x600@60Hz */
+			clock-frequency = <51200000>;
+			hactive = <1024>;
+			vactive = <600>;
+			hfront-porch = <90>;
+			hback-porch = <160>;
+			hsync-len = <70>;
+			vfront-porch = <10>;
+			vback-porch = <23>;
+			vsync-len = <2>;
+		};
+
+		port {
+			panel_lvds_in: endpoint {
+				remote-endpoint = <&lvds_out>;
+			};
+		};
+	};
+
+	dsi_reset: dsi-reset {
+		compatible = "gpio-reset"; // "regulator-fixed";
+		reset-gpios = <&gpio_dsi_expander 1 GPIO_ACTIVE_LOW>;
+		reset-delay-us = <2000>;
+		reset-post-delay-ms = <40>;
+		#reset-cells = <0>;
+	};
+
+	vdd_panel: vdd-panel {
+			compatible = "regulator-fixed";
+			regulator-name = "vdd_panel";
+			regulator-min-microvolt = <3300000>;
+			regulator-max-microvolt = <3300000>;
+		#if 0 // <TBD>
+			gpios = <&io_expander_u20 15 GPIO_ACTIVE_HIGH>;
+			enable-active-high;
+		#endif
+	};
+
+#if 1
+	/* DSI Panel - Winstar WJ70N3TYJHMNG0 [J25] */
+	panel_dsi: panel-dsi {
+		status = "okay";
+		compatible = "winstar,wj70n3tyjhmng0"; // "panel-simple-dsi"
+		//reg = <0>;
+		power-supply = <&vdd_panel>;
+        dsi-lanes = <4>;
+		port {
+			panel0_in: endpoint {
+					remote-endpoint = <&mipi0_panel_out>;
+			};
+		};
+	};
+#endif
+};
+
+&ldb {
+	status = "okay";
+	lvds-channel@0 {
+			fsl,data-mapping = "spwg";
+			fsl,data-width = <24>;
+			status = "okay";
+
+			port@1 {
+					reg = <1>;
+
+					lvds_out: endpoint {
+							remote-endpoint = <&panel_lvds_in>;
+					};
+			};
+	};
+};
+
+&ldb_phy {
+    status = "okay";
+};
+
+&i2c2 {
+	clock-frequency = <100000>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_i2c2>;
+	status = "okay";
+
+	/* I2C Swich - PCA9546x */
+    i2c-switch@70 {
+		/*
+		* channel0: External I2C
+		* channel1: CSI I2C
+		* channel2: DSI I2C
+		* channel3: LVDS I2C
+		*/
+        compatible = "nxp,pca9546";
+        reg = <0x70>;
+        #address-cells = <1>;
+		#size-cells = <0>;
+        reset-gpios = <&io_expander_u21 2 GPIO_ACTIVE_LOW>;
+
+		/* channel0: External I2C */
+		i2c_ext: i2c@0 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0>;
+		};
+
+		/* channel1: CSI I2C */
+        i2c_csi: i2c@1 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <1>;
+
+			basler_0: basler_camera_vvcam@36 {
+				compatible = "basler,basler-camera-vvcam", "basler-camera-vvcam";
+				reg = <0x36>;
+				csi_id = <0x00>;
+				status = "okay";
+
+				port {
+					basler_ep_0: endpoint {
+						data-lanes = <1 2 3 4>;
+						clock-lanes = <0>;
+						link-frequencies = /bits/ 64 <750000000>;
+
+						max-lane-frequency = /bits/ 64 <750000000>;
+						max-pixel-frequency = /bits/ 64 <266000000>;
+						max-data-rate = /bits/ 64 <0>;
+
+						remote-endpoint = <&mipi_csi0_ep>;
+					};
+				};
+			};
+		};
+
+		/* channel2: DSI I2C */
+        i2c_dsi: i2c@2 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <2>;
+
+			/* DSI Touch Screen [J25] */
+			touchscreen@41 {
+				/* ili2520 part of the Winstart Display WJ70N3TYJHMNG0 */
+				compatible = "ilitek,ili2520";
+				reg = <0x41>;
+
+				interrupt-parent = <&io_expander_u21>;
+				interrupts = <13 IRQ_TYPE_LEVEL_LOW>;	// <TBD> U21_P[15]=LVDS_INT (shared INT for DSI and LVDS)
+				reset-gpios = <&gpio_dsi_expander 6 GPIO_ACTIVE_LOW>; // DSI_CTP/RST U48_P[6] (External Reset, Low is active)
+				//touchscreen-inverted-y;
+				//wakeup-source;
+			};
+		};
+
+		/* channel3: LVDS I2C */
+		i2c_lvds: i2c@3 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <3>;
+
+			/* io_expander_u37 */
+			gpio_lvds_expander: tca6408@20 {
+				compatible = "ti,tca6408";
+				reg = <0x20>;
+				gpio-controller;
+				#gpio-cells = <2>;
+				vcc-supply = <&lcd_i2c_rst>;
+				gpio-line-names =
+				"SELB",
+				"LVDS_RESET",
+				"LVDS_STBYB",
+				"LVDS_PWM_BL",
+				"LVDS_L/R",
+				"LVDS_U/D",
+				"LVDS_CTP_/RST",
+				"NC-7";
+				SELB_hog {
+					gpio-hog;
+					gpios = <0 GPIO_ACTIVE_HIGH>;
+					output-high;
+					line-name = "SELB";
+				};
+			#if 1
+				LVDS_RESET_hog {
+					gpio-hog;
+					gpios = <1 GPIO_ACTIVE_HIGH>;
+					output-high;
+					line-name = "LVDS_RESET";
+				};
+				LVDS_STBYB_hog {
+					gpio-hog;
+					gpios = <2 GPIO_ACTIVE_HIGH>;
+					output-high;
+					line-name = "LVDS_STBYB";
+				};
+			#endif
+				/* Display Backlight control signal*/
+				LVDS_PWM_BL_hog {
+					gpio-hog;
+					gpios = <3 GPIO_ACTIVE_LOW>;
+					output-high;
+					line-name = "LVDS_PWM_BL";
+				};
+				LVDS_LR_hog {
+					gpio-hog;
+					gpios = <4 GPIO_ACTIVE_HIGH>;
+					output-high;
+					line-name = "LVDS_L/R";
+				};
+				LVDS_UD_hog {
+					gpio-hog;
+					gpios = <5 GPIO_ACTIVE_HIGH>;
+					output-high;
+					line-name = "LVDS_U/D";
+				};
+				/* // <TBD>
+				LVDS_CTP_RST_hog {
+					gpio-hog;
+					gpios = <6 GPIO_ACTIVE_HIGH>;
+					output-high;
+					line-name = "LVDS_CTP_/RST";
+				};
+				*/
+			};
+
+			/* io_expander_u48 */
+			gpio_dsi_expander: tca6408@21 {
+				compatible = "ti,tca6408";
+				reg = <0x21>;
+				gpio-controller;
+				#gpio-cells = <2>;
+				vcc-supply = <&lcd_i2c_rst>;
+				gpio-line-names =
+				"NC-0",
+				"DSI_RESET",
+				"DSI_STBYB",
+				"DSI_PWM_BL",
+				"DSI_L/R",
+				"DSI_U/D",
+				"DSI_CTP_/RST",
+				"NC-7";
+			#if 1 // <TBD>
+				DSI_RESET_hog {
+					gpio-hog;
+					gpios = <1 GPIO_ACTIVE_HIGH>;
+					output-high;
+					line-name = "DSI_RESET";
+				};
+
+				DSI_STBYB_hog {
+					gpio-hog;
+					gpios = <2 GPIO_ACTIVE_HIGH>;
+					output-high;
+					line-name = "DSI_STBYB";
+				};
+			#endif
+				/* Display Backlight control signal*/
+				DSI_PWM_BL_hog {
+					gpio-hog;
+					gpios = <3 GPIO_ACTIVE_LOW>;
+					output-high;
+					line-name = "DSI_PWM_BL";
+				};
+				DSI_LR_hog {
+					gpio-hog;
+					gpios = <4 GPIO_ACTIVE_HIGH>;
+					output-high;
+					line-name = "DSI_L/R";
+				};
+				DSI_UD_hog {
+					gpio-hog;
+					gpios = <5 GPIO_ACTIVE_HIGH>;
+					output-high;
+					line-name = "DSI_U/D";
+				};
+				/*
+				DSI_CTP_RST_hog {
+					gpio-hog;
+					gpios = <6 GPIO_ACTIVE_HIGH>;
+					output-high;
+					line-name = "DSI_CTP_/RST";
+				};
+				*/
+			};
+
+			/* LVDS Touch Screen [J24] */
+			touchscreen@41 {
+				/* ili2520 part of the Winstart Display WF70A8SYJHLNGA */
+				compatible = "ilitek,ili2520";
+				reg = <0x41>;
+
+				interrupt-parent = <&io_expander_u21>;
+				interrupts = <15 IRQ_TYPE_LEVEL_LOW>; // <TBD> U21_P[15]=LVDS_INT (shared INT for DSI and LVDS)
+				reset-gpios = <&gpio_lvds_expander 6 GPIO_ACTIVE_LOW>; // LVDS_CTP/RST U37_P[6] (External Reset, Low is active)
+				//touchscreen-inverted-y;
+				//wakeup-source;
+			};
+		};
+	};
+};
+
+&i2c3 {
+    clock-frequency = <100000>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_i2c3>;
+    status = "okay";
+
+    /* io_expander_u20 */
+    io_expander_u20: gpio@20 {
+        compatible = "ti,tca6416";
+        reg = <0x20>;
+        gpio-controller;
+        #gpio-cells = <2>;
+        gpio-line-names =
+        "TCA_INT/EXT_UART",
+        "TCA_UARTA_232/485",
+        "TCA_UARTB_232/485",
+        "TCA_INT/EXT_CAN",
+        "TCA_NXP/REN",
+        "TCA_M.2B_3V3_EN",
+        "TCA_M.2M_3V3_EN",
+        "TCA_M.2M_RESET#",
+        "TCA_M.2B_RESET#",
+        "TCA_M.2B_W_DIS#",
+        "TCA_M.2B_GPS_EN#",
+        "TCA_USB-HUB_RST#",
+        "TCA_USB_HUB3_PWR_EN",
+        "TCA_USB_HUB4_PWR_EN",
+        "TCA_USB1_PWR_EN",
+        "TCA_VIDEO_PWR_EN";
+
+		NXP_REN_hog {
+			gpio-hog;
+			gpios = <4 GPIO_ACTIVE_HIGH>;
+			output-high;
+			line-name = "NXP_REN";
+		};
+
+	#if 1
+		VIDEO_PWR_EN_hog {
+			gpio-hog;
+			gpios = <15 GPIO_ACTIVE_HIGH>;
+			output-high;
+			line-name = "VIDEO_PWR_EN";
+		};
+	#endif
+    };
+
+    /* io_expander_u21 */
+    io_expander_u21: gpio@21 {
+        compatible = "ti,tca6416";
+        reg = <0x21>;
+        gpio-controller;
+        #gpio-cells = <2>;
+		interrupt-controller;
+		#interrupt-cells = <2>;
+        interrupt-parent = <&gpio1>; //GPIO1_IO15
+        interrupts = <15 IRQ_TYPE_EDGE_FALLING>;//IRQ_TYPE_LEVEL_LOW, IRQ_TYPE_EDGE_FALLING, xxIRQ_TYPE_EDGE_RISING,
+        gpio-line-names =
+        "TCA_SPI_TPM/EXT",
+        "TCA_TPM_RST#",
+        "TCA_I2C_RST",
+        "TCA_RS232_SHTD#",
+        "TCA_LCD_I2C_RST",
+        "TCA_DIG_OUT1",
+        "TCA_bDIG_IN1",
+        "TCA_SENS_INT",
+        "TCA_ALERT#",
+        "TCA_TPM_PIRQ#",
+        "TCA_RTC_INT",
+        "TCA_M.2M_WAKW_ON_LAN",
+        "TCA_M.2M_CLKREQ#",
+        "TCA_LVDS_INT#",
+        "TCA_NC",
+        "TCA_POE_AT";
+
+		TCA_POE_AT_hog {
+			gpio-hog;
+			gpios = <15 GPIO_ACTIVE_HIGH>;
+			output-high;
+			line-name = "TCA_POE_AT";
+		};
+    };
+
+    carrier_eeprom: eeprom_at24c02@57 {
+        compatible = "st,24c02", "atmel,24c02";
+        reg = <0x57>;
+        pagesize = <8>;
+    };
+
+    rtc: rtc_am1805@69 {
+        compatible = "abracon,ab1805";
+        reg = <0x69>;
+        abracon,tc-diode = "schottky";
+		abracon,tc-resistor = <3>;
+    };
+
+    charger: battery-charger@68 {
+        // Not assembled
+        status = "disabled";
+        compatible = "lltc,ltc4162-l";
+        reg = <0x68>;
+        // lltc,rsnsb-micro-ohms = <10000>;
+        // lltc,rsnsi-micro-ohms = <16000>;
+        // lltc,cell-count = <2>;
+    };
+
+    accelerometer: accelerometer@2a {
+        // Not assembled
+        status = "disabled";
+        compatible = "adi,adxl345";
+        reg = <0x2a>;
+        // interrupt-parent = <&io_expander_u21>;
+        // interrupts = <7 IRQ_TYPE_LEVEL_HIGH>;
+    };
+
+    ambient_light: ambient_light@44 {
+        // Not assembled
+        status = "disabled";
+        compatible = "isil,isl29023";
+        reg = <0x44>;
+        // interrupt-parent = <&io_expander_u21>;
+        // interrupts = <7 IRQ_TYPE_LEVEL_HIGH>;
+    };
+
+    leds: led-controller@30 {
+        compatible = "ti,lp5562";
+        reg = <0x30>;
+        clock-mode = /bits/ 8 <1>;
+        #address-cells = <1>;
+        #size-cells = <0>;
+        pwr-sel = <0>;
+
+        chan@0 {
+            chan-name = "R";
+            led-cur = /bits/ 8 <0x20>;
+            max-cur = /bits/ 8 <0x60>;
+            reg = <0>;
+            color = <LED_COLOR_ID_RED>;
+        };
+
+        chan@1 {
+            chan-name = "G";
+            led-cur = /bits/ 8 <0x20>;
+            max-cur = /bits/ 8 <0x60>;
+            reg = <1>;
+            color = <LED_COLOR_ID_GREEN>;
+        };
+
+        chan@2 {
+            chan-name = "B";
+            led-cur = /bits/ 8 <0x20>;
+            max-cur = /bits/ 8 <0x60>;
+            reg = <2>;
+            color = <LED_COLOR_ID_BLUE>;
+        };
+
+        chan@3 {
+            chan-name = "D8";
+            led-cur = /bits/ 8 <0x20>;
+            max-cur = /bits/ 8 <0x60>;
+            reg = <3>;
+            color = <LED_COLOR_ID_GREEN>;
+        };
+    };
+};
+
+&ecspi2 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+	fsl,spi-num-chipselects = <1>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_ecspi2 &pinctrl_ecspi2_cs>;
+	cs-gpios = <&gpio5 13 GPIO_ACTIVE_LOW>;
+	status = "okay";
+
+    carrier_spi_muxed: spi@0 {
+		compatible = "spi-mux";
+		reg = <0>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		spi-max-frequency = <12000000>;
+		mux-controls = <&carrier_spi_mux>;
+
+		carrier_tpm: tpm@0 {
+		    compatible = "infineon,slb9670", "tcg,tpm_tis-spi";
+		    reg = <0>;
+		    spi-max-frequency = <10000000>;
+		};
+
+		carrier_conn: carrier_conn_spi@1 {
+		    status = "okay";
+		    compatible = "linux,spidev";
+		    reg = <1>;
+		    spi-max-frequency = <10000000>;
+		};
+    };
+};
+
+/* eth0 */
+&eqos {
+	status = "okay";
+};
+
+/* eth1 */
+&fec {
+	status = "okay";
+};
+
+&flexspi {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_flexspi0>;
+	status = "okay";
+};
+
+&aud2htx {
+	status = "okay";
+};
+
+&basler_1 {
+	status = "okay";
+};
+
+&easrc {
+	fsl,asrc-rate  = <48000>;
+	status = "okay";
+};
+
+&irqsteer_hdmi {
+	status = "disabled";
+};
+
+&hdmi {
+	status = "disabled";
+};
+
+&hdmi_blk_ctrl {
+	status = "disabled";
+};
+
+&hdmi_pavi {
+	status = "disabled";
+};
+
+&hdmiphy {
+	status = "disabled";
+};
+
+&isp_0 {
+	status = "okay";
+};
+
+&isp_1 {
+	status = "okay";
+};
+
+/* mipi-dsi */
+&lcdif1 {
+	status = "okay";
+};
+
+&lcdif3 {
+	status = "disabled";
+};
+
+&micfil {
+	pinctrl-names = "default";
+	assigned-clocks = <&clk IMX8MP_CLK_PDM>;
+	assigned-clock-parents = <&clk IMX8MP_AUDIO_PLL1_OUT>;
+	assigned-clock-rates = <196608000>;
+	status = "disabled";
+};
+
+&mipi_csi_0 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+	clock-frequency = <266000000>;
+	assigned-clock-parents = <&clk IMX8MP_SYS_PLL1_266M>;
+	assigned-clock-rates = <266000000>;
+	status = "okay";
+
+	port@0 {
+		reg = <0>;
+		mipi_csi0_ep: endpoint {
+			remote-endpoint = <&basler_ep_0>;
+			data-lanes = <4>;
+			csis-hs-settle = <16>;
+		};
+	};
+
+};
+
+&mipi_csi_1 {
+	status = "okay";
+};
+
+&mipi_dsi {
+	status = "disabled";
+	#if 0 // <TBD>
+	panel@0 {
+		/* Winstart Display WJ70N3TYJHMNG0 [J25] */
+		status = "okay";
+		compatible = "winstar,wj70n3tyjhmng0";
+		reg = <0>;
+		power-supply = <&vdd_panel>;
+		dsi-lanes = <4>;
+		port {
+			panel0_in: endpoint {
+					remote-endpoint = <&mipi0_panel_out>;
+			};
+		};
+	};
+	#endif
+
+	port@1 {
+		reg = <1>;
+		mipi0_panel_out: endpoint {
+			remote-endpoint = <&panel0_in>;
+			//attach-bridge;
+		};
+	};
+};
+
+&pcie{
+	pinctrl-names = "default";
+	ext_osc = <0>;
+	clocks = <&clk IMX8MP_CLK_HSIO_ROOT>,
+		 <&clk IMX8MP_CLK_PCIE_AUX>,
+		 <&clk IMX8MP_CLK_HSIO_AXI>,
+		 <&clk IMX8MP_CLK_PCIE_ROOT>;
+	clock-names = "pcie", "pcie_aux", "pcie_phy", "pcie_bus";
+	assigned-clocks = <&clk IMX8MP_CLK_HSIO_AXI>,
+			  <&clk IMX8MP_CLK_PCIE_AUX>;
+	assigned-clock-rates = <500000000>, <10000000>;
+	assigned-clock-parents = <&clk IMX8MP_SYS_PLL2_500M>,
+				 <&clk IMX8MP_SYS_PLL2_50M>;
+	vpcie-supply = <&reg_m2_pcie_j4_pwr>;
+    reset-gpio = <&io_expander_u20 7 GPIO_ACTIVE_HIGH>;
+	status = "okay";
+};
+
+&pcie_phy{
+	ext_osc = <0>;
+	status = "okay";
+};
+
+&pwm4 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_pwm4>;
+	status = "okay";
+};
+
+&sai3 {
+	status = "disabled";
+};
+
+&sdma2 {
+        status = "okay";
+};
+
+/* UARTA: RS485-A / RS232-A */
+&uart3 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_uart3>;
+	assigned-clocks = <&clk IMX8MP_CLK_UART3>;
+	assigned-clock-parents = <&clk IMX8MP_SYS_PLL1_80M>;
+	status = "okay";
+
+#if UARTA_SEL_RS232_RS485
+	/*RS485-A (UARTA_TX/UARTA_RX)*/
+	rts-gpios = <&gpio5 9 GPIO_ACTIVE_HIGH>;
+	linux,rs485-enabled-at-boot-time;
+	//rs485-rts-delay;
+#endif
+};
+
+/* UARTB: RS485-B / RS232-B */
+&uart4 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_uart4>;
+	assigned-clocks = <&clk IMX8MP_CLK_UART4>;
+	assigned-clock-parents = <&clk IMX8MP_SYS_PLL1_80M>; // <&clk IMX8MP_CLK_24M>;
+	status = "okay";
+
+#if UARTB_SEL_RS232_RS485
+	/*RS485-B (UARTB_TX/UARTB_RX)*/
+	rts-gpios = <&gpio5 8 GPIO_ACTIVE_HIGH>;
+	linux,rs485-enabled-at-boot-time;
+	//rs485-rts-delay;
+#endif
+};
+
+&usb3_phy0 {
+	fsl,phy-tx-vref-tune = <0xe>;
+	fsl,phy-tx-preemp-amp-tune = <3>;
+	fsl,phy-tx-vboost-level = <5>;
+	fsl,phy-comp-dis-tune = <7>;
+	fsl,pcs-tx-deemph-3p5db = <0x21>;
+	fsl,phy-pcs-tx-swing-full = <0x7f>;
+	status = "okay";
+};
+
+&usb3_0 {
+	status = "okay";
+};
+
+&usb_dwc3_0 {
+	dr_mode = "host";
+	snps,dis-u1-entry-quirk;
+	snps,dis-u2-entry-quirk;
+	status = "okay";
+};
+
+&usb3_phy1 {
+	fsl,phy-tx-preemp-amp-tune = <3>;
+	fsl,phy-tx-vref-tune = <0xb>;
+	status = "okay";
+};
+
+&usb3_1 {
+	status = "okay";
+};
+
+&usb_dwc3_1 {
+	dr_mode = "host";
+	snps,parkmode-disable-ss-quirk;
+	status = "okay";
+};
+
+&usdhc2 {
+	assigned-clocks = <&clk IMX8MP_CLK_USDHC2>;
+	assigned-clock-rates = <400000000>;
+	pinctrl-names = "default", "state_100mhz", "state_200mhz";
+	pinctrl-0 = <&pinctrl_usdhc2>, <&pinctrl_usdhc2_gpio>;
+	pinctrl-1 = <&pinctrl_usdhc2_100mhz>, <&pinctrl_usdhc2_gpio>;
+	pinctrl-2 = <&pinctrl_usdhc2_200mhz>, <&pinctrl_usdhc2_gpio>;
+	cd-gpios = <&gpio2 12 GPIO_ACTIVE_LOW>;
+	vmmc-supply = <&reg_usdhc2_vmmc>;
+	voltage-ranges = <1800 1800 3300 3300>;
+	bus-width = <4>;
+	status = "okay";
+};
+
+/*
+CAN MUX:
+	EXT_CAN = 0
+	NXP/REN = 1
+*/
+&flexcan1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_flexcan1>;
+	xceiver-supply = <&reg_can1_stby>;
+	status = "okay";
+};
+
+&flexcan2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_flexcan2>;
+	xceiver-supply = <&reg_can2_stby>;
+	status = "okay";
+};
+
+&iomuxc {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_hog>;
+
+	pinctrl_ecspi2: ecspi2grp {
+		fsl,pins = <
+			MX8MP_IOMUXC_ECSPI2_SCLK__ECSPI2_SCLK		0x82
+			MX8MP_IOMUXC_ECSPI2_MOSI__ECSPI2_MOSI		0x82
+			MX8MP_IOMUXC_ECSPI2_MISO__ECSPI2_MISO		0x82
+		>;
+	};
+
+	pinctrl_ecspi2_cs: ecspi2cs {
+		fsl,pins = <
+			MX8MP_IOMUXC_ECSPI2_SS0__GPIO5_IO13		0x40000
+		>;
+	};
+
+	pinctrl_hog: hoggrp {
+		fsl,pins = <
+		>;
+	};
+
+	pinctrl_i2c2: i2c2grp {
+		fsl,pins = <
+			MX8MP_IOMUXC_I2C2_SCL__I2C2_SCL			0x400001c3
+			MX8MP_IOMUXC_I2C2_SDA__I2C2_SDA			0x400001c3
+		>;
+	};
+
+	pinctrl_i2c3: i2c3grp {
+		fsl,pins = <
+			MX8MP_IOMUXC_I2C3_SCL__I2C3_SCL			0x400001c3
+			MX8MP_IOMUXC_I2C3_SDA__I2C3_SDA			0x400001c3
+		>;
+	};
+
+	pinctrl_flexspi0: flexspi0grp {
+		fsl,pins = <
+			MX8MP_IOMUXC_NAND_ALE__FLEXSPI_A_SCLK		0x1c2
+			MX8MP_IOMUXC_NAND_CE0_B__FLEXSPI_A_SS0_B	0x82
+			MX8MP_IOMUXC_NAND_DATA00__FLEXSPI_A_DATA00	0x82
+			MX8MP_IOMUXC_NAND_DATA01__FLEXSPI_A_DATA01	0x82
+			MX8MP_IOMUXC_NAND_DATA03__FLEXSPI_A_DATA03	0x82
+		>;
+	};
+
+	pinctrl_pwm4: pwm4grp {
+		fsl,pins = <
+			MX8MP_IOMUXC_SAI5_RXFS__PWM4_OUT		0x116
+		>;
+	};
+
+	pinctrl_reg_usdhc2_vmmc: regusdhc2vmmcgrp {
+		fsl,pins = <
+			MX8MP_IOMUXC_SD2_RESET_B__GPIO2_IO19		0x40
+		>;
+	};
+
+	pinctrl_uart3: uart3grp {
+		fsl,pins = <
+			MX8MP_IOMUXC_ECSPI1_SCLK__UART3_DCE_RX		0x140
+			MX8MP_IOMUXC_ECSPI1_MOSI__UART3_DCE_TX		0x140
+			//MX8MP_IOMUXC_ECSPI1_SS0__GPIO5_IO09 		0x40
+		>;
+	};
+
+	pinctrl_uart4: uart4grp {
+		fsl,pins = <
+			MX8MP_IOMUXC_UART4_RXD__UART4_DCE_RX		0x140
+			MX8MP_IOMUXC_UART4_TXD__UART4_DCE_TX		0x140
+			//MX8MP_IOMUXC_ECSPI1_MISO__GPIO5_IO08		0x40
+		>;
+	};
+
+	pinctrl_usdhc2: usdhc2grp {
+		fsl,pins = <
+			MX8MP_IOMUXC_SD2_CLK__USDHC2_CLK		0x190
+			MX8MP_IOMUXC_SD2_CMD__USDHC2_CMD		0x1d0
+			MX8MP_IOMUXC_SD2_DATA0__USDHC2_DATA0		0x1d0
+			MX8MP_IOMUXC_SD2_DATA1__USDHC2_DATA1		0x1d0
+			MX8MP_IOMUXC_SD2_DATA2__USDHC2_DATA2		0x1d0
+			MX8MP_IOMUXC_SD2_DATA3__USDHC2_DATA3		0x1d0
+			MX8MP_IOMUXC_GPIO1_IO04__USDHC2_VSELECT		0xc1
+		>;
+	};
+
+	pinctrl_usdhc2_100mhz: usdhc2grp-100mhz {
+		fsl,pins = <
+			MX8MP_IOMUXC_SD2_CLK__USDHC2_CLK		0x194
+			MX8MP_IOMUXC_SD2_CMD__USDHC2_CMD		0x1d4
+			MX8MP_IOMUXC_SD2_DATA0__USDHC2_DATA0		0x1d4
+			MX8MP_IOMUXC_SD2_DATA1__USDHC2_DATA1		0x1d4
+			MX8MP_IOMUXC_SD2_DATA2__USDHC2_DATA2		0x1d4
+			MX8MP_IOMUXC_SD2_DATA3__USDHC2_DATA3		0x1d4
+			MX8MP_IOMUXC_GPIO1_IO04__USDHC2_VSELECT 	0xc1
+		>;
+	};
+
+	pinctrl_usdhc2_200mhz: usdhc2grp-200mhz {
+		fsl,pins = <
+			MX8MP_IOMUXC_SD2_CLK__USDHC2_CLK		0x196
+			MX8MP_IOMUXC_SD2_CMD__USDHC2_CMD		0x1d6
+			MX8MP_IOMUXC_SD2_DATA0__USDHC2_DATA0		0x1d6
+			MX8MP_IOMUXC_SD2_DATA1__USDHC2_DATA1		0x1d6
+			MX8MP_IOMUXC_SD2_DATA2__USDHC2_DATA2		0x1d6
+			MX8MP_IOMUXC_SD2_DATA3__USDHC2_DATA3		0x1d6
+			MX8MP_IOMUXC_GPIO1_IO04__USDHC2_VSELECT 	0xc1
+		>;
+	};
+
+	pinctrl_usdhc2_gpio: usdhc2grp-gpio {
+		fsl,pins = <
+			MX8MP_IOMUXC_SD2_CD_B__GPIO2_IO12 		0x1c4
+		>;
+	};
+
+	/* CANBUS */
+
+	pinctrl_flexcan1: flexcan1grp {
+		fsl,pins = <
+			MX8MP_IOMUXC_SPDIF_RX__CAN1_RX          0x154
+			MX8MP_IOMUXC_SPDIF_TX__CAN1_TX          0x154
+		>;
+	};
+
+	pinctrl_flexcan2: flexcan2grp {
+		fsl,pins = <
+			MX8MP_IOMUXC_SAI5_MCLK__CAN2_RX         0x154
+			MX8MP_IOMUXC_SAI5_RXD3__CAN2_TX         0x154
+		>;
+	};
+
+	pinctrl_flexcan1_reg: flexcan1reggrp {
+		fsl,pins = <
+			MX8MP_IOMUXC_SPDIF_EXT_CLK__GPIO5_IO05  0x154   /* CAN1_STBY */
+		>;
+	};
+
+	pinctrl_flexcan2_reg: flexcan2reggrp {
+		fsl,pins = <
+			MX8MP_IOMUXC_SAI2_MCLK__GPIO4_IO27      0x154   /* CAN2_STBY */
+		>;
+	};
+
+};
