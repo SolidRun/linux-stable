@@ -23,3 +23,16 @@ config DRM_RZG2L_MIPI_DSI
 	def_tristate DRM_RZG2L_DU
 	depends on DRM_RZG2L_USE_MIPI_DSI
 	select DRM_MIPI_DSI
+
+config DRM_RZG3E_USE_LVDS
+	bool "RZ/G3E DU LVDS Encoder Support"
+	depends on DRM_BRIDGE && OF
+	default DRM_RZG2L_DU
+	help
+	  Enable support for the RZ/G3E Display Unit embedded LVDS encoders.
+
+config DRM_RZG3E_LVDS
+	def_tristate DRM_RZG2L_DU
+	depends on DRM_RZG3E_USE_LVDS
+	select DRM_KMS_HELPER
+	select DRM_PANEL
