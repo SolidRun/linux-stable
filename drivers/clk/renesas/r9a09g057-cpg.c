@@ -405,6 +405,15 @@ static const struct rzv2h_mod_clk r9a09g057_mod_clks[] __initconst = {
 	DEF_MOD("sdhi_2_imclk2",		CLK_PLLCLN_DIV8, 10, 12, 5, 12),
 	DEF_MOD("sdhi_2_clk_hs",		CLK_PLLCLN_DIV2, 10, 13, 5, 13),
 	DEF_MOD("sdhi_2_aclk",			CLK_PLLDTY_ACPU_DIV4, 10, 14, 5, 14),
+	DEF_MOD("usb30_aclk",			CLK_PLLDTY_DIV8, 10, 15, 5, 15),
+	DEF_MOD("usb30_pclk_usbtst",		CLK_PLLDTY_ACPU_DIV4, 11, 0, 5, 16),
+	DEF_MOD("usb31_aclk",			CLK_PLLDTY_DIV8, 11, 1, 5, 17),
+	DEF_MOD("usb31_pclk_usbtst",		CLK_PLLDTY_ACPU_DIV4, 11, 2, 5, 18),
+	DEF_MOD("usb2_u2h0_hclk",		CLK_PLLDTY_DIV8, 11, 3, 5, 19),
+	DEF_MOD("usb2_u2h1_hclk",		CLK_PLLDTY_DIV8, 11, 4, 5, 20),
+	DEF_MOD("usb2_u2p_exr_cpuclk",		CLK_PLLDTY_ACPU_DIV4, 11, 5, 5, 21),
+	DEF_MOD("usb2_pclk_usbtst0",		CLK_PLLDTY_ACPU_DIV4, 11, 6, 5, 22),
+	DEF_MOD("usb2_pclk_usbtst1",		CLK_PLLDTY_ACPU_DIV4, 11, 7, 5, 23),
 	DEF_MOD("gbeth0_clk_tx_i",              CLK_SMUX2_GBE0_TXCLK, 11, 8, 5, 24),
 	DEF_MOD("gbeth0_clk_rx_i",              CLK_SMUX2_GBE0_RXCLK, 11, 9, 5, 25),
 	DEF_MOD("gbeth0_clk_tx_180_i",          CLK_SMUX2_GBE0_TXCLK, 11, 10, 5, 26),
@@ -587,6 +596,12 @@ static const struct rzv2h_reset r9a09g057_resets[] __initconst = {
 	DEF_RST(10, 7, 4, 24),		/* SDHI_0_IXRST */
 	DEF_RST(10, 8, 4, 25),		/* SDHI_1_IXRST */
 	DEF_RST(10, 9, 4, 26),		/* SDHI_2_IXRST */
+	DEF_RST(10, 10, 4, 27),		/* USB30_ARESETN */
+	DEF_RST(10, 11, 4, 28),         /* USB31_ARESETN */
+	DEF_RST(10, 12, 4, 29),		/* USB2_U2H0_HRESETN */
+	DEF_RST(10, 13, 4, 30),		/* USB2_U2H1_HRESETN */
+	DEF_RST(10, 14, 4, 31),		/* USB2_U2P_EXL_SYSRST */
+	DEF_RST(10, 15, 5, 0),		/* USB2_PRESETN */
 	DEF_RST(11, 0, 5, 1),		/* GBETH0_ARESETN_I */
 	DEF_RST(11, 1, 5, 2),		/* GBETH1_ARESETN_I */
 	DEF_RST(11, 2, 5, 3),		/* PCIE_ARESETN	*/
