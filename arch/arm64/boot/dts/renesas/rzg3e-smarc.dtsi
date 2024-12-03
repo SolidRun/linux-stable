@@ -158,6 +158,16 @@
 			pinmux = <RZV2H_PORT_PINMUX(A, 4, 4)>, /* SCL */
 				 <RZV2H_PORT_PINMUX(A, 5, 4)>; /* SDA */
 	};
+
+	usb20_pins: usb20 {
+		pinmux = <RZV2H_PORT_PINMUX(0, 1, 12)>, /* VBUS */
+			 <RZV2H_PORT_PINMUX(0, 0, 12)>; /* OVC */
+	};
+
+	usb21_pins: usb21 {
+		pinmux = <RZV2H_PORT_PINMUX(K, 3, 12)>, /* VBUS */
+			 <RZV2H_PORT_PINMUX(G, 6, 12)>; /* OVC */
+	};
 };
 
 &scif {
@@ -290,4 +300,45 @@
 			};
 		};
 	};
+};
+
+&ohci0 {
+	memory-region = <&global_cma>;
+	dr_mode = "otg";
+	status = "okay";
+};
+
+&ohci1 {
+	memory-region = <&global_cma>;
+	status = "okay";
+};
+
+&ehci0 {
+	memory-region = <&global_cma>;
+	dr_mode = "otg";
+	status = "okay";
+};
+
+&ehci1 {
+	memory-region = <&global_cma>;
+	status = "okay";
+};
+
+&hsusb {
+	dr_mode = "otg";
+	status = "okay";
+};
+
+&usb2_phy0 {
+	pinctrl-0 = <&usb20_pins>;
+	pinctrl-names = "default";
+
+	status = "okay";
+};
+
+&usb2_phy1 {
+	pinctrl-0 = <&usb21_pins>;
+	pinctrl-names = "default";
+
+	status = "okay";
 };
