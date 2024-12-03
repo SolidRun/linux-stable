@@ -289,11 +289,13 @@
 	};
 
 	usb30_pins: usb30 {
-		pinmux = <RZV2H_PORT_PINMUX(B, 0, 14)>; /* VBUS */
+		pinmux = <RZV2H_PORT_PINMUX(B, 1, 14)>, /* OVC */
+			 <RZV2H_PORT_PINMUX(B, 0, 14)>; /* VBUS */
 	};
 
 	usb31_pins: usb31 {
-		pinmux = <RZV2H_PORT_PINMUX(6, 2, 14)>; /* VBUS */
+		pinmux = <RZV2H_PORT_PINMUX(6, 3, 14)>, /* OVC */
+			 <RZV2H_PORT_PINMUX(6, 2, 14)>; /* VBUS */
 	};
 
 	usb20_pins: usb20 {
@@ -733,6 +735,22 @@
 
 &cmtw1 {
 	status = "okay";
+};
+
+&xhci0 {
+		pinctrl-0 = <&usb30_pins>;
+		pinctrl-names = "default";
+
+		memory-region = <&global_cma>;
+		status = "okay";
+};
+
+&xhci1 {
+		pinctrl-0 = <&usb31_pins>;
+		pinctrl-names = "default";
+
+		memory-region = <&global_cma>;
+		status = "okay";
 };
 
 &usb20phyrst {
