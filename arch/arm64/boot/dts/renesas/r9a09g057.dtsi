@@ -785,12 +785,35 @@
 			status = "disabled";
 		};
 
+		usb20phyrst: usb20phy-ctrl@15830000 {
+			compatible = "renesas,r9a09g057-usbphy-ctrl",
+				     "renesas,rzv2h-usbphy-ctrl";
+			reg = <0 0x15830000 0 0x10000>;
+			clocks = <&cpg CPG_MOD 0xb6>;
+			resets = <&cpg 0xaf>;
+			power-domains = <&cpg>;
+			#reset-cells = <1>;
+			status = "disabled";
+		};
+
+		usb21phyrst: usb21phy-ctrl@15840000 {
+			compatible = "renesas,r9a09g057-usbphy-ctrl",
+				     "renesas,rzv2h-usbphy-ctrl";
+			reg = <0 0x15840000 0 0x10000>;
+			clocks = <&cpg CPG_MOD 0xb7>;
+			resets = <&cpg 0xaf>;
+			power-domains = <&cpg>;
+			#reset-cells = <1>;
+			status = "disabled";
+		};
+
 		ohci0: usb@15800000 {
 			compatible = "generic-ohci";
 			reg = <0 0x15800000 0 0x100>;
 			interrupts = <GIC_SPI 742 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&cpg CPG_MOD 0xb3>;
-			resets = <&cpg 0xac>;
+			resets = <&usb20phyrst 0>,
+				 <&cpg 0xac>;
 			phys = <&usb2_phy0 1>;
 			phy-names = "usb";
 			power-domains = <&cpg>;
@@ -802,7 +825,8 @@
 			reg = <0 0x15810000 0 0x100>;
 			interrupts = <GIC_SPI 747 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&cpg CPG_MOD 0xb4>;
-			resets = <&cpg 0xad>;
+			resets = <&usb21phyrst 1>,
+				 <&cpg 0xad>;
 			phys = <&usb2_phy1 1>;
 			phy-names = "usb";
 			power-domains = <&cpg>;
@@ -814,7 +838,8 @@
 			reg = <0 0x15800100 0 0x100>;
 			interrupts = <GIC_SPI 743 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&cpg CPG_MOD 0xb3>;
-			resets = <&cpg 0xac>;
+			resets = <&usb20phyrst 0>,
+				 <&cpg 0xac>;
 			phys = <&usb2_phy0 2>;
 			phy-names = "usb";
 			companion = <&ohci0>;
@@ -827,7 +852,8 @@
 			reg = <0 0x15810100 0 0x100>;
 			interrupts = <GIC_SPI 748 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&cpg CPG_MOD 0xb4>;
-			resets = <&cpg 0xad>;
+			resets = <&usb21phyrst 1>,
+				 <&cpg 0xad>;
 			phys = <&usb2_phy1 2>;
 			phy-names = "usb";
 			companion = <&ohci1>;
@@ -841,6 +867,7 @@
 			reg = <0 0x15800200 0 0x700>;
 			interrupts = <GIC_SPI 745 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&cpg CPG_MOD 0xb3>;
+			resets = <&usb20phyrst 0>;
 			#phy-cells = <1>;
 			power-domains = <&cpg>;
 			status = "disabled";
@@ -852,6 +879,7 @@
 			reg = <0 0x15810200 0 0x700>;
 			interrupts = <GIC_SPI 750 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&cpg CPG_MOD 0xb4>;
+			resets = <&usb21phyrst 1>;
 			#phy-cells = <1>;
 			power-domains = <&cpg>;
 			status = "disabled";
@@ -866,7 +894,8 @@
 				     <GIC_SPI 753 IRQ_TYPE_LEVEL_HIGH>,
 				     <GIC_SPI 754 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&cpg CPG_MOD 0xb5>;
-			resets = <&cpg 0xae>;
+			resets = <&usb20phyrst 0>,
+				 <&cpg 0xae>;
 			phys = <&usb2_phy0 3>;
 			phy-names = "usb";
 			power-domains = <&cpg>;
