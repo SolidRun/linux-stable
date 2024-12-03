@@ -342,3 +342,11 @@
 
 	status = "okay";
 };
+
+&usb20phyrst {
+	status = "okay";
+};
+
+&usb21phyrst {
+	status = "okay";
+};
