@@ -902,6 +902,28 @@
 			status = "disabled";
 		};
 
+		usb3_phy0: usb-phy@15870000 {
+			compatible = "renesas,usb3-phy-r9a09g057",
+					"renesas,rz-usb3-phy";
+			reg = <0 0x15870000 0 0x10000>;
+			clocks = <&cpg CPG_MOD 0xb0>;
+			power-domains = <&cpg>;
+			resets = <&cpg 0xaa>;
+			#phy-cells = <0>;
+			status = "disabled";
+		};
+
+		usb3_phy1: usb-phy@15880000 {
+			compatible = "renesas,usb3-phy-r9a09g057",
+					"renesas,rz-usb3-phy";
+			reg = <0 0x15880000 0 0x10000>;
+			clocks = <&cpg CPG_MOD 0xb2>;
+			power-domains = <&cpg>;
+			resets = <&cpg 0xab>;
+			#phy-cells = <0>;
+			status = "disabled";
+		};
+
 		xhci0: usb@15850000 {
 			compatible = "renesas,rzv2h-xhci";
 			reg = <0 0x15850000 0 0x10000>;
@@ -910,6 +932,8 @@
 			clock-names = "reg";
 			power-domains = <&cpg>;
 			resets = <&cpg 0xaa>;
+			phys = <&usb3_phy0>;
+			phy-names = "usb0";
 			status = "disabled";
 		};
 
@@ -921,6 +945,8 @@
 			clock-names = "reg";
 			power-domains = <&cpg>;
 			resets = <&cpg 0xab>;
+			phys = <&usb3_phy1>;
+			phy-names = "usb1";
 			status = "disabled";
 		};
 
