@@ -380,6 +380,27 @@
 			status = "disabled";
 		};
 
+		isu: isum@16450000 {
+			compatible = "renesas,isum";
+			reg = <0 0x16450000 0 0x01F4>;
+			interrupts = <GIC_SPI 867 IRQ_TYPE_EDGE_RISING>,
+					     <GIC_SPI 868 IRQ_TYPE_EDGE_RISING>,
+					     <GIC_SPI 869 IRQ_TYPE_EDGE_RISING>,
+					     <GIC_SPI 870 IRQ_TYPE_EDGE_RISING>,
+					     <GIC_SPI 871 IRQ_TYPE_LEVEL_HIGH>,
+					     <GIC_SPI 872 IRQ_TYPE_LEVEL_HIGH>,
+					     <GIC_SPI 873 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 0xe6>, <&cpg CPG_MOD 0xe7>;
+			clock-names = "isu_aclk", "isu_pclk";
+			resets = <&cpg 0xd5>, <&cpg 0xd6>;
+			reset-names = "aresetn", "presetn";
+			renesas,#ch = <0>;
+			renesas,#rpf = <1>;
+			renesas,#wpf = <1>;
+			renesas,has-rs;
+			power-domains = <&cpg>;
+		};
+
 		dsi0: dsi@16430000 {
 			compatible = "renesas,r9a09g056-mipi-dsi",
 				     "renesas,rzv2n-mipi-dsi";
@@ -587,6 +608,24 @@
 			phys = <&usb3_phy0>;
 			phy-names = "usb0";
 			status = "disabled";
+		};
+
+		fcpcs: vcp4@16410000 {
+			compatible = "renesas,vcp4-fcpcs";
+			reg = <0 0x16410000 0 0x1000>;
+			renesas,#ch = <0>;
+		};
+
+		vdpb: vcp4@16400000 {
+			compatible = "renesas,vcp4-vdpb";
+			reg = <0 0x16400000 0 0x1000>, <0 0x16420200 0 0xE00>;
+			interrupts = <GIC_SPI 887 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 888 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 0xf3>, <&cpg CPG_MOD 0xf4>;
+			power-domains = <&cpg>;
+			resets = <&cpg 0xe0>;
+			renesas,#ch = <0>;
+			renesas,#fcp_ch = <0>;
 		};
 
 		scif: serial@11c01400 {
