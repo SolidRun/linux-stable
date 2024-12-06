@@ -959,6 +959,17 @@
 			status = "disabled";
 		};
 
+		xhci: usb@15850000 {
+			compatible = "renesas,rzg3e-xhci";
+			reg = <0 0x15850000 0 0x10000>;
+			interrupts = <GIC_SPI 759 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 0xaf>;
+			clock-names = "reg";
+			power-domains = <&cpg>;
+			resets = <&cpg 0xaa>;
+			status = "disabled";
+		};
+
 		gpt0_0: gpt@13010000 {
                         compatible = "renesas,gpt-r9a09g047";
                         reg = <0 0x13010000 0 0xa4>;
