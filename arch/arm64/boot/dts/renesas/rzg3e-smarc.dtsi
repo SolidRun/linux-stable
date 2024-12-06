@@ -168,6 +168,11 @@
 		pinmux = <RZV2H_PORT_PINMUX(K, 3, 12)>, /* VBUS */
 			 <RZV2H_PORT_PINMUX(G, 6, 12)>; /* OVC */
 	};
+
+	usb3_pins: usb3 {
+		pinmux = <RZV2H_PORT_PINMUX(4, 1, 12)>, /* VBUS */
+			 <RZV2H_PORT_PINMUX(4, 0, 12)>; /* OVR */
+	};
 };
 
 &scif {
@@ -348,5 +353,17 @@
 };
 
 &usb21phyrst {
+	status = "okay";
+};
+
+&xhci {
+	pinctrl-0 = <&usb3_pins>;
+	pinctrl-names = "default";
+
+	memory-region = <&global_cma>;
+	status = "okay";
+};
+
+&usb3_phy {
 	status = "okay";
 };
