@@ -298,6 +298,7 @@ int rzg2l_du_modeset_init(struct rzg2l_du_device *rcdu)
 	struct drm_device *dev = &rcdu->ddev;
 	struct drm_encoder *encoder;
 	unsigned int num_encoders;
+	unsigned int hwindex;
 	int ret;
 
 	ret = drmm_mode_config_init(dev);
@@ -333,9 +334,11 @@ int rzg2l_du_modeset_init(struct rzg2l_du_device *rcdu)
 		return ret;
 
 	/* Create the CRTCs. */
-	ret = rzg2l_du_crtc_create(rcdu);
-	if (ret < 0)
-		return ret;
+	for (hwindex = 0; hwindex < rcdu->num_crtcs; ++hwindex) {
+		ret = rzg2l_du_crtc_create(rcdu, &rcdu->crtcs[hwindex], hwindex);
+		if (ret < 0)
+			return ret;
+	}
 
 	/* Initialize the encoders. */
 	ret = rzg2l_du_encoders_init(rcdu);

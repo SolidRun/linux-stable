@@ -60,11 +60,15 @@ static const struct rzg2l_du_device_info rzg2l_du_r9a09g057_info = {
 };
 
 static const struct rzg2l_du_device_info rzg2l_du_r9a09g047_info = {
-	.channels_mask = BIT(0),
+	.channels_mask = BIT(0) | BIT(1),
 	.routes = {
 		[RZG2L_DU_OUTPUT_DSI0] = {
-			.possible_outputs = BIT(0),
+			.possible_outputs = BIT(1) | BIT(0),
 			.port = 0,
+		},
+		[RZG2L_DU_OUTPUT_DPAD0] = {
+			.possible_outputs = BIT(1),
+			.port = 1,
 		},
 	}
 };
@@ -151,11 +155,6 @@ static int rzg2l_du_probe(struct platform_device *pdev)
 	rcdu->info = of_device_get_match_data(rcdu->dev);
 
 	platform_set_drvdata(pdev, rcdu);
-
-	/* I/O resources */
-	rcdu->mmio = devm_platform_ioremap_resource(pdev, 0);
-	if (IS_ERR(rcdu->mmio))
-		return PTR_ERR(rcdu->mmio);
 
 	ret = dma_coerce_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(32));
 	if (ret)

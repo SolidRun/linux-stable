@@ -8,6 +8,7 @@
  */
 
 #include <linux/clk.h>
+#include <linux/clk-provider.h>
 #include <linux/mutex.h>
 #include <linux/platform_device.h>
 #include <linux/reset.h>
@@ -67,7 +68,6 @@ static void rzg2l_du_crtc_set_display_timing(struct rzg2l_du_crtc *rcrtc)
 	const struct drm_display_mode *mode = &rcrtc->crtc.state->adjusted_mode;
 	unsigned long mode_clock = mode->clock * 1000;
 	u32 ditr0, ditr1, ditr2, ditr3, ditr4, pbcr0;
-	struct rzg2l_du_device *rcdu = rcrtc->dev;
 
 	clk_prepare_enable(rcrtc->rzg2l_clocks.dclk);
 	clk_set_rate(rcrtc->rzg2l_clocks.dclk, mode_clock);
@@ -90,15 +90,15 @@ static void rzg2l_du_crtc_set_display_timing(struct rzg2l_du_crtc *rcrtc)
 
 	pbcr0 = DU_PBCR0_PB_DEP(0x1f);
 
-	writel(ditr0, rcdu->mmio + DU_DITR0);
-	writel(ditr1, rcdu->mmio + DU_DITR1);
-	writel(ditr2, rcdu->mmio + DU_DITR2);
-	writel(ditr3, rcdu->mmio + DU_DITR3);
-	writel(ditr4, rcdu->mmio + DU_DITR4);
-	writel(pbcr0, rcdu->mmio + DU_PBCR0);
+	writel(ditr0, rcrtc->mmio + DU_DITR0);
+	writel(ditr1, rcrtc->mmio + DU_DITR1);
+	writel(ditr2, rcrtc->mmio + DU_DITR2);
+	writel(ditr3, rcrtc->mmio + DU_DITR3);
+	writel(ditr4, rcrtc->mmio + DU_DITR4);
+	writel(pbcr0, rcrtc->mmio + DU_PBCR0);
 
 	/* Enable auto clear */
-	writel(DU_MCR1_PB_AUTOCLR, rcdu->mmio + DU_MCR1);
+	writel(DU_MCR1_PB_AUTOCLR, rcrtc->mmio + DU_MCR1);
 }
 
 /* -----------------------------------------------------------------------------
@@ -218,13 +218,12 @@ static void rzg2l_du_crtc_put(struct rzg2l_du_crtc *rcrtc)
 static void rzg2l_du_start_stop(struct rzg2l_du_crtc *rcrtc, bool start)
 {
 	struct rzg2l_du_crtc_state *rstate = to_rzg2l_crtc_state(rcrtc->crtc.state);
-	struct rzg2l_du_device *rcdu = rcrtc->dev;
 	u32 val = DU_MCR0_DI_EN;
 
 	if (rstate->outputs & BIT(RZG2L_DU_OUTPUT_DPAD0))
 		val |= DU_MCR0_DPI_OE;
 
-	writel(start ? val : 0, rcdu->mmio + DU_MCR0);
+	writel(start ? val : 0, rcrtc->mmio + DU_MCR0);
 }
 
 static void rzg2l_du_crtc_start(struct rzg2l_du_crtc *rcrtc)
@@ -278,6 +277,30 @@ static int rzg2l_du_crtc_atomic_check(struct drm_crtc *crtc,
 	}
 
 	return 0;
+}
+
+static void rzg2l_du_crtc_atomic_begin(struct drm_crtc *crtc,
+				       struct drm_atomic_state *state)
+{
+	struct rzg2l_du_crtc *rcrtc = to_rzg2l_crtc(crtc);
+
+	WARN_ON(!crtc->state->enable);
+
+	/*
+	 * If a mode set is in progress we can be called with the CRTC disabled.
+	 * We thus need to first get and setup the CRTC in order to configure
+	 * planes. We must *not* put the CRTC in .atomic_flush(), as it must be
+	 * kept awake until the .atomic_enable() call that will follow. The get
+	 * operation in .atomic_enable() will in that case be a no-op, and the
+	 * CRTC will be put later in .atomic_disable().
+	 *
+	 * If a mode set is not in progress the CRTC is enabled, and the
+	 * following get call will be a no-op. There is thus no need to balance
+	 * it in .atomic_flush() either.
+	 */
+	rzg2l_du_crtc_get(rcrtc);
+
+	rzg2l_du_vsp_atomic_begin(rcrtc);
 }
 
 static void rzg2l_du_crtc_atomic_enable(struct drm_crtc *crtc,
@@ -344,6 +367,7 @@ rzg2l_du_crtc_mode_valid(struct drm_crtc *crtc,
 
 static const struct drm_crtc_helper_funcs crtc_helper_funcs = {
 	.atomic_check = rzg2l_du_crtc_atomic_check,
+	.atomic_begin = rzg2l_du_crtc_atomic_begin,
 	.atomic_flush = rzg2l_du_crtc_atomic_flush,
 	.atomic_enable = rzg2l_du_crtc_atomic_enable,
 	.atomic_disable = rzg2l_du_crtc_atomic_disable,
@@ -422,39 +446,49 @@ static const struct drm_crtc_funcs crtc_funcs_rz = {
  * Initialization
  */
 
-int rzg2l_du_crtc_create(struct rzg2l_du_device *rcdu)
+int rzg2l_du_crtc_create(struct rzg2l_du_device *rcdu,
+			 struct rzg2l_du_crtc *rcrtc, unsigned int hwindex)
 {
-	struct rzg2l_du_crtc *rcrtc = &rcdu->crtcs[0];
 	struct drm_crtc *crtc = &rcrtc->crtc;
 	struct drm_plane *primary;
-	int ret;
+	int ret = 0;
+	char clk_name[9];
+	struct platform_device *pdev = to_platform_device(rcdu->dev);
 
-	rcrtc->rstc = devm_reset_control_get_shared(rcdu->dev, NULL);
+	/* I/O resources */
+	rcrtc->mmio = devm_platform_ioremap_resource(pdev, hwindex);
+	if (IS_ERR(rcrtc->mmio))
+		return PTR_ERR(rcrtc->mmio);
+	rcrtc->rstc = devm_reset_control_get_shared_by_index(rcdu->dev, hwindex);
 	if (IS_ERR(rcrtc->rstc)) {
-		dev_err(rcdu->dev, "can't get cpg reset\n");
+		dev_err(rcdu->dev, "can't get cpg reset for DU%u\n", hwindex);
 		return PTR_ERR(rcrtc->rstc);
 	}
 
-	rcrtc->rzg2l_clocks.aclk = devm_clk_get(rcdu->dev, "aclk");
+	sprintf(clk_name, "aclk%u", hwindex);
+	rcrtc->rzg2l_clocks.aclk = devm_clk_get(rcdu->dev, clk_name);
 	if (IS_ERR(rcrtc->rzg2l_clocks.aclk)) {
-		dev_err(rcdu->dev, "no axi clock for DU\n");
+		dev_err(rcdu->dev, "no axi clock for DU%u\n", hwindex);
 		return PTR_ERR(rcrtc->rzg2l_clocks.aclk);
 	}
 
-	rcrtc->rzg2l_clocks.pclk = devm_clk_get(rcdu->dev, "pclk");
+	sprintf(clk_name, "pclk%u", hwindex);
+	rcrtc->rzg2l_clocks.pclk = devm_clk_get(rcdu->dev, clk_name);
 	if (IS_ERR(rcrtc->rzg2l_clocks.pclk)) {
-		dev_err(rcdu->dev, "no peripheral clock for DU\n");
+		dev_err(rcdu->dev, "no peripheral clock for DU%u\n", hwindex);
 		return PTR_ERR(rcrtc->rzg2l_clocks.pclk);
 	}
 
-	rcrtc->rzg2l_clocks.dclk = devm_clk_get(rcdu->dev, "vclk");
+	sprintf(clk_name, "vclk%u", hwindex);
+	rcrtc->rzg2l_clocks.dclk = devm_clk_get(rcdu->dev, clk_name);
 	if (IS_ERR(rcrtc->rzg2l_clocks.dclk)) {
-		dev_err(rcdu->dev, "no video clock for DU\n");
+		dev_err(rcdu->dev, "no video clock for DU%u\n", hwindex);
 		return PTR_ERR(rcrtc->rzg2l_clocks.dclk);
 	}
 
 	init_waitqueue_head(&rcrtc->flip_wait);
 	rcrtc->dev = rcdu;
+	rcrtc->index = hwindex;
 
 	primary = rzg2l_du_vsp_get_drm_plane(rcrtc, rcrtc->vsp_pipe);
 	if (IS_ERR(primary))

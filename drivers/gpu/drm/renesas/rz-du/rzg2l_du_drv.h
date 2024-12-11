@@ -15,6 +15,7 @@
 #include <drm/drm_device.h>
 
 #include "rzg2l_du_crtc.h"
+#include "rzg2l_du_drv.h"
 #include "rzg2l_du_vsp.h"
 
 struct device;
@@ -50,8 +51,8 @@ struct rzg2l_du_device_info {
 	struct rzg2l_du_output_routing routes[RZG2L_DU_OUTPUT_MAX];
 };
 
-#define RZG2L_DU_MAX_CRTCS		1
-#define RZG2L_DU_MAX_VSPS		1
+#define RZG2L_DU_MAX_CRTCS		2
+#define RZG2L_DU_MAX_VSPS		2
 #define RZG2L_DU_MAX_DSI		1
 
 struct rzg2l_du_device {
