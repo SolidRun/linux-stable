@@ -389,7 +389,7 @@ static u32 rzg2l_disable_tint_and_set_tint_source(struct irq_data *d, struct rzg
 	return reg | tien;
 }
 
-static int rzg2l_tint_set_edge(struct irq_data *d, unsigned int type)
+static int rzg2l_tint_set_type(struct irq_data *d, unsigned int type)
 {
 	struct rzg2l_irqc_priv *priv = irq_data_to_priv(d);
 	unsigned int hwirq = irqd_to_hwirq(d);
@@ -406,6 +406,14 @@ static int rzg2l_tint_set_edge(struct irq_data *d, unsigned int type)
 
 	case IRQ_TYPE_EDGE_FALLING:
 		sense = TITSR_TITSEL_EDGE_FALLING;
+		break;
+
+	case IRQ_TYPE_LEVEL_HIGH:
+		sense = TITSR_TITSEL_LEVEL_HIGH;
+		break;
+
+	case IRQ_TYPE_LEVEL_LOW:
+		sense = TITSR_TITSEL_LEVEL_LOW;
 		break;
 
 	default:
@@ -442,7 +450,7 @@ static int rzg2l_irqc_set_type(struct irq_data *d, unsigned int type)
 	else if (hw_irq >= IRQC_IRQ_START && hw_irq <= IRQC_IRQ_COUNT)
 		ret = rzg2l_irq_set_type(d, type);
 	else if (hw_irq >= IRQC_TINT_START && hw_irq < IRQC_NUM_IRQ)
-		ret = rzg2l_tint_set_edge(d, type);
+		ret = rzg2l_tint_set_type(d, type);
 	if (ret)
 		return ret;
 
