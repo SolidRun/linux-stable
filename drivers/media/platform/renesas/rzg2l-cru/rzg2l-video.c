@@ -795,6 +795,7 @@ static irqreturn_t rzv2h_cru_irq(int irq, void *data)
 
 		dev_dbg(cru->dev, "Dropping frame %u with CRU channel %d\n",
 			cru->sequence, cru->id);
+		goto done;
 	}
 
 	/* Capture frame */
