@@ -1314,7 +1314,7 @@
 		};
 
 		icu: icu@10400000 {
-			compatible = "renesas,rzv2h-irqc";
+			compatible = "renesas,r9a09g057-icu";
 			#interrupt-cells = <2>;
 			#address-cells = <0>;
 			interrupt-controller;
