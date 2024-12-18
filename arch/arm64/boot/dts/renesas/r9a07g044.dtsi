@@ -880,7 +880,7 @@
 				 <&cpg CPG_MOD R9A07G044_MIPI_DSI_PCLK>,
 				 <&cpg CPG_MOD R9A07G044_MIPI_DSI_VCLK>,
 				 <&cpg CPG_MOD R9A07G044_MIPI_DSI_LPCLK>;
-			clock-names = "pllclk", "sysclk", "aclk", "pclk", "vclk", "lpclk";
+			clock-names = "pllclk", "sysclk", "aclk", "pclk", "vclk1", "lpclk";
 			resets = <&cpg R9A07G044_MIPI_DSI_CMN_RSTB>,
 				 <&cpg R9A07G044_MIPI_DSI_ARESET_N>,
 				 <&cpg R9A07G044_MIPI_DSI_PRESET_N>;
@@ -1155,7 +1155,7 @@
 			clocks = <&cpg CPG_MOD R9A07G044_LCDC_CLK_A>,
 				 <&cpg CPG_MOD R9A07G044_LCDC_CLK_P>,
 				 <&cpg CPG_MOD R9A07G044_LCDC_CLK_D>;
-			clock-names = "aclk", "pclk", "vclk";
+			clock-names = "aclk0", "pclk0", "vclk0";
 			power-domains = <&cpg>;
 			resets = <&cpg R9A07G044_LCDC_RESET_N>;
 			renesas,vsps = <&vspd 0>;
