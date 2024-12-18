@@ -207,6 +207,35 @@
 			cache-size = <0x100000>;
 		};
 	};
+	
+	gpu_opp_table: opp-table-1 {
+		compatible = "operating-points-v2";
+
+		opp-630000000 {
+			opp-hz = /bits/ 64 <630000000>;
+			opp-microvolt = <1100000>;
+		};
+
+		opp-315000000 {
+			opp-hz = /bits/ 64 <315000000>;
+			opp-microvolt = <1100000>;
+		};
+
+		opp-158000000 {
+			opp-hz = /bits/ 64 <158000000>;
+			opp-microvolt = <1100000>;
+		};
+
+		opp-79000000 {
+			opp-hz = /bits/ 64 <79000000>;
+			opp-microvolt = <1100000>;
+		};
+
+		opp-20000000 {
+			opp-hz = /bits/ 64 <20000000>;
+			opp-microvolt = <1100000>;
+		};
+	};
 
 	psci {
 		compatible = "arm,psci-1.0", "arm,psci-0.2";
@@ -359,6 +388,27 @@
 			        status = "disabled";
 			};
 		};
+	
+		gpu: gpu@14850000 {
+                        compatible = "renesas,r9a09g047-mali",
+                                     "arm,mali-bifrost";
+                        reg = <0x0 0x14850000 0x0 0x10000>;
+                        interrupts = <GIC_SPI 883 IRQ_TYPE_LEVEL_HIGH>,
+                                     <GIC_SPI 884 IRQ_TYPE_LEVEL_HIGH>,
+                                     <GIC_SPI 885 IRQ_TYPE_LEVEL_HIGH>,
+                                     <GIC_SPI 886 IRQ_TYPE_LEVEL_HIGH>;
+                        interrupt-names = "gpu", "job", "mmu", "event";
+                        clocks = <&cpg CPG_MOD 240>,
+                                 <&cpg CPG_MOD 241>,
+                                 <&cpg CPG_MOD 242>;
+                        clock-names = "gpu", "bus", "bus_ace";
+                        resets = <&cpg 221>,
+                                 <&cpg 222>,
+                                 <&cpg 223>;
+                        reset-names = "rst", "axi_rst", "ace_rst";
+                        operating-points-v2 = <&gpu_opp_table>;
+                };
+
 
 		dmac0: dma-controller@11400000 {
 			compatible = "renesas,r9a09g047-dmac";
