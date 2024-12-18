@@ -1875,7 +1875,7 @@
 				 <&cpg CPG_MOD 234>,
 				 <&cpg CPG_MOD 235>;
 			clock-names = "pllclk", "aclk",
-				      "pclk", "vclk", "lpclk";
+				      "pclk", "vclk1", "lpclk";
 			resets = <&cpg 216>,
 				 <&cpg 215>;
 			reset-names = "arst", "prst";
@@ -1908,7 +1908,7 @@
 			clocks = <&cpg CPG_MOD 237>,
 				 <&cpg CPG_MOD 238>,
 				 <&cpg CPG_MOD 239>;
-			clock-names = "aclk", "pclk", "vclk";
+			clock-names = "aclk0", "pclk0", "vclk0";
 			power-domains = <&cpg>;
 			resets = <&cpg 220>;
 			renesas,vsps = <&vspd 0>;
