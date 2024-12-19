@@ -129,6 +129,11 @@
 #define RCANFD_NCFG_NBRP(x)		(((x) & 0x3ff) << 0)
 
 /* RSCFDnCFDCmCTR / RSCFDnCmCTR */
+#define RCANFD_CCTR_CTMS_MASK		(0x3 << 25)
+#define RCANFD_CCTR_CTMS_BTM		(0x0 << 25)
+#define RCANFD_CCTR_CTMS_LOM		(0x1 << 25)
+#define RCANFD_CCTR_CTMS_ELM		(0x2 << 25)
+#define RCANFD_CCTR_CTMS_ILM		(0x3 << 25)
 #define RCANFD_CCTR_CTME		BIT(24)
 #define RCANFD_CCTR_ERRD		BIT(23)
 #define RCANFD_CCTR_BOM_MASK		(0x3 << 21)
@@ -1418,6 +1423,35 @@ static int rcar_canfd_start(struct net_device *ndev)
 
 	rcar_canfd_enable_channel_interrupts(priv);
 
+	if (priv->can.ctrlmode & (CAN_CTRLMODE_LOOPBACK | CAN_CTRLMODE_LISTENONLY)) {
+		/* Set channel to Halt mode */
+		rcar_canfd_update_bit(priv->base, RCANFD_CCTR(ch),
+			      RCANFD_CCTR_CHMDC_MASK, RCANFD_CCTR_CHDMC_CHLT);
+		/* Verify channel mode change */
+		err = readl_poll_timeout((priv->base + RCANFD_CSTS(ch)), sts,
+				 (sts & RCANFD_CSTS_HLTSTS), 2, 500000);
+		if (err) {
+			netdev_err(ndev, "channel %u halt state failed\n", ch);
+			goto fail_mode_change;
+		}
+
+		if ((priv->can.ctrlmode & CAN_CTRLMODE_LOOPBACK) &&
+		    (priv->can.ctrlmode & CAN_CTRLMODE_LISTENONLY)) {
+			netdev_err(ndev,
+			    "Loopback and listen-only mode cannot be set at the same time\n");
+			err = -EINVAL;
+			goto fail_mode_change;
+		} else if (priv->can.ctrlmode & CAN_CTRLMODE_LOOPBACK) {
+			rcar_canfd_update_bit(priv->base, RCANFD_CCTR(ch),
+					RCANFD_CCTR_CTMS_MASK | RCANFD_CCTR_CTME,
+					RCANFD_CCTR_CTMS_ILM | RCANFD_CCTR_CTME);
+		} else if (priv->can.ctrlmode & CAN_CTRLMODE_LISTENONLY) {
+			rcar_canfd_update_bit(priv->base, RCANFD_CCTR(ch),
+					RCANFD_CCTR_CTMS_MASK | RCANFD_CCTR_CTME,
+					RCANFD_CCTR_CTMS_LOM | RCANFD_CCTR_CTME);
+		}
+	}
+
 	/* Set channel to Operational mode */
 	rcar_canfd_update_bit(priv->base, RCANFD_CCTR(ch),
 			      RCANFD_CCTR_CHMDC_MASK, RCANFD_CCTR_CHDMC_COPM);
@@ -1833,11 +1867,13 @@ static int rcar_canfd_channel_probe(struct rcar_canfd_global *gpriv, u32 ch,
 		err = can_set_static_ctrlmode(ndev, CAN_CTRLMODE_FD);
 		if (err)
 			goto fail;
-		priv->can.ctrlmode_supported = CAN_CTRLMODE_BERR_REPORTING;
+		priv->can.ctrlmode_supported = CAN_CTRLMODE_BERR_REPORTING |
+			CAN_CTRLMODE_LOOPBACK | CAN_CTRLMODE_LISTENONLY;
 	} else {
 		/* Controller starts in Classical CAN only mode */
 		priv->can.bittiming_const = &rcar_canfd_bittiming_const;
-		priv->can.ctrlmode_supported = CAN_CTRLMODE_BERR_REPORTING;
+		priv->can.ctrlmode_supported = CAN_CTRLMODE_BERR_REPORTING |
+			CAN_CTRLMODE_LOOPBACK | CAN_CTRLMODE_LISTENONLY;
 	}
 
 	priv->can.do_set_mode = rcar_canfd_do_set_mode;
