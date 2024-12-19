@@ -50,6 +50,11 @@
  */
 #define SEL_SD0		0
 
+/* SCI_CAN_SEL Select between SCI and CAN pins
+ *  0: CAN (default);	1: SCI
+ */
+#define SCI_CAN_SEL		0
+
 / {
 	model = "Renesas EVK based on r9a09g056n44";
 	compatible = "renesas,r9a09g056n44-evk", "renesas,r9a09g056n44", "renesas,r9a09g056";
@@ -559,6 +564,29 @@
 			 <RZG2L_PORT_PINMUX(0, 4, 7)>, /* SSI3_SDATA */
 			 <RZG2L_PORT_PINMUX(1, 5, 7)>; /* SSI4_SDATA */
 	};
+
+	/* Support pinctrl for CANFD */
+#if (!SCI_CAN_SEL)
+	can0_pins: can0 {
+		pinmux = <RZG2L_PORT_PINMUX(8, 0, 5)>, /* TX */
+			 <RZG2L_PORT_PINMUX(8, 1, 5)>; /* RX */
+	};
+
+	can1_pins: can1 {
+		pinmux = <RZG2L_PORT_PINMUX(8, 2, 5)>, /* TX */
+			 <RZG2L_PORT_PINMUX(8, 3, 5)>; /* RX */
+	};
+
+	can2_pins: can2 {
+		pinmux = <RZG2L_PORT_PINMUX(8, 4, 5)>, /* TX */
+			 <RZG2L_PORT_PINMUX(8, 5, 5)>; /* RX */
+	};
+
+	can3_pins: can3 {
+		pinmux = <RZG2L_PORT_PINMUX(8, 6, 5)>, /* TX */
+			 <RZG2L_PORT_PINMUX(8, 7, 5)>; /* RX */
+	};
+#endif
 };
 
 &qextal_clk {
@@ -916,3 +944,27 @@
 &ssi4 {
 	shared-pin;
 };
+
+#if (!SCI_CAN_SEL)
+&canfd {
+	pinctrl-0 = <&can0_pins &can1_pins &can2_pins &can3_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+
+	channel0 {
+		status = "okay";
+	};
+
+	channel1 {
+		status = "okay";
+	};
+
+	channel2 {
+		status = "okay";
+	};
+
+	channel3 {
+		status = "okay";
+	};
+};
+#endif
