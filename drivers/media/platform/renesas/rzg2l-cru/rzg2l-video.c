@@ -1035,22 +1035,18 @@ error:
  * V4L2 stuff
  */
 
-static u32 rzg2l_cru_format_bytesperline(struct v4l2_pix_format *pix)
-{
-	const struct rzg2l_cru_ip_format *fmt;
-
-	fmt = rzg2l_cru_ip_format_to_fmt(pix->pixelformat);
-
-	return pix->width * fmt->bpp;
-}
-
 static void rzg2l_cru_format_align(struct rzg2l_cru_dev *cru,
 				   struct v4l2_pix_format *pix)
 {
+	const struct rzg2l_cru_ip_format *fmt;
 	const struct rzg2l_cru_info *info = cru->info;
 
-	if (!rzg2l_cru_ip_format_to_fmt(pix->pixelformat))
+	fmt = rzg2l_cru_ip_format_to_fmt(pix->pixelformat);
+
+	if (!fmt) {
 		pix->pixelformat = RZG2L_CRU_DEFAULT_FORMAT;
+		fmt = rzg2l_cru_ip_format_to_fmt(pix->pixelformat);
+	}
 
 	switch (pix->field) {
 	case V4L2_FIELD_TOP:
@@ -1069,7 +1065,7 @@ static void rzg2l_cru_format_align(struct rzg2l_cru_dev *cru,
 	v4l_bound_align_image(&pix->width, 320, info->max_width, 1,
 			      &pix->height, 240, info->max_height, 2, 0);
 
-	pix->bytesperline = rzg2l_cru_format_bytesperline(pix);
+	pix->bytesperline = pix->width * fmt->bpp;
 	pix->sizeimage = pix->bytesperline * pix->height;
 
 	dev_dbg(cru->dev, "Format %ux%u bpl: %u size: %u\n",
