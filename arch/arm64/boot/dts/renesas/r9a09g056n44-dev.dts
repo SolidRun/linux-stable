@@ -20,6 +20,13 @@
  */
 #define SEL_SD0		1
 
+/*
+ * Select between USB30 and CAN2 pins which are multiplexed
+ *
+ * CAN2_PINS_SEL: 1: CAN2 (default);     0: USB30
+ */
+#define CAN2_PINS_SEL	1
+
 / {
 	model = "Renesas RZ/V2N EVK Board based on r9a09g056n44";
 	compatible = "renesas,rzv2n-dev", "renesas,r9a09g056n44", "renesas,r9a09g056";
@@ -414,10 +421,12 @@
 			 <RZG2L_PORT_PINMUX(6, 1, 15)>; /* OVC */
 	};
 
+#if (!CAN2_PINS_SEL)
 	usb30_pins: usb30 {
 		pinmux = <RZG2L_PORT_PINMUX(8, 4, 14)>, /* VBUS */
 			 <RZG2L_PORT_PINMUX(8, 5, 14)>; /* OVC */
 	};
+#endif
 
 	i2c0_pins: i2c0 {
 		pinmux = <RZG2L_PORT_PINMUX(3, 0, 1)>, /* I2C0_SDA */
@@ -428,6 +437,38 @@
 		pinmux = <RZG2L_PORT_PINMUX(3, 2, 1)>, /* I2C1_SDA */
 			 <RZG2L_PORT_PINMUX(3, 3, 1)>; /* I2C1_SCL */
 	};
+
+	can0_pins: can0 {
+		pinmux = <RZG2L_PORT_PINMUX(8, 0, 5)>, /* TX */
+			 <RZG2L_PORT_PINMUX(8, 1, 5)>; /* RX */
+	};
+
+	can1_pins: can1 {
+		pinmux = <RZG2L_PORT_PINMUX(8, 2, 5)>, /* TX */
+			 <RZG2L_PORT_PINMUX(8, 3, 5)>; /* RX */
+	};
+#if (CAN2_PINS_SEL)
+	can2_pins: can2 {
+		pinmux = <RZG2L_PORT_PINMUX(8, 4, 5)>, /* TX */
+			 <RZG2L_PORT_PINMUX(8, 5, 5)>; /* RX */
+	};
+#endif
+
+	can3_pins: can3 {
+		pinmux = <RZG2L_PORT_PINMUX(8, 6, 5)>, /* TX */
+			 <RZG2L_PORT_PINMUX(8, 7, 5)>; /* RX */
+	};
+
+	can4_pins: can4 {
+		pinmux = <RZG2L_PORT_PINMUX(4, 2, 5)>, /* TX */
+			 <RZG2L_PORT_PINMUX(4, 3, 5)>; /* RX */
+	};
+
+	can5_pins: can5 {
+		pinmux = <RZG2L_PORT_PINMUX(4, 6, 5)>, /* TX */
+			 <RZG2L_PORT_PINMUX(4, 7, 5)>; /* RX */
+	};
+
 };
 
 &qextal_clk {
@@ -543,12 +584,14 @@
 	status = "okay";
 };
 
+#if (!CAN2_PINS_SEL)
 &xhci0 {
 	pinctrl-0 = <&usb30_pins>;
 	pinctrl-names = "default";
 	memory-region = <&global_cma>;
 	status = "okay";
 };
+#endif
 
 &xspi {
 	status = "okay";
@@ -703,3 +746,41 @@
 &cmtw1 {
 	status = "okay";
 };
+
+&canfd {
+	pinctrl-0 = <&can0_pins &can1_pins &can2_pins &can3_pins &can4_pins &can5_pins>;
+
+	pinctrl-names = "default";
+	status = "okay";
+
+	channel0 {
+		status = "okay";
+	};
+
+	channel1 {
+		status = "okay";
+	};
+
+	channel2 {
+		status = "okay";
+	};
+
+	channel3 {
+		status = "okay";
+	};
+
+	channel4 {
+		status = "okay";
+	};
+
+	channel5 {
+		status = "okay";
+	};
+};
+
+#if (!CAN2_PINS_SEL)
+&canfd {
+	pinctrl-0 = <&can0_pins &can1_pins &can3_pins &can4_pins &can5_pins>;
+	/delete-node/ channel2;
+};
+#endif
