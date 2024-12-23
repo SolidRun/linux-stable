@@ -176,11 +176,6 @@
 				 <RZV2H_PORT_PINMUX(D, 5, 4)>; /* SDA */
 	};
 
-	i2c7_pins: i2c7 {
-			pinmux = <RZV2H_PORT_PINMUX(A, 4, 4)>, /* SCL */
-				 <RZV2H_PORT_PINMUX(A, 5, 4)>; /* SDA */
-	};
-
 	usb20_pins: usb20 {
 		pinmux = <RZV2H_PORT_PINMUX(0, 1, 12)>, /* VBUS */
 			 <RZV2H_PORT_PINMUX(0, 0, 12)>; /* OVC */
@@ -283,50 +278,6 @@
 		status = "okay";
 	};
 #endif
-};
-
-&i2c7 {
-	pinctrl-0 = <&i2c7_pins>;
-	pinctrl-names = "default";
-
-	status = "okay";
-
-	adv7535: hdmi@3d {
-		compatible = "adi,adv7535";
-		reg = <0x3d>;
-
-		clocks = <&osc1>;
-		clock-names = "cec";
-		avdd-supply = <&reg_1p8v>;
-		dvdd-supply = <&reg_1p8v>;
-		pvdd-supply = <&reg_1p8v>;
-		a2vdd-supply = <&reg_1p8v>;
-		v3p3-supply = <&reg_3p3v>;
-		v1p2-supply = <&reg_1p8v>;
-		interrupt-parent = <&pinctrl>;
-		interrupts = <RZV2H_GPIO(L, 4) IRQ_TYPE_EDGE_FALLING>;
-
-		adi,dsi-lanes = <4>;
-
-		ports {
-			#address-cells = <1>;
-			#size-cells = <0>;
-
-			port@0 {
-				reg = <0>;
-				adv7535_in: endpoint@0 {
-					remote-endpoint = <&dsi0_out>;
-				};
-			};
-
-			port@1 {
-				reg = <1>;
-				adv7535_out: endpoint@1 {
-					remote-endpoint = <&hdmi_con_out>;
-				};
-			};
-		};
-	};
 };
 
 &ohci0 {
