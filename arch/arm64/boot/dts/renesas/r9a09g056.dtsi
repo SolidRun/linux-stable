@@ -72,6 +72,36 @@
 		};
 	};
 
+	gpu_opp_table: opp-table-1 {
+		compatible = "operating-points-v2";
+
+		opp-630000000 {
+			opp-hz = /bits/ 64 <630000000>;
+			opp-microvolt = <1100000>;
+		};
+
+		opp-315000000 {
+			opp-hz = /bits/ 64 <315000000>;
+			opp-microvolt = <1100000>;
+		};
+
+		opp-158000000 {
+			opp-hz = /bits/ 64 <158000000>;
+			opp-microvolt = <1100000>;
+		};
+
+		opp-79000000 {
+			opp-hz = /bits/ 64 <79000000>;
+			opp-microvolt = <1100000>;
+		};
+
+		opp-20000000 {
+			opp-hz = /bits/ 64 <20000000>;
+			opp-microvolt = <1100000>;
+		};
+	};
+
+
 	psci {
 		compatible = "arm,psci-1.0", "arm,psci-0.2";
 		method = "smc";
@@ -201,6 +231,26 @@
 			interrupt-parent = <&icu>;
 			power-domains = <&cpg>;
 			resets = <&cpg 0xa5>, <&cpg 0xa6>;
+		};
+
+		gpu: gpu@14850000{
+			compatible = "renesas,r9a09g056-mali",
+			"arm,mali-bifrost";
+			reg = <0x0 0x14850000 0x0 0x10000>;
+			interrupts = <GIC_SPI 883 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 884 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 885 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 886 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "gpu", "job", "mmu", "event";
+			clocks = <&cpg CPG_MOD 0xF0>,
+				<&cpg CPG_MOD 0xF1>,
+				<&cpg CPG_MOD 0xF2>;
+			clock-names = "gpu_clk", "gpu_axi_clk", "gpu_ace_clk";
+			resets = <&cpg 0xDD>,
+			<&cpg 0xDE>,
+			<&cpg 0xDF>;
+			reset-names = "rst", "axi_rst", "ace_rst";
+			operating-points-v2 = <&gpu_opp_table>;
 		};
 
 		cpg: clock-controller@10420000 {
