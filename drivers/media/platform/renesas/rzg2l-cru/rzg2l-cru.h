@@ -8,6 +8,7 @@
 #ifndef __RZG2L_CRU__
 #define __RZG2L_CRU__
 
+#include <linux/irqreturn.h>
 #include <linux/reset.h>
 
 #include <media/v4l2-async.h>
@@ -131,8 +132,6 @@ struct rzg2l_cru_info {
  *
  * @vclk:		CRU Main clock
  *
- * @image_conv_irq:	Holds image conversion interrupt number
- *
  * @vdev:		V4L2 video device associated with CRU
  * @v4l2_dev:		V4L2 device
  * @num_buf:		Holds the current number of buffers enabled
@@ -170,8 +169,6 @@ struct rzg2l_cru_dev {
 	struct reset_control *aresetn;
 
 	struct clk *vclk;
-
-	int image_conv_irq;
 
 	struct video_device vdev;
 	struct v4l2_device v4l2_dev;
@@ -213,6 +210,8 @@ void rzg2l_cru_dma_unregister(struct rzg2l_cru_dev *cru);
 
 int rzg2l_cru_video_register(struct rzg2l_cru_dev *cru);
 void rzg2l_cru_video_unregister(struct rzg2l_cru_dev *cru);
+irqreturn_t rzg2l_cru_irq(int irq, void *data);
+irqreturn_t rzv2h_cru_irq(int irq, void *data);
 
 const struct v4l2_format_info *rzg2l_cru_format_from_pixel(u32 format);
 
