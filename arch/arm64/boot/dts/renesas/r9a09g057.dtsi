@@ -1927,6 +1927,28 @@
 			};
 		};
 
+		fcpcs: vcp4@16410000 {
+			compatible = "renesas,vcp4-fcpcs";
+			reg = <0 0x16410000 0 0x1000>;
+			renesas,#ch = <0>;
+		};
+
+		vdpb: vcp4@16400000 {
+			compatible = "renesas,vcp4-vdpb";
+			reg = <0 0x16400000 0 0x1000>,
+			      <0 0x16420200 0 0xE00>;
+			reg-names = "vlc", "ce";
+			interrupts = <GIC_SPI 887 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 888 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 243>,
+				 <&cpg CPG_MOD 244>;
+			clock-names = "aclk", "pclk";
+			power-domains = <&cpg>;
+			resets = <&cpg 224>;
+			renesas,#ch = <0>;
+			renesas,#fcp_ch = <0>;
+		};
+
 		fcpvd: fcp@16470000 {
 			compatible = "renesas,r9a09g057-fcpvd",
 				     "renesas,fcpv";
