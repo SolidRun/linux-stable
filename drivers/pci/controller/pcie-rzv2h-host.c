@@ -778,8 +778,12 @@ static irqreturn_t rzv2h_pcie_msi_irq(int irq, void *data)
 	reg = rzv2h_pci_read_reg(pcie, PCI_INTX_RCV_INTERRUPT_STATUS_REG);
 
 	msi_stat = rzv2h_pci_read_reg(pcie, PCI_RC_MSIRCVSTAT(0));
-	if (!msi_stat)
+	if (!msi_stat) {
+		rzv2h_pci_write_reg(pcie, reg, PCI_INTX_RCV_INTERRUPT_STATUS_REG);
+		reg = rzv2h_pci_read_reg(pcie, PCI_RC_MSGRCVIS_REG);
+		rzv2h_pci_write_reg(pcie, reg, PCI_RC_MSGRCVIS_REG);
 		return IRQ_NONE;
+	}
 
 	while (msi_stat) {
 		unsigned int index = find_first_bit(&msi_stat, 32);
