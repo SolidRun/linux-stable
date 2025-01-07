@@ -577,6 +577,10 @@ struct rcar_canfd_channel {
 	u32 tx_tail;				/* Incremented on xmit done */
 	u32 channel;				/* Channel number */
 	spinlock_t tx_lock;			/* To protect tx path */
+	struct cyclecounter cc;			/* Provide raw cycle count */
+	struct timecounter tc;			/* Convert raw cycle count to ns */
+	struct delayed_work timestamp;		/* Run periodically to update cycle count */
+	unsigned long work_delay_jiffies;	/* Period to run delayed work */
 };
 
 /* Global priv data */
@@ -593,10 +597,6 @@ struct rcar_canfd_global {
 	struct reset_control *rstc1;
 	struct reset_control *rstc2;
 	const struct rcar_canfd_hw_info *info;
-	struct cyclecounter cc;
-	struct timecounter tc;
-	struct delayed_work timestamp;
-	unsigned long work_delay_jiffies;
 };
 
 /* CAN FD mode nominal rate constants */
@@ -719,23 +719,23 @@ static void rcar_canfd_update_bit(void __iomem *base, u32 reg,
 	rcar_canfd_update(mask, val, base + (reg));
 }
 
-static void rcar_canfd_skb_set_timestamp(struct rcar_canfd_global *gpriv,
+static void rcar_canfd_skb_set_timestamp(struct rcar_canfd_channel *priv,
 					 struct sk_buff *skb, u32 timestamp)
 {
 	struct skb_shared_hwtstamps *hwtstamps = skb_hwtstamps(skb);
 	u64 ns;
 
-	ns = timecounter_cyc2time(&gpriv->tc, timestamp);
+	ns = timecounter_cyc2time(&priv->tc, timestamp);
 	hwtstamps->hwtstamp = ns_to_ktime(ns);
 }
 
 static u64 rcar_canfd_raw_read(const struct cyclecounter *cc)
 {
-	struct rcar_canfd_global *gpriv;
+	struct rcar_canfd_channel *priv;
 	u32 timestamp = 0;
 
-	gpriv = container_of(cc, struct rcar_canfd_global, cc);
-	timestamp = rcar_canfd_read(gpriv->base, RCANFD_GTSC);
+	priv = container_of(cc, struct rcar_canfd_channel, cc);
+	timestamp = rcar_canfd_read(priv->base, RCANFD_GTSC);
 
 	return timestamp;
 }
@@ -743,18 +743,19 @@ static u64 rcar_canfd_raw_read(const struct cyclecounter *cc)
 static void rcar_canfd_timestamp_work(struct work_struct *work)
 {
 	struct delayed_work *delayed_work = to_delayed_work(work);
-	struct rcar_canfd_global *gpriv;
+	struct rcar_canfd_channel *priv;
 
-	gpriv = container_of(delayed_work, struct rcar_canfd_global, timestamp);
+	priv = container_of(delayed_work, struct rcar_canfd_channel, timestamp);
 
-	timecounter_read(&gpriv->tc);
+	timecounter_read(&priv->tc);
 
-	schedule_delayed_work(&gpriv->timestamp, gpriv->work_delay_jiffies);
+	schedule_delayed_work(&priv->timestamp, priv->work_delay_jiffies);
 }
 
-static void rcar_canfd_timestamp_init(struct rcar_canfd_global *gpriv)
+static void rcar_canfd_timestamp_init(struct rcar_canfd_channel *priv)
 {
-	struct cyclecounter *cc = &gpriv->cc;
+	struct rcar_canfd_global *gpriv = priv->gpriv;
+	struct cyclecounter *cc = &priv->cc;
 	unsigned long rate;
 	u32 div;
 	u64 work_delay_ns;
@@ -762,7 +763,7 @@ static void rcar_canfd_timestamp_init(struct rcar_canfd_global *gpriv)
 	div = 32768;
 	rate = clk_get_rate(gpriv->clkp);
 	if (!rate) {
-		dev_err(&gpriv->pdev->dev, "get peripheral clock failed\n");
+		netdev_err(priv->ndev, "get peripheral clock failed\n");
 		return;
 	}
 
@@ -775,50 +776,55 @@ static void rcar_canfd_timestamp_init(struct rcar_canfd_global *gpriv)
 	 */
 
 	/* Select peripheral clock as clock source for timestamp counter */
-	rcar_canfd_clear_bit(gpriv->base, RCANFD_GCFG, RCANFD_GCFG_TSSS);
+	rcar_canfd_clear_bit(priv->base, RCANFD_GCFG, RCANFD_GCFG_TSSS);
 
 	/* Set the prescaler to 2^15 = 32768 */
-	rcar_canfd_update_bit(gpriv->base, RCANFD_GCFG, RCANFD_GCFG_TSP, RCANFD_TIMESTAMP_PRESCALER);
+	rcar_canfd_update_bit(priv->base, RCANFD_GCFG, RCANFD_GCFG_TSP, RCANFD_TIMESTAMP_PRESCALER);
 
 	cc->read = rcar_canfd_raw_read;
 	cc->mask = CYCLECOUNTER_MASK(16);
 
 	clocks_calc_mult_shift(&cc->mult, &cc->shift, DIV_ROUND_UP(rate, div), NSEC_PER_SEC, 60);
 	work_delay_ns = clocksource_cyc2ns(cc->mask, cc->mult, cc->shift);
-	gpriv->work_delay_jiffies = div_u64(work_delay_ns, 3u * NSEC_PER_SEC / HZ);
+	priv->work_delay_jiffies = div_u64(work_delay_ns, 3u * NSEC_PER_SEC / HZ);
 
-	INIT_DELAYED_WORK(&gpriv->timestamp, rcar_canfd_timestamp_work);
+	INIT_DELAYED_WORK(&priv->timestamp, rcar_canfd_timestamp_work);
 
-	dev_info(&gpriv->pdev->dev, "timestamp counter clock=%luHz prescaler=%u rate=%luHz mult=%u\
+	netdev_dbg(priv->ndev, "timestamp counter clock=%luHz prescaler=%u rate=%luHz mult=%u\
 	shift=%u delay=%lus\n",
 		rate,
 		div,
 		DIV_ROUND_UP(rate, div),
 		cc->mult,
 		cc->shift,
-		gpriv->work_delay_jiffies / HZ);
+		priv->work_delay_jiffies / HZ);
 }
 
-static void rcar_canfd_timestamp_start(struct rcar_canfd_global *gpriv)
+static void rcar_canfd_timestamp_start(struct rcar_canfd_channel *priv)
 {
-	timecounter_init(&gpriv->tc, &gpriv->cc, ktime_get_real_ns());
+	timecounter_init(&priv->tc, &priv->cc, ktime_get_real_ns());
 
-	schedule_delayed_work(&gpriv->timestamp, gpriv->work_delay_jiffies);
+	schedule_delayed_work(&priv->timestamp, priv->work_delay_jiffies);
 }
 
-static void rcar_canfd_timestamp_stop(struct rcar_canfd_global *gpriv)
+static void rcar_canfd_timestamp_stop(struct rcar_canfd_channel *priv)
 {
-	cancel_delayed_work_sync(&gpriv->timestamp);
+	cancel_delayed_work_sync(&priv->timestamp);
 }
 
-static void rcar_canfd_enable_tx_history(struct rcar_canfd_global *gpriv, u32 ch)
+static void rcar_canfd_enable_tx_history(struct rcar_canfd_channel *priv)
 {
+	struct rcar_canfd_global *gpriv = priv->gpriv;
+	u32 ch = priv->channel;
+
 	/* Enable TX History List for channel */
 	rcar_canfd_set_bit(gpriv->base, RCANFD_THLCC(gpriv, ch), RCANFD_THLCC_THLE);
 }
 
-static u32 rcar_canfd_get_tx_timestamp(struct rcar_canfd_global *gpriv, u32 ch)
+static u32 rcar_canfd_get_tx_timestamp(struct rcar_canfd_channel *priv)
 {
+	struct rcar_canfd_global *gpriv = priv->gpriv;
+	u32 ch = priv->channel;
 	u32 val;
 
 	val = rcar_canfd_read(gpriv->base, is_rzv2h(gpriv) ? RCANFD_C_THLACC0(ch) : RCANFD_C_THLACC(ch));
@@ -828,14 +834,14 @@ static u32 rcar_canfd_get_tx_timestamp(struct rcar_canfd_global *gpriv, u32 ch)
 	return RCANFD_THLACC0_TMTS(val);
 }
 
-static inline u32 rcar_canfd_get_rx_timestamp(struct rcar_canfd_global *gpriv, u32 rfptr)
+static inline u32 rcar_canfd_get_rx_timestamp(struct rcar_canfd_channel *priv, u32 rfptr)
 {
 	return RCANFD_RFPTR_RFTS(rfptr);
 }
 
-static u32 rcar_canfd_get_err_timestamp(struct rcar_canfd_global *gpriv)
+static u32 rcar_canfd_get_err_timestamp(struct rcar_canfd_channel *priv)
 {
-	return rcar_canfd_read(gpriv->base, RCANFD_GTSC);
+	return rcar_canfd_read(priv->base, RCANFD_GTSC);
 }
 
 static void rcar_canfd_get_data(struct rcar_canfd_channel *priv,
@@ -1191,7 +1197,6 @@ static void rcar_canfd_error(struct net_device *ndev, u32 cerfl,
 			     u16 txerr, u16 rxerr)
 {
 	struct rcar_canfd_channel *priv = netdev_priv(ndev);
-	struct rcar_canfd_global *gpriv = priv->gpriv;
 	struct net_device_stats *stats = &ndev->stats;
 	struct can_frame *cf;
 	struct sk_buff *skb;
@@ -1301,8 +1306,8 @@ static void rcar_canfd_error(struct net_device *ndev, u32 cerfl,
 	rcar_canfd_write(priv->base, RCANFD_CERFL(ch),
 			 RCANFD_CERFL_ERR(~cerfl));
 	/* Set timestamp for err skb */
-	raw_ts = rcar_canfd_get_err_timestamp(gpriv);
-	rcar_canfd_skb_set_timestamp(gpriv, skb, raw_ts);
+	raw_ts = rcar_canfd_get_err_timestamp(priv);
+	rcar_canfd_skb_set_timestamp(priv, skb, raw_ts);
 
 	netif_rx(skb);
 }
@@ -1326,8 +1331,8 @@ static void rcar_canfd_tx_done(struct net_device *ndev)
 			/* Get timestamp of successfully transmitted message
 			 * from TX History List.
 			 */
-			raw_ts = rcar_canfd_get_tx_timestamp(gpriv, ch);
-			rcar_canfd_skb_set_timestamp(gpriv, skb, raw_ts);
+			raw_ts = rcar_canfd_get_tx_timestamp(priv);
+			rcar_canfd_skb_set_timestamp(priv, skb, raw_ts);
 		}
 
 		stats->tx_packets++;
@@ -1430,7 +1435,6 @@ static void rcar_canfd_state_change(struct net_device *ndev,
 				    u16 txerr, u16 rxerr)
 {
 	struct rcar_canfd_channel *priv = netdev_priv(ndev);
-	struct rcar_canfd_global *gpriv = priv->gpriv;
 	struct net_device_stats *stats = &ndev->stats;
 	enum can_state rx_state, tx_state, state = priv->can.state;
 	struct can_frame *cf;
@@ -1456,8 +1460,8 @@ static void rcar_canfd_state_change(struct net_device *ndev,
 
 		can_change_state(ndev, cf, tx_state, rx_state);
 		/* Set timestamp for err skb */
-		raw_ts = rcar_canfd_get_err_timestamp(gpriv);
-		rcar_canfd_skb_set_timestamp(gpriv, skb, raw_ts);
+		raw_ts = rcar_canfd_get_err_timestamp(priv);
+		rcar_canfd_skb_set_timestamp(priv, skb, raw_ts);
 
 		netif_rx(skb);
 	}
@@ -1643,13 +1647,17 @@ static int rcar_canfd_start(struct net_device *ndev)
 		goto fail_mode_change;
 	}
 
+	/* Initialize and start timestamp counter */
+	rcar_canfd_timestamp_init(priv);
+	rcar_canfd_timestamp_start(priv);
+
 	/* Enable Common & Rx FIFO */
 	rcar_canfd_set_bit(priv->base, RCANFD_CFCC(gpriv, ch, RCANFD_CFFIFO_IDX),
 			   RCANFD_CFCC_CFE);
 	rcar_canfd_set_bit(priv->base, RCANFD_RFCC(gpriv, ridx), RCANFD_RFCC_RFE);
 
 	/* Enable TX History for Common FIFO Tx mode */
-	rcar_canfd_enable_tx_history(gpriv, ch);
+	rcar_canfd_enable_tx_history(priv);
 
 	priv->can.state = CAN_STATE_ERROR_ACTIVE;
 	return 0;
@@ -1701,6 +1709,7 @@ static void rcar_canfd_stop(struct net_device *ndev)
 	u32 sts, ch = priv->channel;
 	u32 ridx = ch + RCANFD_RFFIFO_IDX;
 
+	rcar_canfd_timestamp_stop(priv);
 	/* Transition to channel reset mode  */
 	rcar_canfd_update_bit(priv->base, RCANFD_CCTR(ch),
 			      RCANFD_CCTR_CHMDC_MASK, RCANFD_CCTR_CHDMC_CRESET);
@@ -1881,8 +1890,8 @@ static void rcar_canfd_rx_pkt(struct rcar_canfd_channel *priv)
 	}
 
 	/* Set timestamp for rx skb */
-	raw_ts = rcar_canfd_get_rx_timestamp(gpriv, dlc);
-	rcar_canfd_skb_set_timestamp(gpriv, skb, raw_ts);
+	raw_ts = rcar_canfd_get_rx_timestamp(priv, dlc);
+	rcar_canfd_skb_set_timestamp(priv, skb, raw_ts);
 
 	/* Write 0xff to RFPC to increment the CPU-side
 	 * pointer of the Rx FIFO
@@ -2314,9 +2323,6 @@ static int rcar_canfd_probe(struct platform_device *pdev)
 	/* Configure common interrupts */
 	rcar_canfd_enable_global_interrupts(gpriv);
 
-	/* Initialize and start timestamp counter */
-	rcar_canfd_timestamp_init(gpriv);
-	rcar_canfd_timestamp_start(gpriv);
 
 	/* Start Global operation mode */
 	rcar_canfd_update_bit(gpriv->base, RCANFD_GCTR, RCANFD_GCTR_GMDC_MASK,
@@ -2361,7 +2367,6 @@ static int rcar_canfd_remove(struct platform_device *pdev)
 	struct rcar_canfd_global *gpriv = platform_get_drvdata(pdev);
 	u32 ch;
 
-	rcar_canfd_timestamp_stop(gpriv);
 	rcar_canfd_reset_controller(gpriv);
 	rcar_canfd_disable_global_interrupts(gpriv);
 
