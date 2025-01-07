@@ -781,6 +781,22 @@ static irqreturn_t rzv2h_cru_irq(int irq, void *data)
 		goto done;
 	}
 
+	if (slot != prev_slot[cru->id]) {
+		/* Update value of previous memory bank slot */
+		prev_slot[cru->id] = slot;
+	} else {
+		/*
+		 * AXI-Bus congestion maybe occurred.
+		 * Set auto recovery mode to clear all FIFOs
+		 * and resume transmission.
+		 */
+		rzg2l_cru_write(cru, AMnFIFO, 0);
+
+		dev_dbg(cru->dev, "Dropping frame %u with CRU channel %d\n",
+			cru->sequence, cru->id);
+		goto done;
+	}
+
 	amnmbxaddrl[cru->id][slot] = 0;
 	amnmbxaddrh[cru->id][slot] = 0;
 
@@ -798,21 +814,6 @@ static irqreturn_t rzv2h_cru_irq(int irq, void *data)
 		cru->state = RZG2L_CRU_DMA_RUNNING;
 	}
 
-	if (slot != prev_slot[cru->id]) {
-		/* Update value of previous memory bank slot */
-		prev_slot[cru->id] = slot;
-	} else {
-		/*
-		 * AXI-Bus congestion maybe occurred.
-		 * Set auto recovery mode to clear all FIFOs
-		 * and resume transmission.
-		 */
-		rzg2l_cru_write(cru, AMnFIFO, 0);
-
-		dev_dbg(cru->dev, "Dropping frame %u with CRU channel %d\n",
-			cru->sequence, cru->id);
-		goto done;
-	}
 
 	/* Capture frame */
 	if (cru->queue_buf[slot]) {
