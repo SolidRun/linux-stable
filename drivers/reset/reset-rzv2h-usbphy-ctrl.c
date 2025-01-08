@@ -172,6 +172,34 @@ static int rzv2h_usbphy_ctrl_probe(struct platform_device *pdev)
 	return 0;
 }
 
+static int __maybe_unused rzv2h_usbphy_ctrl_suspend(struct device *dev)
+{
+	struct rzv2h_usbphy_ctrl_priv *priv = dev_get_drvdata(dev);
+
+	rzv2h_usbphy_ctrl_assert(&priv->rcdev, 0);
+
+	pm_runtime_put(dev);
+	reset_control_assert(priv->rstc);
+
+	return 0;
+}
+
+static int __maybe_unused rzv2h_usbphy_ctrl_resume(struct device *dev)
+{
+	struct rzv2h_usbphy_ctrl_priv *priv = dev_get_drvdata(dev);
+
+	reset_control_deassert(priv->rstc);
+	pm_runtime_get_sync(dev);
+
+	rzv2h_usbphy_ctrl_deassert(&priv->rcdev, 0);
+	return 0;
+}
+
+static const struct dev_pm_ops rzv2h_usbphy_ctrl_pm = {
+	SET_NOIRQ_SYSTEM_SLEEP_PM_OPS(rzv2h_usbphy_ctrl_suspend,
+					rzv2h_usbphy_ctrl_resume)
+};
+
 static int rzv2h_usbphy_ctrl_remove(struct platform_device *pdev)
 {
 	struct rzv2h_usbphy_ctrl_priv *priv = dev_get_drvdata(&pdev->dev);
@@ -187,6 +215,7 @@ static struct platform_driver rzv2h_usbphy_ctrl_driver = {
 	.driver = {
 		.name		= "rzv2h_usbphy_ctrl",
 		.of_match_table	= rzv2h_usbphy_ctrl_match_table,
+		.pm		= &rzv2h_usbphy_ctrl_pm,
 	},
 	.probe	= rzv2h_usbphy_ctrl_probe,
 	.remove	= rzv2h_usbphy_ctrl_remove,
