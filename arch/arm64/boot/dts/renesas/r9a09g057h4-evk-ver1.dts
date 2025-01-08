@@ -106,6 +106,28 @@
 		regulator-always-on;
 	};
 
+	vmmc_sdhi0: regulator-vcc-sdhi0 {
+		compatible = "regulator-fixed";
+
+		regulator-name = "SDHI0 Vmmc";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+
+		gpios = <&pinctrl RZV2H_GPIO(A, 1) GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+	};
+
+	vmmc_sdhi1: regulator-vcc-sdhi1 {
+		compatible = "regulator-fixed";
+
+		regulator-name = "SDHI1 Vmmc";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+
+		gpios = <&pinctrl RZV2H_GPIO(A, 3) GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+	};
+
 	vccq_sdhi0: regulator-vccq-sdhi0 {
 		compatible = "regulator-gpio";
 
@@ -207,20 +229,6 @@
 	scif_pins: scif {
 		pins =  "SCIF_RXD", "SCIF_TXD";
 		renesas,output-impedance = <1>;
-	};
-
-	sd0_pwr_en {
-		gpio-hog;
-		gpios = <RZV2H_GPIO(A, 1) GPIO_ACTIVE_HIGH>;
-		output-high;
-		line-name = "sd0_pwr_en";
-	};
-
-	sd1_pwr_en {
-		gpio-hog;
-		gpios = <RZV2H_GPIO(A, 3) GPIO_ACTIVE_HIGH>;
-		output-high;
-		line-name = "sd1_pwr_en";
 	};
 
 	/* cam0_pwr_en is used by Google Coral Camera from CSI20 and CSI21 */
@@ -342,7 +350,7 @@
 &sdhi0 {
 	pinctrl-0 = <&sdhi0_pins>;
 	pinctrl-names = "default";
-	vmmc-supply = <&reg_3p3v>;
+	vmmc-supply = <&vmmc_sdhi0>;
 	vqmmc-supply = <&vccq_sdhi0>;
 	bus-width = <4>;
 	sd-uhs-sdr50;
@@ -354,7 +362,7 @@
 	pinctrl-0 = <&sdhi1_pins>;
 	pinctrl-1 = <&sdhi1_pins>;
 	pinctrl-names = "default","state_uhs";
-	vmmc-supply = <&reg_3p3v>;
+	vmmc-supply = <&vmmc_sdhi1>;
 	vqmmc-supply = <&vqmmc_sdhi1>;
 	bus-width = <4>;
 	sd-uhs-sdr50;
