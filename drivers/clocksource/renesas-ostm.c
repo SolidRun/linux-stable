@@ -42,6 +42,12 @@
 #define	CTL_ONESHOT		0x02
 #define	CTL_FREERUN		0x02
 
+struct ostm_pltdata {
+	struct timer_of *to;
+	struct reset_control *rstc;
+	bool clk_event_device;
+};
+
 static struct ostm_clksrc {
 	void __iomem *system_clock;
 	struct timer_of *to;
@@ -62,36 +68,6 @@ static void ostm_timer_stop(struct timer_of *to)
 		while (readb(timer_of_base(to) + OSTM_TE) & TE)
 			;
 	}
-}
-
-static void ostm_clksrc_suspend(struct clocksource *c)
-{
-	struct ostm_clksrc *ostm_clksrc =
-			container_of(c, struct ostm_clksrc, clksrc);
-	struct timer_of *to = ostm_clksrc->to;
-
-	clk_disable_unprepare(to->of_clk.clk);
-	reset_control_assert(ostm_clksrc->rstc);
-}
-
-static void ostm_clksrc_resume(struct clocksource *c)
-{
-	struct ostm_clksrc *ostm_clksrc =
-		container_of(c, struct ostm_clksrc, clksrc);
-	struct timer_of *to = ostm_clksrc->to;
-
-	reset_control_deassert(ostm_clksrc->rstc);
-
-	if (clk_prepare_enable(to->of_clk.clk)) {
-		pr_err("Failed for enable clock for %pOF\n",
-					to->np->full_name);
-		reset_control_assert(ostm_clksrc->rstc);
-		return;
-	}
-
-	writel(0, timer_of_base(to) + OSTM_CMP);
-	writeb(CTL_FREERUN, timer_of_base(to) + OSTM_CTL);
-	writeb(TS, timer_of_base(to) + OSTM_TS);
 }
 
 static u64 ostm_clksrc_readl_up(struct clocksource *c)
@@ -116,8 +92,6 @@ static int __init ostm_clocksource_register_hz(struct ostm_clksrc *ostm_clksrc,
 	cs->rating = rating;
 	cs->mask = CLOCKSOURCE_MASK(bits);
 	cs->read = read;
-	cs->resume = ostm_clksrc_resume;
-	cs->suspend = ostm_clksrc_suspend;
 	cs->flags = CLOCK_SOURCE_IS_CONTINUOUS;
 
 	return clocksource_register_hz(cs, timer_of_rate(to));
@@ -229,10 +203,15 @@ static int __init ostm_init(struct device_node *np)
 {
 	struct reset_control *rstc;
 	struct timer_of *to;
+	struct ostm_pltdata *pdata;
 	int ret;
 
 	to = kzalloc(sizeof(*to), GFP_KERNEL);
 	if (!to)
+		return -ENOMEM;
+
+	pdata = kzalloc(sizeof(*pdata), GFP_KERNEL);
+	if (!pdata)
 		return -ENOMEM;
 
 	rstc = of_reset_control_get_optional_exclusive(np, NULL);
@@ -283,8 +262,13 @@ static int __init ostm_init(struct device_node *np)
 		if (ret)
 			goto err_cleanup;
 
+		pdata->clk_event_device = true;
 		pr_info("%pOF: used for clock events\n", np);
 	}
+
+	pdata->to = to;
+	pdata->rstc = rstc;
+	np->data = pdata;
 
 	of_node_set_flag(np, OF_POPULATED);
 	return 0;
@@ -300,6 +284,46 @@ err_free:
 }
 
 TIMER_OF_DECLARE(ostm, "renesas,ostm", ostm_init);
+
+static int ostm_suspend_noirq(struct device *dev)
+{
+	struct device_node *np = dev->of_node;
+	struct ostm_pltdata *pdata = (struct ostm_pltdata *)np->data;
+	struct timer_of *to = pdata->to;
+
+	clk_disable_unprepare(to->of_clk.clk);
+	reset_control_assert(pdata->rstc);
+
+	return 0;
+}
+
+static int ostm_resume_noirq(struct device *dev)
+{
+	struct device_node *np = dev->of_node;
+	struct ostm_pltdata *pdata = (struct ostm_pltdata *)np->data;
+	struct timer_of *to = pdata->to;
+
+	reset_control_deassert(pdata->rstc);
+
+	if (clk_prepare_enable(to->of_clk.clk)) {
+		pr_err("Failed for enable clock for %pOF\n", to->np->full_name);
+		reset_control_assert(pdata->rstc);
+		return -1;
+	}
+
+	/* Clocksource resume implementation */
+	if (!pdata->clk_event_device) {
+		writel(0, timer_of_base(to) + OSTM_CMP);
+		writeb(CTL_FREERUN, timer_of_base(to) + OSTM_CTL);
+		writeb(TS, timer_of_base(to) + OSTM_TS);
+	};
+
+	return 0;
+}
+
+static const struct dev_pm_ops ostm_pm_ops = {
+	NOIRQ_SYSTEM_SLEEP_PM_OPS(ostm_suspend_noirq, ostm_resume_noirq)
+};
 
 #if defined(CONFIG_ARCH_RZG2L) || defined(CONFIG_ARCH_RZV2H)
 static int __init ostm_probe(struct platform_device *pdev)
@@ -319,6 +343,7 @@ static struct platform_driver ostm_device_driver = {
 		.name = "renesas_ostm",
 		.of_match_table = of_match_ptr(ostm_of_table),
 		.suppress_bind_attrs = true,
+		.pm = pm_sleep_ptr(&ostm_pm_ops),
 	},
 };
 builtin_platform_driver_probe(ostm_device_driver, ostm_probe);
