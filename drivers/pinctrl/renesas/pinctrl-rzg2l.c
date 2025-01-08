@@ -289,6 +289,17 @@ enum rzg2l_iolh_index {
 /* Maximum number of driver strength entries per power source. */
 #define RZG2L_IOLH_MAX_DS_ENTRIES	(4)
 
+/*
+ * - Address offset of extra backup registers.
+ * - Flags for register access size support.
+ */
+#define RZG2L_EXTRA_BK_OFF(off, size)	((off) | (size) << 24)
+#define RZG2L_EXTRA_BK_OFF_ADDR(eoff)	((eoff) & GENMASK(23, 0))
+#define RZG2L_EXTRA_BK_OFF_ACCESS_SIZE_8	BIT(0)
+#define RZG2L_EXTRA_BK_OFF_ACCESS_SIZE_16	BIT(1)
+#define RZG2L_EXTRA_BK_OFF_ACCESS_SIZE_32	BIT(2)
+#define RZG2L_EXTRA_BK_OFF_ACCESS_SIZE(eoff)	((eoff) >> 24)
+
 /**
  * struct rzg2l_hwcfg - hardware configuration data structure
  * @regs: hardware specific register offsets
@@ -313,6 +324,8 @@ struct rzg2l_hwcfg {
 	u8 oen_max_pin;
 	u8 oen_max_port;
 	unsigned int tint_start_index;
+	const unsigned int *backup_eoffs;
+	u32 n_backup_eoffs;
 };
 
 struct rzg2l_dedicated_configs {
@@ -343,6 +356,7 @@ struct rzg2l_pinctrl_data {
 	void (*pmc_writeb)(struct rzg2l_pinctrl *pctrl, u8 val, u16 offset);
 	u32 (*oen_read)(struct rzg2l_pinctrl *pctrl, unsigned int _pin);
 	int (*oen_write)(struct rzg2l_pinctrl *pctrl, unsigned int _pin, u8 oen);
+	void (*oen_lock_unlock)(struct rzg2l_pinctrl *pctrl, bool lock);
 	int (*hw_to_bias_param)(unsigned int val);
 	int (*bias_param_to_hw)(enum pin_config_param param);
 };
@@ -365,10 +379,7 @@ struct rzg2l_pinctrl_pin_settings {
  * @pfc: PFC registers cache
  * @iolh: IOLH registers cache
  * @ien: IEN registers cache
- * @sd_ch: SD_CH registers cache
- * @eth_poc: ET_POC registers cache
- * @eth_mode: ETH_MODE register cache
- * @qspi: QSPI registers cache
+ * @extra: Addtional regsiters cache
  */
 struct rzg2l_pinctrl_reg_cache {
 	u8	*p;
@@ -377,10 +388,7 @@ struct rzg2l_pinctrl_reg_cache {
 	u32	*pfc;
 	u32	*iolh[2];
 	u32	*ien[2];
-	u8	sd_ch[2];
-	u8	eth_poc[2];
-	u8	eth_mode;
-	u8	qspi;
+	u32	*extra;
 };
 
 struct rzg2l_pinctrl {
@@ -2764,6 +2772,7 @@ static int rzg2l_pinctrl_reg_cache_alloc(struct rzg2l_pinctrl *pctrl)
 {
 	u32 nports = pctrl->data->n_port_pins / RZG2L_PINS_PER_PORT;
 	struct rzg2l_pinctrl_reg_cache *cache, *dedicated_cache;
+	u32 n_eoffs = pctrl->data->hwcfg->n_backup_eoffs;
 
 	cache = devm_kzalloc(pctrl->dev, sizeof(*cache), GFP_KERNEL);
 	if (!cache)
@@ -2813,6 +2822,13 @@ static int rzg2l_pinctrl_reg_cache_alloc(struct rzg2l_pinctrl *pctrl)
 						       sizeof(*dedicated_cache->ien[i]),
 						       GFP_KERNEL);
 		if (!dedicated_cache->ien[i])
+			return -ENOMEM;
+	}
+
+	if (n_eoffs > 0) {
+		cache->extra = devm_kzalloc(pctrl->dev, n_eoffs * sizeof(*(cache->extra)),
+					 GFP_KERNEL);
+		if (!cache->extra)
 			return -ENOMEM;
 	}
 
@@ -3198,6 +3214,7 @@ static void rzg2l_pinctrl_pm_setup_pfc(struct rzg2l_pinctrl *pctrl)
 
 			/* Select Pin function mode. */
 			pfc &= ~(PFC_MASK << (pin * 4));
+
 			pfc |= (cache->pfc[port] & (PFC_MASK << (pin * 4)));
 			writel(pfc, pctrl->base + PFC(off));
 
@@ -3211,25 +3228,83 @@ static void rzg2l_pinctrl_pm_setup_pfc(struct rzg2l_pinctrl *pctrl)
 	spin_unlock_irqrestore(&pctrl->lock, flags);
 }
 
+static void rzg2l_backup_restore_regs(struct rzg2l_pinctrl *pctrl,
+				      bool is_backup)
+{
+	struct rzg2l_pinctrl_reg_cache *cache = pctrl->cache;
+	const struct rzg2l_hwcfg *hwcfg = pctrl->data->hwcfg;
+	u32 n_eoffs = hwcfg->n_backup_eoffs;
+	u32 eoff, eoff_addr, eoff_size;
+	int i;
+
+	if (is_backup) {
+		/* Backup standard registers */
+		rzg2l_pinctrl_pm_setup_regs(pctrl, true);
+		rzg2l_pinctrl_pm_setup_dedicated_regs(pctrl, true);
+
+		if (n_eoffs > 0) {
+			for (i = 0; i < n_eoffs; i++) {
+				eoff = hwcfg->backup_eoffs[i];
+				eoff_addr = RZG2L_EXTRA_BK_OFF_ADDR(eoff);
+				eoff_size = RZG2L_EXTRA_BK_OFF_ACCESS_SIZE(eoff);
+
+				switch (eoff_size) {
+				case RZG2L_EXTRA_BK_OFF_ACCESS_SIZE_8: {
+					cache->extra[i] = readb(pctrl->base + eoff_addr);
+					break;
+				}
+				case RZG2L_EXTRA_BK_OFF_ACCESS_SIZE_16: {
+					cache->extra[i] = readw(pctrl->base + eoff_addr);
+					break;
+				}
+				default:
+					cache->extra[i] = readl(pctrl->base + eoff_addr);
+				}
+			}
+		}
+	} else {
+		/* Restore standard registers */
+		rzg2l_pinctrl_pm_setup_pfc(pctrl);
+		rzg2l_pinctrl_pm_setup_regs(pctrl, false);
+		rzg2l_pinctrl_pm_setup_dedicated_regs(pctrl, false);
+
+		if (pctrl->data->oen_lock_unlock)
+			pctrl->data->oen_lock_unlock(pctrl, false);
+
+		/* Restore extra registers */
+		if (n_eoffs > 0) {
+			for (i = 0; i < n_eoffs; i++) {
+				eoff = hwcfg->backup_eoffs[i];
+				eoff_addr = RZG2L_EXTRA_BK_OFF_ADDR(eoff);
+				eoff_size = RZG2L_EXTRA_BK_OFF_ACCESS_SIZE(eoff);
+
+				switch (eoff_size) {
+				case RZG2L_EXTRA_BK_OFF_ACCESS_SIZE_8: {
+					writeb(cache->extra[i], pctrl->base + eoff_addr);
+					break;
+				}
+				case RZG2L_EXTRA_BK_OFF_ACCESS_SIZE_16: {
+					writew(cache->extra[i], pctrl->base + eoff_addr);
+					break;
+				}
+				default:
+					writel(cache->extra[i], pctrl->base + eoff_addr);
+				}
+			}
+		}
+
+		if (pctrl->data->oen_lock_unlock)
+			pctrl->data->oen_lock_unlock(pctrl, true);
+
+		rzg2l_gpio_irq_restore(pctrl);
+	}
+}
+
 static int rzg2l_pinctrl_suspend_noirq(struct device *dev)
 {
 	struct rzg2l_pinctrl *pctrl = dev_get_drvdata(dev);
-	const struct rzg2l_hwcfg *hwcfg = pctrl->data->hwcfg;
-	const struct rzg2l_register_offsets *regs = &hwcfg->regs;
-	struct rzg2l_pinctrl_reg_cache *cache = pctrl->cache;
 
-	rzg2l_pinctrl_pm_setup_regs(pctrl, true);
-	rzg2l_pinctrl_pm_setup_dedicated_regs(pctrl, true);
-
-	for (u8 i = 0; i < 2; i++) {
-		if (regs->sd_ch)
-			cache->sd_ch[i] = readb(pctrl->base + SD_CH(regs->sd_ch, i));
-		if (regs->eth_poc)
-			cache->eth_poc[i] = readb(pctrl->base + ETH_POC(regs->eth_poc, i));
-	}
-
-	cache->qspi = readb(pctrl->base + QSPI);
-	cache->eth_mode = readb(pctrl->base + ETH_MODE);
+	rzg2l_backup_restore_regs(pctrl, true);
 
 	if (!atomic_read(&pctrl->wakeup_path))
 		clk_disable_unprepare(pctrl->clk);
@@ -3242,9 +3317,6 @@ static int rzg2l_pinctrl_suspend_noirq(struct device *dev)
 static int rzg2l_pinctrl_resume_noirq(struct device *dev)
 {
 	struct rzg2l_pinctrl *pctrl = dev_get_drvdata(dev);
-	const struct rzg2l_hwcfg *hwcfg = pctrl->data->hwcfg;
-	const struct rzg2l_register_offsets *regs = &hwcfg->regs;
-	struct rzg2l_pinctrl_reg_cache *cache = pctrl->cache;
 	int ret;
 
 	if (!atomic_read(&pctrl->wakeup_path)) {
@@ -3253,19 +3325,7 @@ static int rzg2l_pinctrl_resume_noirq(struct device *dev)
 			return ret;
 	}
 
-	writeb(cache->qspi, pctrl->base + QSPI);
-	writeb(cache->eth_mode, pctrl->base + ETH_MODE);
-	for (u8 i = 0; i < 2; i++) {
-		if (regs->sd_ch)
-			writeb(cache->sd_ch[i], pctrl->base + SD_CH(regs->sd_ch, i));
-		if (regs->eth_poc)
-			writeb(cache->eth_poc[i], pctrl->base + ETH_POC(regs->eth_poc, i));
-	}
-
-	rzg2l_pinctrl_pm_setup_pfc(pctrl);
-	rzg2l_pinctrl_pm_setup_regs(pctrl, false);
-	rzg2l_pinctrl_pm_setup_dedicated_regs(pctrl, false);
-	rzg2l_gpio_irq_restore(pctrl);
+	rzg2l_backup_restore_regs(pctrl, false);
 
 	return 0;
 }
@@ -3300,6 +3360,41 @@ static void rzv2h_pwpr_pfc_lock_unlock(struct rzg2l_pinctrl *pctrl, bool lock)
 		writeb(PWPR_REGWE_A | pwpr, pctrl->base + regs->pwpr);
 	}
 }
+
+static void rzv2h_oen_lock_unlock(struct rzg2l_pinctrl *pctrl, bool lock)
+{
+	const struct rzg2l_register_offsets *regs = &pctrl->data->hwcfg->regs;
+	u8 pwpr;
+
+	if (lock) {
+		pwpr = readb(pctrl->base + regs->pwpr);
+		writeb(pwpr & ~PWPR_REGWE_B, pctrl->base + regs->pwpr);
+	} else {
+		pwpr = readb(pctrl->base + regs->pwpr);
+		writeb(PWPR_REGWE_B | pwpr, pctrl->base + regs->pwpr);
+	}
+}
+
+static const unsigned int rzg3s_extra_offsets[] = {
+	/* ETH_ch0/1 IO Voltage Mode Control, ETH MII/RGMII */
+	RZG2L_EXTRA_BK_OFF(0x3010, RZG2L_EXTRA_BK_OFF_ACCESS_SIZE_32),
+	RZG2L_EXTRA_BK_OFF(0x3014, RZG2L_EXTRA_BK_OFF_ACCESS_SIZE_32),
+	RZG2L_EXTRA_BK_OFF(0x3018, RZG2L_EXTRA_BK_OFF_ACCESS_SIZE_32),
+	/* SD_ch0/1 IO Voltage Mode Control */
+	RZG2L_EXTRA_BK_OFF(0x3004, RZG2L_EXTRA_BK_OFF_ACCESS_SIZE_32),
+	RZG2L_EXTRA_BK_OFF(0x3008, RZG2L_EXTRA_BK_OFF_ACCESS_SIZE_32),
+	/* XSPI IO Voltage Mode Control */
+	RZG2L_EXTRA_BK_OFF(0x300c, RZG2L_EXTRA_BK_OFF_ACCESS_SIZE_32),
+	/* I3C Control */
+	RZG2L_EXTRA_BK_OFF(0x301c, RZG2L_EXTRA_BK_OFF_ACCESS_SIZE_32),
+	/* XSPI/OCTA Output Enable Control */
+	RZG2L_EXTRA_BK_OFF(0x3020, RZG2L_EXTRA_BK_OFF_ACCESS_SIZE_32),
+};
+
+static const unsigned int rzv2h_extra_offsets[] = {
+	/* OEN register */
+	RZG2L_EXTRA_BK_OFF(0x3C40, RZG2L_EXTRA_BK_OFF_ACCESS_SIZE_32),
+};
 
 static const struct rzg2l_hwcfg rzg2l_hwcfg = {
 	.regs = {
@@ -3347,6 +3442,8 @@ static const struct rzg2l_hwcfg rzg3s_hwcfg = {
 	.oen_max_pin = 1, /* Pin 1 of P0 and P7 is the maximum OEN pin. */
 	.oen_max_port = 7, /* P7_1 is the maximum OEN port. */
 	.tint_start_index = 9,
+	.backup_eoffs = rzg3s_extra_offsets,
+	.n_backup_eoffs = ARRAY_SIZE(rzg3s_extra_offsets),
 };
 
 static const struct rzg2l_hwcfg rzv2h_hwcfg = {
@@ -3354,6 +3451,8 @@ static const struct rzg2l_hwcfg rzv2h_hwcfg = {
 		.pwpr = 0x3c04,
 	},
 	.tint_start_index = 17,
+	.backup_eoffs = rzv2h_extra_offsets,
+	.n_backup_eoffs = ARRAY_SIZE(rzv2h_extra_offsets),
 };
 
 static struct rzg2l_pinctrl_data r9a07g043_data = {
@@ -3428,6 +3527,7 @@ static struct rzg2l_pinctrl_data r9a09g057_data = {
 	.pmc_writeb = &rzv2h_pmc_writeb,
 	.oen_read = &rzv2h_oen_read,
 	.oen_write = &rzv2h_oen_write,
+	.oen_lock_unlock = &rzv2h_oen_lock_unlock,
 	.hw_to_bias_param = &rzv2h_hw_to_bias_param,
 	.bias_param_to_hw = &rzv2h_bias_param_to_hw,
 };
@@ -3453,6 +3553,7 @@ static struct rzg2l_pinctrl_data r9a09g047_data = {
 	.pmc_writeb = &rzv2h_pmc_writeb,
 	.oen_read = &rzv2h_oen_read,
 	.oen_write = &rzv2h_oen_write,
+	.oen_lock_unlock = &rzv2h_oen_lock_unlock,
 	.hw_to_bias_param = &rzv2h_hw_to_bias_param,
 	.bias_param_to_hw = &rzv2h_bias_param_to_hw,
 };
