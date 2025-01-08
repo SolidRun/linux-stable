@@ -288,6 +288,28 @@ err:
 	return ret;
 }
 
+static int __maybe_unused rzv2h_thermal_suspend(struct device *dev)
+{
+	struct rzv2h_thermal_priv *priv = dev_get_drvdata(dev);
+
+	pm_runtime_put(dev);
+	reset_control_assert(priv->rstc);
+
+	return 0;
+}
+
+static int __maybe_unused rzv2h_thermal_resume(struct device *dev)
+{
+	struct rzv2h_thermal_priv *priv = dev_get_drvdata(dev);
+
+	reset_control_deassert(priv->rstc);
+	pm_runtime_get_sync(dev);
+
+	rzv2h_thermal_init(priv);
+
+	return 0;
+}
+
 static const struct of_device_id rzv2h_thermal_dt_ids[] = {
 	{ .compatible = "renesas,tsu-r9a09g057", },
 	{ .compatible = "renesas,tsu-r9a09g047", },
@@ -295,10 +317,16 @@ static const struct of_device_id rzv2h_thermal_dt_ids[] = {
 };
 MODULE_DEVICE_TABLE(of, rzv2h_thermal_dt_ids);
 
+static const struct dev_pm_ops rzv2h_thermal_pm = {
+	SET_NOIRQ_SYSTEM_SLEEP_PM_OPS(rzv2h_thermal_suspend,
+					rzv2h_thermal_resume)
+};
+
 static struct platform_driver rzv2h_thermal_driver = {
 	.driver = {
 		.name = "rzv2h_thermal",
 		.of_match_table = rzv2h_thermal_dt_ids,
+		.pm		= &rzv2h_thermal_pm,
 	},
 	.probe = rzv2h_thermal_probe,
 	.remove = rzv2h_thermal_remove,
