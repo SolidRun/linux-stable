@@ -1323,13 +1323,15 @@ static int rzg2l_pinctrl_pinconf_get(struct pinctrl_dev *pctldev,
 
 	case PIN_CONFIG_OUTPUT_ENABLE:
 		if (!pctrl->data->oen_read || !(cfg & PIN_CFG_OEN))
-			return -EOPNOTSUPP;
+			return -EINVAL;
 		arg = pctrl->data->oen_read(pctrl, _pin);
 		if (!arg)
 			return -EINVAL;
 		break;
 
 	case PIN_CONFIG_POWER_SOURCE:
+		if (!(cfg & PIN_CFG_SOFT_PS))
+			return -EINVAL;
 		ret = rzg2l_get_power_source(pctrl, _pin, cfg);
 		if (ret < 0)
 			return ret;
@@ -1489,13 +1491,15 @@ static int rzg2l_pinctrl_pinconf_set(struct pinctrl_dev *pctldev,
 		case PIN_CONFIG_OUTPUT_ENABLE:
 			arg = pinconf_to_config_argument(_configs[i]);
 			if (!pctrl->data->oen_write || !(cfg & PIN_CFG_OEN))
-				return -EOPNOTSUPP;
+				return -EINVAL;
 			ret = pctrl->data->oen_write(pctrl, _pin, !!arg);
 			if (ret)
 				return ret;
 			break;
 
 		case PIN_CONFIG_POWER_SOURCE:
+			if (!(cfg & PIN_CFG_SOFT_PS))
+				return -EINVAL;
 			settings.power_source = pinconf_to_config_argument(_configs[i]);
 			break;
 
@@ -1582,7 +1586,7 @@ static int rzg2l_pinctrl_pinconf_set(struct pinctrl_dev *pctldev,
 			break;
 
 		default:
-			return -EOPNOTSUPP;
+			return -ENOTSUPP;
 		}
 	}
 
@@ -1664,7 +1668,7 @@ static int rzg2l_pinctrl_pinconf_group_get(struct pinctrl_dev *pctldev,
 
 		/* Check config matching between to pin  */
 		if (i && prev_config != *config)
-			return -EOPNOTSUPP;
+			return -EINVAL;
 
 		prev_config = *config;
 	}
@@ -2536,7 +2540,7 @@ static int rzg2l_gpio_irq_set_wake(struct irq_data *data, unsigned int on)
 
 	/* It should not happen. */
 	if (!data->parent_data)
-		return -EOPNOTSUPP;
+		return -EINVAL;
 
 	ret = irq_chip_set_wake_parent(data, on);
 	if (ret)
