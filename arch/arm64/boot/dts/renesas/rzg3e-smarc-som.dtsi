@@ -107,6 +107,17 @@
 		regulator-always-on;
 	};
 
+	vmmc_sdhi2: regulator-vcc-sdhi2 {
+		compatible = "regulator-fixed";
+
+		regulator-name = "SDHI2 Vmmc";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+
+		gpios = <&pinctrl RZV2H_GPIO(K, 2) GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+	};
+
 	vccq_sdhi2: regulator-vccq-sdhi2 {
 		compatible = "regulator-gpio";
 
@@ -116,8 +127,8 @@
 
 		gpios = <&pinctrl RZV2H_GPIO(K, 1) GPIO_ACTIVE_HIGH>;
 
-		gpios-states = <1>;
-		states = <3300000 1 1800000 0>;
+		gpios-states = <0>;
+		states = <3300000 0 1800000 1>;
 	};
 
 	osc1: cec-clock {
@@ -141,13 +152,6 @@
 };
 
 &pinctrl {
-	sd2_pwr_en {
-		gpio-hog;
-		gpios = <RZV2H_GPIO(K, 2) GPIO_ACTIVE_HIGH>;
-		output-high;
-		line-name = "sd2_pwr_en";
-	};
-
 	i2c7_pins: i2c7 {
 		pinmux = <RZV2H_PORT_PINMUX(A, 4, 4)>, /* SCL */
 			 <RZV2H_PORT_PINMUX(A, 5, 4)>; /* SDA */
@@ -408,7 +412,7 @@
 	pinctrl-0 = <&sdhi2_pins>;
 	pinctrl-names = "default";
 
-	vmmc-supply = <&reg_3p3v>;
+	vmmc-supply = <&vmmc_sdhi2>;
 	vqmmc-supply = <&vccq_sdhi2>;
 	bus-width = <4>;
 	sd-uhs-sdr50;

@@ -37,6 +37,17 @@
 #endif
 	};
 #if (!SW_SDIO_M2E)
+	vmmc_sdhi1: regulator-vcc-sdhi1 {
+		compatible = "regulator-fixed";
+
+		regulator-name = "SDHI1 Vmmc";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+
+		gpios = <&pinctrl RZV2H_GPIO(1, 6) GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+	};
+
 	vccq_sdhi1: regulator-vccq-sdhi1 {
 		compatible = "regulator-gpio";
 
@@ -134,13 +145,6 @@
 	};
 
 #if (!SW_SDIO_M2E)
-	sd1_pwr_en {
-		gpio-hog;
-		gpios = <RZV2H_GPIO(1, 6) GPIO_ACTIVE_HIGH>;
-		output-high;
-		line-name = "sd1_pwr_en";
-	};
-
 	sdhi1_pins: sd1 {
 		sd1_mux {
 			pinmux = <RZV2H_PORT_PINMUX(1, 4, 8)>; /* QSD1_CD */
@@ -203,10 +207,11 @@
         status = "okay";
 };
 
+#if (!SW_SDIO_M2E)
 &sdhi1 {
 	pinctrl-0 = <&sdhi1_pins>;
 	pinctrl-names = "default";
-	vmmc-supply = <&reg_3p3v>;
+	vmmc-supply = <&vmmc_sdhi1>;
 	vqmmc-supply = <&vccq_sdhi1>;
 	bus-width = <4>;
 	sd-uhs-sdr50;
@@ -214,6 +219,7 @@
 
 	status = "okay";
 };
+#endif
 
 &i2c0 {
 	pinctrl-0 = <&i2c0_pins>;
