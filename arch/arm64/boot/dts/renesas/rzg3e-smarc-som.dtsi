@@ -380,9 +380,6 @@
 	vqmmc-supply = <&reg_1p8v>;
 
 	bus-width = <4>;
-	sd-uhs-sdr50;
-	sd-uhs-sdr104;
-
 	status = "okay";
 };
 #else
