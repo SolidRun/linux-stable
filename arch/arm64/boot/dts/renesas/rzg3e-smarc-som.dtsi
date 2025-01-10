@@ -370,16 +370,6 @@
 	};
 };
 
-&sdhi0 {
-	vmmc-supply = <&reg_3p3v>;
-	vqmmc-supply = <&reg_1p8v>;
-	bus-width = <8>;
-	mmc-hs200-1_8v;
-	non-removable;
-	fixed-emmc-driver-type = <1>;
-	status = "okay";
-};
-
 #if (SW_SD0_DEV_SEL)
 /* SD0 slot */
 &sdhi0 {
