@@ -182,6 +182,12 @@
 		states = <3300000 0 1800000 1>;
 	};
 
+	x2: x2-clock {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <24000000>;
+	};
+
 	osc1: cec-clock {
 		compatible = "fixed-clock";
 		#clock-cells = <0>;
@@ -237,6 +243,11 @@
 	i2c7_pins: i2c7 {
 		pinmux = <RZV2H_PORT_PINMUX(A, 4, 4)>, /* SCL */
 			 <RZV2H_PORT_PINMUX(A, 5, 4)>; /* SDA */
+	};
+
+	i2c8_pins: i2c8 {
+		pinmux = <RZV2H_PORT_PINMUX(3, 4, 4)>, /* SCL */
+			 <RZV2H_PORT_PINMUX(3, 5, 4)>; /* SDA */
 	};
 
 	eth0_pins: eth0 {
@@ -364,7 +375,7 @@
 		#size-cells = <0>;
 		reg = <0x1a>;
 
-		clocks = <&rcar_sound>;
+		clocks = <&versa3 1>;
 		clock-names = "mclk";
 
 		dlg,micbias1-lvl = <2500>;
@@ -381,6 +392,7 @@
 		port {
 			da7212_endpoint: endpoint {
 				remote-endpoint = <&rsnd_endpoint0>;
+				mclk-fs = <512>;
 			};
 		};
 	};
@@ -515,6 +527,26 @@
 		};
 	};
 #endif
+};
+
+&i2c8 {
+	pinctrl-0 = <&i2c8_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+
+	versa3: clock-generator@68 {
+		compatible = "renesas,5p35023";
+		reg = <0x68>;
+		#clock-cells = <1>;
+		clocks = <&x2>;
+
+		assigned-clocks = <&versa3 0>, <&versa3 1>,
+				  <&versa3 2>, <&versa3 3>,
+				  <&versa3 4>, <&versa3 5>;
+		assigned-clock-rates = <24000000>, <12288000>,
+				       <11289600>, <12288000>,
+				       <25000000>, <25000000>;
+	};
 };
 
 &eth0 {
