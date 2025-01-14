@@ -119,34 +119,24 @@
 		compatible = "renesas,vspm_if";
 	};
 
+	sound_card: sound {
+		compatible = "audio-graph-card";
+
+		label = "rcar-sound";
 #if (!I2C1_GPT_SEL)
-
-	snd_rzg3e: sound {
-		#address-cells = <1>;
-		#size-cells = <0>;
-		compatible = "simple-audio-card";
-		simple-audio-card,name = "rsnd_rzg3e";
-		status="okay";
-
-		ssi_link: simple-audio-card,dai-link@0 {
-			format = "i2s";
-			reg = <0>;
-			bitclock-master = <&cpu_dai0>;
-			frame-master = <&cpu_dai0>;
-			mclk-fs = <256>;
-
-			cpu_dai0: cpu {
-				sound-dai = <&rcar_sound 0>;
-			};
-
-			codec {
-				sound-dai = <&da7212>;
-				clocks = <&rcar_sound>;
-			};
-		};
-	};
-
+		dais = <&rsnd_port0	/* DA7211 */
+#if (!SW_LCD_EN)
+			&rsnd_port1	/* HDMI0  */
 #endif
+			>;
+#else
+		dais = <
+#if (!SW_LCD_EN)
+			&rsnd_port0	/* HDMI0 */
+#endif
+			>;
+#endif
+	};
 
 	reg_1p8v: regulator0 {
 		compatible = "regulator-fixed";
@@ -220,19 +210,29 @@
 			 <RZV2H_PORT_PINMUX(3, 3, 1)>; /* SDA */
 	};
 
+#endif
 	sound_clk_pins: sound_clk {
 		pinmux = <RZV2H_PORT_PINMUX(4, 2, 8)>, /* AUDIO_CLKB */
 			 <RZV2H_PORT_PINMUX(4, 3, 8)>; /* AUDIO_CLKC */
 	};
 
 	sound_pins: sound {
-		pinmux = <RZV2H_PORT_PINMUX(0, 3, 9)>, /* SSI3_SCK */
-			 <RZV2H_PORT_PINMUX(0, 4, 9)>, /* SSI3_WS */
-			 <RZV2H_PORT_PINMUX(0, 2, 9)>, /* SSI3_SDATA */
-			 <RZV2H_PORT_PINMUX(0, 5, 9)>; /* SSI4_SDATA */
-	};
-
+#if (!I2C1_GPT_SEL)
+		ssi34 {
+			pinmux = <RZV2H_PORT_PINMUX(0, 3, 9)>, /* SSI3_SCK */
+				 <RZV2H_PORT_PINMUX(0, 4, 9)>, /* SSI3_WS */
+				 <RZV2H_PORT_PINMUX(0, 2, 9)>, /* SSI3_SDATA */
+				 <RZV2H_PORT_PINMUX(0, 5, 9)>; /* SSI4_SDATA */
+		};
 #endif
+#if (!SW_LCD_EN)
+		ssi0 {
+			pinmux = <RZV2H_PORT_PINMUX(7, 1, 9)>, /* SSI0_SCK */
+				 <RZV2H_PORT_PINMUX(7, 2, 9)>, /* SSI0_WS */
+				 <RZV2H_PORT_PINMUX(7, 0, 9)>; /* SSI0_SDATA */
+		};
+#endif
+	};
 
 	i2c7_pins: i2c7 {
 		pinmux = <RZV2H_PORT_PINMUX(A, 4, 4)>, /* SCL */
@@ -377,8 +377,15 @@
 		VDDSP-supply = <&reg_3p3v>;
 		VDDMIC-supply = <&reg_3p3v>;
 		VDDIO-supply = <&reg_1p8v>;
+
+		port {
+			da7212_endpoint: endpoint {
+				remote-endpoint = <&rsnd_endpoint0>;
+			};
+		};
 	};
 };
+#endif
 
 &rcar_sound {
 	pinctrl-0 = <&sound_clk_pins &sound_pins>;
@@ -393,15 +400,60 @@
 	/* Multi DAI */
 	#sound-dai-cells = <1>;
 
-	rcar_sound,dai {
-		dai0 {
-			playback = <&ssi3>;
-			capture  = <&ssi4 &src0 &dvc0>;
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+#if (!I2C1_GPT_SEL)
+		rsnd_port0: port@0 {
+			reg = <0>;
+			rsnd_endpoint0: endpoint {
+				remote-endpoint = <&da7212_endpoint>;
+
+				dai-format = "i2s";
+				bitclock-master = <&rsnd_endpoint0>;
+				frame-master = <&rsnd_endpoint0>;
+
+				playback = <&ssi3>;
+				capture = <&ssi4>, <&src0>, <&dvc0>;
+			};
 		};
+
+#if (!SW_LCD_EN)
+		rsnd_port1: port@1 {
+			reg = <1>;
+			rsnd_endpoint1: endpoint {
+#if ((RZG3E_SMARC_MIPI_DSI_ENABLE) && (!SW_HDMI_EN))
+				remote-endpoint = <&adv7535_codec_ep>;
+#endif
+
+				dai-format = "i2s";
+				bitclock-master = <&rsnd_endpoint1>;
+				frame-master = <&rsnd_endpoint1>;
+
+				playback = <&ssi0>;
+			};
+		};
+#endif
+#else
+#if (!SW_LCD_EN)
+		rsnd_port0: port@0 {
+			reg = <0>;
+			rsnd_endpoint0: endpoint {
+#if ((RZG3E_SMARC_MIPI_DSI_ENABLE) && (!SW_HDMI_EN))
+				remote-endpoint = <&adv7535_codec_ep>;
+#endif
+
+				dai-format = "i2s";
+				bitclock-master = <&rsnd_endpoint0>;
+				frame-master = <&rsnd_endpoint0>;
+
+				playback = <&ssi0>;
+			};
+		};
+#endif
+#endif
 	};
 };
-
-#endif
 
 &i2c7 {
 	pinctrl-0 = <&i2c7_pins>;
@@ -445,6 +497,21 @@
 					remote-endpoint = <&dsi_to_hdmi_out>;
 				};
 			};
+
+#if (!SW_LCD_EN)
+
+			port@2 {
+				reg = <2>;
+				adv7535_codec_ep: endpoint {
+#if (!I2C1_GPT_SEL)
+					remote-endpoint = <&rsnd_endpoint1>;
+#else
+					remote-endpoint = <&rsnd_endpoint0>;
+#endif
+				};
+			};
+#endif
+
 		};
 	};
 #endif
