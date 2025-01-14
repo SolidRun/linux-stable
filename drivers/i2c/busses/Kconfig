@@ -981,6 +981,7 @@ config I2C_QUP
 config I2C_RIIC
 	tristate "Renesas RIIC adapter"
 	depends on ARCH_RENESAS || COMPILE_TEST
+	select I2C_SLAVE
 	help
 	  If you say yes to this option, support will be included for the
 	  Renesas RIIC I2C interface.
