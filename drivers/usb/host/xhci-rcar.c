@@ -265,10 +265,45 @@ static const struct xhci_plat_priv xhci_plat_renesas_rzv2m = {
 };
 
 static const struct xhci_plat_priv xhci_plat_renesas_rzv2h = {
-	.quirks = XHCI_RESET_ON_RESUME,
+	.quirks = XHCI_RESET_ON_RESUME  | XHCI_SUSPEND_RESUME_CLKS |
+		  XHCI_RZV2H_REINIT_AFTER_RESET,
 	.plat_start = xhci_rzv2h_start,
+	.suspend_quirk = xhci_rzv2h_suspend,
 	.resume_quirk = xhci_rzv2h_resume,
 };
+
+static int __maybe_unused xhci_renesas_suspend(struct device *dev)
+{
+	return xhci_plat_pm_ops.suspend(dev);
+}
+
+static int __maybe_unused xhci_renesas_resume(struct device *dev)
+{
+	struct usb_hcd	*hcd = dev_get_drvdata(dev);
+	struct xhci_plat_priv *priv = hcd_to_xhci_priv(hcd);
+	int ret = 0;
+
+	ret = xhci_plat_pm_ops.resume(dev);
+	if (ret)
+		return ret;
+
+	if (priv->quirks & XHCI_RZV2H_REINIT_AFTER_RESET) {
+		if (priv->plat_start)
+			priv->plat_start(hcd);
+	}
+
+	return ret;
+}
+
+static int __maybe_unused xhci_renesas_runtime_suspend(struct device *dev)
+{
+	return xhci_plat_pm_ops.runtime_suspend(dev);
+}
+
+static int __maybe_unused xhci_renesas_runtime_resume(struct device *dev)
+{
+	return xhci_plat_pm_ops.runtime_resume(dev);
+}
 
 static const struct of_device_id usb_xhci_of_match[] = {
 	{
@@ -306,6 +341,13 @@ static const struct of_device_id usb_xhci_of_match[] = {
 };
 MODULE_DEVICE_TABLE(of, usb_xhci_of_match);
 
+static const struct dev_pm_ops xhci_renesas_pm_ops = {
+	SET_SYSTEM_SLEEP_PM_OPS(xhci_renesas_suspend, xhci_renesas_resume)
+	SET_RUNTIME_PM_OPS(xhci_renesas_runtime_suspend,
+			   xhci_renesas_runtime_resume,
+			   NULL)
+};
+
 static int xhci_renesas_probe(struct platform_device *pdev)
 {
 	const struct xhci_plat_priv *priv_match;
@@ -321,7 +363,7 @@ static struct platform_driver usb_xhci_renesas_driver = {
 	.shutdown = usb_hcd_platform_shutdown,
 	.driver	= {
 		.name = "xhci-renesas-hcd",
-		.pm = &xhci_plat_pm_ops,
+		.pm = &xhci_renesas_pm_ops,
 		.of_match_table = of_match_ptr(usb_xhci_of_match),
 	},
 };

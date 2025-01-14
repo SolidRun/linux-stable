@@ -9,6 +9,8 @@
 #include <linux/platform_device.h>
 #include <linux/of.h>
 #include <linux/usb/phy.h>
+#include <linux/reset.h>
+#include <linux/clk.h>
 
 #include "xhci.h"
 #include "xhci-plat.h"
@@ -159,6 +161,28 @@ void xhci_rzv2h_start(struct usb_hcd *hcd)
 
 int xhci_rzv2h_resume(struct usb_hcd *hcd)
 {
-	xhci_rzv2h_start(hcd);
+	struct xhci_hcd *xhci = hcd_to_xhci(hcd);
+	int ret = 0;
+
+	ret = reset_control_deassert(xhci->reset);
+
+	if (ret) {
+		if (xhci->quirks & XHCI_SUSPEND_RESUME_CLKS) {
+			clk_disable_unprepare(xhci->reg_clk);
+			clk_disable_unprepare(xhci->clk);
+		}
+
+		return ret;
+	}
+
+	return ret;
+}
+
+int xhci_rzv2h_suspend(struct usb_hcd *hcd)
+{
+	struct xhci_hcd *xhci = hcd_to_xhci(hcd);
+
+	reset_control_assert(xhci->reset);
+
 	return 0;
 }
