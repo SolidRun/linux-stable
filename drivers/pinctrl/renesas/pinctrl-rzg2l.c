@@ -161,6 +161,7 @@
 #define PWPR_REGWE_B		BIT(5)	/* OEN Register Write Enable, known only in RZ/V2H(P) */
 
 #define PM_MASK			0x03
+#define PFC_MASK		0x07
 #define IEN_MASK		0x01
 #define IOLH_MASK		0x03
 #define SR_MASK			0x01
@@ -300,7 +301,6 @@ enum rzg2l_iolh_index {
  * @oen_max_pin: the maximum pin number supporting output enable
  * @oen_max_port: the maximum port number supporting output enable
  * @tint_start_index: the start index for the TINT interrupts
- * @pfcmask: mask for the PFC_m register
  */
 struct rzg2l_hwcfg {
 	const struct rzg2l_register_offsets regs;
@@ -313,7 +313,6 @@ struct rzg2l_hwcfg {
 	u8 oen_max_pin;
 	u8 oen_max_port;
 	unsigned int tint_start_index;
-	u8 pfcmask;
 };
 
 struct rzg2l_dedicated_configs {
@@ -550,7 +549,6 @@ static void rzv2h_pmc_writeb(struct rzg2l_pinctrl *pctrl, u8 val, u16 offset)
 static void rzg2l_pinctrl_set_pfc_mode(struct rzg2l_pinctrl *pctrl,
 				       u8 pin, u8 off, u8 func)
 {
-	const struct rzg2l_hwcfg *hwcfg = pctrl->data->hwcfg;
 	unsigned long flags;
 	u32 reg;
 
@@ -569,7 +567,7 @@ static void rzg2l_pinctrl_set_pfc_mode(struct rzg2l_pinctrl *pctrl,
 
 	/* Select Pin function mode with PFC register */
 	reg = readl(pctrl->base + PFC(off));
-	reg &= ~(hwcfg->pfcmask << (pin * 4));
+	reg &= ~(PFC_MASK << (pin * 4));
 	writel(reg | (func << (pin * 4)), pctrl->base + PFC(off));
 
 	/* Switch to Peripheral pin function with PMC register */
@@ -3163,7 +3161,6 @@ static void rzg2l_pinctrl_pm_setup_dedicated_regs(struct rzg2l_pinctrl *pctrl, b
 static void rzg2l_pinctrl_pm_setup_pfc(struct rzg2l_pinctrl *pctrl)
 {
 	u32 nports = pctrl->data->n_port_pins / RZG2L_PINS_PER_PORT;
-	const struct rzg2l_hwcfg *hwcfg = pctrl->data->hwcfg;
 	unsigned long flags;
 
 	spin_lock_irqsave(&pctrl->lock, flags);
@@ -3200,8 +3197,8 @@ static void rzg2l_pinctrl_pm_setup_pfc(struct rzg2l_pinctrl *pctrl)
 			writeb(pmc, pctrl->base + PMC(off));
 
 			/* Select Pin function mode. */
-			pfc &= ~(hwcfg->pfcmask << (pin * 4));
-			pfc |= (cache->pfc[port] & (hwcfg->pfcmask << (pin * 4)));
+			pfc &= ~(PFC_MASK << (pin * 4));
+			pfc |= (cache->pfc[port] & (PFC_MASK << (pin * 4)));
 			writel(pfc, pctrl->base + PFC(off));
 
 			/* Switch to Peripheral pin function. */
@@ -3317,7 +3314,6 @@ static const struct rzg2l_hwcfg rzg2l_hwcfg = {
 	.iolh_groupb_oi = { 100, 66, 50, 33, },
 	.oen_max_pin = 0,
 	.tint_start_index = 9,
-	.pfcmask = 0x7,
 };
 
 static const struct rzg2l_hwcfg rzg3s_hwcfg = {
@@ -3351,7 +3347,6 @@ static const struct rzg2l_hwcfg rzg3s_hwcfg = {
 	.oen_max_pin = 1, /* Pin 1 of P0 and P7 is the maximum OEN pin. */
 	.oen_max_port = 7, /* P7_1 is the maximum OEN port. */
 	.tint_start_index = 9,
-	.pfcmask = 0x7,
 };
 
 static const struct rzg2l_hwcfg rzv2h_hwcfg = {
@@ -3359,7 +3354,6 @@ static const struct rzg2l_hwcfg rzv2h_hwcfg = {
 		.pwpr = 0x3c04,
 	},
 	.tint_start_index = 17,
-	.pfcmask = 0xf,
 };
 
 static struct rzg2l_pinctrl_data r9a07g043_data = {
