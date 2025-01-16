@@ -37,4 +37,10 @@
  */
 #define SW_OPT_MUX4	SW_ON
 
+/*
+ * RSPI0_LOOPBACK_SEL - select target SPI device between virtual loopback
+			and N25Q256A flash on PMOD Digilent SF3 (default)
+ */
+#define RSPI0_LOOPBACK_SEL	0
+
 #endif /* __RZG3S_SMARC_SWITCHES_H__ */
