@@ -233,6 +233,26 @@
 		regulator-always-on;
 	};
 
+	codec_test0: codec_test0 {
+		compatible = "linux,snd-soc-dummy";
+		#sound-dai-cells = <0>;
+	port {
+		dummy_codec0: endpoint@0 {
+			remote-endpoint = <&spdif0_endpoint>;
+			};
+		};
+	};
+
+	codec_test1: codec_test1 {
+		compatible = "linux,snd-soc-dummy";
+		#sound-dai-cells = <0>;
+	port {
+		dummy_codec1: endpoint {
+			remote-endpoint = <&spdif1_endpoint>;
+			};
+		};
+	};
+
 	gpio_dummy: gpio-dummy {
 		compatible = "gpio-dummy";
 		gpio-controller;
@@ -259,6 +279,8 @@
 
 		dais = <&rsnd_port0	/* DA7211 */
 			&rsnd_port1	/* HDMI0  */
+			&spdif_port0
+			&spdif_port1
 			>;
 	};
 
@@ -374,6 +396,16 @@
 			 <RZV2H_PORT_PINMUX(0, 7, 1)>; /* I2C8_SCL */
 	};
 
+	spdif0_pins: spdif0 {
+		pinmux = <RZV2H_PORT_PINMUX(8, 0, 8)>, /* SPDIF0_OUT */
+			 <RZV2H_PORT_PINMUX(8, 1, 8)>; /* SPDIF0_IN */
+	};
+
+	spdif2_pins: spdif2 {
+		pinmux = <RZV2H_PORT_PINMUX(8, 2, 8)>, /* SPDIF2_OUT */
+			 <RZV2H_PORT_PINMUX(8, 3, 8)>; /* SPDIF2_IN */
+	};
+
 	sound_clk_pins: sound_clk {
 		pinmux = <RZV2H_PORT_PINMUX(1, 0, 7)>, /* AUDIO_CLKB */
 			 <RZV2H_PORT_PINMUX(1, 1, 7)>, /* AUDIO_CLKC */
@@ -450,7 +482,7 @@
 &canfd {
 	pinctrl-0 = <&can0_pins &can1_pins>;
 	pinctrl-names = "default";
-	status = "okay";
+//	status = "okay";
 
 	channel0 {
 		status = "okay";
@@ -1040,7 +1072,7 @@
 };
 
 &rcar_sound {
-	pinctrl-0 = <&sound_clk_pins &sound_pins_hdmi &sound_pins>;
+	pinctrl-0 = <&sound_clk_pins &sound_pins_hdmi &sound_pins &spdif0_pins &spdif2_pins>;
 	pinctrl-names = "default";
 
 	status = "okay";
@@ -1082,6 +1114,33 @@
 				playback = <&ssi0>;
 			};
 		};
+
+		spdif_port0: port@2 {
+			reg = <2>;
+			spdif0_endpoint: endpoint {
+				remote-endpoint = <&dummy_codec0>;
+
+				bitclock-master = <&spdif0_endpoint>;
+				frame-master = <&spdif0_endpoint>;
+
+				playback = <&spdif0>;
+				capture  = <&spdif0>;
+			};
+		};
+
+		spdif_port1: port@3 {
+			reg = <3>;
+			spdif1_endpoint: endpoint {
+				remote-endpoint = <&dummy_codec1>;
+
+				bitclock-master = <&spdif1_endpoint>;
+				frame-master = <&spdif1_endpoint>;
+
+				playback = <&spdif2>;
+				capture  = <&spdif2>;
+			};
+		};
+
 	};
 };
 
