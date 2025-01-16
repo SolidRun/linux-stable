@@ -226,15 +226,6 @@
 		pinmux = <RZG2L_PORT_PINMUX(5, 1, 4)>; /* ADC_TRG */
 	};
 
-#if SW_CONFIG3 == SW_ON
-	eth0-phy-irq-hog {
-		gpio-hog;
-		gpios = <RZG2L_GPIO(12, 0) GPIO_ACTIVE_LOW>;
-		input;
-		line-name = "eth0-phy-irq";
-	};
-#endif
-
 	eth0_pins: eth0 {
 		txc {
 			pinmux = <RZG2L_PORT_PINMUX(1, 0, 1)>;  /* ET0_TXC */
@@ -268,15 +259,6 @@
 			power-source = <1800>;
 		};
 	};
-
-#if SW_CONFIG3 == SW_ON
-	eth1-phy-irq-hog {
-		gpio-hog;
-		gpios = <RZG2L_GPIO(12, 1) GPIO_ACTIVE_LOW>;
-		input;
-		line-name = "eth1-phy-irq";
-	};
-#endif
 
 	eth1_pins: eth1 {
 		txc {
