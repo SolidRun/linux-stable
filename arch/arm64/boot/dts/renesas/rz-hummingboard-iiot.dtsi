@@ -32,6 +32,36 @@
 		gpios = <&gpio_dsi_expander 3 GPIO_ACTIVE_LOW>;
 		default-on;
 	};
+
+	/* J6: M.2B_3V3 */
+	power-m2-j6 {
+		compatible = "reg-userspace-consumer";
+		regulator-name = "m2-j6-pwr-consumer";
+		regulator-boot-on;
+		regulator-supplies = "vcc";
+		vcc-supply = <&reg_m2_j6_pwr>;
+		comment = "m.2 j6 3.3V connector switch";
+	};
+
+	/* J6: M.2B_3V3_EN */
+	reg_m2_j6_pwr: regulator-m2-j6-pwr {
+		compatible = "regulator-fixed";
+		regulator-name = "m2-j6-pwr";
+		pinctrl-names = "default";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		gpio = <&tca6416_20 5 GPIO_ACTIVE_HIGH>; // U20[P5]
+		enable-active-high;
+	};
+
+	/* M.2B-J6 Reset */
+	lte-reset {
+		compatible = "gpio-reset";
+		reset-gpios = <&tca6416_20 8 GPIO_ACTIVE_LOW>; // M.2B_RESET U20_P[10]
+		reset-delay-us = <2000>;
+		reset-post-delay-ms = <40>;
+		#reset-cells = <0>;
+	};
 };
 
 &pinctrl {
