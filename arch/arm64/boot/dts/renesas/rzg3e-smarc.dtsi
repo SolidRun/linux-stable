@@ -180,6 +180,10 @@
 				 <RZV2H_PORT_PINMUX(D, 5, 4)>; /* SDA */
 	};
 
+	pcie0_pins: pcie0 {
+		pinmux = <RZV2H_PORT_PINMUX(G, 7, 1)>; /* PCIE_SLOT_RST */
+	};
+
 	usb20_pins: usb20 {
 		pinmux = <RZV2H_PORT_PINMUX(0, 1, 12)>, /* VBUS */
 			 <RZV2H_PORT_PINMUX(0, 0, 12)>; /* OVC */
@@ -359,4 +363,13 @@
 
 &usb3_phy {
 	status = "okay";
+};
+
+&pcie0 {
+	/* Map all possible DDR as inbound ranges */
+	dma-ranges = <0x42000000 0 0x40000000 0 0x40000000 0x0 0xF8000000>;
+
+	status = "okay";
+	pinctrl-0 = <&pcie0_pins>;
+	pinctrl-names = "default";
 };
