@@ -83,6 +83,11 @@ config PCIE_RCAR_EP
 	  Say Y here if you want PCIe controller support on R-Car SoCs in
 	  endpoint mode.
 
+config RZV2H_PCIE
+        tristate "Renesas RZ/V2H Series PCIe controller"
+        help
+          Say Y here if you want PCIe controller support on RZ/V2H Series SoCs.
+
 config PCI_HOST_COMMON
 	tristate
 	select PCI_ECAM
