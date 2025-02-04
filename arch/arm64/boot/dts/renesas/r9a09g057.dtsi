@@ -1910,6 +1910,50 @@
 			status = "disabled";
 		};
 
+		pcie0: pcie@13400000 {
+			compatible = "renesas,rzv2h-pcie";
+			device_type = "pci";
+			reg = <0 0x13400000 0 0x10000>;
+			clocks = <&cpg CPG_MOD 0xc4>,
+				 <&cpg CPG_MOD 0xc5>;
+			power-domains = <&cpg>;
+			resets = <&cpg 0xb2>;
+			ranges = <0x03000000 0x0 0x30000000 0x0 0x30000000 0x0 0x08000000>;
+			dma-ranges = <0x42000000 0 0x40000000 0 0x40000000 0 0x80000000>;
+			interrupts = <GIC_SPI 791 IRQ_TYPE_LEVEL_HIGH>;
+			#interrupt-cells = <1>;
+			interrupt-map-mask = <0 0 0 0>;
+			interrupt-map = <0 0 0 0 &gic GIC_SPI 791 IRQ_TYPE_LEVEL_HIGH>;
+			bus-range = <0x0 0xff>;
+			linux,pci-domain = <0x0>;
+			#address-cells = <3>;
+			#size-cells = <2>;
+			pcie,channel = <0>;
+			status = "disabled";
+		};
+
+		pcie1: pcie@13410000 {
+			compatible = "renesas,rzv2h-pcie";
+			device_type = "pci";
+			reg = <0 0x13410000 0 0x10000>;
+			clocks = <&cpg CPG_MOD 0xc4>,
+				 <&cpg CPG_MOD 0xc5>;
+			power-domains = <&cpg>;
+			resets = <&cpg 0xb2>;
+			ranges = <0x03000000 0x0 0x38000000 0x0 0x38000000 0x0 0x08000000>;
+			dma-ranges = <0x42000000 0 0x40000000 0 0x40000000 0 0x80000000>;
+			interrupts = <GIC_SPI 814 IRQ_TYPE_LEVEL_HIGH>;
+			#interrupt-cells = <1>;
+			interrupt-map-mask = <0 0 0 0>;
+			interrupt-map = <0 0 0 0 &gic GIC_SPI 814 IRQ_TYPE_LEVEL_HIGH>;
+			bus-range = <0x0 0xff>;
+			linux,pci-domain = <0x0>;
+			#address-cells = <3>;
+			#size-cells = <2>;
+			pcie,channel = <1>;
+			status = "disabled";
+		};
+
 		dsi0: dsi@16430000 {
 			compatible = "renesas,r9a09g057-mipi-dsi",
 				     "renesas,rzv2h-mipi-dsi";
