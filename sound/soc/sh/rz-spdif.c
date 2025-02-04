@@ -117,6 +117,7 @@ struct rz_spdif_stream {
 	struct snd_pcm_substream *substream;
 	int dma_buffer_pos;	/* The address for the next DMA descriptor */
 	struct dma_chan *dma_ch;
+	bool running;
 
 	int (*transfer)(struct spdif_dev_data *spdif, struct rz_spdif_stream *strm);
 };
@@ -138,6 +139,7 @@ struct spdif_dev_data {
 	u32 rate;
 	u32 bit_width;
 	bool is_dma;
+	bool is_passback;
 
 	struct rz_spdif_stream playback;
 	struct rz_spdif_stream capture;
@@ -147,9 +149,13 @@ struct spdif_dev_data {
 
 	/* for PIO */
 	int count;
-	int byte_pos;
-	int byte_per_period;
-	int next_period_byte;
+	int tx_byte_pos;
+	int tx_byte_per_period;
+	int tx_next_period_byte;
+
+	int rx_byte_pos;
+	int rx_byte_per_period;
+	int rx_next_period_byte;
 };
 
 static void rz_spdif_dma_complete(void *data);
@@ -213,6 +219,11 @@ static inline bool rz_spdif_stream_is_play(struct snd_pcm_substream *substream)
 	return substream->stream == SNDRV_PCM_STREAM_PLAYBACK;
 }
 
+static inline bool rz_spdif_is_stream_running(struct rz_spdif_stream *strm)
+{
+	return strm->substream && strm->running;
+}
+
 static void rz_spdif_bset(struct spdif_dev_data *priv, uint reg, uint bit_mask, u32 data)
 {
 	u32 ret;
@@ -235,15 +246,18 @@ static int rz_spdif_stop(struct spdif_dev_data *spdif, struct rz_spdif_stream *s
 		dmaengine_terminate_async(strm->dma_ch);
 
 	/* Disable SPDIF to idle state */
-	if (rz_spdif_stream_is_play(strm->substream)) {
+	if (rz_spdif_is_stream_running(&spdif->playback)) {
 		rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_TME_BIT, 0);
 		while (!(rz_spdif_reg_readl(spdif, SPDIF_STAT) & SPDIF_TIS_BIT))
 			;
-	} else {
+	}
+	if (rz_spdif_is_stream_running(&spdif->capture)) {
 		rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_RME_BIT, 0);
 		while (!(rz_spdif_reg_readl(spdif, SPDIF_STAT) & SPDIF_RIS_BIT))
 			;
 	}
+
+	strm->running = 0;
 
 	return 0;
 }
@@ -253,11 +267,17 @@ static void rz_spdif_pio_init(struct spdif_dev_data *spdif,
 {
 	struct snd_pcm_runtime *runtime = strm->substream->runtime;
 
-	spdif->byte_pos		= 0;
-	spdif->byte_per_period	= runtime->period_size *
-				  runtime->channels *
-				  samples_to_bytes(runtime, 1);
-	spdif->next_period_byte	= spdif->byte_per_period;
+	spdif->tx_byte_pos		= 0;
+	spdif->tx_byte_per_period	= runtime->period_size *
+					  runtime->channels *
+					  samples_to_bytes(runtime, 1);
+	spdif->tx_next_period_byte	= spdif->tx_byte_per_period;
+
+	spdif->rx_byte_pos		= 0;
+	spdif->rx_byte_per_period	= runtime->period_size *
+					  runtime->channels *
+					  samples_to_bytes(runtime, 1);
+	spdif->rx_next_period_byte	= spdif->rx_byte_per_period;
 }
 
 static int rz_spdif_start(struct spdif_dev_data *spdif, struct rz_spdif_stream *strm)
@@ -267,6 +287,7 @@ static int rz_spdif_start(struct spdif_dev_data *spdif, struct rz_spdif_stream *
 	spdif->spdout.u_idx = 0;
 	spdif->spdin.u_idx = 0;
 	spdif->count = 2;
+	strm->running = 1;
 
 	/* PIO init only */
 	rz_spdif_pio_init(spdif, strm);
@@ -275,16 +296,16 @@ static int rz_spdif_start(struct spdif_dev_data *spdif, struct rz_spdif_stream *
 	 *	STAT - Status Register
 	 *	CTRL - Control Register
 	 */
-
 	rz_spdif_reg_writel(spdif, SPDIF_CTRL, 0);
 	rz_spdif_reg_writel(spdif, SPDIF_STAT, 0);
 
-	if (rz_spdif_stream_is_play(strm->substream)) {
+	if (rz_spdif_is_stream_running(&spdif->playback)) {
 		/* Enable transmitter module */
 		rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_TME_BIT, SPDIF_TME_BIT);
 		while (rz_spdif_reg_readl(spdif, SPDIF_STAT) & SPDIF_TIS_BIT)
 			;
-	} else {
+	}
+	if (rz_spdif_is_stream_running(&spdif->capture)) {
 		/* Enable receiver module */
 		rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_RME_BIT, SPDIF_RME_BIT);
 		while (rz_spdif_reg_readl(spdif, SPDIF_STAT) & SPDIF_RIS_BIT)
@@ -305,6 +326,7 @@ static int rz_spdif_start(struct spdif_dev_data *spdif, struct rz_spdif_stream *
 		return -EINVAL;
 	}
 
+	ctrl |= spdif->is_passback ? SPDIF_PB_BIT : 0;
 	rz_spdif_reg_writel(spdif, SPDIF_CTRL, ctrl);
 
 	return 0;
@@ -314,7 +336,7 @@ static int rz_spdif_irq(struct spdif_dev_data *spdif,
 			struct rz_spdif_stream *strm, int enable)
 {
 	if (enable) {
-		if (rz_spdif_stream_is_play(strm->substream)) {
+		if (rz_spdif_is_stream_running(&spdif->playback)) {
 			/* Channel status information */
 			rz_spdif_reg_writel(spdif, SPDIF_TLCS, spdif->spdout.s_buf[SPDIF_CH1]);
 			rz_spdif_reg_writel(spdif, SPDIF_TRCS, spdif->spdout.s_buf[SPDIF_CH2]);
@@ -336,7 +358,8 @@ static int rz_spdif_irq(struct spdif_dev_data *spdif,
 			} else
 				/* Enable transmitter interrupt */
 				rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_TCBI_BIT, SPDIF_TCBI_BIT);
-		} else {
+		}
+		if (rz_spdif_is_stream_running(&spdif->capture)) {
 			/* Enable interrupt (Channel status full) */
 			rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_RCSI_BIT, SPDIF_RCSI_BIT);
 
@@ -356,7 +379,7 @@ static int rz_spdif_irq(struct spdif_dev_data *spdif,
 				rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_RCBI_BIT, SPDIF_RCBI_BIT);
 		}
 	} else {
-		if (rz_spdif_stream_is_play(strm->substream)) {
+		if (rz_spdif_is_stream_running(&spdif->playback)) {
 			/* Disable error interrupt */
 			rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_TEIE_BIT | SPDIF_ABUI_BIT, 0);
 
@@ -364,7 +387,8 @@ static int rz_spdif_irq(struct spdif_dev_data *spdif,
 			rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_TCBI_BIT | SPDIF_TUII_BIT, 0);
 			/* Disable DMA transmitter */
 			rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_TDE_BIT, 0);
-		} else {
+		}
+		if (rz_spdif_is_stream_running(&spdif->capture)) {
 			/* Disable error interrupt */
 			rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_REIE_BIT | SPDIF_ABOI_BIT, 0);
 
@@ -532,7 +556,12 @@ static snd_pcm_uframes_t rz_spdif_pcm_pointer(struct snd_soc_component *componen
 	/* Handle buffer pos for DMA transfer */
 	if (spdif->is_dma)
 		return strm->dma_buffer_pos;
-	return bytes_to_frames(runtime, READ_ONCE(spdif->byte_pos));
+	if (rz_spdif_is_stream_running(&spdif->playback))
+		return bytes_to_frames(runtime, READ_ONCE(spdif->tx_byte_pos));
+	if (rz_spdif_is_stream_running(&spdif->capture))
+		return bytes_to_frames(runtime, READ_ONCE(spdif->rx_byte_pos));
+
+	return 0;
 }
 
 static int rz_spdif_pcm_open(struct snd_soc_component *component,
@@ -544,19 +573,14 @@ static int rz_spdif_pcm_open(struct snd_soc_component *component,
 					    SNDRV_PCM_HW_PARAM_PERIODS);
 }
 
-static struct snd_soc_dai_driver rz_spdif_tx_dai = {
-	.name = "rz_spdif_dai_tx",
+static struct snd_soc_dai_driver rz_spdif_soc_dai = {
+	.name = "rz_spdif_dai",
 	.playback = {
 		.channels_min	= 2,
 		.channels_max	= 2,
 		.rates		= RZ_SPDIF_RATES,
 		.formats	= RZ_SPDIF_FORMATS,
 	},
-	.ops = &rz_spdif_dai_ops,
-};
-
-static struct snd_soc_dai_driver rz_spdif_rx_dai = {
-	.name = "rz_spdif_dai_rx",
 	.capture = {
 		.channels_min	= 2,
 		.channels_max	= 2,
@@ -641,6 +665,31 @@ static int rz_spdif_kctrl_ub_get(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
+static int rz_spdif_kctrl_mode_get(struct snd_kcontrol *kcontrol,
+				   struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_component *component = snd_kcontrol_chip(kcontrol);
+	struct device *dev = component->dev;
+	struct spdif_dev_data *spdif = dev_get_drvdata(dev);
+
+	ucontrol->value.integer.value[0] = spdif->is_passback;
+
+	return 0;
+}
+
+static int rz_spdif_kctrl_mode_put(struct snd_kcontrol *kcontrol,
+				   struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_component *component = snd_kcontrol_chip(kcontrol);
+	struct device *dev = component->dev;
+	struct spdif_dev_data *spdif = dev_get_drvdata(dev);
+	int mode = ucontrol->value.integer.value[0];
+
+	spdif->is_passback = mode;
+
+	return 0;
+}
+
 static const struct snd_kcontrol_new rz_spdif_snd_kcontrol[] = {
 	/* Chanel status controller */
 	{
@@ -660,6 +709,15 @@ static const struct snd_kcontrol_new rz_spdif_snd_kcontrol[] = {
 		.info	= rz_spdif_ub_info,
 		.get	= rz_spdif_kctrl_ub_get,
 	},
+	/* Pass Back mode controller */
+	{
+		.iface	= SNDRV_CTL_ELEM_IFACE_PCM,
+		.name	= "Renesas SPDIF Pass Back Mode",
+		.access	= SNDRV_CTL_ELEM_ACCESS_READWRITE,
+		.info	= snd_ctl_boolean_mono_info,
+		.get	= rz_spdif_kctrl_mode_get,
+		.put	= rz_spdif_kctrl_mode_put,
+	},
 };
 
 static const struct snd_soc_component_driver rz_spdif_component = {
@@ -671,60 +729,86 @@ static const struct snd_soc_component_driver rz_spdif_component = {
 	.num_controls	= ARRAY_SIZE(rz_spdif_snd_kcontrol),
 };
 
-static bool rz_spdif_pio_interrupt(int irq, struct spdif_dev_data *spdif)
+static bool rz_spdif_pio_recv(int irq, struct spdif_dev_data *spdif)
 {
 	struct snd_pcm_runtime *runtime;
-	u32 *buf;
+	u32 *rx_buf;
 	int shift = 0;
 	int byte_pos;
 	bool elapsed = false;
 
-	if (spdif->playback.substream)
-		runtime = spdif->playback.substream->runtime;
-	else
-		runtime = spdif->capture.substream->runtime;
+	runtime = spdif->capture.substream->runtime;
 
-	buf = (u32 *)(runtime->dma_area + spdif->byte_pos);
+	rx_buf = (u32 *)(runtime->dma_area + spdif->rx_byte_pos);
 
 	if (snd_pcm_format_width(runtime->format) == 24)
 		shift = 8;
 	else if (snd_pcm_format_width(runtime->format) == 16)
 		shift = 16;
 
-	/*
-	 * 16/24 data can be assesse to data register
-	 * directly as 32bit data
-	 * see rz_spdif_init()
-	 */
-	if (spdif->playback.substream) {
-		do {
-			/* Write data to both channel left, right */
-			rz_spdif_reg_writel(spdif, SPDIF_TLCA, (*buf) >> shift);
-			rz_spdif_reg_writel(spdif, SPDIF_TRCA, (*buf) >> shift);
-		} while (rz_spdif_reg_readl(spdif, SPDIF_STAT) & SPDIF_CBTX_BIT);
-	} else {
-		do {
-			/* Default record from right channel */
-			*buf = (rz_spdif_reg_readl(spdif, SPDIF_RLCA) << shift);
-			*buf = (rz_spdif_reg_readl(spdif, SPDIF_RRCA) << shift);
-		} while (rz_spdif_reg_readl(spdif, SPDIF_STAT) & SPDIF_CBRX_BIT);
-	}
+	do {
+		/* Default record from right channel */
+		*rx_buf = (rz_spdif_reg_readl(spdif, SPDIF_RLCA) << shift);
+		*rx_buf = (rz_spdif_reg_readl(spdif, SPDIF_RRCA) << shift);
+	} while (rz_spdif_reg_readl(spdif, SPDIF_STAT) & SPDIF_CBRX_BIT);
 
-	byte_pos = spdif->byte_pos + sizeof(*buf);
+	byte_pos = spdif->rx_byte_pos + sizeof(*rx_buf);
 
-	if (byte_pos >= spdif->next_period_byte) {
-		int period_pos = byte_pos / spdif->byte_per_period;
+	if (byte_pos >= spdif->rx_next_period_byte) {
+		int period_pos = byte_pos / spdif->rx_byte_per_period;
 
 		if (period_pos >= runtime->periods) {
 			byte_pos = 0;
 			period_pos = 0;
 		}
-		spdif->next_period_byte = (period_pos + 1) * spdif->byte_per_period;
+		spdif->rx_next_period_byte = (period_pos + 1) * spdif->rx_byte_per_period;
 
 		elapsed = true;
 	}
 
-	WRITE_ONCE(spdif->byte_pos, byte_pos);
+	WRITE_ONCE(spdif->rx_byte_pos, byte_pos);
+
+	return elapsed;
+}
+
+static bool rz_spdif_pio_send(int irq, struct spdif_dev_data *spdif)
+{
+	struct snd_pcm_runtime *runtime;
+	u32 *tx_buf;
+	int shift = 0;
+	int byte_pos;
+	bool elapsed = false;
+
+	runtime = spdif->playback.substream->runtime;
+
+	tx_buf = (u32 *)(runtime->dma_area + spdif->tx_byte_pos);
+
+	if (snd_pcm_format_width(runtime->format) == 24)
+		shift = 8;
+	else if (snd_pcm_format_width(runtime->format) == 16)
+		shift = 16;
+
+	do {
+		/* Write data to both channel left, right */
+		rz_spdif_reg_writel(spdif, SPDIF_TLCA, (*tx_buf) >> shift);
+		rz_spdif_reg_writel(spdif, SPDIF_TRCA, (*tx_buf) >> shift);
+	} while (rz_spdif_reg_readl(spdif, SPDIF_STAT) & SPDIF_CBTX_BIT);
+
+	byte_pos = spdif->tx_byte_pos + sizeof(*tx_buf);
+
+	if (byte_pos >= spdif->tx_next_period_byte) {
+		int period_pos = byte_pos / spdif->tx_byte_per_period;
+
+		if (period_pos >= runtime->periods) {
+			byte_pos = 0;
+			period_pos = 0;
+		}
+		spdif->tx_next_period_byte = (period_pos + 1) * spdif->tx_byte_per_period;
+
+		elapsed = true;
+	}
+
+	WRITE_ONCE(spdif->tx_byte_pos, byte_pos);
 
 	return elapsed;
 }
@@ -732,37 +816,39 @@ static bool rz_spdif_pio_interrupt(int irq, struct spdif_dev_data *spdif)
 static irqreturn_t rz_spdif_irq_handler(int irq, void *arg)
 {
 	struct spdif_dev_data *spdif = arg;
-	struct rz_spdif_stream *strm = NULL;
+	struct rz_spdif_stream *strm_playback = NULL;
+	struct rz_spdif_stream *strm_capture = NULL;
 	u32 stat, udata;
-	bool elapsed = false;
+	bool rx_elapsed = false;
+	bool tx_elapsed = false;
 	bool error = false;
-	int is_play;
 
 	spin_lock(&spdif->lock);
 	if (spdif->playback.substream)
-		strm = &spdif->playback;
-	else if (spdif->capture.substream)
-		strm = &spdif->capture;
-	else
+		strm_playback = &spdif->playback;
+	if (spdif->capture.substream)
+		strm_capture = &spdif->capture;
+
+	if (!strm_playback && !strm_capture)
 		return IRQ_HANDLED;
 
 	stat = rz_spdif_status_get(spdif);
-	is_play = rz_spdif_stream_is_play(strm->substream);
 
-	/* PIO only */
-	if (!spdif->is_dma && ((stat & SPDIF_CBTX_BIT) || (stat & SPDIF_CBRX_BIT)))
-		elapsed = rz_spdif_pio_interrupt(irq, spdif);
-
-	if (spdif->is_dma && (stat & SPDIF_ABU_BIT)) {
-		/* Clear the error status */
-		rz_spdif_bset(spdif, SPDIF_STAT, SPDIF_ABU_BIT, 0);
-		error = true;
-	}
-
-	if (spdif->is_dma && (stat & SPDIF_ABO_BIT)) {
-		/* Clear the error status */
-		rz_spdif_bset(spdif, SPDIF_STAT, SPDIF_ABO_BIT, 0);
-		error = true;
+	if (spdif->is_dma) {
+		/* Clear error status */
+		if (stat & SPDIF_ABU_BIT) {
+			rz_spdif_bset(spdif, SPDIF_STAT, SPDIF_ABU_BIT, 0);
+			error = true;
+		}
+		if (stat & SPDIF_ABO_BIT) {
+			rz_spdif_bset(spdif, SPDIF_STAT, SPDIF_ABO_BIT, 0);
+			error = true;
+		}
+	} else {
+		if (stat & SPDIF_CBTX_BIT)
+			tx_elapsed = rz_spdif_pio_send(irq, spdif);
+		if (stat & SPDIF_CBRX_BIT)
+			rx_elapsed = rz_spdif_pio_recv(irq, spdif);
 	}
 
 	/* Receiver channel status interrupt (CSRX) */
@@ -810,11 +896,13 @@ static irqreturn_t rz_spdif_irq_handler(int irq, void *arg)
 	spin_unlock(&spdif->lock);
 
 	/* PIO elapse only */
-	if (elapsed)
-		snd_pcm_period_elapsed(strm->substream);
+	if (tx_elapsed)
+		snd_pcm_period_elapsed(strm_playback->substream);
+	if (rx_elapsed)
+		snd_pcm_period_elapsed(strm_capture->substream);
 
 	if (error) {
-		if (is_play) {
+		if (rz_spdif_is_stream_running(&spdif->playback)) {
 			if (spdif->is_dma)
 				/* Disable DMA transmitter */
 				rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_TDE_BIT, 0);
@@ -825,7 +913,8 @@ static irqreturn_t rz_spdif_irq_handler(int irq, void *arg)
 			rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_TME_BIT, 0);
 			while (!(rz_spdif_reg_readl(spdif, SPDIF_STAT) & SPDIF_TIS_BIT))
 				;
-		} else {
+		}
+		if (rz_spdif_is_stream_running(&spdif->capture)) {
 			if (spdif->is_dma)
 				/* Disable DMA receiver */
 				rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_RDE_BIT, 0);
@@ -840,7 +929,7 @@ static irqreturn_t rz_spdif_irq_handler(int irq, void *arg)
 		rz_spdif_status_clear(spdif);
 
 		/* Retransmit */
-		if (is_play) {
+		if (rz_spdif_is_stream_running(&spdif->playback)) {
 			/* Enable transmitter module */
 			rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_TME_BIT, SPDIF_TME_BIT);
 			while (rz_spdif_reg_readl(spdif, SPDIF_STAT) & SPDIF_TIS_BIT)
@@ -861,7 +950,8 @@ static irqreturn_t rz_spdif_irq_handler(int irq, void *arg)
 			} else
 				/* Enable transmitter interrupt */
 				rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_TCBI_BIT, SPDIF_TCBI_BIT);
-		} else {
+		}
+		if (rz_spdif_is_stream_running(&spdif->capture)) {
 			/* Enable receiver module */
 			rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_RME_BIT, SPDIF_RME_BIT);
 			while (rz_spdif_reg_readl(spdif, SPDIF_STAT) & SPDIF_RIS_BIT)
@@ -991,23 +1081,26 @@ static void rz_spdif_release_dma_channels(struct spdif_dev_data *spdif)
 
 static int rz_spdif_dma_request(struct spdif_dev_data *spdif, struct device *dev)
 {
-	if (spdif->mode) {
-		spdif->playback.dma_ch = dma_request_chan(dev, "tx");
-		if (IS_ERR(spdif->playback.dma_ch))
-			spdif->playback.dma_ch = NULL;
 
-		if (spdif->playback.dma_ch &&
-		   (rz_spdif_dma_slave_config(spdif, spdif->playback.dma_ch, true) < 0))
-			goto no_dma;
-	} else {
-		spdif->capture.dma_ch = dma_request_chan(dev, "rx");
-		if (IS_ERR(spdif->capture.dma_ch))
-			spdif->capture.dma_ch = NULL;
+	spdif->playback.dma_ch = dma_request_chan(dev, "tx");
+	if (IS_ERR(spdif->playback.dma_ch))
+		spdif->playback.dma_ch = NULL;
 
-		if (spdif->capture.dma_ch &&
-		   (rz_spdif_dma_slave_config(spdif, spdif->capture.dma_ch, false) < 0))
-			goto no_dma;
-	}
+	spdif->capture.dma_ch = dma_request_chan(dev, "rx");
+	if (IS_ERR(spdif->capture.dma_ch))
+		spdif->capture.dma_ch = NULL;
+
+	if (!(spdif->playback.dma_ch && spdif->capture.dma_ch))
+		goto no_dma;
+
+	if (spdif->playback.dma_ch &&
+	   (rz_spdif_dma_slave_config(spdif, spdif->playback.dma_ch, true) < 0))
+		goto no_dma;
+
+	if (spdif->capture.dma_ch &&
+	   (rz_spdif_dma_slave_config(spdif, spdif->capture.dma_ch, false) < 0))
+		goto no_dma;
+
 	return 0;
 
 no_dma:
@@ -1018,7 +1111,6 @@ no_dma:
 
 static int rz_spdif_probe(struct platform_device *pdev)
 {
-	struct snd_soc_dai_driver *dai_drv;
 	struct device *dev = &pdev->dev;
 	struct spdif_dev_data *spdif;
 	struct clk *audio_clk;
@@ -1055,12 +1147,6 @@ static int rz_spdif_probe(struct platform_device *pdev)
 		return dev_err_probe(dev, -EINVAL,
 				     "no audio clk1 or audio clk2");
 
-	ret = of_property_read_u32(pdev->dev.of_node, "rz,spdif-mode", &spdif->mode);
-	if (ret < 0) {
-		dev_err(dev, "cannot get SPDIF mode\n");
-		goto probe_err;
-	}
-
 	/* Detect DMA support */
 	ret = rz_spdif_dma_request(spdif, &pdev->dev);
 	if (ret < 0) {
@@ -1068,16 +1154,13 @@ static int rz_spdif_probe(struct platform_device *pdev)
 		spdif->is_dma = false;
 	} else {
 		dev_info(&pdev->dev, "DMA enabled");
-		if (spdif->mode) {
-			spdif->playback.transfer = rz_spdif_dma_transfer;
-			spdif->playback.priv = spdif;
-		} else {
-			spdif->capture.transfer = rz_spdif_dma_transfer;
-			spdif->capture.priv = spdif;
-		}
-
+		spdif->playback.transfer = rz_spdif_dma_transfer;
+		spdif->capture.transfer = rz_spdif_dma_transfer;
 		spdif->is_dma = true;
 	}
+
+	spdif->playback.priv = spdif;
+	spdif->capture.priv = spdif;
 
 	ret = platform_get_irq(pdev, 0);
 	if (ret < 0)
@@ -1089,11 +1172,6 @@ static int rz_spdif_probe(struct platform_device *pdev)
 		dev_err(dev, "spdif irq request failed\n");
 		goto probe_err;
 	}
-
-	if (spdif->mode)
-		dai_drv = &rz_spdif_tx_dai;
-	else
-		dai_drv = &rz_spdif_rx_dai;
 
 	spin_lock_init(&spdif->lock);
 	dev_set_drvdata(dev, spdif);
@@ -1111,7 +1189,7 @@ static int rz_spdif_probe(struct platform_device *pdev)
 	}
 
 	ret = devm_snd_soc_register_component(dev, &rz_spdif_component,
-					      dai_drv, 1);
+					      &rz_spdif_soc_dai, 1);
 	if (ret < 0) {
 		dev_err(dev, "failed to register SPDIF snd component\n");
 		goto probe_err;
