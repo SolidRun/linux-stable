@@ -1651,6 +1651,27 @@
 			#thermal-sensor-cells = <1>;
 		};
 
+		pcie0: pcie@13400000 {
+			compatible = "renesas,rzv2n-pcie";
+			reg = <0 0x13400000 0 0x10000>;
+			#address-cells = <3>;
+			#size-cells = <2>;
+			bus-range = <0x0 0xff>;
+			device_type = "pci";
+			ranges = <0x03000000 0x0 0x30000000 0x0 0x30000000 0x0 0x08000000>;
+			interrupts = <GIC_SPI 791 IRQ_TYPE_LEVEL_HIGH>;
+			#interrupt-cells = <1>;
+			interrupt-map-mask = <0 0 0 0>;
+			interrupt-map = <0 0 0 0 &gic GIC_SPI 791 IRQ_TYPE_LEVEL_HIGH>;
+			linux,pci-domain = <0x0>;
+			pcie,channel = <0>;
+			clocks = <&cpg CPG_MOD 0xc4>,
+				 <&cpg CPG_MOD 0xc5>;
+			resets = <&cpg 0xb2>;
+			power-domains = <&cpg>;
+			status = "disabled";
+		};
+
 		rcar_sound: sound@13c00000 {
 			/*
 			 * #sound-dai-cells is required
