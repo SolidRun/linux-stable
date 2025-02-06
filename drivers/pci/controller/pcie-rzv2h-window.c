@@ -48,30 +48,22 @@ void rzv2h_pcie_set_outbound(struct rzv2h_pcie *pcie, int win,
 {
 	/* Setup PCIe address space mappings for each resource */
 	struct resource *res = window->res;
-	resource_size_t res_start;
 	resource_size_t size;
-	u32 mask;
+	u64 mask;
+	u64 offset;
 
-	/*
-	 * The PAMR mask is calculated in units of 128Bytes, which
-	 * keeps things pretty simple.
-	 */
 	size = resource_size(res);
 	mask = size - 1;
+	offset = res->start - window->offset;
 
-	if (res->flags & IORESOURCE_IO)
-		res_start = pci_pio_to_address(res->start) - window->offset;
-	else
-		res_start = res->start - window->offset;
+	rzv2h_pci_write_reg(pcie, (u32)(res->start >> 32), PCIE_WINDOW_BASEU_REG(win));
+	rzv2h_rmw(pcie, PCIE_WINDOW_BASEL_REG(win), 0xFFFFF000, (u32)(res->start & 0xFFFFF000));
 
-	rzv2h_pci_write_reg(pcie, upper_32_bits(res_start), PCIE_WINDOW_BASEU_REG(win));
-	rzv2h_pci_write_reg(pcie, lower_32_bits(res_start), PCIE_WINDOW_BASEL_REG(win));
+	rzv2h_pci_write_reg(pcie, (u32)(mask >> 32), PCIE_WINDOW_MASKU_REG(win));
+	rzv2h_pci_write_reg(pcie, (u32)(mask & 0xFFFFFFFF), PCIE_WINDOW_MASKL_REG(win));
 
-	rzv2h_pci_write_reg(pcie, upper_32_bits(res_start), PCIE_DESTINATION_HI_REG(win));
-	rzv2h_pci_write_reg(pcie, lower_32_bits(res_start), PCIE_DESTINATION_LO_REG(win));
-
-	rzv2h_pci_write_reg(pcie, upper_32_bits(mask), PCIE_WINDOW_MASKU_REG(win));
-	rzv2h_pci_write_reg(pcie, lower_32_bits(mask), PCIE_WINDOW_MASKL_REG(win));
+	rzv2h_pci_write_reg(pcie, (u32)(offset >> 32), PCIE_DESTINATION_HI_REG(win));
+	rzv2h_pci_write_reg(pcie, (u32)(offset & 0xFFFFFFFF), PCIE_DESTINATION_LO_REG(win));
 
 	rzv2h_rmw(pcie, PCIE_WINDOW_BASEL_REG(win), PCIE_WINDOW_ENABLE, PCIE_WINDOW_ENABLE);
 }
