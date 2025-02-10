@@ -26,3 +26,7 @@ obj-$(CONFIG_SND_SIU_MIGOR)	+= snd-soc-migor.o
 # RZ/G2L
 snd-soc-rz-ssi-objs		:= rz-ssi.o
 obj-$(CONFIG_SND_SOC_RZ)	+= snd-soc-rz-ssi.o
+
+# PDM units for RZ
+snd-soc-rz-pdm-y                := rz-pdm.o
+obj-$(CONFIG_SND_SOC_RZ_PDM)	+= snd-soc-rz-pdm.o
