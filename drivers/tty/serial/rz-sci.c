@@ -1367,7 +1367,7 @@ static void serial_console_write(struct console *co, const char *s,
 
 	/* first save CCR0 then disable interrupts, keep clock source */
 	ctrl = serial_port_in(port, CCR0);
-	ctrl_temp = CCR0_RE | CCR0_TE | CCR0_TIE;
+	ctrl_temp = CCR0_RE | CCR0_TE;
 	serial_port_out(port, CCR0, ctrl_temp);
 
 	uart_console_write(port, s, count, serial_console_putchar);
@@ -1378,6 +1378,8 @@ static void serial_console_write(struct console *co, const char *s,
 		cpu_relax();
 
 	/* restore the CCR0 */
+	serial_port_out(port, CCR0, ctrl & ~CCR0_TE);
+	cpu_relax();
 	serial_port_out(port, CCR0, ctrl);
 
 	if (locked)
