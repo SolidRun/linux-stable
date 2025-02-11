@@ -685,8 +685,8 @@ static int retry_streaming_func(void *data)
 		dev_info(cru->dev, "CRU retry init: %d times", retry);
 	}
 
-	/* Stop streaming */
-	vb2_streamoff(&cru->queue, cru->queue.type);
+	dev_err(cru->dev, "Please retry due to no input signal after %d retries",
+		retry);
 
 retry_done:
 	cru->retry_thread = NULL;
