@@ -360,6 +360,7 @@ static int sci_rxfill(struct uart_port *port)
 
 static void sci_transmit_chars(struct uart_port *port)
 {
+	struct sci_port *s = to_sci_port(port);
 	struct circ_buf *xmit = &port->state->xmit;
 	unsigned int stopped = uart_tx_stopped(port);
 	unsigned int status;
@@ -405,6 +406,7 @@ static void sci_transmit_chars(struct uart_port *port)
 		ctrl &= ~CCR0_TIE;
 		ctrl |= CCR0_TEIE;
 		serial_port_out(port, CCR0, ctrl);
+		disable_irq_nosync(s->irqs[SCIx_TXI_IRQ]);
 	}
 }
 
@@ -620,6 +622,8 @@ static irqreturn_t sci_tx_interrupt(int irq, void *ptr)
 static irqreturn_t sci_tx_end_interrupt(int irq, void *ptr)
 {
 	struct uart_port *port = ptr;
+	struct sci_port *s = to_sci_port(port);
+	struct circ_buf *xmit = &port->state->xmit;
 	unsigned long flags;
 	unsigned int ctrl;
 
@@ -627,6 +631,11 @@ static irqreturn_t sci_tx_end_interrupt(int irq, void *ptr)
 	ctrl = serial_port_in(port, CCR0);
 	ctrl &= ~(CCR0_TE | CCR0_TEIE);
 	serial_port_out(port, CCR0, ctrl);
+	enable_irq(s->irqs[SCIx_TXI_IRQ]);
+
+	if (!uart_circ_empty(xmit))
+		serial_port_out(port, CCR0, ctrl | CCR0_TE | CCR0_TIE);
+
 	spin_unlock_irqrestore(&port->lock, flags);
 
 	return IRQ_HANDLED;
