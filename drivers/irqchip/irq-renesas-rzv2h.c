@@ -68,12 +68,6 @@
 #define ICU_TINT_LEVEL_HIGH			2
 #define ICU_TINT_LEVEL_LOW			3
 
-#define ICU_TSSR_K(tint_nr)			((tint_nr) / 4)
-#define ICU_TSSR_TSSEL_N(tint_nr)		((tint_nr) % 4)
-#define ICU_TSSR_TSSEL_PREP(tssel, n)		((tssel) << ((n) * 8))
-#define ICU_TSSR_TSSEL_MASK(n)			ICU_TSSR_TSSEL_PREP(0x7F, n)
-#define ICU_TSSR_TIEN(n)			(BIT(7) << ((n) * 8))
-
 #define ICU_TITSR_K(tint_nr)			((tint_nr) / 16)
 #define ICU_TITSR_TITSEL_N(tint_nr)		((tint_nr) % 16)
 #define ICU_TITSR_TITSEL_PREP(titsel, n)	ICU_IITSR_IITSEL_PREP(titsel, n)
@@ -368,16 +362,15 @@ static int rzv2h_tint_set_type(struct irq_data *d, unsigned int type)
 	raw_spin_lock(&priv->lock);
 
 	tssr = readl_relaxed(priv->base + ICU_TSSR(tssr_index) + tint_offset);
-	tssr &= ~(ICU_TSSR_TSSEL_MASK(tssr_offset) | tien);
-	tssr |= ICU_TSSR_TSSEL_PREP(tint, tssr_offset);
+	tssr &= ~(priv->hw_info->tint_tssel_mask << tssel_shift);
+	tssr |= (tint << tssel_shift);
 
 	writel_relaxed(tssr, priv->base + ICU_TSSR(tssr_index) + tint_offset);
-
-	titsr = readl_relaxed(priv->base + ICU_TITSR(titsr_k));
+	titsr = readl_relaxed(priv->base + ICU_TITSR(titsr_k) + tint_offset);
 	titsr &= ~ICU_TITSR_TITSEL_MASK(titsel_n);
 	titsr |= ICU_TITSR_TITSEL_PREP(sense, titsel_n);
 
-	writel_relaxed(titsr, priv->base + ICU_TITSR(titsr_k));
+	writel_relaxed(titsr, priv->base + ICU_TITSR(titsr_k) + tint_offset);
 
 	rzv2h_clear_tint_int(priv, hwirq);
 
