@@ -228,6 +228,11 @@
 			 <RZV2H_PORT_PINMUX(L, 0, 0)>, /* XSPI0_CKP */
 			 <RZV2H_PORT_PINMUX(L, 1, 0)>; /* XSPI0_CS0 */
 	};
+
+	i3c_pins: i3c {
+		pinmux = <RZV2H_PORT_PINMUX(2, 1, 2)>, /* I3C_SDA */
+			 <RZV2H_PORT_PINMUX(2, 0, 2)>; /* I3C_SCL */
+	};
 };
 
 &qextal_clk {
@@ -465,5 +470,11 @@
 };
 
 &cmtw1 {
+	status = "okay";
+};
+
+&i3c {
+	pinctrl-0 = <&i3c_pins>;
+	pinctrl-names = "default";
 	status = "okay";
 };
