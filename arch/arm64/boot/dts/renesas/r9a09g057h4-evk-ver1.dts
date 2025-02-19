@@ -320,6 +320,11 @@
 		pinmux = <RZV2H_PORT_PINMUX(7, 0, 9)>, /* Channel A */
 			 <RZV2H_PORT_PINMUX(7, 1, 9)>; /* Channel B */
 	};
+
+	i3c_pins: i3c {
+		pinmux = <RZV2H_PORT_PINMUX(2, 0, 1)>, /* I3C_SDA */
+			 <RZV2H_PORT_PINMUX(2, 1, 1)>; /* I3C_SCL */
+	};
 };
 
 &qextal_clk {
@@ -817,6 +822,13 @@
 
 &usb2_phy1 {
 	pinctrl-0 = <&usb21_pins>;
+	pinctrl-names = "default";
+
+	status = "okay";
+};
+
+&i3c {
+	pinctrl-0 = <&i3c_pins>;
 	pinctrl-names = "default";
 
 	status = "okay";
