@@ -440,6 +440,7 @@
 			resets = <&cpg 49>;
 			#dma-cells = <1>;
 			dma-channels = <16>;
+			peripheral-request = <&icu 4>;
 			status = "disabled";
 		};
 
@@ -541,6 +542,7 @@
 			resets = <&cpg 52>;
 			#dma-cells = <1>;
 			dma-channels = <16>;
+			peripheral-request = <&icu 2>;
 			status = "disabled";
 		};
 
@@ -574,6 +576,7 @@
 			resets = <&cpg 53>;
 			#dma-cells = <1>;
 			dma-channels = <16>;
+			peripheral-request = <&icu 3>;
 			status = "disabled";
 		};
 
