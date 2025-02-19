@@ -194,9 +194,23 @@
 		pinmux = <RZV2H_PORT_PINMUX(4, 1, 12)>, /* VBUS */
 			 <RZV2H_PORT_PINMUX(4, 0, 12)>; /* OVR */
 	};
+
+	spi0_pins: spi0 {
+		pinmux = <RZV2H_PORT_PINMUX(M, 4, 2)>, /* MISOA */
+			 <RZV2H_PORT_PINMUX(M, 5, 2)>, /* MOSIA */
+			 <RZV2H_PORT_PINMUX(M, 7, 2)>, /* SSLA0 */
+			 <RZV2H_PORT_PINMUX(M, 6, 2)>; /* RSPCKA */
+	};
 };
 
 &scif {
+	status = "okay";
+};
+
+&spi0 {
+	pinctrl-0 = <&spi0_pins>;
+	pinctrl-names = "default";
+
 	status = "okay";
 };
 
