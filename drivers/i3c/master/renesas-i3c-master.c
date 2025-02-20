@@ -1453,7 +1453,6 @@ static struct i3c_irq_desc i3c_irqs[] = {
 static int renesas_i3c_master_probe(struct platform_device *pdev)
 {
 	struct renesas_i3c_master *master;
-	struct resource *res;
 	struct reset_control *treset, *preset;
 	int ret, irq, i;
 
@@ -1511,11 +1510,11 @@ static int renesas_i3c_master_probe(struct platform_device *pdev)
 	INIT_LIST_HEAD(&master->xferqueue.list);
 
 	for (i = 0; i < ARRAY_SIZE(i3c_irqs); i++) {
-		res = platform_get_resource(pdev, IORESOURCE_IRQ, i3c_irqs[i].res_num);
-		if (!res)
-			return -ENODEV;
+		irq = platform_get_irq(pdev, i3c_irqs[i].res_num);
+		if (irq < 0)
+			return irq;
 
-		ret = devm_request_irq(&pdev->dev, res->start, i3c_irqs[i].isr,
+		ret = devm_request_irq(&pdev->dev, irq, i3c_irqs[i].isr,
 							0, i3c_irqs[i].name, master);
 		if (ret) {
 			dev_err(&pdev->dev, "failed to request irq %s\n", i3c_irqs[i].name);
