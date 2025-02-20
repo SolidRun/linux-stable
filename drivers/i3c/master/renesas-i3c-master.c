@@ -149,7 +149,7 @@
 #define NRSPQP_TID(x)		(((x) & GENMASK(27, 24)) >> 24)
 #define NRSPQP_DATA_LEN(x)	((x) & GENMASK(15, 0))
 
-#define NTDTBP0			0x158 /* Normal Tranfer Data Buffer */
+#define NTDTBP0			0x158 /* Normal Transfer Data Buffer */
 #define NIBIQP			0x17c /* Normal IBI Queue */
 #define NRSQP			0x180 /* Normal Receive Status Queue */
 
@@ -279,8 +279,8 @@
 #define NQSTLV_IBISCNT(x)	(((x) & 0x1f) << 24)
 
 #define NDBSTLV0		0x398
-#define NDBSTLV0_TDBFLV(x)	(((x) >> 0 ) & 0xff)
-#define NDBSTLV0_RDBLV(x)	(((x) >> 8 ) & 0xff)
+#define NDBSTLV0_TDBFLV(x)	(((x) >> 0) & 0xff)
+#define NDBSTLV0_RDBLV(x)	(((x) >> 8) & 0xff)
 
 #define NRSQSTLV		0x3c0
 #define NRSQSTLV_RSQLV(x)	(((x) & 0xff) << 0)
@@ -297,8 +297,7 @@
 #define XFER_TIMEOUT		(msecs_to_jiffies(1000))
 #define NTDTBP0_DEPTH		16
 
-enum i3c_internal_state
-{
+enum i3c_internal_state {
 	I3C_INTERNAL_STATE_DISABLED,
 	I3C_INTERNAL_STATE_MASTER_IDLE,
 	I3C_INTERNAL_STATE_MASTER_ENTDAA,
@@ -464,7 +463,7 @@ static void renesas_i3c_master_read_from_rx_fifo(struct renesas_i3c_master *mast
 		u32 tmp;
 
 		readsl(master->regs + NTDTBP0, &tmp, 1);
-                memcpy(bytes + (nbytes & ~3), &tmp, nbytes & 3);
+		memcpy(bytes + (nbytes & ~3), &tmp, nbytes & 3);
 	}
 }
 
@@ -475,9 +474,9 @@ static void renesas_i3c_master_write_to_tx_fifo(struct renesas_i3c_master *maste
 	if (nbytes & 3) {
                 u32 tmp = 0;
 
-                memcpy(&tmp, bytes + (nbytes & ~3), nbytes & 3);
-                writesl(master->regs + NTDTBP0, &tmp, 1);
-        }
+		memcpy(&tmp, bytes + (nbytes & ~3), nbytes & 3);
+		writesl(master->regs + NTDTBP0, &tmp, 1);
+	}
 
 	/* Clear the Transmit Buffer Empty status flag. */
 	i3c_reg_clear_bit(master->regs, NTST, NTST_TDBEF0);
@@ -591,13 +590,17 @@ static void renesas_i3c_master_bus_enable(struct i3c_master_controller *m, bool 
 
 	if (i3c) {
 		/* Select I3C protocol mode. */
+		i3c_reg_set_bit(master->regs, RSTCTL, RSTCTL_INTLRST);
 		i3c_reg_write(master->regs, PRTS, 0);
+		i3c_reg_update_bit(master->regs, RSTCTL, RSTCTL_INTLRST, 0);
 		i3c_reg_set_bit(master->regs, BCTL, BCTL_HJACKCTL | BCTL_INCBA);
 		i3c_reg_update_bit(master->regs, MSDVAD, MSDVAD_MDYADV, MSDVAD_MDYADV);
 		i3c_reg_write(master->regs, STDBR, master->i3c_STDBR);
 	} else {
 		/* Select I2C protocol mode. */
+		i3c_reg_set_bit(master->regs, RSTCTL, RSTCTL_INTLRST);
 		i3c_reg_write(master->regs, PRTS, 1);
+		i3c_reg_update_bit(master->regs, RSTCTL, RSTCTL_INTLRST, 0);
 		i3c_reg_write(master->regs, STDBR, master->i2c_STDBR);
 	}
 
@@ -659,7 +662,7 @@ static int renesas_i3c_master_bus_init(struct i3c_master_controller *m)
 		rate /= 2;
 	}
 
-        if ((od_low_ticks/2) > 0xFF || pp_low_ticks > 0x3F) {
+	if ((od_low_ticks/2) > 0xFF || pp_low_ticks > 0x3F) {
 		dev_err(&m->dev, "invalid speed (i2c-scl = %lu Hz, i3c-scl = %lu Hz). Too slow.\n",
 			(unsigned long)bus->scl_rate.i2c, (unsigned long)bus->scl_rate.i3c);
 		ret = -EINVAL;
@@ -1219,8 +1222,8 @@ static irqreturn_t i3c_resp_isr(int irq, void *data)
 			cmd->rx_count++;
 		}
 
-                if (cmd->rx_count == NRSPQP_DATA_LEN(resp_descriptor))
-                        return IRQ_HANDLED;
+		if (cmd->rx_count == NRSPQP_DATA_LEN(resp_descriptor))
+			return IRQ_HANDLED;
 		break;
 	case I3C_INTERNAL_STATE_MASTER_WRITE:
 	case I3C_INTERNAL_STATE_MASTER_COMMAND_WRITE:
@@ -1241,23 +1244,23 @@ static irqreturn_t i3c_resp_isr(int irq, void *data)
 	}
 
         switch (NRSPQP_ERR_STATUS(resp_descriptor)) {
-                case NRSPQP_NO_ERROR:
-                         break;
-                case NRSPQP_ERROR_PARITY:
-                case NRSPQP_ERROR_IBA_NACK:
-                case NRSPQP_ERROR_TRANSF_ABORT:
-                case NRSPQP_ERROR_CRC:
-                case NRSPQP_ERROR_FRAME:
-                        ret = -EIO;
-                break;
-                case NRSPQP_ERROR_OVER_UNDER_FLOW:
-                        ret = -ENOSPC;
-                break;
-                case NRSPQP_ERROR_I2C_W_NACK_ERR:
-                case NRSPQP_ERROR_ADDRESS_NACK:
-                default:
-                        ret = -EINVAL;
-                break;
+	case NRSPQP_NO_ERROR:
+		break;
+	case NRSPQP_ERROR_PARITY:
+	case NRSPQP_ERROR_IBA_NACK:
+	case NRSPQP_ERROR_TRANSF_ABORT:
+	case NRSPQP_ERROR_CRC:
+	case NRSPQP_ERROR_FRAME:
+		ret = -EIO;
+		break;
+	case NRSPQP_ERROR_OVER_UNDER_FLOW:
+		ret = -ENOSPC;
+		break;
+	case NRSPQP_ERROR_I2C_W_NACK_ERR:
+	case NRSPQP_ERROR_ADDRESS_NACK:
+	default:
+		ret = -EINVAL;
+		break;
         }
 
 	ntst = i3c_reg_read(master->regs, NTST);
@@ -1272,15 +1275,15 @@ static irqreturn_t i3c_resp_isr(int irq, void *data)
 	/* Clear error status flags. */
 	i3c_reg_clear_bit(master->regs, NTST, NTST_TEF | NTST_TABTF);
 
-        xfer->ret = ret;
-        complete(&xfer->comp);
+	xfer->ret = ret;
+	complete(&xfer->comp);
 
-        xfer = list_first_entry_or_null(&master->xferqueue.list,
-                                        struct renesas_i3c_xfer, node);
-        if (xfer)
-                list_del_init(&xfer->node);
+	xfer = list_first_entry_or_null(&master->xferqueue.list,
+					struct renesas_i3c_xfer, node);
+	if (xfer)
+		list_del_init(&xfer->node);
 
-        master->xferqueue.cur = xfer;
+	master->xferqueue.cur = xfer;
 
 	return IRQ_HANDLED;
 }
@@ -1525,7 +1528,7 @@ static int renesas_i3c_master_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, master);
 
 	master->maxdevs = RENESAS_I3C_MAX_DEVS;
-	master->free_pos = GENMASK(master->maxdevs - 1 , 0);
+	master->free_pos = GENMASK(master->maxdevs - 1, 0);
 
 	ret = i3c_master_register(&master->base, &pdev->dev,
 		  &renesas_i3c_master_ops, false);
