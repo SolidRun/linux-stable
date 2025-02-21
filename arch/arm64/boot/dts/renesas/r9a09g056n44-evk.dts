@@ -66,6 +66,11 @@
 	aliases {
 		i2c3 = &i2c3;
 		serial0 = &scif;
+		serial1 = &sci0;
+		serial2 = &sci1;
+		serial3 = &sci4;
+		serial4 = &sci8;
+		serial5 = &sci9;
 		mmc0 = &sdhi0;
 		mmc1 = &sdhi1;
 		ethernet0 = &eth0;
@@ -598,6 +603,36 @@
 			 <RZG2L_PORT_PINMUX(8, 7, 5)>; /* RX */
 	};
 #endif
+
+	sci0_pins: sci0 {
+		pinmux = <RZG2L_PORT_PINMUX(5, 0, 1)>, /* SCI0_TXD_MOSI_SDA */
+			<RZG2L_PORT_PINMUX(5, 1, 1)>; /* SCI0_RXD_MISO_SCL */
+		bias-pull-up;
+	};
+
+	sci1_pins: sci1 {
+		pinmux = <RZG2L_PORT_PINMUX(5, 2, 1)>, /* SCI1_TXD_MOSI_SDA */
+			<RZG2L_PORT_PINMUX(5, 3, 1)>; /* SCI1_RXD_MISO_SCL */
+		bias-pull-up;
+	};
+
+	sci4_pins: sci4 {
+		pinmux = <RZG2L_PORT_PINMUX(8, 4, 6)>, /* SCI4_TXD_MOSI_SDA */
+			<RZG2L_PORT_PINMUX(8, 5, 6)>; /* SCI4_RXD_MISO_SCL */
+		bias-pull-up;
+	};
+
+	sci8_pins: sci8 {
+		pinmux = <RZG2L_PORT_PINMUX(8, 0, 6)>, /* SCI8_TXD_MOSI_SDA */
+			<RZG2L_PORT_PINMUX(8, 1, 6)>; /* SCI8_RXD_MISO_SCL */
+		bias-pull-up;
+	};
+
+	sci9_pins: sci9 {
+		pinmux = <RZG2L_PORT_PINMUX(8, 2, 6)>, /* SCI9_TXD_MOSI_SDA */
+			<RZG2L_PORT_PINMUX(8, 3, 6)>; /* SCI9_RXD_MISO_SCL */
+		bias-pull-up;
+	};
 };
 
 &qextal_clk {
@@ -990,4 +1025,39 @@
 	dma-ranges = <0x42000000 0 0x40000000 0 0x40000000 0x2 0x00000000>;
 
 	status = "okay";
+};
+
+&sci0 {
+        pinctrl-0 = <&sci0_pins>;
+        pinctrl-names = "default";
+        status = "okay";
+
+};
+
+&sci1 {
+        pinctrl-0 = <&sci1_pins>;
+        pinctrl-names = "default";
+        status = "okay";
+
+};
+
+&sci4 {
+        pinctrl-0 = <&sci4_pins>;
+        pinctrl-names = "default";
+        status = "okay";
+
+};
+
+&sci8 {
+        pinctrl-0 = <&sci8_pins>;
+        pinctrl-names = "default";
+        status = "okay";
+
+};
+
+&sci9 {
+        pinctrl-0 = <&sci9_pins>;
+        pinctrl-names = "default";
+        status = "okay";
+
 };

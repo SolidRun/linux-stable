@@ -34,6 +34,7 @@
 	aliases {
 		i2c3 = &i2c3;
 		serial0 = &scif;
+		serial1 = &sci3;
 		mmc0 = &sdhi0;
 		mmc1 = &sdhi1;
 		mmc2 = &sdhi2;
@@ -469,6 +470,11 @@
 			 <RZG2L_PORT_PINMUX(4, 7, 5)>; /* RX */
 	};
 
+	sci3_pins: sci3 {
+		pinmux = <RZG2L_PORT_PINMUX(5, 6, 1)>, /* SCI3_TXD_MOSI_SDA */
+			 <RZG2L_PORT_PINMUX(5, 7, 1)>; /* SCI3_RXD_MISO_SCL */
+		bias-pull-up;
+	};
 };
 
 &qextal_clk {
@@ -790,4 +796,10 @@
 	dma-ranges = <0x42000000 0 0x40000000 0 0x40000000 0x2 0x00000000>;
 
 	status = "okay";
+};
+
+&sci3 {
+       pinctrl-0 = <&sci3_pins>;
+       pinctrl-names = "default";
+       status = "okay";
 };
