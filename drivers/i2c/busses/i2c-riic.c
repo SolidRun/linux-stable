@@ -185,6 +185,12 @@ static int riic_xfer(struct i2c_adapter *adap, struct i2c_msg msgs[], int num)
 	if (ret)
 		return ret;
 
+	if (riic->slave[0] || riic->slave[1] || riic->slave[2]) {
+		dev_dbg(&adap->dev, "Bus busy due to in slave mode\n");
+		riic->err = -EBUSY;
+		goto out;
+	}
+
 	if (riic_readb(riic, RIIC_ICCR2) & ICCR2_BBSY) {
 		riic->err = -EBUSY;
 		goto out;
