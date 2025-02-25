@@ -16,6 +16,8 @@
 
 	aliases {
 		serial0 = &scif;
+		serial1 = &sci4;
+		serial2 = &sci5;
 		mmc0 = &sdhi0;
 		mmc1 = &sdhi1;
 		mmc2 = &sdhi2;
@@ -236,6 +238,18 @@
 	scif_pins: scif {
 		pins =  "SCIF_RXD", "SCIF_TXD";
 		renesas,output-impedance = <1>;
+	};
+
+	sci4_pins: sci4 {
+		pinmux = <RZV2H_PORT_PINMUX(8, 4, 6)>, /* SCI4_TXD_MOSI_SDA */
+			 <RZV2H_PORT_PINMUX(8, 5, 6)>; /* SCI4_RXD_MISO_SCL */
+		bias-pull-up;
+	};
+
+	sci5_pins: sci5 {
+		pinmux = <RZV2H_PORT_PINMUX(8, 6, 6)>, /* SCI5_TXD_MOSI_SDA */
+			 <RZV2H_PORT_PINMUX(8, 7, 6)>; /* SCI5_RXD_MISO_SCL */
+		bias-pull-up;
 	};
 
 	/* cam0_pwr_en is used by Google Coral Camera from CSI20 and CSI21 */
@@ -749,6 +763,18 @@
 };
 
 &wdt1 {
+	status = "okay";
+};
+
+&sci4 {
+	pinctrl-0 = <&sci4_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&sci5 {
+	pinctrl-0 = <&sci5_pins>;
+	pinctrl-names = "default";
 	status = "okay";
 };
 
