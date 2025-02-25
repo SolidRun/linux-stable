@@ -1703,6 +1703,186 @@
 			};
 		};
 
+		sci0: serial@12800c00 {
+			compatible = "renesas,r9a09g057-rz-rscif", "renesas,rz-rscif";
+			reg = <0 0x12800c00 0 0x400>;
+			interrupts = <GIC_SPI 114 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 115 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 116 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 117 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "eri", "rxi", "txi", "tei";
+			clocks = <&cpg CPG_MOD 93>,
+				<&cpg CPG_MOD 94>;
+			clock-names = "fck", "tclk";
+			power-domains = <&cpg>;
+			resets = <&cpg 129>,
+				 <&cpg 130>;
+			reset-names = "presetn", "tresetn";
+			status = "disabled";
+		};
+
+		sci1: serial@12801000 {
+			compatible = "renesas,r9a09g057-rz-rscif", "renesas,rz-rscif";
+			reg = <0 0x12801000 0 0x400>;
+			interrupts = <GIC_SPI 120 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 121 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 122 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 123 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "eri", "rxi", "txi", "tei";
+			clocks = <&cpg CPG_MOD 98>,
+				<&cpg CPG_MOD 99>;
+			clock-names = "fck", "tclk";
+			power-domains = <&cpg>;
+			resets = <&cpg 131>,
+				 <&cpg 132>;
+			reset-names = "presetn", "tresetn";
+			status = "disabled";
+		};
+
+		sci2: serial@12801400 {
+			compatible = "renesas,r9a09g057-rz-rscif", "renesas,rz-rscif";
+			reg = <0 0x12801400 0 0x400>;
+			interrupts = <GIC_SPI 126 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 127 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 128 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 129 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "eri", "rxi", "txi", "tei";
+			clocks = <&cpg CPG_MOD 103>,
+				<&cpg CPG_MOD 104>;
+			clock-names = "fck", "tclk";
+			power-domains = <&cpg>;
+			resets = <&cpg 133>,
+				 <&cpg 134>;
+			reset-names = "presetn", "tresetn";
+			status = "disabled";
+		};
+
+		sci3: serial@12801800 {
+			compatible = "renesas,r9a09g057-rz-rscif", "renesas,rz-rscif";
+			reg = <0 0x12801800 0 0x400>;
+			interrupts = <GIC_SPI 132 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 133 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 134 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 135 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "eri", "rxi", "txi", "tei";
+			clocks = <&cpg CPG_MOD 108>,
+				<&cpg CPG_MOD 109>;
+			clock-names = "fck", "tclk";
+			power-domains = <&cpg>;
+			resets = <&cpg 135>,
+				 <&cpg 136>;
+			reset-names = "presetn", "tresetn";
+			status = "disabled";
+		};
+
+		sci4: serial@12801c00 {
+			compatible = "renesas,r9a09g057-rz-rscif", "renesas,rz-rscif";
+			reg = <0 0x12801c00 0 0x400>;
+			interrupts = <GIC_SPI 138 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 139 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 140 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 141 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "eri", "rxi", "txi", "tei";
+			clocks = <&cpg CPG_MOD 113>,
+				<&cpg CPG_MOD 114>;
+			clock-names = "fck", "tclk";
+			power-domains = <&cpg>;
+			resets = <&cpg 137>,
+				 <&cpg 138>;
+			reset-names = "presetn", "tresetn";
+			status = "disabled";
+		};
+
+		sci5: serial@12802000 {
+			compatible = "renesas,r9a09g057-rz-rscif", "renesas,rz-rscif";
+			reg = <0 0x12802000 0 0x400>;
+			interrupts = <GIC_SPI 144 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 145 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 146 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 147 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "eri", "rxi", "txi", "tei";
+			clocks = <&cpg CPG_MOD 118>,
+				<&cpg CPG_MOD 119>;
+			clock-names = "fck", "tclk";
+			power-domains = <&cpg>;
+			resets = <&cpg 139>,
+				 <&cpg 140>;
+			reset-names = "presetn", "tresetn";
+			status = "disabled";
+		};
+
+		sci6: serial@12802400 {
+			compatible = "renesas,r9a09g057-rz-rscif", "renesas,rz-rscif";
+			reg = <0 0x12802400 0 0x400>;
+			interrupts = <GIC_SPI 150 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 151 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 152 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 153 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "eri", "rxi", "txi", "tei";
+			clocks = <&cpg CPG_MOD 123>,
+				<&cpg CPG_MOD 124>;
+			clock-names = "fck", "tclk";
+			power-domains = <&cpg>;
+			resets = <&cpg 141>,
+				 <&cpg 142>;
+			reset-names = "presetn", "tresetn";
+			status = "disabled";
+		};
+
+		sci7: serial@12802800 {
+			compatible = "renesas,r9a09g057-rz-rscif", "renesas,rz-rscif";
+			reg = <0 0x12802800 0 0x400>;
+			interrupts = <GIC_SPI 156 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 157 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 158 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 159 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "eri", "rxi", "txi", "tei";
+			clocks = <&cpg CPG_MOD 128>,
+				<&cpg CPG_MOD 129>;
+			clock-names = "fck", "tclk";
+			power-domains = <&cpg>;
+			resets = <&cpg 143>,
+				 <&cpg 144>;
+			reset-names = "presetn", "tresetn";
+			status = "disabled";
+		};
+
+		sci8: serial@12802c00 {
+			compatible = "renesas,r9a09g057-rz-rscif", "renesas,rz-rscif";
+			reg = <0 0x12802c00 0 0x400>;
+			interrupts = <GIC_SPI 162 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 163 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 164 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 165 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "eri", "rxi", "txi", "tei";
+			clocks = <&cpg CPG_MOD 133>,
+				<&cpg CPG_MOD 134>;
+			clock-names = "fck", "tclk";
+			power-domains = <&cpg>;
+			resets = <&cpg 145>,
+				 <&cpg 146>;
+			reset-names = "presetn", "tresetn";
+			status = "disabled";
+		};
+
+		sci9: serial@12803000 {
+			compatible = "renesas,r9a09g057-rz-rscif", "renesas,rz-rscif";
+			reg = <0 0x12803000 0 0x400>;
+			interrupts = <GIC_SPI 168 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 169 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 170 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 171 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "eri", "rxi", "txi", "tei";
+			clocks = <&cpg CPG_MOD 138>,
+				<&cpg CPG_MOD 139>;
+			clock-names = "fck", "tclk";
+			power-domains = <&cpg>;
+			resets = <&cpg 147>,
+				 <&cpg 148>;
+			reset-names = "presetn", "tresetn";
+			status = "disabled";
+		};
+
 		ostm0: timer@11800000 {
 			compatible = "renesas,r9a09g057-ostm", "renesas,ostm";
 			reg = <0x0 0x11800000 0x0 0x1000>;
