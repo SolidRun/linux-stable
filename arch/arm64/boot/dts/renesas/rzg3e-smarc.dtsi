@@ -366,9 +366,6 @@
 };
 
 &pcie0 {
-	/* Map all possible DDR as inbound ranges */
-	dma-ranges = <0x42000000 0 0x40000000 0 0x40000000 0x0 0xF8000000>;
-
 	status = "okay";
 	pinctrl-0 = <&pcie0_pins>;
 	pinctrl-names = "default";

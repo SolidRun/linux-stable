@@ -1804,8 +1804,8 @@
 			power-domains = <&cpg>;
 			resets = <&cpg 0xb2>;
 			ranges = <0x02000000 0x0 0x30000000 0x0 0x30000000 0x0 0x08000000>;
-			dma-ranges = <0x42000000 0 0x40000000 0 0x40000000 0 0x80000000>;
-			interrupts = <GIC_SPI 791 IRQ_TYPE_LEVEL_HIGH>;
+			dma-ranges = <0x42000000 0 0x48000000 0 0x48000000 0 0xF8000000>;
+			interrupts = <GIC_SPI 796 IRQ_TYPE_LEVEL_HIGH>;
 			#interrupt-cells = <1>;
 			interrupt-map-mask = <0 0 0 0>;
 			interrupt-map = <0 0 0 0 &gic GIC_SPI 796 IRQ_TYPE_LEVEL_HIGH>;
