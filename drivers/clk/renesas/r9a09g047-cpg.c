@@ -45,6 +45,7 @@ enum clk_ids {
 	CLK_PLLCM33_ADC_ADCLK,
 	CLK_PLLCM33_ADC_PCLK_DIV2,
 	CLK_PLLCM33_DIV4_DDIV2,
+	CLK_PLLCM33_DIV4_DDIV2_DIV2,
 	CLK_SMUX2_XSPI_CLK0,
 	CLK_SMUX2_XSPI_CLK1,
 	CLK_PLLCM33_XSPI,
@@ -88,6 +89,7 @@ enum clk_ids {
 	CLK_SMUX2_GBE1_RXCLK,
 	CLK_SMUX2_DSI0_CLK,
 	CLK_SMUX2_DSI1_CLK,
+	CDIV5_MAINOSC,
 
 	/* Module Clocks */
 	MOD_CLK_BASE,
@@ -233,6 +235,7 @@ static const struct cpg_core_clk r9a09g047_core_clks[] __initconst = {
 		 CSDIVx_DIVCTLy(1, 1, 2), dtable_2_16_geometric),
 	DEF_DDIV(".pllcm33_div4_ddiv2", CLK_PLLCM33_DIV4_DDIV2, CLK_PLLCM33_DIV4,
 		 CDDIVx_DIVCTLy(0, 1, 3), dtable_2_64),
+	DEF_FIXED(".pllcm33_div4_ddiv2_div2", CLK_PLLCM33_DIV4_DDIV2_DIV2, CLK_PLLCM33_DIV4_DDIV2, 1, 2),
 	DEF_MUX(".smux2_xspi_clk0", CLK_SMUX2_XSPI_CLK0, SSELx_SELCTLy(1, 2), smux2_xspi_clk0),
 	DEF_MUX(".smux2_xspi_clk1", CLK_SMUX2_XSPI_CLK1, SSELx_SELCTLy(1, 3), smux2_xspi_clk1),
 	DEF_SDIV(".pllcm33_xspi", CLK_PLLCM33_XSPI, CLK_SMUX2_XSPI_CLK1,
@@ -284,6 +287,7 @@ static const struct cpg_core_clk r9a09g047_core_clks[] __initconst = {
 		      smux2_dsi0_clk, CLK_SET_RATE_NO_REPARENT | CLK_SET_RATE_PARENT),
 	DEF_MUX_FLAGS(".smux2_dsi1_clk", CLK_SMUX2_DSI1_CLK, SSELx_SELCTLy(3, 1),
 		      smux2_dsi1_clk, CLK_SET_RATE_NO_REPARENT | CLK_SET_RATE_PARENT),
+	DEF_FIXED(".cdiv5_mainosc", CDIV5_MAINOSC, CLK_QEXTAL, 1, 5),
 
 	/* Core Clocks */
 	DEF_FIXED("sys_0_pclk", R9A09G047_SYS_0_PCLK, CLK_QEXTAL, 1, 1),
@@ -530,6 +534,12 @@ static const struct rzv2h_mod_clk r9a09g047_mod_clks[] __initconst = {
 	DEF_MOD("fdp1_clk_m",			CLK_PLLDTY_DIV2, 27, 1, 11, 7),
 	DEF_MOD("fdp1_clk_a",			CLK_PLLDTY_DIV4, 27, 2, 11, 8),
 	DEF_MOD("fdp1_clk_p",			CLK_PLLDTY_DIV8, 27, 3, 11, 9),
+	DEF_MOD("pdm0_pclk",			CLK_PLLCM33_DIV4_DDIV2_DIV2, 16, 1, 8, 1),
+	DEF_MOD("pdm0_pclk_sfr",		CLK_PLLCM33_DIV4_DDIV2_DIV2, 16, 2, 8, 2),
+	DEF_MOD("pdm0_cclk",			CDIV5_MAINOSC, 16, 3, 8, 3),
+	DEF_MOD("pdm1_pclk",			CLK_PLLCM33_DIV4_DDIV2_DIV2, 16, 4, 8, 4),
+	DEF_MOD("pdm1_pclk_sfr",		CLK_PLLCM33_DIV4_DDIV2_DIV2, 16, 5, 8, 5),
+	DEF_MOD("pdm1_cclk",			CDIV5_MAINOSC, 16, 6, 8, 6),
 };
 
 static const struct rzv2h_reset r9a09g047_resets[] __initconst = {
@@ -649,6 +659,10 @@ static const struct rzv2h_reset r9a09g047_resets[] __initconst = {
 	DEF_RST(15, 1, 7, 2),		/* SPDIF2_RST */
 	DEF_RST(15, 6, 7, 7),		/* ADC_ADRST_N */
 	DEF_RST(15, 8, 7, 9),		/* TSU_PRESETN */
+	DEF_RST(15, 2, 7, 3),		/* PDM0_PRESETN */
+	DEF_RST(15, 3, 7, 4),		/* PDM0_CRESETN */
+	DEF_RST(15, 4, 7, 5),		/* PDM1_PRESETN */
+	DEF_RST(15, 5, 7, 6),		/* PDM1_CRESETN */
 	DEF_RST(17, 10, 8, 11),		/* LVDS_TOP_RESET_N */
 	DEF_RST(17, 11, 8, 12),		/* VSPI_SMRESET_VSPISS */
 	DEF_RST(17, 12, 8, 13),		/* VSPI_SRESET_VSP1Z */
