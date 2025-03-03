@@ -24,6 +24,7 @@
 
 &pinctrl {
 	/delete-node/ gpio-lte_reset;
+	/delete-node/ gpio-m2_reset;
 
 	gpio-lte_on {
 		gpio-hog;
