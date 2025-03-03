@@ -119,6 +119,18 @@
 		compatible = "renesas,vspm_if";
 	};
 
+#if (SW_PDM_EN)
+	codec_test0: codec_test {
+		compatible = "linux,snd-soc-dummy";
+		#sound-dai-cells = <0>;
+	port {
+		dummy_codec: endpoint {
+			remote-endpoint = <&pdm_endpoint>;
+			};
+		};
+	};
+#endif
+
 	sound_card: sound {
 		compatible = "audio-graph-card";
 
@@ -128,11 +140,17 @@
 #if (!SW_LCD_EN)
 			&rsnd_port1	/* HDMI0  */
 #endif
+#if (SW_PDM_EN)
+			&pdm_link
+#endif
 			>;
 #else
 		dais = <
 #if (!SW_LCD_EN)
 			&rsnd_port0	/* HDMI0 */
+#endif
+#if (SW_PDM_EN)
+			&pdm_link
 #endif
 			>;
 #endif
@@ -239,6 +257,13 @@
 		};
 #endif
 	};
+#if (SW_PDM_EN)
+	pdm0_pins: pdm0 {
+		pinmux = <RZV2H_PORT_PINMUX(L, 2, 7)>, /* PDMCLK01 */
+			 <RZV2H_PORT_PINMUX(L, 3, 7)>; /* PDMDAT01 */
+	};
+
+#endif
 
 	i2c7_pins: i2c7 {
 		pinmux = <RZV2H_PORT_PINMUX(A, 4, 4)>, /* SCL */
@@ -466,6 +491,24 @@
 #endif
 	};
 };
+
+#if (SW_PDM_EN)
+&pdm0 {
+	pinctrl-0 = <&pdm0_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+
+	pdm_link: port {
+		pdm_endpoint: endpoint {
+			remote-endpoint = <&dummy_codec>;
+		};
+	};
+
+	channel1 {
+		status = "okay";
+	};
+};
+#endif
 
 &i2c7 {
 	pinctrl-0 = <&i2c7_pins>;
