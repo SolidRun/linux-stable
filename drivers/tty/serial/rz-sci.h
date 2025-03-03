@@ -3,9 +3,6 @@
 #include <linux/serial_core.h>
 #include <linux/io.h>
 
-#define SCI_MAJOR			240
-#define SCI_MINOR_START			18
-
 /*
  * RSCI register
  */
