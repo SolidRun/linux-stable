@@ -1440,8 +1440,6 @@ static struct uart_driver sci_uart_driver = {
 	.owner		= THIS_MODULE,
 	.driver_name	= "rsci",
 	.dev_name	= "ttySC",
-	.major		= SCI_MAJOR,
-	.minor		= SCI_MINOR_START,
 	.nr		= SCI_NPORTS,
 	.cons		= SCI_CONSOLE,
 };
