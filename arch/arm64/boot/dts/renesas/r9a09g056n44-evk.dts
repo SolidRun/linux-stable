@@ -50,14 +50,16 @@
  */
 #define SEL_SD0		0
 
-/* Select between CAN and SPDIF pins
+/* Select among CAN/SPDIF/SCI pins
  * COMMON_PIN_SEL value:
  *	0: CAN		is selected (default)
  *	1: SPDIF	is selected
+ *	2: SCI		is selected
  */
 #define COMMON_PIN_SEL		0
 #define CAN_SEL			0
 #define SPDIF_SEL		1
+#define SCI_SEL			2
 
 / {
 	model = "Renesas EVK based on r9a09g056n44";
@@ -68,9 +70,11 @@
 		serial0 = &scif;
 		serial1 = &sci0;
 		serial2 = &sci1;
+#if (COMMON_PIN_SEL == SCI_SEL)
 		serial3 = &sci4;
 		serial4 = &sci8;
 		serial5 = &sci9;
+#endif
 		mmc0 = &sdhi0;
 		mmc1 = &sdhi1;
 		ethernet0 = &eth0;
@@ -616,6 +620,7 @@
 		bias-pull-up;
 	};
 
+#if (COMMON_PIN_SEL == SCI_SEL)
 	sci4_pins: sci4 {
 		pinmux = <RZG2L_PORT_PINMUX(8, 4, 6)>, /* SCI4_TXD_MOSI_SDA */
 			<RZG2L_PORT_PINMUX(8, 5, 6)>; /* SCI4_RXD_MISO_SCL */
@@ -633,6 +638,7 @@
 			<RZG2L_PORT_PINMUX(8, 3, 6)>; /* SCI9_RXD_MISO_SCL */
 		bias-pull-up;
 	};
+#endif
 };
 
 &qextal_clk {
@@ -1041,6 +1047,7 @@
 
 };
 
+#if (COMMON_PIN_SEL == SCI_SEL)
 &sci4 {
         pinctrl-0 = <&sci4_pins>;
         pinctrl-names = "default";
@@ -1061,3 +1068,4 @@
         status = "okay";
 
 };
+#endif
