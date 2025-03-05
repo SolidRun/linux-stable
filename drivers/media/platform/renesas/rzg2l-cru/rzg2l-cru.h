@@ -40,6 +40,8 @@ enum rzg2l_cru_common_regs {
 	AMnMB7ADDRH,    /* Bank 7 Address (Higher) for CRU Image Data */
 	AMnMB8ADDRL,    /* Bank 8 Address (Lower) for CRU Image Data */
 	AMnMB8ADDRH,    /* Bank 8 Address (Higher) for CRU Image Data */
+	AMnUVAOFL,	/* UV Data Address Offset (Lower) Register for CRU Image Data*/
+	AMnUVAOFH,	/* UV Data Address Offset (Higher) Register for CRU Image Data*/
 	AMnMBVALID,	/* Memory Bank Enable for CRU Image Data */
 	AMnMBS,		/* Memory Bank Status for CRU Image Data */
 	AMnMADRSL,	/* VD Memory Address Lower Status Register */
