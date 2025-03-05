@@ -256,6 +256,8 @@ struct rzg2l_cru_dev {
 	struct v4l2_pix_format format;
 	bool is_frame_skip;
 
+	struct task_struct *retry_thread;
+
 	int id;
 };
 
