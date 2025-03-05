@@ -37,6 +37,7 @@ struct rzg2l_cru_buffer {
 };
 
 static int prev_slot[RZG2L_CRU_MAX];
+static int frame_skip[RZG2L_CRU_MAX];
 static u32 amnmbxaddrl[RZG2L_CRU_MAX][RZG2L_CRU_HW_BUFFER_MAX];
 static u32 amnmbxaddrh[RZG2L_CRU_MAX][RZG2L_CRU_HW_BUFFER_MAX];
 
@@ -668,9 +669,18 @@ irqreturn_t rzg2l_cru_irq(int irq, void *data)
 	 * to capture first from slot 0.
 	 */
 	if (cru->state == RZG2L_CRU_DMA_STARTING) {
-		if (slot != 0) {
-			dev_dbg(cru->dev, "Starting sync slot: %d\n", slot);
-			goto done;
+		if (cru->is_frame_skip) {
+			if (frame_skip[cru->id] < CRU_FRAME_SKIP) {
+				dev_dbg(cru->dev, "Skipping %d frame\n",
+						frame_skip[cru->id]);
+				frame_skip[cru->id]++;
+				goto done;
+			}
+		} else {
+			if (slot != 0) {
+				dev_dbg(cru->dev, "Starting sync slot: %d\n", slot);
+				goto done;
+			}
 		}
 
 		dev_dbg(cru->dev, "Capture start synced!\n");
@@ -772,6 +782,29 @@ irqreturn_t rzv2h_cru_irq(int irq, void *data)
 		goto done;
 	}
 
+	/*
+	 * To hand buffers back in a known order to userspace start
+	 * to capture first from slot 0.
+	 */
+	if (cru->state == RZG2L_CRU_DMA_STARTING) {
+		if (cru->is_frame_skip) {
+			if (frame_skip[cru->id] < CRU_FRAME_SKIP) {
+				dev_dbg(cru->dev, "Skipping %d frame\n",
+						frame_skip[cru->id]);
+					frame_skip[cru->id]++;
+					goto done;
+				}
+		} else {
+			if (slot != 0) {
+				dev_dbg(cru->dev, "Starting sync slot: %d\n", slot);
+				goto done;
+			}
+		}
+
+		dev_dbg(cru->dev, "Capture start synced!\n");
+		cru->state = RZG2L_CRU_DMA_RUNNING;
+	}
+
 	if (slot != prev_slot[cru->id]) {
 		/* Update value of previous memory bank slot */
 		prev_slot[cru->id] = slot;
@@ -787,24 +820,6 @@ irqreturn_t rzv2h_cru_irq(int irq, void *data)
 			cru->sequence, cru->id);
 		goto done;
 	}
-
-	amnmbxaddrl[cru->id][slot] = 0;
-	amnmbxaddrh[cru->id][slot] = 0;
-
-	/*
-	 * To hand buffers back in a known order to userspace start
-	 * to capture first from slot 0.
-	 */
-	if (cru->state == RZG2L_CRU_DMA_STARTING) {
-		if (slot != 0) {
-			dev_dbg(cru->dev, "Starting sync slot: %d\n", slot);
-			goto done;
-		}
-
-		dev_dbg(cru->dev, "Capture start synced!\n");
-		cru->state = RZG2L_CRU_DMA_RUNNING;
-	}
-
 
 	/* Capture frame */
 	if (cru->queue_buf[slot]) {
@@ -856,6 +871,8 @@ static int rzg2l_cru_start_streaming_vq(struct vb2_queue *vq, unsigned int count
 		dev_err(cru->dev, "failed to deassert presetn\n");
 		goto assert_aresetn;
 	}
+
+	frame_skip[cru->id] = 0;
 
 	/* Allocate scratch buffer. */
 	cru->scratch = dma_alloc_coherent(cru->dev, cru->format.sizeimage,

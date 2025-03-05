@@ -148,6 +148,14 @@ static int rzg2l_cru_s_ctrl(struct v4l2_ctrl *ctrl)
 			ret = -EBUSY;
 
 		break;
+	case V4L2_CID_CRU_FRAME_SKIP:
+		if ((cru->state == RZG2L_CRU_DMA_STOPPED) ||
+		    (cru->state == RZG2L_CRU_DMA_STOPPING))
+			cru->is_frame_skip = ctrl->val;
+		else
+			ret = -EBUSY;
+		break;
+
 	default:
 		ret = -EINVAL;
 		break;
@@ -290,7 +298,7 @@ static int rzg2l_cru_probe(struct platform_device *pdev)
 	struct rzg2l_cru_dev *cru;
 	struct device *dev = &pdev->dev;
 	struct v4l2_ctrl *ctrl;
-	int irq, ret;
+	int irq, ret, i;
 
 	cru = devm_kzalloc(dev, sizeof(*cru), GFP_KERNEL);
 	if (!cru)
@@ -344,13 +352,17 @@ static int rzg2l_cru_probe(struct platform_device *pdev)
 		goto error_dma_unregister;
 
 	/* Add the control about minimum amount of buffers */
-	v4l2_ctrl_handler_init(&cru->ctrl_handler, 1);
+	v4l2_ctrl_handler_init(&cru->ctrl_handler, 2);
 	ctrl = v4l2_ctrl_new_std(&cru->ctrl_handler, &rzg2l_cru_ctrl_ops,
 				 V4L2_CID_MIN_BUFFERS_FOR_CAPTURE,
 				 1, RZG2L_CRU_HW_BUFFER_MAX, 1,
 				 RZG2L_CRU_HW_BUFFER_DEFAULT);
 
 	ctrl->flags &= ~V4L2_CTRL_FLAG_READ_ONLY;
+
+	for (i = 0; i < V4L2_CID_CRU_LIMIT; i++)
+		v4l2_ctrl_new_custom(&cru->ctrl_handler,
+				     &rzg2l_cru_ctrls[i], NULL);
 
 	v4l2_ctrl_handler_setup(&cru->ctrl_handler);
 
