@@ -61,6 +61,15 @@
 #define SPDIF_SEL		1
 #define SCI_SEL			2
 
+/* Select between CRU and SPI pins
+ * SEL_FUNCTION value:
+ *	0: CRU		is selected (default)
+ *	1: SPI		is selected
+ */
+#define SEL_FUNCTION		0
+#define CRU_SEL			0
+#define SPI_SEL			1
+
 / {
 	model = "Renesas EVK based on r9a09g056n44";
 	compatible = "renesas,r9a09g056n44-evk", "renesas,r9a09g056n44", "renesas,r9a09g056";
@@ -743,13 +752,6 @@
 	status = "okay";
 };
 
-&spi2 {
-	pinctrl-0 = <&spi2_pins>;
-	pinctrl-names = "default";
-
-	status = "okay";
-};
-
 &xspi {
 	status = "okay";
 
@@ -792,6 +794,7 @@
 	};
 };
 
+#if (SEL_FUNCTION == CRU_SEL)
 &i2c0 {
 	pinctrl-0 = <&i2c0_pins>;
 	pinctrl-names = "default";
@@ -868,6 +871,32 @@
 	};
 };
 
+&cru1 {
+	status = "okay";
+};
+
+&csi21 {
+	status = "okay";
+
+	ports {
+		port {
+			csi21_in: endpoint {
+				clock-lanes = <0>;
+				data-lanes = <1 2>;
+				remote-endpoint = <&ov5645_to_csi21>;
+			};
+		};
+	};
+};
+#else
+&spi2 {
+	pinctrl-0 = <&spi2_pins>;
+	pinctrl-names = "default";
+
+	status = "okay";
+};
+#endif
+
 &i2c2 {
 	pinctrl-0 = <&i2c2_pins>;
 	pinctrl-names = "default";
@@ -921,24 +950,6 @@
                clock-divider-read-only = <1>, <1>, <1>, <1>, <1>;
                clock-flags = <2176>, <2176>, <2176>, <2052>, <2176>, <2048>;
        };
-};
-
-&cru1 {
-	status = "okay";
-};
-
-&csi21 {
-	status = "okay";
-
-	ports {
-		port {
-			csi21_in: endpoint {
-				clock-lanes = <0>;
-				data-lanes = <1 2>;
-				remote-endpoint = <&ov5645_to_csi21>;
-			};
-		};
-	};
 };
 
 &adc0 {
