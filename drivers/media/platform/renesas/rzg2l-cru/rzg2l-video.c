@@ -65,10 +65,17 @@
 #define ICnSVC_SVC2(x)			((x) << 8)
 #define ICnSVC_SVC3(x)			((x) << 12)
 
+#define ICnMC_DEMTHR			BIT(3)
 #define ICnMC_CSCTHR			BIT(5)
 #define ICnMC_INF(x)			((x) << 16)
 #define ICnMC_VCSEL(x)			((x) << 22)
 #define ICnMC_INF_MASK			GENMASK(21, 16)
+
+#define ICnMC_RAWSTTYP_RGRG		0
+#define ICnMC_RAWSTTYP_GRGR		BIT(24)
+#define ICnMC_RAWSTTYP_GBGB		BIT(25)
+#define ICnMC_RAWSTTYP_BGBG		(BIT(25) | BIT(24))
+#define ICnMC_RAWSTTYP_MASK		(BIT(25) | BIT(24))
 
 #define ICnMS_IA			BIT(2)
 
@@ -315,6 +322,7 @@ static int rzg2l_cru_initialize_image_conv(struct rzg2l_cru_dev *cru,
 	const struct rzg2l_cru_ip_format *cru_video_fmt;
 	const struct rzg2l_cru_ip_format *cru_ip_fmt;
 	u32 icmc_reg = ICnMC;
+	u32 icnmc;
 
 	cru_ip_fmt = rzg2l_cru_ip_code_to_fmt(ip_sd_fmt->code);
 	rzg2l_cru_csi2_setup(cru, cru_ip_fmt, csi_vc);
@@ -327,18 +335,68 @@ static int rzg2l_cru_initialize_image_conv(struct rzg2l_cru_dev *cru,
 		return -EINVAL;
 	}
 
+	/*
+	 * CRU can perform:
+	 * - Colorspace coversion: YUV <=> RGB.
+	 * - Demosaicing from RAW data to RGB.
+	 * To output YUV color format from RAW data input, we must process
+	 * demosaicing and colorspace conversion.
+	 * Do bypass mode for the remained mode.
+	 */
+
 	icmc_reg = (cru->info->cru_type == RZG2L_CRU_TYPE) ? ICnMC : ICnIPMC_C0;
+	icnmc = rzg2l_cru_read(cru, icmc_reg);
 
 	src_finfo = v4l2_format_info(cru_ip_fmt->format);
 	dst_finfo = v4l2_format_info(cru->format.pixelformat);
 
-	/* If input and output use same colorspace, do bypass mode */
-	if (v4l2_is_format_yuv(src_finfo) == v4l2_is_format_yuv(dst_finfo))
+	if (src_finfo->pixel_enc == dst_finfo->pixel_enc)
+		rzg2l_cru_write(cru, icmc_reg, icnmc | ICnMC_CSCTHR |
+				ICnMC_DEMTHR);
+	else if ((src_finfo->pixel_enc == V4L2_PIXEL_ENC_YUV &&
+		dst_finfo->pixel_enc == V4L2_PIXEL_ENC_RGB) ||
+		(src_finfo->pixel_enc == V4L2_PIXEL_ENC_RGB &&
+		dst_finfo->pixel_enc == V4L2_PIXEL_ENC_YUV))
 		rzg2l_cru_write(cru, icmc_reg,
-				rzg2l_cru_read(cru, icmc_reg) | ICnMC_CSCTHR);
-	else
-		rzg2l_cru_write(cru, icmc_reg,
-				rzg2l_cru_read(cru, icmc_reg) & (~ICnMC_CSCTHR));
+				(icnmc | ICnMC_DEMTHR) & ~ICnMC_CSCTHR);
+	else if (src_finfo->pixel_enc == V4L2_PIXEL_ENC_BAYER &&
+		dst_finfo->pixel_enc == V4L2_PIXEL_ENC_RGB)
+		rzg2l_cru_write(cru, icmc_reg, icnmc & ~ICnMC_DEMTHR);
+	else if (src_finfo->pixel_enc == V4L2_PIXEL_ENC_BAYER &&
+		dst_finfo->pixel_enc == V4L2_PIXEL_ENC_YUV)
+		rzg2l_cru_write(cru, icmc_reg, icnmc &
+				~(ICnMC_CSCTHR | ICnMC_DEMTHR));
+	else {
+		dev_err(cru->dev, "Not support color space conversion for (0x%x)\n",
+			cru->format.pixelformat);
+		return -ENOEXEC;
+	}
+
+	icnmc = rzg2l_cru_read(cru, icmc_reg);
+	if (!(icnmc & ICnMC_DEMTHR)) {
+		icnmc &= ~ICnMC_RAWSTTYP_MASK;
+
+		switch (cru_ip_fmt->code) {
+		case MEDIA_BUS_FMT_SRGGB8_1X8:
+			rzg2l_cru_write(cru, icmc_reg, icnmc |
+					ICnMC_RAWSTTYP_RGRG);
+			break;
+		case MEDIA_BUS_FMT_SGRBG8_1X8:
+			rzg2l_cru_write(cru, icmc_reg, icnmc |
+					ICnMC_RAWSTTYP_GRGR);
+			break;
+		case MEDIA_BUS_FMT_SGBRG8_1X8:
+			rzg2l_cru_write(cru, icmc_reg, icnmc |
+					ICnMC_RAWSTTYP_GBGB);
+			break;
+		case MEDIA_BUS_FMT_SBGGR8_1X8:
+			rzg2l_cru_write(cru, icmc_reg, icnmc |
+					ICnMC_RAWSTTYP_BGBG);
+			break;
+		default:
+			break;
+		}
+	}
 
 	/* Set output data format */
 	rzg2l_cru_write(cru, ICnDMR, cru_video_fmt->icndmr);
@@ -1186,6 +1244,21 @@ static int rzg2l_cru_video_link_validate(struct media_link *link)
 			   struct rzg2l_cru_dev, vdev);
 	video_fmt = rzg2l_cru_ip_format_to_fmt(cru->format.pixelformat);
 
+	switch (fmt.format.code) {
+	case MEDIA_BUS_FMT_UYVY8_1X16:
+	case MEDIA_BUS_FMT_SBGGR8_1X8:
+	case MEDIA_BUS_FMT_SGBRG8_1X8:
+	case MEDIA_BUS_FMT_SGRBG8_1X8:
+	case MEDIA_BUS_FMT_SRGGB8_1X8:
+	case MEDIA_BUS_FMT_RGB888_1X24:
+	case MEDIA_BUS_FMT_YUYV8_1X16:
+	case MEDIA_BUS_FMT_UYVY8_2X8:
+	case MEDIA_BUS_FMT_Y8_1X8:
+		video_fmt = rzg2l_cru_ip_code_to_fmt(fmt.format.code);
+		break;
+	default:
+		return -EPIPE;
+	}
 	if (fmt.format.width != cru->format.width ||
 	    fmt.format.height != cru->format.height ||
 	    fmt.format.field != cru->format.field ||
