@@ -1098,6 +1098,86 @@
 			status = "disabled";
 		};
 
+		poega: poega@13001C00 {
+			compatible = "renesas,poeg-r9a09g047";
+			reg = <0 0x13001C00 0 0x04>;
+			interrupts = <GIC_SPI 666 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 51>;
+			power-domains = <&cpg>;
+			resets =  <&cpg 93>;
+			status = "disabled";
+		};
+
+		poegb: poegb@13002000 {
+			compatible = "renesas,poeg-r9a09g047";
+			reg = <0 0x13002000 0 0x04>;
+			interrupts = <GIC_SPI 667 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 52>;
+			power-domains = <&cpg>;
+			resets =  <&cpg 94>;
+			status = "disabled";
+		};
+
+		poegc: poegc@13002400 {
+			compatible = "renesas,poeg-r9a09g047";
+			reg = <0 0x13002400 0 0x04>;
+			interrupts = <GIC_SPI 668 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 53>;
+			power-domains = <&cpg>;
+			resets =  <&cpg 95>;
+			status = "disabled";
+		};
+
+		poegd: poegd@13002800 {
+			compatible = "renesas,poeg-r9a09g047";
+			reg = <0 0x13002800 0 0x04>;
+			interrupts = <GIC_SPI 669 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 54>;
+			power-domains = <&cpg>;
+			resets =  <&cpg 96>;
+			status = "disabled";
+		};
+
+		poege: poege@13002C00 {
+			compatible = "renesas,poeg-r9a09g047";
+			reg = <0 0x13002C00 0 0x04>;
+			interrupts = <GIC_SPI 670 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 55>;
+			power-domains = <&cpg>;
+			resets =  <&cpg 97>;
+			status = "disabled";
+		};
+
+		poegf: poegf@13003000 {
+			compatible = "renesas,poeg-r9a09g047";
+			reg = <0 0x13003000 0 0x04>;
+			interrupts = <GIC_SPI 671 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 56>;
+			power-domains = <&cpg>;
+			resets =  <&cpg 98>;
+			status = "disabled";
+		};
+
+		poegg: poegg@13003400 {
+			compatible = "renesas,poeg-r9a09g047";
+			reg = <0 0x13003400 0 0x04>;
+			interrupts = <GIC_SPI 672 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 57>;
+			power-domains = <&cpg>;
+			resets =  <&cpg 99>;
+			status = "disabled";
+		};
+
+		poegh: poegh@13003800 {
+			compatible = "renesas,poeg-r9a09g047";
+			reg = <0 0x13003800 0 0x04>;
+			interrupts = <GIC_SPI 673 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 58>;
+			power-domains = <&cpg>;
+			resets =  <&cpg 100>;
+			status = "disabled";
+		};
+
 		gpt0_0: gpt@13010000 {
                         compatible = "renesas,gpt-r9a09g047";
                         reg = <0 0x13010000 0 0xa4>;
