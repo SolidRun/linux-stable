@@ -32,6 +32,8 @@
 	compatible = "renesas,rzv2n-dev", "renesas,r9a09g056n44", "renesas,r9a09g056";
 
 	aliases {
+		i2c0 = &i2c0;
+		i2c1 = &i2c1;
 		i2c3 = &i2c3;
 		serial0 = &scif;
 		serial1 = &sci3;
