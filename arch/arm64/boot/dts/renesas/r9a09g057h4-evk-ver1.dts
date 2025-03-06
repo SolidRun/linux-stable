@@ -10,6 +10,36 @@
 #include <dt-bindings/pinctrl/rzv2h-pinctrl.h>
 #include <dt-bindings/gpio/gpio.h>
 
+/*
+ * SSI-DA7212
+ *
+ * These commands are required when Playback/Capture
+ *
+ *	amixer -q cset name='Aux Switch' on
+ *	amixer -q cset name='Mixin Left Aux Left Switch' on
+ *	amixer -q cset name='Mixin Right Aux Right Switch' on
+ *	amixer -q cset name='ADC Switch' on
+ *	amixer -q cset name='Mixout Right Mixin Right Switch' off
+ *	amixer -q cset name='Mixout Left Mixin Left Switch' off
+ *	amixer -q cset name='Headphone Volume' 70%
+ *	amixer -q cset name='Headphone Switch' on
+ *	amixer -q cset name='Mixout Left DAC Left Switch' on
+ *	amixer -q cset name='Mixout Right DAC Right Switch' on
+ *	amixer -q cset name='DAC Left Source MUX' 'DAI Input Left'
+ *	amixer -q cset name='DAC Right Source MUX' 'DAI Input Right'
+ *	amixer -q sset 'Mic 1 Amp Source MUX' 'MIC_P'
+ *	amixer -q sset 'Mic 2 Amp Source MUX' 'MIC_P'
+ *	amixer -q sset 'Mixin Left Mic 1' on
+ *	amixer -q sset 'Mixin Right Mic 2' on
+ *	amixer -q sset 'Mic 1' 90% on
+ *	amixer -q sset 'Mic 2' 90% on
+ *	amixer -q sset 'Lineout' 80% on
+ *	amixer -q set "Headphone" 100% on
+ *
+ * When Capture, use this command to amplify sound
+ *	amixer set 'DVC In',0 10%
+ */
+
 / {
 	model = "Renesas EVK ver1 based on r9a09g057h4";
 	compatible = "renesas,r9a09g057h4-evk-ver1", "renesas,r9a09g057h4", "renesas,r9a09g057";
@@ -215,6 +245,37 @@
 		#clock-cells = <0>;
 		clock-frequency = <12000000>;
 	};
+
+	x1_clk: x1-clock {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <24000000>;
+	};
+
+	snd_rzv2h: sound {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		compatible = "simple-audio-card";
+		simple-audio-card,name = "rsnd_rzv2h";
+		status="okay";
+
+		ssi_link: simple-audio-card,dai-link@0 {
+			format = "i2s";
+			reg = <0>;
+			bitclock-master = <&cpu_dai0>;
+			frame-master = <&cpu_dai0>;
+			mclk-fs = <256>;
+
+			cpu_dai0: cpu {
+				sound-dai = <&rcar_sound 0>;
+			};
+
+			codec {
+				sound-dai = <&da7212>;
+				clocks = <&rcar_sound>;
+			};
+		};
+	};
 };
 
 &pinctrl {
@@ -302,6 +363,11 @@
 			 <RZV2H_PORT_PINMUX(3, 3, 1)>; /* I2C1_SCL */
 	};
 
+	i2c2_pins: i2c2 {
+		pinmux = <RZV2H_PORT_PINMUX(2, 0, 4)>, /* I2C2_SDA */
+			 <RZV2H_PORT_PINMUX(2, 1, 4)>; /* I2C2_SCL */
+	};
+
 	i2c3_pins: i2c3 {
 		pinmux = <RZV2H_PORT_PINMUX(3, 6, 1)>, /* I2C3_SDA */
 			 <RZV2H_PORT_PINMUX(3, 7, 1)>; /* I2C3_SCL */
@@ -315,6 +381,24 @@
 	i2c7_pins: i2c7 {
 		pinmux = <RZV2H_PORT_PINMUX(4, 6, 1)>, /* I2C7_SDA */
 			 <RZV2H_PORT_PINMUX(4, 7, 1)>; /* I2C7_SCL */
+	};
+
+	i2c8_pins: i2c8 {
+		pinmux = <RZV2H_PORT_PINMUX(0, 6, 1)>, /* I2C8_SDA */
+			 <RZV2H_PORT_PINMUX(0, 7, 1)>; /* I2C8_SCL */
+	};
+
+	sound_clk_pins: sound_clk {
+		pinmux = <RZV2H_PORT_PINMUX(1, 0, 7)>, /* AUDIO_CLKB */
+			 <RZV2H_PORT_PINMUX(1, 1, 7)>, /* AUDIO_CLKC */
+			 <RZV2H_PORT_PINMUX(9, 7, 8)>; /* AUDIO_CLKOUT */
+	};
+
+	sound_pins: sound {
+		pinmux = <RZV2H_PORT_PINMUX(1, 2, 7)>, /* SSI3_SCK */
+			 <RZV2H_PORT_PINMUX(1, 3, 7)>, /* SSI3_WS */
+			 <RZV2H_PORT_PINMUX(0, 4, 7)>, /* SSI3_SDATA */
+			 <RZV2H_PORT_PINMUX(1, 5, 7)>; /* SSI4_SDATA */
 	};
 
 	usb30_pins: usb30 {
@@ -346,6 +430,18 @@
 		pinmux = <RZV2H_PORT_PINMUX(2, 0, 1)>, /* I3C_SDA */
 			 <RZV2H_PORT_PINMUX(2, 1, 1)>; /* I3C_SCL */
 	};
+};
+
+&audio_clka {
+	clock-frequency = <22579200>;
+};
+
+&audio_clkb {
+	clock-frequency = <24576000>;
+};
+
+&audio_clkc {
+	clock-frequency = <22579200>;
 };
 
 &qextal_clk {
@@ -703,6 +799,35 @@
 	};
 };
 
+&i2c2 {
+	pinctrl-0 = <&i2c2_pins>;
+	pinctrl-names = "default";
+
+	status = "okay";
+
+	da7212: codec@1a {
+		compatible = "dlg,da7212";
+		#sound-dai-cells = <0>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <0x1a>;
+
+		clocks = <&rcar_sound>;
+		clock-names = "mclk";
+
+		dlg,micbias1-lvl = <2500>;
+		dlg,micbias2-lvl = <2500>;
+		dlg,dmic-data-sel = "lrise_rfall";
+		dlg,dmic-samplephase = "between_clkedge";
+		dlg,dmic-clkrate = <3000000>;
+
+		VDDA-supply = <&reg_1p8v>;
+		VDDSP-supply = <&reg_3p3v>;
+		VDDMIC-supply = <&reg_3p3v>;
+		VDDIO-supply = <&reg_1p8v>;
+	};
+};
+
 &i2c3 {
 	pinctrl-0 = <&i2c3_pins>;
 	pinctrl-names = "default";
@@ -742,6 +867,35 @@
 				};
 			};
 		};
+	};
+};
+
+&i2c8 {
+	pinctrl-0 = <&i2c8_pins>;
+	pinctrl-names = "default";
+
+	status = "okay";
+
+	versa3: versa3@69 {
+		compatible = "renesas,5p35023";
+		reg = <0x69>;
+		#clock-cells = <1>;
+		clocks = <&x1_clk>;
+		clock-names = "x1";
+		otp-burned;
+		32kHz-free-running;
+
+		assigned-clocks = <&versa3 0>,
+				  <&versa3 1>,
+				  <&versa3 2>,
+				  <&versa3 3>,
+				  <&versa3 4>,
+				  <&versa3 5>;
+		assigned-clock-rates =	<24000000>, <24576000>,
+					<32768>, <22579200>,
+					<100000000>, <100000000>;
+		clock-divider-read-only = <1>, <1>, <1>, <1>, <1>;
+		clock-flags = <2176>, <2176>, <2176>, <2052>, <2176>, <2048>;
 	};
 };
 
@@ -878,4 +1032,29 @@
 	/* Map all possible DDR as inbound ranges */
 	dma-ranges = <0x42000000 0 0x40000000 0 0x40000000 0x4 0x00000000>;
 	status = "okay";
+};
+
+&rcar_sound {
+	pinctrl-0 = <&sound_clk_pins &sound_pins>;
+	pinctrl-names = "default";
+
+	status = "okay";
+
+	/* audio_clkout */
+	#clock-cells = <0>;
+	clock-frequency = <11289600>;
+
+	/* Multi DAI */
+	#sound-dai-cells = <1>;
+
+	rcar_sound,dai {
+		dai0 {
+			playback = <&ssi3>;
+			capture  = <&ssi4 &src0 &dvc0>;
+		};
+	};
+};
+
+&ssi4 {
+	shared-pin;
 };
