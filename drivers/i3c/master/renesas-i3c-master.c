@@ -591,13 +591,17 @@ static void renesas_i3c_master_bus_enable(struct i3c_master_controller *m, bool 
 
 	if (i3c) {
 		/* Select I3C protocol mode. */
+		i3c_reg_set_bit(master->regs, RSTCTL, RSTCTL_INTLRST);
 		i3c_reg_write(master->regs, PRTS, 0);
+		i3c_reg_update_bit(master->regs, RSTCTL, RSTCTL_INTLRST, 0);
 		i3c_reg_set_bit(master->regs, BCTL, BCTL_HJACKCTL | BCTL_INCBA);
 		i3c_reg_update_bit(master->regs, MSDVAD, MSDVAD_MDYADV, MSDVAD_MDYADV);
 		i3c_reg_write(master->regs, STDBR, master->i3c_STDBR);
 	} else	{
 		/* Select I2C protocol mode. */
+		i3c_reg_set_bit(master->regs, RSTCTL, RSTCTL_INTLRST);
 		i3c_reg_write(master->regs, PRTS, 1);
+		i3c_reg_update_bit(master->regs, RSTCTL, RSTCTL_INTLRST, 0);
 		i3c_reg_write(master->regs, STDBR, master->i2c_STDBR);
 	}
 
