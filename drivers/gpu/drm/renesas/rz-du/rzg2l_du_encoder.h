@@ -17,6 +17,7 @@ struct rzg2l_du_device;
 
 struct rzg2l_du_encoder {
 	struct drm_encoder base;
+	struct rzg2l_du_device *rcdu;
 	enum rzg2l_du_output output;
 };
 

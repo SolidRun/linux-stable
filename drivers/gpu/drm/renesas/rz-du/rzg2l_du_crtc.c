@@ -350,32 +350,6 @@ static void rzg2l_du_crtc_atomic_flush(struct drm_crtc *crtc,
 	rzg2l_du_vsp_atomic_flush(rcrtc);
 }
 
-static enum drm_mode_status
-rzg2l_du_crtc_mode_valid(struct drm_crtc *crtc,
-			 const struct drm_display_mode *mode)
-{
-	struct rzg2l_du_crtc *rcrtc = to_rzg2l_crtc(crtc);
-	struct rzg2l_du_device *rcdu = rcrtc->dev;
-	struct rzg2l_du_crtc_state *rstate =
-					to_rzg2l_crtc_state(rcrtc->crtc.state);
-
-	bool interlaced = mode->flags & DRM_MODE_FLAG_INTERLACE;
-
-	/* RZ/G2L DU does not support interlace mode */
-	if (interlaced)
-		return MODE_NO_INTERLACE;
-
-	/* Check dotclock for Parallel Output IF if possible */
-	if (rstate->outputs & BIT(RZG2L_DU_OUTPUT_DPAD0)) {
-		if (rcdu->info->max_dclk && mode->clock > rcdu->info->max_dclk)
-			return MODE_CLOCK_HIGH;
-
-		if (rcdu->info->min_dclk && mode->clock < rcdu->info->min_dclk)
-			return MODE_CLOCK_LOW;
-	}
-
-	return MODE_OK;
-}
 
 static const struct drm_crtc_helper_funcs crtc_helper_funcs = {
 	.atomic_check = rzg2l_du_crtc_atomic_check,
@@ -383,7 +357,6 @@ static const struct drm_crtc_helper_funcs crtc_helper_funcs = {
 	.atomic_flush = rzg2l_du_crtc_atomic_flush,
 	.atomic_enable = rzg2l_du_crtc_atomic_enable,
 	.atomic_disable = rzg2l_du_crtc_atomic_disable,
-	.mode_valid = rzg2l_du_crtc_mode_valid,
 };
 
 static struct drm_crtc_state *
