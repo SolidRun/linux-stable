@@ -256,9 +256,9 @@
 		compatible = "audio-graph-card";
 
 		label = "rcar-sound";
-		mclk-fs = <256>;
 
 		dais = <&rsnd_port0	/* DA7211 */
+			&rsnd_port1	/* HDMI0  */
 			>;
 	};
 
@@ -415,6 +415,12 @@
 	i3c_pins: i3c {
 		pinmux = <RZV2H_PORT_PINMUX(2, 0, 1)>, /* I3C_SDA */
 			 <RZV2H_PORT_PINMUX(2, 1, 1)>; /* I3C_SCL */
+	};
+
+	sound_pins_hdmi: hdmi-sound {
+		pinmux = <RZV2H_PORT_PINMUX(4, 0, 7)>, /* SSI0_SCK */
+			 <RZV2H_PORT_PINMUX(4, 1, 7)>, /* SSI0_WS */
+			 <RZV2H_PORT_PINMUX(4, 2, 7)>; /* SSI0_SDATA */
 	};
 };
 
@@ -855,7 +861,14 @@
 			port@1 {
 				reg = <1>;
 				adv7535_out: endpoint@1 {
-				remote-endpoint = <&hdmi_con_out>;
+					remote-endpoint = <&hdmi_con_out>;
+				};
+			};
+
+			port@2 {
+				reg = <2>;
+				dsi_hdmi0_snd_in: endpoint {
+					remote-endpoint = <&rsnd_endpoint1>;
 				};
 			};
 		};
@@ -1027,7 +1040,7 @@
 };
 
 &rcar_sound {
-	pinctrl-0 = <&sound_clk_pins &sound_pins>;
+	pinctrl-0 = <&sound_clk_pins &sound_pins_hdmi &sound_pins>;
 	pinctrl-names = "default";
 
 	status = "okay";
@@ -1050,9 +1063,23 @@
 				dai-format = "i2s";
 				bitclock-master = <&rsnd_endpoint0>;
 				frame-master = <&rsnd_endpoint0>;
+				mclk-fs = <256>;
 
 				playback = <&ssi3>;
 				capture = <&ssi4>, <&src0>, <&dvc0>;
+			};
+		};
+
+		rsnd_port1: port@1 {
+			reg = <1>;
+			rsnd_endpoint1: endpoint {
+				remote-endpoint = <&dsi_hdmi0_snd_in>;
+
+				dai-format = "i2s";
+				bitclock-master = <&rsnd_endpoint1>;
+				frame-master = <&rsnd_endpoint1>;
+
+				playback = <&ssi0>;
 			};
 		};
 	};
