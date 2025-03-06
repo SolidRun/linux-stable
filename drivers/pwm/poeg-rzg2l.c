@@ -189,6 +189,8 @@ static int rzg2l_poeg_remove(struct platform_device *pdev)
 
 static const struct of_device_id rzg2l_poeg_of_table[] = {
 	{ .compatible = "renesas,poeg-r9a07g044", },
+	{ .compatible = "renesas,poeg-r9a09g057", },
+	{ .compatible = "renesas,poeg-r9a09g047", },
 	{ },
 };
 
