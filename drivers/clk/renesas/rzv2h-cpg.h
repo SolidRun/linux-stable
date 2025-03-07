@@ -143,6 +143,11 @@ enum clk_types {
 #define PLL_CLK2_OFFSET(n)	(((n) & ~GENMASK(31, 16)) + (0x4))
 #define PLL_MON_OFFSET(n)	(((n) & ~GENMASK(31, 16)) + (0xC))
 
+#define PLL_STBY_RESETB		BIT(0)
+#define PLL_STBY_RESETB_WEN	BIT(16)
+#define PLL_MON_RESETB		BIT(0)
+#define PLL_MON_LOCK		BIT(4)
+
 #define DEF_TYPE(_name, _id, _type...) \
 	{ .name = _name, .id = _id, .type = _type }
 #define DEF_BASE(_name, _id, _type, _parent...) \
