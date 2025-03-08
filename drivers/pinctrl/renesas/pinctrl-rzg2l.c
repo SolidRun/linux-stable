@@ -3394,6 +3394,7 @@ static const unsigned int rzg3s_extra_offsets[] = {
 static const unsigned int rzv2h_extra_offsets[] = {
 	/* OEN register */
 	RZG2L_EXTRA_BK_OFF(0x3C40, RZG2L_EXTRA_BK_OFF_ACCESS_SIZE_32),
+	RZG2L_EXTRA_BK_OFF(0x3C00, RZG2L_EXTRA_BK_OFF_ACCESS_SIZE_32),
 };
 
 static const struct rzg2l_hwcfg rzg2l_hwcfg = {
