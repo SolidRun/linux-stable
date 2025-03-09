@@ -161,6 +161,8 @@ struct rz_pdm_priv {
 	int irq_dat;
 	int irq_err;
 
+	int is_running; /* 0 = stopped; 1 = running */
+
 	spinlock_t lock;
 
 	unsigned int rate;
@@ -335,6 +337,7 @@ static int rz_pdm_start(struct rz_pdm_priv *pdm, struct rz_pdm_stream *strm)
 		rz_pdm_reg_bset(pdm, PDMm_PDICRCH(ch), IEDE, IEDE);
 		rz_pdm_reg_bset(pdm, PDMm_PDICRCH(ch), ISDE, ISDE);
 	}
+	pdm->is_running = 1;
 
 	return 0;
 }
@@ -344,6 +347,7 @@ static int rz_pdm_stop(struct rz_pdm_priv *pdm, struct rz_pdm_stream *strm)
 	u32 ch, pdscr = 0, tmp;
 	int ret;
 
+	pdm->is_running = 0;
 	for_each_set_bit(ch, &pdm->ch_mask, MAX_CHANNELS) {
 		/* Disable Channel’s Data Read */
 		rz_pdm_reg_bset(pdm, PDMm_PDDRCRCH(ch), DATRE, 0);
@@ -399,8 +403,7 @@ static int rz_pdm_dai_hw_params(struct snd_pcm_substream *substream,
 				struct snd_soc_dai *dai)
 {
 	struct rz_pdm_priv *pdm = snd_soc_dai_get_drvdata(dai);
-	int ret;
-	u32 ch, mdsr = 0;
+	u32 mdsr = 0;
 
 	pdm->rate = params_rate(params);
 	pdm->width = params_width(params);
@@ -467,7 +470,13 @@ static int rz_pdm_dai_trigger(struct snd_pcm_substream *substream, int cmd,
 	case SNDRV_PCM_TRIGGER_SUSPEND:
 	case SNDRV_PCM_TRIGGER_STOP:
 		rz_pdm_stop(pdm, strm);
-		rz_pdm_quit(strm);
+
+		/* Continue recording in case of suspending */
+		if (cmd == SNDRV_PCM_TRIGGER_SUSPEND)
+			pdm->is_running = 1;
+		else
+			rz_pdm_quit(strm);
+
 		break;
 	default:
 		ret = -EINVAL;
@@ -830,27 +839,40 @@ static const struct of_device_id rz_pdm_of_match[] = {
 };
 MODULE_DEVICE_TABLE(of, rz_pdm_of_match);
 
-static int rz_pdm_suspend(struct device *dev)
+static int __maybe_unused rz_pdm_suspend(struct device *dev)
 {
 	struct rz_pdm_priv *pdm = dev_get_drvdata(dev);
+	int i;
+
+	for (i = 0; i < MAX_RSTS; i++)
+		reset_control_assert(pdm->rst[i]);
 
 	pm_runtime_put_sync(pdm->dev);
 
 	return 0;
 }
 
-static int rz_pdm_resume(struct device *dev)
+static int __maybe_unused rz_pdm_resume(struct device *dev)
 {
 	struct rz_pdm_priv *pdm = dev_get_drvdata(dev);
+	int ret, i;
+
+	for (i = 0; i < MAX_RSTS; i++) {
+		ret = reset_control_deassert(pdm->rst[i]);
+		if (ret)
+			return ret;
+	}
 
 	pm_runtime_get_sync(pdm->dev);
+
+	/* In case of recording, Re-init hw params */
+	if (pdm->is_running)
+		return rz_pdm_hw_params_setup(pdm, pdm->mdsr);
 
 	return 0;
 }
 
-static const struct dev_pm_ops rz_pdm_pm_ops = {
-	SET_SYSTEM_SLEEP_PM_OPS(rz_pdm_suspend, rz_pdm_resume)
-};
+DEFINE_SIMPLE_DEV_PM_OPS(rz_pdm_pm_ops, rz_pdm_suspend, rz_pdm_resume);
 
 static struct platform_driver rz_pdm_driver = {
 	.driver	= {
