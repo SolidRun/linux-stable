@@ -85,9 +85,6 @@ struct renesas_sdhi {
 	unsigned int tap_set;
 
 	struct reset_control *rstc;
-
-	/* Pin Voltage Switching support: 1 for not support, 0 for support */
-	bool no_pin_volt_switch;
 };
 
 #define host_to_priv(host) \
