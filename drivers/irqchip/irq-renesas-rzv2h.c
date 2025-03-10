@@ -82,12 +82,12 @@
 #define ICU_TINT_EXTRACT_GPIOINT(x)		FIELD_GET(GENMASK(31, 16), (x))
 
 struct rzv2h_hw_info {
-        u8 irqc_irq_count;
-        u16 tint_offset;
-        u8 tint_tssel_shift;
-        u16 tint_tien;
-        u16 tssr_offset;
-        u16 tint_tssel_mask;
+	u8 irqc_irq_count;
+	u16 tint_offset;
+	u8 tint_tssel_shift;
+	u16 tint_tien;
+	u16 tssr_offset;
+	u16 tint_tssel_mask;
 	u8 icu_tint;
 };
 
@@ -117,23 +117,23 @@ static struct rzv2h_irqc_reg_cache {
 } *rzv2h_irqc_reg_cache_data;
 
 static const struct rzv2h_hw_info rzv2h_params = {
-        .irqc_irq_count = 16,
-        .tint_offset = 0,
-        .tint_tssel_shift = 8,
-        .tint_tien = BIT(7),
-        .tssr_offset = 4,
-        .tint_tssel_mask = GENMASK(7, 0),
+	.irqc_irq_count = 16,
+	.tint_offset = 0,
+	.tint_tssel_shift = 8,
+	.tint_tien = BIT(7),
+	.tssr_offset = 4,
+	.tint_tssel_mask = GENMASK(7, 0),
 	.icu_tint = 0x55,
 };
 
 static const struct rzv2h_hw_info rzg3e_params = {
-       .irqc_irq_count = 16,
-       .tint_offset = 0x800,
-       .tint_tssel_shift = 16,
-       .tint_tien = BIT(15),
-       .tssr_offset = 2,
-       .tint_tssel_mask = GENMASK(15, 0),
-       .icu_tint = 0x8C,
+	.irqc_irq_count = 16,
+	.tint_offset = 0x800,
+	.tint_tssel_shift = 16,
+	.tint_tien = BIT(15),
+	.tssr_offset = 2,
+	.tint_tssel_mask = GENMASK(15, 0),
+	.icu_tint = 0x8C,
 };
 
 static inline struct rzv2h_icu_priv *irq_data_to_priv(struct irq_data *data)
@@ -682,15 +682,15 @@ put_dev:
 }
 
 static int __init rzv2h_icu_init(struct device_node *node,
-                                                  struct device_node *parent)
+						    struct device_node *parent)
 {
-               return icu_common_init(node, parent, &rzv2h_params);
+	return icu_common_init(node, parent, &rzv2h_params);
 }
 
 static int __init rzg3e_icu_init(struct device_node *node,
-                                                  struct device_node *parent)
+						    struct device_node *parent)
 {
-               return icu_common_init(node, parent, &rzg3e_params);
+	return icu_common_init(node, parent, &rzg3e_params);
 }
 
 IRQCHIP_PLATFORM_DRIVER_BEGIN(rzv2h_icu)
