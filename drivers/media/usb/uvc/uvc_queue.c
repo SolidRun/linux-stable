@@ -239,6 +239,7 @@ int uvc_queue_init(struct uvc_device *dev, struct uvc_video_queue *queue,
 	queue->queue.mem_ops = uvc_mem_ops[allocators];
 	queue->queue.timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC
 		| V4L2_BUF_FLAG_TSTAMP_SRC_SOE;
+        queue->queue.lock = &queue->mutex;
 	queue->queue.dev = dev->vdev.dev;
 
 	switch (type) {
