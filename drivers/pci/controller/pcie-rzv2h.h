@@ -73,6 +73,9 @@
 #define MSG_HEADER_3RDDW_REG					0x0138
 #define MSG_HEADER_4THDW_REG					0x013C
 
+#define PCI_MSI_ADDR_HI		0x60E8
+#define PCI_MSI_ADDR_LO		0x60E4
+
 /* Interrupt Table */
 #define INTERRUPT_TABLE_REG						0x0140
 
@@ -89,7 +92,8 @@
 /* Macro Control */
 #define PERMISSION_REG							0x0300
 	#define CFG_HWINIT_EN						0x00000004
-#define PCI_RC_RESET_REG						0x0310
+#define CFG_PIPEPHY_EN							0x00000002
+#define PCI_RESET_REG						0x0310
 	#define RESET_ALL_DEASSERT					0x0000007F
 	#define RESET_CONFIG_DEASSERT				0x0000001C
 	#define RESET_ALL_ASSERT				    0x00000000
@@ -115,6 +119,7 @@
 #define GENERAL_PURPOSE_INPUT_REG(x)			(0x0390 + ((x) * 0x04))
 #define PCIE_CORE_MODE_SET_1_REG				0x0400
 #define PCIE_CORE_CONTROL_1_REG					0x0404
+	#define UI_ENTER_L2					(0x01 << 17)
 #define PCIE_CORE_STATUS_1_REG					0x0408
 	#define LTSSM_STATE_SHIFT					(10)
 	#define LTSSM_STATE_MASK					(0x1F << LTSSM_STATE_SHIFT)
@@ -148,6 +153,7 @@
 #define PCI_RC_BASE_ADD							0x85030000
 #define PCI_RC_MSGRCVIE_REG						0x0120
 	#define  INT_MR_SET    						0x01050000
+	#define  INT_MR_SET_EP						0x010A0000
 #define PCI_RC_MSGRCVIS_REG						0x0124
 	#define  INT_MR_CLR							0x010F0000
 #define PCI_RC_PEIE0_REG						0x0200
@@ -236,8 +242,10 @@
 #define INT_PCI_MSI_NR	32
 #define INT_PCI_INTX_NR	1
 
-#define RZV2H_PCI_MAX_RESOURCES 4
-#define MAX_NR_INBOUND_MAPS		8
+#define RZV2H_PCI_MAX_RESOURCES		4
+#define RZV2H_PCI_MAX_RESOURCES_EP	1
+#define MAX_NR_INBOUND_MAPS	8
+#define MAX_NR_INBOUND_MAPS_EP	6
 
 #define PCIE_CONF_BUS(b)	(((b) & 0xff) << 24)
 #define PCIE_CONF_DEV(d)	(((d) & 0x1f) << 19)
@@ -281,10 +289,91 @@
 #define  IO_SPACE		BIT(8)
 
 /* ----------------------------------------------------
+  CPG Register
+-------------------------------------------------------*/
+#define CPG_CLK_ON1					(0x0400)
+	#define CPG_REG_WEN_SHIFT		(16)
+	#define CPG_SET_DATA_MASK		(0x0000FFFFUL)
+#define CPG_RST1					(0x0600)
+
+/* ----------------------------------------------------
+  PCIe Endpoint Register
+-------------------------------------------------------*/
+/* PCIe Configuration Register */
+#define PCIE_CONFIGURATION_REG_EP(f)			(0x7000 - (0x1000 * (f)))
+	#define PCI_EP_VID_ADR						0x00
+	#define PCI_EP_COM_STA						0x04
+		#define PCI_EP_IRQ_STA					BIT(19)
+	#define PCI_EP_RID_CC_ADR					0x08
+	#define PCI_EP_SUBSYS_ID_ADR				0x2C
+	#define PCI_EP_INTERRUPT_ADR				0x3C
+	#define PCI_EP_OWN_PM_STS_CTRL_REG			0x44
+	#define PCI_EP_BARMSK00L_ADR				0xA0
+		#define PCIE_CFG_BAR_MASK0_L_EP_F0		(0x1FFFFFFF)
+	#define PCI_EP_BARMSK00U_ADR				0xA4
+		#define PCIE_CFG_BAR_MASK0_H_EP_F0		(0x00000000)
+	#define PCI_EP_BARMSK01L_ADR				0xA8
+		#define PCIE_CFG_BAR_MASK1_L_EP_F0		(0x00000000)
+	#define PCI_EP_BARMSK01U_ADR				0xAC
+		#define PCIE_CFG_BAR_MASK1_H_EP_F0		(0x00000000)
+	#define PCI_EP_BARMSK02L_ADR				0xB0
+		#define PCIE_CFG_BAR_MASK2_L_EP_F0		(0x00001FFF)
+	#define PCI_EP_BARMSK02U_ADR				0xB4
+		#define PCIE_CFG_BAR_MASK2_H_EP_F0		(0x00000000)
+	#define PCI_EP_BSIZE00_01_ADR				0xC8
+		#define PCIE_CFG_BASE_SIZE_0001_EP_F0	(0x00000000)
+	#define PCI_EP_BSIZE00_0203_ADR				0xCC
+		#define PCIE_CFG_BASE_SIZE_0203_EP_F0	(0x00000000)
+	#define PCI_EP_BSIZE00_0405_ADR				0xD0
+		#define PCIE_CFG_BASE_SIZE_0405_EP_F0	(0x00000000)
+	#define PCI_EP_BSIZE00_06_ADR				0xD4
+		#define PCIE_CFG_BASE_SIZE_06_EP_F0		(0x00000000)
+
+/* Power Management Registers */
+#define PCI_PME_ENABLE							(0x01 << 8)
+
+#define PCI_EP_MSICAP(x)						(0xE0 + ((x) * 0x4))
+#define  MSICAP0_MSIE							BIT(16)
+#define  MSICAP0_MMESCAP_OFFSET					17
+#define  MSICAP0_MMESE_OFFSET					20
+#define  MSICAP0_MMESE_MASK						GENMASK(22, 20)
+
+#define PCIE_CFGREG_HEADER_START				(0x10)
+#define PCIE_CFGREG_HEADER_END					(0x40)
+#define PCIE_CFGREG_HEADER_SIZE					(PCIE_CFGREG_HEADER_END - PCIE_CFGREG_HEADER_START)
+
+/* SYS Registers bitset.(Only PCIe-I/F contole function) */
+#define PCI_PME_TIM								(0x06C)
+#define PCI_PME_STS								(0x088)
+	#define PME_STS_FN(n)						(0x01 << ((n) * 4))
+#define PCI_PME_STS_CLR							(0x08C)
+	#define PME_STS_CLR_FN(n)					(0x01 << ((n) * 4))
+#define PCI_MODE								(0x090)
+
+/* Macro */
+#define PCIE_MODE_EP							0
+#define PCIE_CFG_RECOVERY_EP_RESET      		1
+#define RZV2H_EPC_MAX_FUNCTIONS					1
+#define PCIE_PRV_CHECK_CNT						6
+#define PCIE_PRV_RESET_WAIT						1
+
+/* PCIe Endpoint Configuration setting value */
+#define PCIE_CONF_REVISION_ID					0x00
+#define PCIE_CONF_BASE_CLASS					0x06
+#define PCIE_CONF_SUB_CLASS						0x04
+#define PCIE_CONF_PROGRAMING_IF					0x00
+
+/* ----------------------------------------------------
   RAMA Area
 -------------------------------------------------------*/
 #define RAMA_ADDRESS			 				0x80100000
 #define RAMA_SIZE				 				0x32000
+
+/* ----------------------------------------------------
+  PCIe CMA
+-------------------------------------------------------*/
+#define PCIE_CMA_ADDRESS		 				0x1FFFFFF00
+#define PCIE_CMA_SIZE				 			0x100
 
 struct rzv2h_axi_window_set {
 	u32	base[RZV2H_PCI_MAX_RESOURCES];
@@ -328,7 +417,16 @@ u32 rzv2h_read_conf(struct rzv2h_pcie *pcie, int where);
 void rzv2h_write_conf(struct rzv2h_pcie *pcie, u32 data, int where);
 void rzv2h_pcie_set_outbound(struct rzv2h_pcie *pcie, int win,
 			    struct resource_entry *window);
+void rzv2h_pcie_ep_set_outbound(struct rzv2h_pcie *pcie, phys_addr_t cpu_addr, u64 pci_addr, size_t size);
+void rzv2h_pcie_set_inbound_ep(struct rzv2h_pcie *pcie, u64 cpu_addr,
+			u64 pci_addr, u64 flags, int idx, bool host);
 void rzv2h_pcie_set_inbound(struct rzv2h_pcie *pcie, u64 cpu_addr,
 			   u64 pci_addr, u64 flags, int idx, bool host);
+u32 rzv2h_read_conf_ep(struct rzv2h_pcie *pcie, int where, u8 fn);
+void rzv2h_write_conf_ep(struct rzv2h_pcie *pcie, u32 data, int where, u8 fn);
+void rzv2h_write_phy_conf(struct rzv2h_pcie *pcie, u32 data, int where);
+u32 rzv2h_read_phy_conf(struct rzv2h_pcie *pcie, int where);
+void rzv2h_pci_bit_write_reg(struct rzv2h_pcie *pcie, u32 val, unsigned long reg);
+void rzv2h_pci_bit_clear_reg(struct rzv2h_pcie *pcie, u32 val, unsigned long reg);
 
 #endif

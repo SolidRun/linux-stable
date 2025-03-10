@@ -50,7 +50,7 @@ static struct	task_struct *pcie_kthread_tsk;
 static struct	rzv2h_pcie *tmp_pcie;
 
 static u32 r_configuration_space[] = {
-	0x00000004,
+	0x0000000c,
 	0x00000000,
 	0xfff0fff0,
 	0x48035001
@@ -474,7 +474,7 @@ static int rzv2h_pcie_enable(struct rzv2h_pcie_host *host)
 
 static void rzv2h_pcie_setting_config(struct rzv2h_pcie *pcie)
 {
-	rzv2h_pci_write_reg(pcie, RESET_CONFIG_DEASSERT, PCI_RC_RESET_REG);
+	rzv2h_pci_write_reg(pcie, RESET_CONFIG_DEASSERT, PCI_RESET_REG);
 
 	// Configuration space(Root complex) setting
 	// Vendor and Device ID      : PCI Express Configuration Registers Adr 6000h
@@ -544,6 +544,9 @@ static int PCIE_CFG_Initialize(struct rzv2h_pcie *pcie)
 			PCI_MEMORY_BASE);
 
 	rzv2h_write_conf(pcie, PM_CAPABILITIES_INIT, PCI_PM_CAPABILITIES);
+	rzv2h_write_conf(pcie, 0x78787878, 0x1bc);
+	rzv2h_write_conf(pcie, 0x78787878, 0x1c0);
+	rzv2h_write_phy_conf(pcie, 0x5DBB8000, 0x20a0);
 
 	return 0;
 }
@@ -589,10 +592,10 @@ static int rzv2h_pcie_hw_init(struct rzv2h_pcie *pcie, int channel)
 	struct arm_smccc_res local_res;
 
 	/* Set to the PCIe reset state   : step6 */
-	rzv2h_pci_write_reg(pcie, RESET_ALL_ASSERT, PCI_RC_RESET_REG);			/* Set PCI_RC 310h */
+	rzv2h_pci_write_reg(pcie, RESET_ALL_ASSERT, PCI_RESET_REG);			/* Set PCI_RC 310h */
 
 	/* Release the PCIe reset : step10 : RST_LOAD_B, RST_CFG_B)*/
-	rzv2h_pci_write_reg(pcie, RESET_LOAD_CFG_RELEASE, PCI_RC_RESET_REG);	/* Set PCI_RC 310h */
+	rzv2h_pci_write_reg(pcie, RESET_LOAD_CFG_RELEASE, PCI_RESET_REG);	/* Set PCI_RC 310h */
 
 	/* Setting of HWINT related registers : step11 */
 	PCIE_CFG_Initialize(pcie);
@@ -606,12 +609,12 @@ static int rzv2h_pcie_hw_init(struct rzv2h_pcie *pcie, int channel)
 	PCIE_INT_Initialize(pcie);
 
 	/* Release the PCIe reset : step14 : RST_PS_B, RST_GP_B, RST_B */
-	rzv2h_pci_write_reg(pcie, RESET_PS_GP_RELEASE, PCI_RC_RESET_REG);		/* Set PCI_RC 310h */
+	rzv2h_pci_write_reg(pcie, RESET_PS_GP_RELEASE, PCI_RESET_REG);		/* Set PCI_RC 310h */
 
 	msleep(1);
 
 	/* Release the PCIe reset : step16 : RST_OUT_B, RST_RSM_B) */
-	rzv2h_pci_write_reg(pcie, RESET_ALL_DEASSERT,  PCI_RC_RESET_REG);		/* Set PCI_RC 310h */
+	rzv2h_pci_write_reg(pcie, RESET_ALL_DEASSERT,  PCI_RESET_REG);		/* Set PCI_RC 310h */
 
 	rzv2h_pci_write_reg(pcie, 0x3ff2, MODE_SET_1_REG);						/* Set PCI_RC 318h */
 
@@ -630,13 +633,13 @@ static void rzv2h_pcie_reset_assert(void)
 {
 	unsigned long reg;
 
-	reg = rzv2h_pci_read_reg(tmp_pcie, PCI_RC_RESET_REG) & ~(RST_GP_B | RST_PS_B | RST_CFG_B | RST_B);
-	rzv2h_pci_write_reg(tmp_pcie, reg,  PCI_RC_RESET_REG);
+	reg = rzv2h_pci_read_reg(tmp_pcie, PCI_RESET_REG) & ~(RST_GP_B | RST_PS_B | RST_CFG_B | RST_B);
+	rzv2h_pci_write_reg(tmp_pcie, reg,  PCI_RESET_REG);
 }
 
 static void rzv2h_pcie_reset_deassert(void)
 {
-	rzv2h_rmw(tmp_pcie, PCI_RC_RESET_REG,
+	rzv2h_rmw(tmp_pcie, PCI_RESET_REG,
 					 (RST_GP_B | RST_PS_B | RST_CFG_B | RST_B),
 					 (RST_GP_B | RST_PS_B | RST_CFG_B | RST_B));
 }
