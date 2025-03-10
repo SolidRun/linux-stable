@@ -2122,7 +2122,7 @@
 			resets = <&cpg 127>,
 				 <&cpg 128>;
 			reset-names = "presetn", "tresetn";
-			dmas = <&dmac1 0x7F4C91>, <&dmac1 0x7F4C90>;
+			dmas = <&dmac1 0x7F4491>, <&dmac1 0x7F4490>;
 			dma-names = "tx", "rx";
 			power-domains = <&cpg>;
 			num-cs = <1>;
