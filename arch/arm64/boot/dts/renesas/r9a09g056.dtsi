@@ -1672,6 +1672,20 @@
 			status = "disabled";
 		};
 
+		pcie0_ep: pcie-ep@13400000 {
+			compatible = "renesas,rzv2n-pcie-ep";
+			reg = <0x0 0x13400000 0x0 0x10000>,
+			      <0x0 0x30000000 0x0 0x08000000>;
+			reg-names = "apb-base", "memory0";
+			interrupts = <GIC_SPI 791 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 0xc4>,
+				 <&cpg CPG_MOD 0xc5>;
+			power-domains = <&cpg>;
+			resets = <&cpg 0xb2>;
+			pcie,channel = <0>;
+			status = "disabled";
+		};
+
 		rcar_sound: sound@13c00000 {
 			/*
 			 * #sound-dai-cells is required
