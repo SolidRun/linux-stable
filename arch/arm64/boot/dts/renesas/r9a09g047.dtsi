@@ -671,8 +671,13 @@
 			clock-names = "core", "clkh", "cd", "aclk";
 			resets = <&cpg 167>;
 			power-domains = <&cpg>;
-			mmc-no-pin-volt-switch;
 			status = "disabled";
+
+			vqmmc_sdhi0: vqmmc-regulator {
+				regulator-name = "SDHI0-VQMMC";
+				regulator-min-microvolt = <1800000>;
+				regulator-max-microvolt = <3300000>;
+			};
 		};
 
 		sdhi1: mmc@15c10000 {
@@ -687,8 +692,13 @@
 			clock-names = "core", "clkh", "cd", "aclk";
 			resets = <&cpg 168>;
 			power-domains = <&cpg>;
-			mmc-no-pin-volt-switch;
 			status = "disabled";
+
+			vqmmc_sdhi1: vqmmc-regulator {
+				regulator-name = "SDHI1-VQMMC";
+				regulator-min-microvolt = <1800000>;
+				regulator-max-microvolt = <3300000>;
+			};
 		};
 
 		sdhi2: mmc@15c20000 {
@@ -703,8 +713,13 @@
 			clock-names = "core", "clkh", "cd", "aclk";
 			resets = <&cpg 169>;
 			power-domains = <&cpg>;
-			mmc-no-pin-volt-switch;
 			status = "disabled";
+
+			vqmmc_sdhi2: vqmmc-regulator {
+				regulator-name = "SDHI2-VQMMC";
+				regulator-min-microvolt = <1800000>;
+				regulator-max-microvolt = <3300000>;
+			};
 		};
 
 		i2c0: i2c@14400400 {
