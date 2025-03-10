@@ -27,6 +27,12 @@
  */
 #define CAN2_PINS_SEL	1
 
+/* Set SEL_PCIE_MODE to below values to select using of PCIE mode:
+ * - 0: Root Complex (default)
+ * - 1: Endpoint
+ */
+#define SEL_PCIE_MODE		0
+
 / {
 	model = "Renesas RZ/V2N EVK Board based on r9a09g056n44";
 	compatible = "renesas,rzv2n-dev", "renesas,r9a09g056n44", "renesas,r9a09g056";
@@ -796,12 +802,18 @@
 };
 #endif
 
+#if (!SEL_PCIE_MODE)
 &pcie0 {
 	/* Map all possible DDR as inbound ranges */
 	dma-ranges = <0x42000000 0 0x40000000 0 0x40000000 0x2 0x00000000>;
 
 	status = "okay";
 };
+#else
+&pcie0_ep {
+	status = "okay";
+};
+#endif
 
 &sci3 {
        pinctrl-0 = <&sci3_pins>;
