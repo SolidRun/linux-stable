@@ -469,10 +469,10 @@ properties:
       - description: RZ/G3E (R9A09G047)
         items:
           - enum:
-              - renesas,r9a09g047e54-dev	# Dev EVK
-              - renesas,r9a09g047e54-smarc	# SMARC EVK
+              - renesas,r9a09g047e57-dev	# Dev EVK
+              - renesas,r9a09g047e57-smarc	# SMARC EVK
           - enum:
-              - renesas,r9a09g047e54 # Quad Cortex-A55 RZ/G3E
+              - renesas,r9a09g047e57 # Quad Cortex-A55 RZ/G3E
           - const: renesas,r9a09g047
 
       - description: RZ/V2H (R9A09G057)
