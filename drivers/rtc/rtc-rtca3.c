@@ -489,10 +489,10 @@ static int rtca3_set_alarm(struct device *dev, struct rtc_wkalrm *wkalrm)
 	return 0;
 }
 
-static int rtca3_set_cntmd(struct platform_device *pdev)
+static int rtca3_set_cntmd(struct device *dev)
 {
-	struct device_node *np = pdev->dev.of_node;
-	struct rtca3_priv *rtc = dev_get_drvdata(&pdev->dev);
+	struct device_node *np = dev->of_node;
+	struct rtca3_priv *rtc = dev_get_drvdata(dev);
 	unsigned int tmp;
 	int timeout = 1000;
 	u32 val;
@@ -522,6 +522,52 @@ static int rtca3_set_cntmd(struct platform_device *pdev)
 	return 0;
 }
 
+static int rtca3_hw_init(struct device *dev)
+{
+	int ret, tmp;
+	int timeout = 1000;
+	struct rtca3_priv *rtc = dev_get_drvdata(dev);
+
+	/* everything disabled by default */
+	rtca3_setaie(dev, 0);
+	rtca3_setcie(dev, 0);
+	/* Enable RTC clock */
+	tmp = readb(rtc->regbase + RCR3);
+	tmp |= RCR3_RTCEN;
+	writeb(tmp, rtc->regbase + RCR3);
+
+	tmp = readb(rtc->regbase + RCR2);
+	tmp &= ~RCR2_START;
+	writeb(tmp, rtc->regbase + RCR2);
+	while (timeout) {
+		if (!(readb(rtc->regbase + RCR2) & RCR2_START))
+			break;
+		cpu_relax();
+		timeout--;
+	}
+	if (!timeout)
+		return -ETIMEDOUT;
+
+	ret = rtca3_set_cntmd(dev);
+	if (ret)
+		return ret;
+
+	tmp = readb(rtc->regbase + RCR2);
+	tmp |= RCR2_START;
+	writeb(tmp, rtc->regbase + RCR2);
+	timeout = 1000;
+	while (timeout) {
+		if ((readb(rtc->regbase + RCR2) & RCR2_START))
+			break;
+		cpu_relax();
+		timeout--;
+	}
+	if (!timeout)
+		return -ETIMEDOUT;
+
+	return 0;
+}
+
 static const struct rtc_class_ops rtca3_ops = {
 	.read_time	= rtca3_read_time,
 	.set_time	= rtca3_set_time,
@@ -536,8 +582,7 @@ static int __init rtca3_probe(struct platform_device *pdev)
 	struct rtca3_priv *rtc;
 	struct resource *res;
 	char clk_name[6];
-	int clk_id, ret, tmp;
-	int timeout = 1000;
+	int clk_id, ret;
 
 	rtc = devm_kzalloc(&pdev->dev, sizeof(*rtc), GFP_KERNEL);
 	if (unlikely(!rtc))
@@ -663,45 +708,11 @@ static int __init rtca3_probe(struct platform_device *pdev)
 	}
 
 	platform_set_drvdata(pdev, rtc);
-	/* everything disabled by default */
-	rtca3_setaie(&pdev->dev, 0);
-	rtca3_setcie(&pdev->dev, 0);
-	/* Enable RTC clock */
-	tmp = readb(rtc->regbase + RCR3);
-	tmp |= RCR3_RTCEN;
-	writeb(tmp, rtc->regbase + RCR3);
 
-	tmp = readb(rtc->regbase + RCR2);
-	tmp &= ~RCR2_START;
-	writeb(tmp, rtc->regbase + RCR2);
-	while (timeout) {
-		if (!(readb(rtc->regbase + RCR2) & RCR2_START))
-			break;
-		cpu_relax();
-		timeout--;
-	}
-	if (!timeout) {
-		ret = -ETIMEDOUT;
-		goto err_unmap;
-	}
-	ret = rtca3_set_cntmd(pdev);
+	ret = rtca3_hw_init(&pdev->dev);
 	if (ret)
 		goto err_unmap;
 
-	tmp = readb(rtc->regbase + RCR2);
-	tmp |= RCR2_START;
-	writeb(tmp, rtc->regbase + RCR2);
-	timeout = 1000;
-	while (timeout) {
-		if ((readb(rtc->regbase + RCR2) & RCR2_START))
-			break;
-		cpu_relax();
-		timeout--;
-	}
-	if (!timeout) {
-		ret = -ETIMEDOUT;
-		goto err_unmap;
-	}
 	rtc->rtc_dev->ops = &rtca3_ops;
 	rtc->rtc_dev->max_user_freq = 256;
 
@@ -751,16 +762,42 @@ static void rtca3_set_irq_wake(struct device *dev, int enabled)
 
 static int __maybe_unused rtca3_suspend(struct device *dev)
 {
+	struct rtca3_priv *rtc = dev_get_drvdata(dev);
 	if (device_may_wakeup(dev))
 		rtca3_set_irq_wake(dev, 1);
+
+	clk_disable(rtc->clk);
+
+	reset_control_assert(rtc->rst);
+	reset_control_assert(rtc->rst_v);
 
 	return 0;
 }
 
 static int __maybe_unused rtca3_resume(struct device *dev)
 {
+	struct rtca3_priv *rtc = dev_get_drvdata(dev);
+	int ret;
+
 	if (device_may_wakeup(dev))
 		rtca3_set_irq_wake(dev, 0);
+
+	ret = reset_control_deassert(rtc->rst);
+	if (ret)
+		return ret;
+
+	ret = reset_control_deassert(rtc->rst_v);
+	if (ret)
+		return ret;
+
+	clk_enable(rtc->clk);
+
+	ret = rtca3_hw_init(dev);
+
+	if (ret) {
+		clk_disable(rtc->clk);
+		return ret;
+	}
 
 	return 0;
 }
