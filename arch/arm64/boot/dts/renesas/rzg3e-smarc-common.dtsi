@@ -10,6 +10,6 @@
 #include "rzg3e-smarc.dtsi"
 
 / {
-	model = "Renesas SMARC EVK based on r9a09g047e54";
-	compatible = "renesas,r9a09g047e54-smarc", "renesas,r9a09g047e54", "renesas,r9a09g047";
+	model = "Renesas SMARC EVK based on r9a09g047e57";
+	compatible = "renesas,r9a09g047e57-smarc", "renesas,r9a09g047e57", "renesas,r9a09g047";
 };
