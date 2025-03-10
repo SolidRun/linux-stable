@@ -16,6 +16,10 @@
  *	0 - Smarc SDIO signal is connected to uSD1
  *	1 - Smarc SDIO signal is connected to M.2 Key E connector
  *
+ * SW_SER0_PMOD:
+ *	0 - Smarc SER0 signals connect to M.2 Key E connector, SER2 signals are unconnected
+ *	1 - Smarc SER0 signals connect to PMOD, SER2 signals connected to M.2 Key E connector
+ *
  * SW_GPIO_CAN_PMOD states:
  *
  * Please change the corresponding selection to below Macros:
@@ -32,6 +36,13 @@
 / {
 	aliases {
 		serial0 = &scif;
+#if (!SW_LCD_EN)
+		serial1 = &sci4;
+		serial2 = &sci9;
+#endif
+#if ((SW_SER0_PMOD) && (!SW_SER2_EN))
+		serial3 = &sci2;
+#endif
 #if (!SW_SDIO_M2E)
 		mmc1 = &sdhi1;
 #endif
@@ -164,6 +175,28 @@
 	};
 #endif
 
+#if (!SW_LCD_EN)
+	sci4_pins: sci4 {
+		pinmux = <RZV2H_PORT_PINMUX(7, 7, 5)>, /* SCI4_TXD_MOSI_SDA */
+			 <RZV2H_PORT_PINMUX(7, 6, 5)>; /* SCI4_RXD_MISO_SCL */
+		bias-pull-up;
+	};
+
+	sci9_pins: sci9 {
+		pinmux = <RZV2H_PORT_PINMUX(8, 3, 5)>, /* SCI9_TXD_MOSI_SDA */
+			 <RZV2H_PORT_PINMUX(8, 2, 5)>; /* SCI9_RXD_MISO_SCL */
+		bias-pull-up;
+	};
+#endif
+
+#if ((SW_SER0_PMOD) && (!SW_SER2_EN))
+	sci2_pins: sci2 {
+		pinmux = <RZV2H_PORT_PINMUX(1, 1, 1)>, /* SCI2_TXD_MOSI_SDA */
+			 <RZV2H_PORT_PINMUX(1, 0, 1)>; /* SCI2_RXD_MISO_SCL */
+		bias-pull-up;\
+	};
+#endif
+
 	gpt0_1_pins: gpt0_1 {
 			pinmux = <RZV2H_PORT_PINMUX(3, 2, 10)>,
 				 <RZV2H_PORT_PINMUX(3, 3, 10)>;
@@ -217,6 +250,28 @@
 
 	status = "okay";
 };
+
+#if (!SW_LCD_EN)
+&sci4 {
+	pinctrl-0 = <&sci4_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&sci9 {
+	pinctrl-0 = <&sci9_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+#endif
+
+#if ((SW_SER0_PMOD) && (!SW_SER2_EN))
+&sci2 {
+	pinctrl-0 = <&sci2_pins>
+	pinctrl-names = "default";
+	status = "okay";
+};
+#endif
 
 &gpt0_1 {
         pinctrl-0 = <&gpt0_1_pins>;

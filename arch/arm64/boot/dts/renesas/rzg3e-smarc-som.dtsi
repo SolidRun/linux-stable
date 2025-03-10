@@ -20,7 +20,9 @@
  * SW_SD0_DEV_SEL:
  *      0 - SD0 is connected to eMMC (default)
  *      1 - SD0 is connected to uSD0 card
- *
+ * SW_SER2_EN:
+ *	0 - Connects to Carrier SER2(SCI2) (default)
+ *	1 - Connects to Module DSI connector(GPIO)
  * SW_HDMI_EN when RZG3E_SMARC_MIPI_DSI_ENABLE is set:
  *	0 - MIPI DSI is connected to Carrier HDMI (default)
  *	1 - MIPI DSI is connected to Module DSI connector
