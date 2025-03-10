@@ -169,8 +169,8 @@
 		};
 
 		sd1_ctrl {
-			pinmux = <RZV2H_PORT_PINMUX(G, 0, 1)>, /* QSD2_CLK */
-				 <RZV2H_PORT_PINMUX(G, 1, 1)>; /* QSD2_CMD */
+			pinmux = <RZV2H_PORT_PINMUX(G, 0, 1)>, /* QSD1_CLK */
+				 <RZV2H_PORT_PINMUX(G, 1, 1)>; /* QSD1_CMD */
 		};
 	};
 #endif
@@ -287,14 +287,19 @@
 #if (!SW_SDIO_M2E)
 &sdhi1 {
 	pinctrl-0 = <&sdhi1_pins>;
-	pinctrl-names = "default";
+	pinctrl-1 = <&sdhi1_pins>;
+	pinctrl-names = "default", "state_uhs";
+
 	vmmc-supply = <&vmmc_sdhi1>;
 	vqmmc-supply = <&vccq_sdhi1>;
+
 	bus-width = <4>;
 	sd-uhs-sdr50;
 	sd-uhs-sdr104;
 
 	status = "okay";
+
+	/delete-node/ vqmmc_regulator;
 };
 #endif
 
