@@ -801,7 +801,9 @@
 &i3c {
 	pinctrl-0 = <&i3c_pins>;
 	pinctrl-names = "default";
-	status = "okay";
+
+	/* Enable when there is an I3C external device defined here */
+	/* status = "okay"; */
 };
 
 #if (!I2C1_GPT_SEL)
