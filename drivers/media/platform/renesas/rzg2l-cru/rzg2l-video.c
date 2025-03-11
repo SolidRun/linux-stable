@@ -772,6 +772,7 @@ irqreturn_t rzg2l_cru_irq(int irq, void *data)
 		 * and resume transmission.
 		 */
 		rzg2l_cru_write(cru, AMnFIFO, 0);
+		prev_slot[cru->id] = -1;
 
 		dev_dbg(cru->dev, "Dropping frame %u with CRU channel %d\n",
 			cru->sequence, cru->id);
@@ -890,6 +891,7 @@ irqreturn_t rzv2h_cru_irq(int irq, void *data)
 		 * and resume transmission.
 		 */
 		rzg2l_cru_write(cru, AMnFIFO, 0);
+		prev_slot[cru->id] = -1;
 
 		dev_dbg(cru->dev, "Dropping frame %u with CRU channel %d\n",
 			cru->sequence, cru->id);
