@@ -99,6 +99,8 @@ struct sci_port {
 	int				irqs[SCIx_NR_IRQS];
 	char				*irqstr[SCIx_NR_IRQS];
 
+	struct reset_control		*rstc;
+
 	int				rx_trigger;
 	struct timer_list		rx_fifo_timer;
 	int				rx_fifo_timeout;
@@ -1547,6 +1549,7 @@ static struct plat_sci_port *sci_parse_dt(struct platform_device *pdev,
 	}
 
 	sp = &sci_ports[id];
+	sp->rstc = rstc;
 	*dev_id = id;
 
 	p->type = SCI_OF_TYPE(data);
@@ -1645,12 +1648,25 @@ static __maybe_unused int sci_suspend(struct device *dev)
 	if (sport)
 		uart_suspend_port(&sci_uart_driver, &sport->port);
 
+	/* Also support "no_console_suspend" */
+	if (console_suspend_enabled)
+		reset_control_assert(sport->rstc);
+
 	return 0;
 }
 
 static __maybe_unused int sci_resume(struct device *dev)
 {
 	struct sci_port *sport = dev_get_drvdata(dev);
+	int ret;
+
+	if (console_suspend_enabled) {
+		ret = reset_control_deassert(sport->rstc);
+		if (ret) {
+			dev_err(dev, "failed to reset controller (error %d)\n", ret);
+			return ret;
+		}
+	}
 
 	if (sport)
 		uart_resume_port(&sci_uart_driver, &sport->port);
