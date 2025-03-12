@@ -388,6 +388,9 @@ struct rzg2l_pinctrl_reg_cache {
 	u32	*pfc;
 	u32	*iolh[2];
 	u32	*ien[2];
+	u32	*pupd[2];
+	u32	*isel[2];
+	u32	*sr[2];
 	u32	*extra;
 };
 
@@ -2811,6 +2814,21 @@ static int rzg2l_pinctrl_reg_cache_alloc(struct rzg2l_pinctrl *pctrl)
 		if (!cache->ien[i])
 			return -ENOMEM;
 
+		cache->isel[i] = devm_kcalloc(pctrl->dev, nports, sizeof(*cache->isel[i]),
+						GFP_KERNEL);
+		if (!cache->isel[i])
+			return -ENOMEM;
+
+		cache->pupd[i] = devm_kcalloc(pctrl->dev, nports, sizeof(*cache->pupd[i]),
+						GFP_KERNEL);
+		if (!cache->pupd[i])
+			return -ENOMEM;
+
+		cache->sr[i] = devm_kcalloc(pctrl->dev, nports, sizeof(*cache->sr[i]),
+						GFP_KERNEL);
+		if (!cache->sr[i])
+			return -ENOMEM;
+
 		/* Allocate dedicated cache. */
 		dedicated_cache->iolh[i] = devm_kcalloc(pctrl->dev, n_dedicated_pins,
 							sizeof(*dedicated_cache->iolh[i]),
@@ -2822,6 +2840,25 @@ static int rzg2l_pinctrl_reg_cache_alloc(struct rzg2l_pinctrl *pctrl)
 						       sizeof(*dedicated_cache->ien[i]),
 						       GFP_KERNEL);
 		if (!dedicated_cache->ien[i])
+			return -ENOMEM;
+
+
+		dedicated_cache->isel[i] = devm_kcalloc(pctrl->dev, n_dedicated_pins,
+							sizeof(*dedicated_cache->isel[i]),
+							GFP_KERNEL);
+		if (!dedicated_cache->isel[i])
+			return -ENOMEM;
+
+		dedicated_cache->pupd[i] = devm_kcalloc(pctrl->dev, n_dedicated_pins,
+							sizeof(*dedicated_cache->pupd[i]),
+							GFP_KERNEL);
+		if (!dedicated_cache->pupd[i])
+			return -ENOMEM;
+
+		dedicated_cache->sr[i] = devm_kcalloc(pctrl->dev, n_dedicated_pins,
+							sizeof(*dedicated_cache->sr[i]),
+							GFP_KERNEL);
+		if (!dedicated_cache->sr[i])
 			return -ENOMEM;
 	}
 
@@ -3071,7 +3108,7 @@ static void rzg2l_pinctrl_pm_setup_regs(struct rzg2l_pinctrl *pctrl, bool suspen
 	struct rzg2l_pinctrl_reg_cache *cache = pctrl->cache;
 
 	for (u32 port = 0; port < nports; port++) {
-		bool has_iolh, has_ien;
+		bool has_iolh, has_ien, has_pupd, has_sr;
 		u32 off, caps;
 		u8 pincnt;
 		u64 cfg;
@@ -3083,6 +3120,8 @@ static void rzg2l_pinctrl_pm_setup_regs(struct rzg2l_pinctrl *pctrl, bool suspen
 		caps = FIELD_GET(PIN_CFG_MASK, cfg);
 		has_iolh = !!(caps & (PIN_CFG_IOLH_A | PIN_CFG_IOLH_B | PIN_CFG_IOLH_C));
 		has_ien = !!(caps & PIN_CFG_IEN);
+		has_pupd = !!(caps & PIN_CFG_PUPD);
+		has_sr = !!(caps & PIN_CFG_SR);
 
 		if (suspend)
 			RZG2L_PCTRL_REG_ACCESS32(suspend, pctrl->base + PFC(off), cache->pfc[port]);
@@ -3103,6 +3142,12 @@ static void rzg2l_pinctrl_pm_setup_regs(struct rzg2l_pinctrl *pctrl, bool suspen
 
 		RZG2L_PCTRL_REG_ACCESS16(suspend, pctrl->base + PM(off), cache->pm[port]);
 		RZG2L_PCTRL_REG_ACCESS8(suspend, pctrl->base + P(off), cache->p[port]);
+		RZG2L_PCTRL_REG_ACCESS32(suspend, pctrl->base + ISEL(off), cache->isel[0][port]);
+
+		if (pincnt >= 4) {
+			RZG2L_PCTRL_REG_ACCESS32(suspend, pctrl->base + ISEL(off) + 4,
+						 cache->isel[1][port]);
+		}
 
 		if (has_ien) {
 			RZG2L_PCTRL_REG_ACCESS32(suspend, pctrl->base + IEN(off),
@@ -3110,6 +3155,26 @@ static void rzg2l_pinctrl_pm_setup_regs(struct rzg2l_pinctrl *pctrl, bool suspen
 			if (pincnt >= 4) {
 				RZG2L_PCTRL_REG_ACCESS32(suspend, pctrl->base + IEN(off) + 4,
 							 cache->ien[1][port]);
+			}
+		}
+
+		if (has_pupd) {
+			RZG2L_PCTRL_REG_ACCESS32(suspend, pctrl->base + PUPD(off),
+						cache->pupd[0][port]);
+
+			if (pincnt >= 4) {
+				RZG2L_PCTRL_REG_ACCESS32(suspend, pctrl->base + PUPD(off) + 4,
+							cache->pupd[1][port]);
+			}
+		}
+
+		if (has_sr) {
+			RZG2L_PCTRL_REG_ACCESS32(suspend, pctrl->base + SR(off),
+						cache->sr[0][port]);
+
+			if (pincnt >= 4) {
+				RZG2L_PCTRL_REG_ACCESS32(suspend, pctrl->base + SR(off) + 4,
+							cache->sr[1][port]);
 			}
 		}
 	}
@@ -3126,7 +3191,7 @@ static void rzg2l_pinctrl_pm_setup_dedicated_regs(struct rzg2l_pinctrl *pctrl, b
 	 * port offset are close together.
 	 */
 	for (i = 0, caps = 0; i < pctrl->data->n_dedicated_pins; i++) {
-		bool has_iolh, has_ien;
+		bool has_iolh, has_ien, has_sr;
 		u32 off, next_off = 0;
 		u64 cfg, next_cfg;
 		u8 pincnt;
@@ -3147,6 +3212,7 @@ static void rzg2l_pinctrl_pm_setup_dedicated_regs(struct rzg2l_pinctrl *pctrl, b
 		/* And apply them in a single shot. */
 		has_iolh = !!(caps & (PIN_CFG_IOLH_A | PIN_CFG_IOLH_B | PIN_CFG_IOLH_C));
 		has_ien = !!(caps & PIN_CFG_IEN);
+		has_sr = !!(caps & PIN_CFG_SR);
 		pincnt = hweight8(FIELD_GET(RZG2L_SINGLE_PIN_BITS_MASK, cfg));
 
 		if (has_iolh) {
@@ -3156,6 +3222,10 @@ static void rzg2l_pinctrl_pm_setup_dedicated_regs(struct rzg2l_pinctrl *pctrl, b
 		if (has_ien) {
 			RZG2L_PCTRL_REG_ACCESS32(suspend, pctrl->base + IEN(off),
 						 cache->ien[0][i]);
+		}
+		if (has_sr) {
+			RZG2L_PCTRL_REG_ACCESS32(suspend, pctrl->base + SR(off),
+						cache->sr[0][i]);
 		}
 
 		if (pincnt >= 4) {
@@ -3168,6 +3238,11 @@ static void rzg2l_pinctrl_pm_setup_dedicated_regs(struct rzg2l_pinctrl *pctrl, b
 				RZG2L_PCTRL_REG_ACCESS32(suspend,
 							 pctrl->base + IEN(off) + 4,
 							 cache->ien[1][i]);
+			}
+			if (has_sr) {
+				RZG2L_PCTRL_REG_ACCESS32(suspend,
+							pctrl->base + SR(off) + 4,
+							cache->sr[1][i]);
 			}
 		}
 		caps = 0;
