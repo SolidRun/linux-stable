@@ -28,6 +28,8 @@ extern struct regmap *syscon_regmap_lookup_by_phandle_args(
 					const char *property,
 					int arg_count,
 					unsigned int *out_args);
+int of_syscon_register_regmap(struct device_node *np,
+					struct regmap *regmap);
 extern struct regmap *syscon_regmap_lookup_by_phandle_optional(
 					struct device_node *np,
 					const char *property);
@@ -68,6 +70,12 @@ static inline struct regmap *syscon_regmap_lookup_by_phandle_optional(
 					const char *property)
 {
 	return NULL;
+}
+
+static inline int of_syscon_register_regmap(struct device_node *np,
+					struct regmap *regmap)
+{
+	return -EOPNOTSUPP;
 }
 
 #endif
