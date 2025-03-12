@@ -317,6 +317,34 @@
 		sd0_mux {
 			pinmux = <RZV2H_PORT_PINMUX(5, 0, 8)>; /* SD0_CD */
 		};
+
+		sd0-iovs {
+			pins = "QSD0_IOVS";
+			renesas,output-impedance = <3>;
+		};
+	};
+#else
+	sdhi0_pins: sd0emmc {
+		sd0-emmc-ctrl {
+			pins = "SD0_CLK", "SD0_CMD";
+			renesas,output-impedance = <3>;
+		};
+
+		sd0-iovs {
+			pins = "QSD0_IOVS";
+			renesas,output-impedance = <3>;
+		};
+
+		sd0-emmc-data {
+			pins = "QSD0_DAT0", "QSD0_DAT1", "QSD0_DAT2", "QSD0_DAT3",
+			       "QSD0_DAT4", "QSD0_DAT5", "QSD0_DAT6", "QSD0_DAT7";
+			renesas,output-impedance = <3>;
+		};
+
+		sd0-emmc-rst {
+			pins = "SD0_RSTN";
+			renesas,output-impedance = <3>;
+		};
 	};
 #endif
 
@@ -664,19 +692,28 @@
 /* SD0 slot */
 &sdhi0 {
 	pinctrl-0 = <&sdhi0_pins>;
-	pinctrl-names = "default";
+	pinctrl-1 = <&sdhi0_pins>;
+	pinctrl-names = "default", "state_uhs";
 
 	vmmc-supply = <&reg_3p3v>;
-	vqmmc-supply = <&reg_1p8v>;
+	vqmmc-supply = <&vqmmc_sdhi0>;
 
 	bus-width = <4>;
+	sd-uhs-sdr50;
+	sd-uhs-sdr104;
+
 	status = "okay";
 };
 #else
 /* eMMC */
 &sdhi0 {
+	pinctrl-0 = <&sdhi0_pins>;
+	pinctrl-1 = <&sdhi0_pins>;
+	pinctrl-names = "default", "state_uhs";
+
 	vmmc-supply = <&reg_3p3v>;
-	vqmmc-supply = <&reg_1p8v>;
+	vqmmc-supply = <&vqmmc_sdhi0>;
+
 	bus-width = <8>;
 	mmc-hs200-1_8v;
 	non-removable;
