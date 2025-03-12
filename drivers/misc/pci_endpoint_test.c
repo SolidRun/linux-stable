@@ -82,6 +82,7 @@
 #define PCI_DEVICE_ID_RENESAS_R8A774C0		0x002d
 #define PCI_DEVICE_ID_RENESAS_R8A774E1		0x0025
 #define PCI_DEVICE_ID_RENESAS_R8A779F0		0x0031
+#define PCI_DEVICE_ID_RENESAS_R9A09057          0x8765
 
 static DEFINE_IDA(pci_endpoint_test_ida);
 
@@ -191,9 +192,9 @@ static bool pci_endpoint_test_alloc_irq_vectors(struct pci_endpoint_test *test,
 			dev_err(dev, "Failed to get Legacy interrupt\n");
 		break;
 	case IRQ_TYPE_MSI:
-		irq = pci_alloc_irq_vectors(pdev, 1, 32, PCI_IRQ_MSI);
+		irq = pci_alloc_irq_vectors(pdev, 1, 16, PCI_IRQ_MSI);
 		if (irq < 0)
-			dev_err(dev, "Failed to get MSI interrupts\n");
+			dev_err(dev, "Failed to get MSI interrupts %d\n", irq);
 		break;
 	case IRQ_TYPE_MSIX:
 		irq = pci_alloc_irq_vectors(pdev, 1, 2048, PCI_IRQ_MSIX);
@@ -965,6 +966,12 @@ static const struct pci_endpoint_test_data default_data = {
 	.irq_type = IRQ_TYPE_MSI,
 };
 
+static const struct pci_endpoint_test_data v2h_data = {
+	.test_reg_bar = BAR_0,
+	.alignment = SZ_4K,
+	.irq_type = IRQ_TYPE_MSI,
+};
+
 static const struct pci_endpoint_test_data am654_data = {
 	.test_reg_bar = BAR_2,
 	.alignment = SZ_64K,
@@ -999,6 +1006,9 @@ static const struct pci_device_id pci_endpoint_test_tbl[] = {
 	{ PCI_DEVICE(PCI_VENDOR_ID_RENESAS, PCI_DEVICE_ID_RENESAS_R8A774E1),},
 	{ PCI_DEVICE(PCI_VENDOR_ID_RENESAS, PCI_DEVICE_ID_RENESAS_R8A779F0),
 	  .driver_data = (kernel_ulong_t)&default_data,
+	},
+	{ PCI_DEVICE(PCI_VENDOR_ID_RENESAS, PCI_DEVICE_ID_RENESAS_R9A09057),
+	  .driver_data = (kernel_ulong_t)&v2h_data,
 	},
 	{ PCI_DEVICE(PCI_VENDOR_ID_TI, PCI_DEVICE_ID_TI_J721E),
 	  .driver_data = (kernel_ulong_t)&j721e_data,
