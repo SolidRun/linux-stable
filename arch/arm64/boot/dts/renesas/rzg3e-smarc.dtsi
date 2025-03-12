@@ -269,7 +269,7 @@
 
 #if ((SW_SER0_PMOD) && (!SW_SER2_EN))
 &sci2 {
-	pinctrl-0 = <&sci2_pins>
+	pinctrl-0 = <&sci2_pins>;
 	pinctrl-names = "default";
 	status = "okay";
 };
