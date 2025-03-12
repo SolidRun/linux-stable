@@ -27,6 +27,7 @@
 #include "rzg2l_du_encoder.h"
 #include "rzg2l_du_kms.h"
 #include "rzg2l_du_vsp.h"
+#include "rzg3e_lvds.h"
 
 #define DU_MCR0			0x00
 #define DU_MCR0_DPI_OE		BIT(0)
@@ -36,6 +37,8 @@
 #define DU_DITR0_DEMD_HIGH	(BIT(8) | BIT(9))
 #define DU_DITR0_VSPOL		BIT(16)
 #define DU_DITR0_HSPOL		BIT(17)
+/* LVDS dual channel mode: Only for RZ/G3E */
+#define DU_DITR0_ODDP_EN	BIT(24)
 
 #define DU_DITR1		0x14
 #define DU_DITR1_VSA(x)		((x) << 0)
@@ -66,10 +69,29 @@
 static void rzg2l_du_crtc_set_display_timing(struct rzg2l_du_crtc *rcrtc)
 {
 	const struct drm_display_mode *mode = &rcrtc->crtc.state->adjusted_mode;
+	struct rzg2l_du_crtc_state *rstate =
+					to_rzg2l_crtc_state(rcrtc->crtc.state);
+	struct rzg2l_du_device *rcdu = rcrtc->dev;
 	unsigned long mode_clock = mode->clock * 1000;
 	u32 ditr0, ditr1, ditr2, ditr3, ditr4, pbcr0;
 
 	clk_prepare_enable(rcrtc->rzg2l_clocks.dclk);
+
+	if (of_device_is_compatible(rcrtc->dev->dev->of_node,
+				    "renesas,r9a09g047-du")) {
+		struct clk *clk_parent;
+		struct clk_hw *hw_parent, *hw_pparent;
+
+		clk_parent = clk_get_parent(rcrtc->rzg2l_clocks.dclk);
+		hw_parent = __clk_get_hw(clk_parent);
+		if ((rstate->outputs == BIT(RZG2L_DU_OUTPUT_LVDS0)) ||
+		    (rstate->outputs == BIT(RZG2L_DU_OUTPUT_LVDS1)))
+			hw_pparent = clk_hw_get_parent_by_index(hw_parent, 0);
+		else
+			hw_pparent = clk_hw_get_parent_by_index(hw_parent, 1);
+		clk_set_parent(clk_parent, hw_pparent->clk);
+	}
+
 	clk_set_rate(rcrtc->rzg2l_clocks.dclk, mode_clock);
 
 	ditr0 = (DU_DITR0_DEMD_HIGH
@@ -89,6 +111,13 @@ static void rzg2l_du_crtc_set_display_timing(struct rzg2l_du_crtc *rcrtc)
 	      | DU_DITR4_HFP(mode->hsync_start - mode->hdisplay);
 
 	pbcr0 = DU_PBCR0_PB_DEP(0x1f);
+
+	if (rstate->outputs == BIT(RZG2L_DU_OUTPUT_LVDS0)) {
+		struct drm_bridge *bridge = rcdu->lvds[rcrtc->index];
+
+		if (rzg3e_lvds_dual_link(bridge))
+			ditr0 |= DU_DITR0_ODDP_EN;
+	}
 
 	writel(ditr0, rcrtc->mmio + DU_DITR0);
 	writel(ditr1, rcrtc->mmio + DU_DITR1);

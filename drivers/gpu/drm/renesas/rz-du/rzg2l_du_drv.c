@@ -67,12 +67,20 @@ static const struct rzg2l_du_device_info rzg2l_du_r9a09g047_info = {
 	.channels_mask = BIT(0) | BIT(1),
 	.routes = {
 		[RZG2L_DU_OUTPUT_DSI0] = {
-			.possible_outputs = BIT(1) | BIT(0),
+			.possible_outputs = BIT(0) | BIT(1),
 			.port = 0,
 		},
 		[RZG2L_DU_OUTPUT_DPAD0] = {
 			.possible_outputs = BIT(1),
 			.port = 1,
+		},
+		[RZG2L_DU_OUTPUT_LVDS0] = {
+			.possible_outputs = BIT(0),
+			.port = 2,
+		},
+		[RZG2L_DU_OUTPUT_LVDS1] = {
+			.possible_outputs = BIT(1),
+			.port = 3,
 		},
 	},
 	.min_dclk = 5400,
@@ -92,7 +100,9 @@ const char *rzg2l_du_output_name(enum rzg2l_du_output output)
 {
 	static const char * const names[] = {
 		[RZG2L_DU_OUTPUT_DSI0] = "DSI0",
-		[RZG2L_DU_OUTPUT_DPAD0] = "DPAD0"
+		[RZG2L_DU_OUTPUT_DPAD0] = "DPAD0",
+		[RZG2L_DU_OUTPUT_LVDS0] = "LVDS0",
+		[RZG2L_DU_OUTPUT_LVDS1] = "LVDS1"
 	};
 
 	if (output >= ARRAY_SIZE(names))

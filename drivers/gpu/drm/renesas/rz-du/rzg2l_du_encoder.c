@@ -19,6 +19,7 @@
 #include "rzg2l_du_drv.h"
 #include "rzg2l_du_encoder.h"
 #include "rzg2l_du_crtc.h"
+#include "rzg3e_lvds.h"
 
 /* -----------------------------------------------------------------------------
  * Encoder
@@ -69,6 +70,23 @@ int rzg2l_du_encoder_init(struct rzg2l_du_device  *rcdu,
 	bridge = of_drm_find_bridge(enc_node);
 	if (!bridge)
 		return -EPROBE_DEFER;
+
+	if (output == RZG2L_DU_OUTPUT_LVDS0 ||
+	    output == RZG2L_DU_OUTPUT_LVDS1)
+		rcdu->lvds[output - RZG2L_DU_OUTPUT_LVDS0] = bridge;
+
+	/*
+	 * Create and initialize the encoder. Skip the LVDS1 output if
+	 * the LVDS1 encoder is used as a companion for LVDS0 in dual-link
+	 * mode.
+	 */
+	if ((output == RZG2L_DU_OUTPUT_LVDS1) && rzg3e_lvds_dual_link(bridge))
+		return -ENOLINK;
+
+	if (((output == RZG2L_DU_OUTPUT_LVDS0) ||
+	    (output == RZG2L_DU_OUTPUT_LVDS1)) &&
+	    (!rzg3e_lvds_is_connected(bridge)))
+		return -ENOLINK;
 
 	dev_dbg(rcdu->dev, "initializing encoder %pOF for output %s\n",
 		enc_node, rzg2l_du_output_name(output));
