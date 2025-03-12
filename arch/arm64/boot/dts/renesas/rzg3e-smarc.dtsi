@@ -197,10 +197,12 @@
 	};
 #endif
 
+#if (I2C1_GPT_SEL)
 	gpt0_1_pins: gpt0_1 {
 			pinmux = <RZV2H_PORT_PINMUX(3, 2, 10)>,
 				 <RZV2H_PORT_PINMUX(3, 3, 10)>;
 	};
+#endif
 
 	icu_pins: icu {
 		nmi {
@@ -273,12 +275,14 @@
 };
 #endif
 
+#if (I2C1_GPT_SEL)
 &gpt0_1 {
         pinctrl-0 = <&gpt0_1_pins>;
         pinctrl-names = "default";
         channel = "both_AB";
         status = "okay";
 };
+#endif
 
 #if (!SW_SDIO_M2E)
 &sdhi1 {

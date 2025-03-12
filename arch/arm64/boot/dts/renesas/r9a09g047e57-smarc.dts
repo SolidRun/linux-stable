@@ -17,6 +17,13 @@
 #define SW_GPIO9_CAN1_STB		0
 #define SW_HDMI_EN			0
 
+/*
+ * I2C1 and GPT (PMOD) selection
+ * 0 - I2C1
+ * 1 - GPT0_1 on PMOD0
+ */
+#define I2C1_GPT_SEL			0
+
 #define RZG3E_SMARC_MIPI_DSI_ENABLE	1
 
 /*
