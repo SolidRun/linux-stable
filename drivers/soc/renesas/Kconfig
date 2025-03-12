@@ -346,6 +346,7 @@ config ARCH_R9A09G011
 
 config ARCH_R9A09G047
 	bool "ARM64 Platform support for RZ/G3E"
+	select SYS_R9A09G047
 	select ARCH_RZV2H
 	select SYS_SUPPORTS_RZ_CMTW
 	help
@@ -496,5 +497,12 @@ config RCAR_THERMAL_EMS
 	help
 	  Enable this option if you want to have support for Emergency Shutdown
 	  in R-Car Gen3.
+
+config SYSC_RZ
+	bool "System controller for RZ SoCs" if COMPILE_TEST
+
+config SYS_R9A09G047
+	bool "Renesas RZ/G3E System controller support" if COMPILE_TEST
+	select SYSC_RZ
 
 endif # SOC_RENESAS
