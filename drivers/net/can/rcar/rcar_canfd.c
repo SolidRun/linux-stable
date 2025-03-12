@@ -1604,6 +1604,8 @@ static int rcar_canfd_start(struct net_device *ndev)
 
 	rcar_canfd_set_bittiming(ndev);
 
+	rcar_canfd_timestamp_start(priv);
+
 	rcar_canfd_enable_channel_interrupts(priv);
 
 	if (priv->can.ctrlmode & (CAN_CTRLMODE_LOOPBACK | CAN_CTRLMODE_LISTENONLY)) {
@@ -1646,10 +1648,6 @@ static int rcar_canfd_start(struct net_device *ndev)
 		netdev_err(ndev, "channel %u communication state failed\n", ch);
 		goto fail_mode_change;
 	}
-
-	/* Initialize and start timestamp counter */
-	rcar_canfd_timestamp_init(priv);
-	rcar_canfd_timestamp_start(priv);
 
 	/* Enable Common & Rx FIFO */
 	rcar_canfd_set_bit(priv->base, RCANFD_CFCC(gpriv, ch, RCANFD_CFFIFO_IDX),
@@ -1709,7 +1707,6 @@ static void rcar_canfd_stop(struct net_device *ndev)
 	u32 sts, ch = priv->channel;
 	u32 ridx = ch + RCANFD_RFFIFO_IDX;
 
-	rcar_canfd_timestamp_stop(priv);
 	/* Transition to channel reset mode  */
 	rcar_canfd_update_bit(priv->base, RCANFD_CCTR(ch),
 			      RCANFD_CCTR_CHMDC_MASK, RCANFD_CCTR_CHDMC_CRESET);
@@ -1721,6 +1718,8 @@ static void rcar_canfd_stop(struct net_device *ndev)
 		netdev_err(ndev, "channel %u reset failed\n", ch);
 
 	rcar_canfd_disable_channel_interrupts(priv);
+
+	rcar_canfd_timestamp_stop(priv);
 
 	/* Disable Common & Rx FIFO */
 	rcar_canfd_clear_bit(priv->base, RCANFD_CFCC(gpriv, ch, RCANFD_CFFIFO_IDX),
@@ -2090,6 +2089,9 @@ static int rcar_canfd_channel_probe(struct rcar_canfd_global *gpriv, u32 ch,
 			"register_candev() failed, error %d\n", err);
 		goto fail_candev;
 	}
+	/* Initialize timestamp counter */
+	rcar_canfd_timestamp_init(priv);
+
 	dev_info(&pdev->dev, "device registered (channel %u)\n", priv->channel);
 	return 0;
 
