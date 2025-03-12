@@ -2088,6 +2088,21 @@
 					du_out_rgb: endpoint {
 					};
 				};
+
+				port@2 {
+					reg = <2>;
+					du_out_lvds0: endpoint {
+						remote-endpoint = <&lvds0_in>;
+					};
+				};
+
+				port@3 {
+					reg = <3>;
+					du_out_lvds1: endpoint {
+						remote-endpoint = <&lvds1_in>;
+					};
+				};
+
 			};
 		};
 
@@ -2669,6 +2684,73 @@
 					interrupts = <GIC_SPI 901 IRQ_TYPE_LEVEL_HIGH>;
 					dmas = <&dmac1 0x051D9E>, <&dmac2 0x041D9D>;
 					dma-names = "tx", "rx";
+				};
+			};
+		};
+
+		lvds: lvds@164c0000 {
+			compatible = "renesas,rzg3e-lvds";
+			reg = <0x0 0x164c0000 0x0 0x10>;
+			clocks = <&cpg CPG_MOD 420>;
+			resets = <&cpg 282>;
+			power-domains = <&cpg>;
+			status = "disabled";
+			ranges;
+			#address-cells = <2>;
+			#size-cells = <2>;
+
+			lvds0: lvds0-encoder@164c0010 {
+				compatible = "renesas,rzg3e-lvds-link";
+				reg = <0x0 0x164c0010 0x0 0x8>;
+				clocks = <&cpg CPG_MOD 416>,
+					 <&cpg CPG_MOD 418>;
+				clock-names = "phyclk", "dotclk";
+				power-domains = <&cpg>;
+				renesas,id = <0>;
+				renesas,companion = <&lvds1>;
+				status = "disabled";
+
+				ports {
+					#address-cells = <1>;
+					#size-cells = <0>;
+
+					port@0 {
+						reg = <0>;
+						lvds0_in: endpoint {
+							remote-endpoint = <&du_out_lvds0>;
+						};
+					};
+
+					port@1 {
+						reg = <1>;
+					};
+				};
+			};
+
+			lvds1: lvds1-encoder@164c0018 {
+				compatible = "renesas,rzg3e-lvds-link";
+				reg = <0x0 0x164c0018 0x0 0x8>;
+				clocks = <&cpg CPG_MOD 417>,
+					 <&cpg CPG_MOD 419>;
+				clock-names = "phyclk", "dotclk";
+				power-domains = <&cpg>;
+				renesas,id = <1>;
+				status = "disabled";
+
+				ports {
+					#address-cells = <1>;
+					#size-cells = <0>;
+
+					port@0 {
+						reg = <0>;
+						lvds1_in: endpoint {
+							remote-endpoint = <&du_out_lvds1>;
+						};
+					};
+
+					port@1 {
+						reg = <1>;
+					};
 				};
 			};
 		};
