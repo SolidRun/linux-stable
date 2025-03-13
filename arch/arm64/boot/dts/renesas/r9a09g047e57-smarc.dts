@@ -18,6 +18,13 @@
 #define SW_HDMI_EN			0
 
 /*
+ * RSCI9_SEL mode:
+ * 0 - RSCI9_UART (default)
+ * 1 - RSCI9_I2C
+*/
+#define RSCI9_SEL			0
+
+/*
  * I2C1 and GPT (PMOD) selection
  * 0 - I2C1
  * 1 - GPT0_1 on PMOD0

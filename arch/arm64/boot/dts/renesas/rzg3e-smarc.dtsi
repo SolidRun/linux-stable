@@ -8,6 +8,7 @@
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/pinctrl/rzv2h-pinctrl.h>
 #include <dt-bindings/interrupt-controller/irqc-rzg2l.h>
+#include <dt-bindings/soc/renesas,rsci.h>
 
 /*
  * Please change the corresponding selection to below Macros:
@@ -38,7 +39,9 @@
 		serial0 = &scif;
 #if (!SW_LCD_EN)
 		serial1 = &sci4;
+#if (RSCI9_SEL == RSCI_UART)
 		serial2 = &sci9;
+#endif
 #endif
 #if ((SW_SER0_PMOD) && (!SW_SER2_EN))
 		serial3 = &sci2;
@@ -182,11 +185,19 @@
 		bias-pull-up;
 	};
 
+#if (RSCI9_SEL == RSCI_UART)
 	sci9_pins: sci9 {
 		pinmux = <RZV2H_PORT_PINMUX(8, 3, 5)>, /* SCI9_TXD_MOSI_SDA */
 			 <RZV2H_PORT_PINMUX(8, 2, 5)>; /* SCI9_RXD_MISO_SCL */
 		bias-pull-up;
 	};
+#elif (RSCI9_SEL == RSCI_I2C)
+	rsci_i2c9_pins: rsci_i2c9 {
+		pinmux = <RZV2H_PORT_PINMUX(6, 6, 5)>, /* SCI9_TXD_MOSI_SDA */
+			 <RZV2H_PORT_PINMUX(6, 5, 5)>; /* SCI9_RXD_MISO_SCL */
+		drive-open-drain = <1>;
+	};
+#endif
 #endif
 
 #if ((SW_SER0_PMOD) && (!SW_SER2_EN))
@@ -264,11 +275,19 @@
 	status = "okay";
 };
 
+#if (RSCI9_SEL == RSCI_UART)
 &sci9 {
 	pinctrl-0 = <&sci9_pins>;
 	pinctrl-names = "default";
 	status = "okay";
 };
+#elif (RSCI9_SEL == RSCI_I2C)
+&rsci_i2c9 {
+	pinctrl-0 = <&rsci_i2c9_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+#endif
 #endif
 
 #if ((SW_SER0_PMOD) && (!SW_SER2_EN))
