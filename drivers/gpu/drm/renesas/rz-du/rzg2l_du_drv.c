@@ -130,6 +130,35 @@ static const struct drm_driver rzg2l_du_driver = {
 	.major			= 1,
 	.minor			= 0,
 };
+/* -----------------------------------------------------------------------------
+ * Power management
+ */
+
+#ifdef CONFIG_PM_SLEEP
+static int rzg2l_du_pm_suspend(struct device *dev)
+{
+	struct rzg2l_du_device *rcdu = dev_get_drvdata(dev);
+
+	drm_mode_config_helper_suspend(&rcdu->ddev);
+	return 0;
+
+}
+
+static int rzg2l_du_pm_resume(struct device *dev)
+{
+	struct rzg2l_du_device *rcdu = dev_get_drvdata(dev);
+
+	drm_mode_config_helper_resume(&rcdu->ddev);
+#if IS_ENABLED(CONFIG_DRM_I2C_ADV7511)
+	drm_helper_hpd_irq_event(&rcdu->ddev);
+#endif
+	return 0;
+};
+#endif
+
+static const struct dev_pm_ops rzg2l_du_pm_ops = {
+	SET_SYSTEM_SLEEP_PM_OPS(rzg2l_du_pm_suspend, rzg2l_du_pm_resume)
+};
 
 /* -----------------------------------------------------------------------------
  * Platform driver
@@ -214,6 +243,7 @@ static struct platform_driver rzg2l_du_platform_driver = {
 	.shutdown	= rzg2l_du_shutdown,
 	.driver		= {
 		.name	= "rzg2l-du",
+		.pm	= &rzg2l_du_pm_ops,
 		.of_match_table = rzg2l_du_of_table,
 	},
 };
