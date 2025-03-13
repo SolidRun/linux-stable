@@ -298,7 +298,6 @@
 			clocks = <&cpg CPG_CORE R9A09G057_SYS_0_PCLK>;
 			resets = <&cpg 48>;
 			#renesas,sysc-signal-cells = <2>;
-			status = "disabled";
 		};
 
 		dmac0: dma-controller@11400000 {

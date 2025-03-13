@@ -328,7 +328,6 @@
 			clocks = <&cpg CPG_CORE R9A09G047_SYS_0_PCLK>;
 			resets = <&cpg 48>;
 			#renesas,sysc-signal-cells = <2>;
-			status = "disabled";
 		};
 
 		canfd: can@12440000 {
