@@ -1155,8 +1155,36 @@ static int __maybe_unused rzg2l_mipi_pm_runtime_resume(struct device *dev)
 
 	return ret;
 }
+static int __maybe_unused rzg2l_mipi_pm_runtime_suspend_sleep(struct device *dev)
+{
+	struct rzg2l_mipi_dsi *dsi = dev_get_drvdata(dev);
+
+	pm_runtime_put_sync(dsi->dev);
+	reset_control_assert(dsi->prstc);
+	reset_control_assert(dsi->arstc);
+
+	return 0;
+}
+
+static int __maybe_unused rzg2l_mipi_pm_runtime_resume_sleep(struct device *dev)
+{
+	struct rzg2l_mipi_dsi *dsi = dev_get_drvdata(dev);
+	int ret;
+
+	ret = reset_control_deassert(dsi->arstc);
+	if (ret < 0)
+		return ret;
+
+	ret = reset_control_deassert(dsi->prstc);
+	if (ret < 0)
+		reset_control_assert(dsi->arstc);
+
+	pm_runtime_get_sync(dsi->dev);
+	return 0;
+}
 
 static const struct dev_pm_ops rzg2l_mipi_pm_ops = {
+	SYSTEM_SLEEP_PM_OPS(rzg2l_mipi_pm_runtime_suspend_sleep, rzg2l_mipi_pm_runtime_resume_sleep)
 	SET_RUNTIME_PM_OPS(rzg2l_mipi_pm_runtime_suspend, rzg2l_mipi_pm_runtime_resume, NULL)
 };
 
