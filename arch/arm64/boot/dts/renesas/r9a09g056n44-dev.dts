@@ -372,6 +372,7 @@
 	i2c3_pins: i2c3 {
 		pinmux = <RZG2L_PORT_PINMUX(3, 6, 1)>, /* I2C3_SDA */
 			 <RZG2L_PORT_PINMUX(3, 7, 1)>; /* I2C3_SCL */
+		bias-pull-up;
 	};
 
 	scif_pins: scif {
@@ -434,11 +435,13 @@
 	i2c0_pins: i2c0 {
 		pinmux = <RZG2L_PORT_PINMUX(3, 0, 1)>, /* I2C0_SDA */
 			 <RZG2L_PORT_PINMUX(3, 1, 1)>; /* I2C0_SCL */
+		bias-pull-up;
 	};
 
 	i2c1_pins: i2c1 {
 		pinmux = <RZG2L_PORT_PINMUX(3, 2, 1)>, /* I2C1_SDA */
 			 <RZG2L_PORT_PINMUX(3, 3, 1)>; /* I2C1_SCL */
+		bias-pull-up;
 	};
 
 	can0_pins: can0 {
