@@ -19,6 +19,9 @@
 #include <linux/pm_runtime.h>
 #include <linux/reset.h>
 #include <linux/property.h>
+#include <linux/mfd/syscon.h>
+#include <linux/regmap.h>
+#include <linux/of.h>
 
 #define DRIVER_NAME		"rzv2h-adc"
 
@@ -52,11 +55,19 @@ struct rzv2h_adc {
 	void __iomem *base;
 	struct clk *pclk;
 	struct clk *adclk;
+	struct device *dev;
 	struct reset_control *adrstn;
 	struct completion completion;
 	const struct rzv2h_adc_data *data;
 	struct mutex lock;
+	struct adc_mstp_ada_b *mstp_ada_b;
 	u16 last_val[RZV2H_ADC_MAX_CHANNELS];
+};
+
+struct adc_mstp_ada_b {
+	struct regmap *regmap;
+	u32 offset;
+	u32 mask;
 };
 
 static const char * const rzv2h_adc_channel_name[] = {
@@ -279,6 +290,46 @@ static void rzv2h_adc_reset_assert(void *data)
 	reset_control_assert(data);
 }
 
+static void adc_set_mstp_ada_b(struct rzv2h_adc *adc, bool act)
+{
+	struct adc_mstp_ada_b *mstp_ada_b = adc->mstp_ada_b;
+
+	if (!mstp_ada_b)
+		return;
+
+	regmap_update_bits(mstp_ada_b->regmap, mstp_ada_b->offset, mstp_ada_b->mask, act);
+}
+
+static int adc_init_mstp_ada_b(struct rzv2h_adc *adc)
+{
+	struct device *dev = adc->dev;
+	struct adc_mstp_ada_b *mstp_ada_b;
+	struct of_phandle_args args;
+	int ret;
+
+	mstp_ada_b = devm_kzalloc(dev, sizeof(*mstp_ada_b), GFP_KERNEL);
+	if (!mstp_ada_b)
+		return -ENOMEM;
+
+	ret = of_parse_phandle_with_args(dev->of_node, "renesas,sysc-signal",
+							"#renesas,sysc-signal-cells", 0, &args);
+	if (ret)
+		return ret;
+
+	mstp_ada_b->regmap = syscon_node_to_regmap(args.np);
+	mstp_ada_b->offset = args.args[0];
+	mstp_ada_b->mask = args.args[1];
+
+	of_node_put(args.np);
+
+	if (IS_ERR(mstp_ada_b->regmap))
+		return PTR_ERR(mstp_ada_b->regmap);
+
+	adc->mstp_ada_b = mstp_ada_b;
+
+	return 0;
+}
+
 static int rzv2h_adc_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
@@ -334,6 +385,13 @@ static int rzv2h_adc_probe(struct platform_device *pdev)
 		return ret;
 	}
 
+	adc->dev = dev;
+	ret = adc_init_mstp_ada_b(adc);
+	if (ret && (ret != ENOENT)) {
+		return ret;
+	}
+
+	adc_set_mstp_ada_b(adc, false);
 	init_completion(&adc->completion);
 
 	platform_set_drvdata(pdev, indio_dev);
@@ -393,6 +451,7 @@ static int __maybe_unused rzv2h_adc_resume(struct device *dev)
 		return PTR_ERR(adc->adrstn);
 	}
 
+	adc_set_mstp_ada_b(adc, false);
 	return 0;
 }
 

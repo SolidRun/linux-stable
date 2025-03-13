@@ -258,6 +258,7 @@
 			resets =  <&cpg 246>;
 			reset-names = "adrst-n";
 			power-domains = <&cpg>;
+			renesas,sysc-signal = <&sys 0x1600 0x1>;
 			status = "disabled";
 
 			#address-cells = <1>;
