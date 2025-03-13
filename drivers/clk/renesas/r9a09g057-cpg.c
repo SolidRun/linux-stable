@@ -284,11 +284,11 @@ static const struct cpg_core_clk r9a09g057_core_clks[] __initconst = {
 };
 
 static const struct rzv2h_mod_clk r9a09g057_mod_clks[] __initconst = {
-	DEF_MOD_CRITICAL("mcpu_dmac0_aclk",	CLK_PLLCM33_DIV4_DDIV2, 0, 0, 0, 0),
-	DEF_MOD_CRITICAL("acpu_dmac0_aclk",	CLK_PLLDTY_ACPU_DIV2, 0, 1, 0, 1),
-	DEF_MOD_CRITICAL("acpu_dmac1_aclk",	CLK_PLLDTY_ACPU_DIV2, 0, 2, 0, 2),
-	DEF_MOD_CRITICAL("rcpu_dmac0_aclk",	CLK_PLLDTY_RCPU_DIV4, 0, 3, 0, 3),
-	DEF_MOD_CRITICAL("rcpu_dmac1_aclk",	CLK_PLLDTY_RCPU_DIV4, 0, 4, 0, 4),
+	DEF_MOD("mcpu_dmac0_aclk",		CLK_PLLCM33_DIV4_DDIV2, 0, 0, 0, 0),
+	DEF_MOD("acpu_dmac0_aclk",		CLK_PLLDTY_ACPU_DIV2, 0, 1, 0, 1),
+	DEF_MOD("acpu_dmac1_aclk",		CLK_PLLDTY_ACPU_DIV2, 0, 2, 0, 2),
+	DEF_MOD("rcpu_dmac0_aclk",		CLK_PLLDTY_RCPU_DIV4, 0, 3, 0, 3),
+	DEF_MOD("rcpu_dmac1_aclk",		CLK_PLLDTY_RCPU_DIV4, 0, 4, 0, 4),
 	DEF_MOD_CRITICAL("icu",			CLK_PLLCM33_DIV16, 0, 5, 0, 5),
 	DEF_MOD_CRITICAL("gic",			CLK_PLLDTY_ACPU_DIV4, 1, 3, 0, 19),
 	DEF_MOD("gpt0_pclk_sfr",		CLK_PLLCLN_DIV8, 3, 1, 1, 17),
