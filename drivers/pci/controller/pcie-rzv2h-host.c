@@ -598,10 +598,13 @@ static int rzv2h_pcie_hw_init(struct rzv2h_pcie *pcie, int channel)
 	/* Setting of HWINT related registers : step11 */
 	PCIE_CFG_Initialize(pcie);
 
-	if (!channel)
+	if (!channel) {
 		arm_smccc_smc(RZ_SIP_SVC_SET_SYSPCIE, 0x1020, 0x1, 0, 0, 0, 0, 0, &local_res);
-	else
+		arm_smccc_smc(RZ_SIP_SVC_SET_SYSPCIE, 0x1024, 0x1, 0, 0, 0, 0, 0, &local_res);
+	} else {
 		arm_smccc_smc(RZ_SIP_SVC_SET_SYSPCIE, 0x1050, 0x1, 0, 0, 0, 0, 0, &local_res);
+		arm_smccc_smc(RZ_SIP_SVC_SET_SYSPCIE, 0x1054, 0x1, 0, 0, 0, 0, 0, &local_res);
+	}
 
 	/* Set Interrupt settings: step13  */
 	PCIE_INT_Initialize(pcie);
@@ -1185,7 +1188,6 @@ static int rzv2h_pcie_probe(struct platform_device *pdev)
 	u32 data;
 	int err, channel;
 	struct pci_host_bridge *bridge;
-	struct arm_smccc_res local_res;
 
 	dma_set_mask_and_coherent(dev, DMA_BIT_MASK(64));
 
@@ -1211,12 +1213,6 @@ static int rzv2h_pcie_probe(struct platform_device *pdev)
 				dev->of_node, host->channel);
 		return -EINVAL;
 	}
-
-	/* Set the Root Complex mode by the PCI Device Type setting register */
-	if (!host->channel)
-		arm_smccc_smc(RZ_SIP_SVC_SET_SYSPCIE, 0x1024, 0x1, 0, 0, 0, 0, 0, &local_res);
-	else
-		arm_smccc_smc(RZ_SIP_SVC_SET_SYSPCIE, 0x1054, 0x1, 0, 0, 0, 0, 0, &local_res);
 
 	pm_runtime_enable(pcie->dev);
 	err = pm_runtime_get_sync(pcie->dev);
@@ -1277,7 +1273,7 @@ static int rzv2h_pcie_suspend(struct device *dev)
 {
 	struct rzv2h_pcie_host *host = dev_get_drvdata(dev);
 	struct rzv2h_pcie *pcie = &host->pcie;
-	int idx;
+	int idx, err;
 
 	for (idx = 0; idx < RZV2H_PCI_MAX_RESOURCES; idx++) {
 		/* Save AXI window setting	*/
@@ -1310,6 +1306,12 @@ static int rzv2h_pcie_suspend(struct device *dev)
 	pcie->save_reg.interrupt.msi_ena	= rzv2h_pci_read_reg(pcie,
 								MSG_RCV_INTERRUPT_ENABLE_REG);
 
+	err = reset_control_assert(host->rst);
+	if (err) {
+		dev_err(dev, "PCIE failed to deassert reset %d\n", err);
+		return err;
+	}
+
 	return 0;
 }
 
@@ -1318,6 +1320,12 @@ static int rzv2h_pcie_resume(struct device *dev)
 	struct rzv2h_pcie_host *host = dev_get_drvdata(dev);
 	struct rzv2h_pcie *pcie = &host->pcie;
 	int idx, err;
+
+	err = reset_control_deassert(host->rst);
+	if (err) {
+		dev_err(dev, "PCIE failed to deassert reset %d\n", err);
+		return err;
+	}
 
 	rzv2h_pcie_setting_config(pcie);
 
