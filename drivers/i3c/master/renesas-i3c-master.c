@@ -1583,7 +1583,7 @@ static const struct of_device_id renesas_i3c_master_of_ids[] = {
 };
 MODULE_DEVICE_TABLE(of, renesas_i3c_master_of_match);
 
-static int renesas_i3c_suspend(struct device *dev)
+static int renesas_i3c_noirq_suspend(struct device *dev)
 {
 	int i;
 	struct renesas_i3c_master *master = dev_get_drvdata(dev);
@@ -1604,7 +1604,13 @@ static int renesas_i3c_suspend(struct device *dev)
 	return 0;
 }
 
-static int renesas_i3c_resume(struct device *dev)
+static int renesas_i3c_suspend(struct device *dev)
+{
+	/* Do nothing. */
+	return 0;
+}
+
+static int renesas_i3c_noirq_resume(struct device *dev)
 {
 	struct renesas_i3c_master *master = dev_get_drvdata(dev);
 	int i;
@@ -1631,8 +1637,43 @@ static int renesas_i3c_resume(struct device *dev)
 	return 0;
 }
 
+static int renesas_i3c_resume(struct device *dev)
+{
+	struct renesas_i3c_master *master = dev_get_drvdata(dev);
+	struct renesas_i3c_xfer *xfer;
+	struct renesas_i3c_cmd *cmd;
+
+	/* Re-do Dynamic Address Assignment. */
+	renesas_i3c_master_bus_enable(&master->base, true);
+
+	master->internal_state = I3C_INTERNAL_STATE_MASTER_ENTDAA;
+	xfer = renesas_i3c_master_alloc_xfer(master, 1);
+	if (!xfer)
+		return -ENOMEM;
+
+	init_completion(&xfer->comp);
+	cmd = xfer->cmds;
+	cmd->rx_count = 0;
+	cmd->cmd0 = NCMDQP_CMD_ATTR(NCMDQP_ADDR_ASSGN) | NCMDQP_ROC |
+		NCMDQP_TID(I3C_COMMAND_ADDRESS_ASSIGNMENT) |
+		NCMDQP_CMD(I3C_CCC_ENTDAA) | NCMDQP_DEV_INDEX(1) |
+		NCMDQP_DEV_COUNT(master->maxdevs - 1) | NCMDQP_TOC;
+
+	renesas_i3c_master_enqueue_xfer(master, xfer);
+	if (!wait_for_completion_timeout(&xfer->comp, msecs_to_jiffies(1000)))
+		renesas_i3c_master_dequeue_xfer(master, xfer);
+
+	if (xfer->ret)
+		dev_err(dev, "Dynamic Address Assignment (DAA) failed.\n");
+
+	renesas_i3c_master_free_xfer(xfer);
+
+	return 0;
+}
+
 static const struct dev_pm_ops renesas_i3c_pm_ops = {
-	SET_NOIRQ_SYSTEM_SLEEP_PM_OPS(renesas_i3c_suspend, renesas_i3c_resume)
+	SET_NOIRQ_SYSTEM_SLEEP_PM_OPS(renesas_i3c_noirq_suspend, renesas_i3c_noirq_resume)
+	SET_SYSTEM_SLEEP_PM_OPS(renesas_i3c_suspend, renesas_i3c_resume)
 };
 
 static struct platform_driver renesas_i3c_master = {
