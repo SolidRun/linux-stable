@@ -29,6 +29,7 @@
 #define SYS_LSI_PRR_NPU_DIS		BIT(1)
 #define SYS_ADC_CFG_PWE_B		0x1600
 #define SYS_ADC_MSTP_ADA_B		BIT(0)
+#define SYS_MAX_REG			0x1700
 
 static const struct rz_sysc_signal_init_data rzg3e_sysc_signals_init_data[] __initconst = {
 	{
@@ -49,4 +50,7 @@ static const struct rz_sysc_soc_id_init_data rzg3e_sys_soc_id_init_data __initco
 
 const struct rz_sysc_init_data rzg3e_sys_init_data = {
 	.soc_id_init_data = &rzg3e_sys_soc_id_init_data,
+	.signals_init_data = rzg3e_sysc_signals_init_data,
+	.num_signals = ARRAY_SIZE(rzg3e_sysc_signals_init_data),
+	.max_register_offset = SYS_MAX_REG,
 };
