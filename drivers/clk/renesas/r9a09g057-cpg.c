@@ -925,7 +925,7 @@ static const struct rzv2h_reset r9a09g057_resets[] __initconst = {
 	DEF_RST(15, 8, 7, 9),		/* TSU1_PRESETN */
 };
 
-const struct rzv2h_cpg_info r9a09g057_cpg_info __initconst = {
+const struct rzv2h_cpg_info r9a09g057_cpg_info  = {
 	/* Core Clocks */
 	.core_clks = r9a09g057_core_clks,
 	.num_core_clks = ARRAY_SIZE(r9a09g057_core_clks),
