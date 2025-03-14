@@ -312,6 +312,14 @@ static const struct rzv2h_mod_clk r9a09g047_mod_clks[] = {
 	DEF_MOD_CRITICAL("gic",			CLK_PLLDTY_ACPU_DIV4, 1, 3, 0, 19),
 	DEF_MOD("gpt0_pclk_sfr",		CLK_PLLCLN_DIV8, 3, 1, 1, 17),
 	DEF_MOD("gpt1_pclk_sfr",		CLK_PLLCLN_DIV8, 3, 2, 1, 18),
+	DEF_MOD("poega",			CLK_PLLCLN_DIV32, 3, 3, 1, 19),
+	DEF_MOD("poegb",			CLK_PLLCLN_DIV32, 3, 4, 1, 20),
+	DEF_MOD("poegc",			CLK_PLLCLN_DIV32, 3, 5, 1, 21),
+	DEF_MOD("poegd",			CLK_PLLCLN_DIV32, 3, 6, 1, 22),
+	DEF_MOD("poege",			CLK_PLLCLN_DIV32, 3, 7, 1, 23),
+	DEF_MOD("poegf",			CLK_PLLCLN_DIV32, 3, 8, 1, 24),
+	DEF_MOD("poegg",			CLK_PLLCLN_DIV32, 3, 9, 1, 25),
+	DEF_MOD("poegh",			CLK_PLLCLN_DIV32, 3, 10, 1, 26),
 	DEF_MOD("mcpu_cmtw0_clkm",		CLK_PLLCM33_DIV32, 3, 11, 1, 27),
 	DEF_MOD("mcpu_cmtw1_clkm",		CLK_PLLCM33_DIV32, 3, 12, 1, 28),
 	DEF_MOD("mcpu_cmtw2_clkm",		CLK_PLLCM33_DIV32, 3, 13, 1, 29),
@@ -555,6 +563,14 @@ static const struct rzv2h_reset r9a09g047_resets[]  = {
 	DEF_RST(5, 10, 2, 11),		/* GPT0_RST_S_REG */
 	DEF_RST(5, 11, 2, 12),		/* GPT1_RST_P_REG */
 	DEF_RST(5, 12, 2, 13),		/* GPT1_RST_S_REG */
+	DEF_RST(5, 13, 2, 14),		/* POEGA0_RST_S_REG */
+	DEF_RST(5, 14, 2, 15),		/* POEGB0_RST_S_REG */
+	DEF_RST(5, 15, 2, 16),		/* POEGC0_RST_S_REG */
+	DEF_RST(6, 0, 2, 17),		/* POEGD0_RST_S_REG */
+	DEF_RST(6, 1, 2, 18),		/* POEGA1_RST_S_REG */
+	DEF_RST(6, 2, 2, 19),		/* POEGB1_RST_S_REG */
+	DEF_RST(6, 3, 2, 20),		/* POEGC1_RST_S_REG */
+	DEF_RST(6, 4, 2, 21),           /* POEGD1_RST_S_REG */
 	DEF_RST(6, 5, 2, 22),		/* MCPU_CMTW0_RST_M */
 	DEF_RST(6, 6, 2, 23),		/* MCPU_CMTW1_RST_M */
 	DEF_RST(6, 7, 2, 24),		/* MCPU_CMTW2_RST_M */
