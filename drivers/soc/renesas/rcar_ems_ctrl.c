@@ -308,8 +308,6 @@ static void rcar_ems_cpu_shutdown_exit(void)
 static int thermal_pm_notify(struct notifier_block *nb,
 				unsigned long mode, void *_unused)
 {
-	struct thermal_zone_device *tz;
-
 	switch (mode) {
 	case PM_HIBERNATION_PREPARE:
 	case PM_RESTORE_PREPARE:
