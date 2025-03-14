@@ -202,6 +202,10 @@
 			pinmux = <RZV2H_PORT_PINMUX(3, 2, 10)>,
 				 <RZV2H_PORT_PINMUX(3, 3, 10)>;
 	};
+
+	poega_pins: poega {
+                        pinmux = <RZV2H_PORT_PINMUX(7, 2, 14)>;
+        };
 #endif
 
 	icu_pins: icu {
@@ -280,6 +284,13 @@
         pinctrl-0 = <&gpt0_1_pins>;
         pinctrl-names = "default";
         channel = "both_AB";
+	poeg = <&poega>;
+        status = "okay";
+};
+
+&poega {
+        pinctrl-0 = <&poega_pins>;
+        pinctrl-names = "default";
         status = "okay";
 };
 #endif
