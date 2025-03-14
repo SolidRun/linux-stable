@@ -70,7 +70,7 @@ static void rcar_ems_monitor(struct work_struct *ws)
 	int temp, max_temp;
 
 	if (atomic_read(&in_suspend))
-		return;
+		goto skip;
 
 	max_temp = INT_MIN;
 	for (i = 0; i < thermal_zone_num; i++) {
