@@ -24,18 +24,28 @@
  */
 #define I2C1_GPT_SEL			0
 
-#define RZG3E_SMARC_MIPI_DSI_ENABLE	1
-
 /*
  * Display support selection:
  * 0 - disable display selection support
  * 1 - enable display selection support
  * for:
  * - MIPI DSI: RZG3E_SMARC_MIPI_DSI_ENABLE
+ * - LVDS: RZG3E_SMARC_LVDS_ENABLE
  * - Parallel RGB: SW_LCD_EN from above switch selection settings
  */
+#define RZG3E_SMARC_MIPI_DSI_ENABLE	1
+#define RZG3E_SMARC_LVDS_ENABLE		0
+
+/* Only maximum 2 display selections are enabled at the same time */
+#if (RZG3E_SMARC_MIPI_DSI_ENABLE & RZG3E_SMARC_LVDS_ENABLE & SW_LCD_EN)
+#error "Only maximum 2 display selections are enabled at the same time"
+#endif
+
 
 #include "rzg3e-smarc-common.dtsi"
+#if (RZG3E_SMARC_LVDS_ENABLE)
+#include "rzg3e-smarc-lvds.dtsi"
+#endif
 #if (SW_LCD_EN)
 #include "rzg3e-smarc-rgb.dtsi"
 #endif
