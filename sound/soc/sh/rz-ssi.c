@@ -404,9 +404,11 @@ static int rz_ssi_start(struct rz_ssi_priv *ssi, struct rz_ssi_stream *strm)
 			      SSISR_RUIRQ), 0);
 
 	strm->running = 1;
-	if (is_full_duplex)
+	if (is_full_duplex) {
+		/* TEN and REN must be set at the same time for full duplex */
+		rz_ssi_reg_writel(ssi, SSICR, ssicr & ~(SSICR_TEN | SSICR_REN));
 		ssicr |= SSICR_TEN | SSICR_REN;
-	else
+	} else
 		ssicr |= is_play ? SSICR_TEN : SSICR_REN;
 
 	rz_ssi_reg_writel(ssi, SSICR, ssicr);
