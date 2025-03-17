@@ -2348,6 +2348,8 @@
 			resets = <&cpg 242>,
 				 <&cpg 243>;
 			reset-names = "pclk", "cclk";
+			dmas = <&dmac1 0x7F2CC2>, <&dmac1 0x7F2CC3>, <&dmac1 0x7F2CC4>;
+			dma-names = "rx0", "rx1", "rx2";
 			power-domains = <&cpg>;
 			#sound-dai-cells = <0>;
 			status = "disabled";
@@ -2385,6 +2387,8 @@
 			resets = <&cpg 244>,
 				 <&cpg 245>;
 			reset-names = "pclk", "cclk";
+			dmas = <&dmac1 0x7F2CC5>, <&dmac1 0x7F2CC6>, <&dmac1 0x7F2CC7>;
+			dma-names = "rx0", "rx1", "rx2";
 			power-domains = <&cpg>;
 			#sound-dai-cells = <0>;
 			status = "disabled";
