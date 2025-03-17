@@ -268,16 +268,19 @@ static int __maybe_unused rzv2h_wdt_suspend(struct device *dev)
 static int __maybe_unused rzv2h_wdt_resume(struct device *dev)
 {
 	struct rzv2h_wdt_priv *priv = dev_get_drvdata(dev);
+	int ret;
 
 	if (watchdog_active(&priv->wdev)) {
 		/*
-		 * FIXME:
-		 * The register cannot be written to after resume.
-		 * Therefore, it is necessary to call the start->stop->start function
-		 * to be able to write the value to the watchdog module's register.
+		 * Writing to the WDT Control Register (WDTCR) or WDT Reset
+		 * Control Register (WDTRCR) is possible once between the
+		 * release from the reset state and the first refresh operation.
+		 * Therefore, issue a reset if the watchdog is active.
 		 */
-		rzv2h_wdt_start(&priv->wdev);
-		rzv2h_wdt_stop(&priv->wdev);
+		ret = reset_control_reset(priv->rstc);
+		if (ret)
+			return ret;
+
 		rzv2h_wdt_start(&priv->wdev);
 	}
 
