@@ -428,8 +428,16 @@ static int rz_ssi_stop(struct rz_ssi_priv *ssi, struct rz_ssi_stream *strm)
 	strm->running = 0;
 
 	if (rz_ssi_is_stream_running(&ssi->playback) ||
-	    rz_ssi_is_stream_running(&ssi->capture))
+	    rz_ssi_is_stream_running(&ssi->capture)) {
+		if (ssi->playback.dma_ch &&
+		  !(rz_ssi_is_stream_running(&ssi->playback)))
+			dmaengine_terminate_async(ssi->playback.dma_ch);
+		if (ssi->capture.dma_ch &&
+		  !(rz_ssi_is_stream_running(&ssi->capture)))
+			dmaengine_terminate_async(ssi->capture.dma_ch);
+
 		return 0;
+	}
 
 	/* Disable TX/RX */
 	rz_ssi_reg_mask_setl(ssi, SSICR, SSICR_TEN | SSICR_REN, 0);
