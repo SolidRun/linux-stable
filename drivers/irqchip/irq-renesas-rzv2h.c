@@ -490,7 +490,8 @@ int register_dmac_req_signal(struct platform_device *icu_dev, unsigned int dmac,
 
 EXPORT_SYMBOL(register_dmac_req_signal);
 
-int register_dmac_ack_signal(struct platform_device *icu_dev, int dmac_ack, int dmac_ack_channel)
+int register_dmac_ack_signal(struct platform_device *icu_dev, unsigned int dmac,
+					     int dmac_ack, int dmac_ack_channel)
 {
 	struct rzv2h_icu_priv *priv = platform_get_drvdata(icu_dev);
 	u32 reg_position, dmacksel, mask;
@@ -505,6 +506,7 @@ int register_dmac_ack_signal(struct platform_device *icu_dev, int dmac_ack, int 
 	dmacksel = readl(priv->base + DMACKSEL(reg_position));
 
 	mask = 0x7F << (8 * (dmac_ack % 4));
+	dmac_ack_channel = dmac_ack_channel + (16 * dmac);
 	dmac_ack_channel <<= (8 * (dmac_ack % 4));
 	dmacksel = (dmacksel  & (~mask)) | dmac_ack_channel;
 

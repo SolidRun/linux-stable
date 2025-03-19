@@ -395,7 +395,8 @@ static void rz_dmac_prepare_descs_for_slave_sg(struct rz_dmac_chan *channel)
 		if (register_dmac_req_signal(dmac->icu_dev, dmac->dev->id,
 					channel->index, channel->dmac_req) < 0)
 			dev_info(dmac->dev, "%s: Register dmac req fail\n", __func__);
-		if (register_dmac_ack_signal(dmac->icu_dev, channel->dmac_ack, channel->index) < 0)
+		if (register_dmac_ack_signal(dmac->icu_dev, dmac->dev->id,
+					channel->dmac_ack, channel->index) < 0)
 			dev_info(dmac->dev, "%s: Register dmac ack fail\n", __func__);
 	} else
 		rz_dmac_set_dmars_register(dmac, channel->index, channel->mid_rid);
@@ -691,7 +692,8 @@ static void rz_dmac_device_synchronize(struct dma_chan *chan)
 		if (register_dmac_req_signal(dmac->icu_dev, dmac->dev->id,
 					channel->index, 0x3FF) < 0)
 			dev_info(dmac->dev, "%s: Unregister dmac req fail\n", __func__);
-		if (register_dmac_ack_signal(dmac->icu_dev, channel->dmac_ack, 0x7F) < 0)
+		if (register_dmac_ack_signal(dmac->icu_dev, dmac->dev->id,
+					channel->dmac_ack, 0x7F) < 0)
 			dev_info(dmac->dev, "%s: Unregister dmac ack fail\n", __func__);
 	} else
 		rz_dmac_set_dmars_register(dmac, channel->index, 0);
@@ -867,9 +869,11 @@ static int rz_dmac_device_pause(struct dma_chan *chan)
 	struct rz_dmac *dmac = to_rz_dmac(chan->device);
 
 	if (dmac->devtype == RZ_V2H_DMAC) {
-		if (register_dmac_req_signal(dmac->icu_dev, dmac->dev->id, channel->index, 0x3FF) < 0)
+		if (register_dmac_req_signal(dmac->icu_dev, dmac->dev->id,
+						  channel->index, 0x3FF) < 0)
 			dev_info(dmac->dev, "%s: Unregister dmac req fail\n", __func__);
-		if (register_dmac_ack_signal(dmac->icu_dev, channel->dmac_ack, 0x7F) < 0)
+		if (register_dmac_ack_signal(dmac->icu_dev, dmac->dev->id,
+						  channel->dmac_ack, 0x7F) < 0)
 			dev_info(dmac->dev, "%s: Unregister dmac ack fail\n", __func__);
 	} else
 		rz_dmac_set_dmars_register(dmac, channel->index, 0);
