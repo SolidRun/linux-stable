@@ -866,7 +866,14 @@ static int rz_dmac_device_pause(struct dma_chan *chan)
 	struct rz_dmac_chan *channel = to_rz_dmac_chan(chan);
 	struct rz_dmac *dmac = to_rz_dmac(chan->device);
 
-	rz_dmac_set_dmars_register(dmac, channel->index, 0);
+	if (dmac->devtype == RZ_V2H_DMAC) {
+		if (register_dmac_req_signal(dmac->icu_dev, dmac->dev->id, channel->index, 0x3FF) < 0)
+			dev_info(dmac->dev, "%s: Unregister dmac req fail\n", __func__);
+		if (register_dmac_ack_signal(dmac->icu_dev, channel->dmac_ack, 0x7F) < 0)
+			dev_info(dmac->dev, "%s: Unregister dmac ack fail\n", __func__);
+	} else
+		rz_dmac_set_dmars_register(dmac, channel->index, 0);
+
 	return 0;
 }
 
