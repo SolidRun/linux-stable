@@ -12,6 +12,34 @@
 
 #include "rz-sysc.h"
 
+/* Register Offsets */
+#define SYS_LSI_MODE		0x300
+/*
+ * BOOTPLLCA[1:0]
+ *	    [0,0] => 1.1GHZ
+ *	    [0,1] => 1.5GHZ
+ *	    [1,0] => 1.6GHZ
+ *	    [1,1] => 1.7GHZ
+ */
+#define SYS_LSI_MODE_STAT_BOOTPLLCA55	GENMASK(12, 11)
+#define SYS_LSI_MODE_CA55_1_7GHZ	0x3
+
+#define SYS_LSI_PRR			0x308
+#define SYS_LSI_PRR_CA55_DIS		BIT(8)
+#define SYS_LSI_PRR_NPU_DIS		BIT(1)
+#define SYS_ADC_CFG_PWE_B		0x1600
+#define SYS_ADC_MSTP_ADA_B		BIT(0)
+#define SYS_MAX_REG			0x1700
+
+static const struct rz_sysc_signal_init_data rzv2h_sysc_signals_init_data[] __initconst = {
+	{
+		.name = "ADC_MSTP_ADA_B",
+		.offset = SYS_ADC_CFG_PWE_B,
+		.mask = SYS_ADC_MSTP_ADA_B,
+		.refcnt_incr_val = 0
+	}
+};
+
 static const struct rz_sysc_soc_id_init_data rzv2h_sys_soc_id_init_data __initconst = {
 	.family = "RZ/V2H",
 	.id = 0x847a447,
@@ -22,4 +50,7 @@ static const struct rz_sysc_soc_id_init_data rzv2h_sys_soc_id_init_data __initco
 
 const struct rz_sysc_init_data rzv2h_sys_init_data = {
 	.soc_id_init_data = &rzv2h_sys_soc_id_init_data,
+	.signals_init_data = rzv2h_sysc_signals_init_data,
+	.num_signals = ARRAY_SIZE(rzv2h_sysc_signals_init_data),
+	.max_register_offset = SYS_MAX_REG,
 };
