@@ -230,6 +230,32 @@ static void rz_cmtw_clocksource_disable(struct clocksource *cs)
 	ch->cs_enabled = false;
 }
 
+static void rz_cmtw_clocksource_suspend(struct clocksource *cs)
+{
+	struct rz_cmtw_channel *ch = cs_to_rz_cmtw(cs);
+
+	if (!ch->cs_enabled)
+		return;
+
+	if (--ch->enable_count == 0) {
+		__rz_cmtw_disable(ch);
+		dev_pm_genpd_suspend(&ch->cmtw->pdev->dev);
+	}
+}
+
+static void rz_cmtw_clocksource_resume(struct clocksource *cs)
+{
+	struct rz_cmtw_channel *ch = cs_to_rz_cmtw(cs);
+
+	if (!ch->cs_enabled)
+		return;
+
+	if (ch->enable_count++ == 0) {
+		dev_pm_genpd_resume(&ch->cmtw->pdev->dev);
+		__rz_cmtw_enable(ch);
+	}
+}
+
 static void rz_cmtw_set_next(struct rz_cmtw_channel *ch, unsigned long delta,
 			    int periodic)
 {
@@ -377,6 +403,8 @@ static int rz_cmtw_register_clocksource(struct rz_cmtw_channel *ch,
 	cs->read = rz_cmtw_clocksource_read;
 	cs->enable = rz_cmtw_clocksource_enable;
 	cs->disable = rz_cmtw_clocksource_disable;
+	cs->resume = rz_cmtw_clocksource_resume;
+	cs->suspend = rz_cmtw_clocksource_suspend;
 	cs->mask = CLOCKSOURCE_MASK(32);
 	cs->flags = CLOCK_SOURCE_IS_CONTINUOUS;
 
