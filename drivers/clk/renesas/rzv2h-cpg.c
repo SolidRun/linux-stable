@@ -762,6 +762,7 @@ static int rzv2h_mod_clock_endisable(struct clk_hw *hw, bool enable)
 	struct device *dev = priv->dev;
 	u32 value;
 	int error;
+	unsigned int timeout = 10;
 
 	dev_dbg(dev, "CLK_ON 0x%x/%pC %s\n", reg, hw->clk,
 		enable ? "ON" : "OFF");
@@ -777,8 +778,17 @@ static int rzv2h_mod_clock_endisable(struct clk_hw *hw, bool enable)
 
 	reg = GET_CLK_MON_OFFSET(clock->mon_index);
 	bitmask = BIT(clock->mon_bit);
-	error = readl_poll_timeout_atomic(priv->base + reg, value,
-					  value & bitmask, 0, 10);
+
+	if (timekeeping_suspended) {
+		while (timeout--) {
+			if (readl(priv->base + reg) & bitmask)
+				return 0;
+			cpu_relax();
+		}
+		error = -ETIMEDOUT;
+	} else
+		error = readl_poll_timeout_atomic(priv->base + reg, value,
+						value & bitmask, 0, 10);
 	if (error)
 		dev_err(dev, "Failed to enable CLK_ON 0x%x/%pC\n",
 			GET_CLK_ON_OFFSET(clock->on_index), hw->clk);
@@ -889,6 +899,7 @@ static int rzv2h_cpg_assert(struct reset_controller_dev *rcdev,
 	u32 mask = BIT(priv->resets[id].reset_bit);
 	u8 monbit = priv->resets[id].mon_bit;
 	u32 value = mask << 16;
+	unsigned int timeout = 20;
 
 	dev_dbg(rcdev->dev, "assert id:%ld offset:0x%x\n", id, reg);
 
@@ -897,8 +908,16 @@ static int rzv2h_cpg_assert(struct reset_controller_dev *rcdev,
 	reg = GET_RST_MON_OFFSET(priv->resets[id].mon_index);
 	mask = BIT(monbit);
 
-	return readl_poll_timeout_atomic(priv->base + reg, value,
-					 value & mask, 10, 200);
+	if (timekeeping_suspended) {
+		while (timeout--) {
+			if (readl(priv->base + reg) & mask)
+				return 0;
+			udelay(10);
+		}
+		return -ETIMEDOUT;
+	} else
+		return readl_poll_timeout_atomic(priv->base + reg, value,
+						value & mask, 10, 200);
 }
 
 static int rzv2h_cpg_deassert(struct reset_controller_dev *rcdev,
@@ -909,6 +928,7 @@ static int rzv2h_cpg_deassert(struct reset_controller_dev *rcdev,
 	u32 mask = BIT(priv->resets[id].reset_bit);
 	u8 monbit = priv->resets[id].mon_bit;
 	u32 value = (mask << 16) | mask;
+	unsigned int timeout = 20;
 
 	dev_dbg(rcdev->dev, "deassert id:%ld offset:0x%x\n", id, reg);
 
@@ -917,8 +937,16 @@ static int rzv2h_cpg_deassert(struct reset_controller_dev *rcdev,
 	reg = GET_RST_MON_OFFSET(priv->resets[id].mon_index);
 	mask = BIT(monbit);
 
-	return readl_poll_timeout_atomic(priv->base + reg, value,
-					 !(value & mask), 10, 200);
+	if (timekeeping_suspended) {
+		while (timeout--) {
+			if (!(readl(priv->base + reg) & mask))
+				return 0;
+			udelay(10);
+		}
+		return -ETIMEDOUT;
+	} else
+		return readl_poll_timeout_atomic(priv->base + reg, value,
+						!(value & mask), 10, 200);
 }
 
 static int rzv2h_cpg_reset(struct reset_controller_dev *rcdev,
