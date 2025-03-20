@@ -40,6 +40,17 @@
  *	amixer set 'DVC In',0 10%
  */
 
+/*
+ * Jumper setting
+ *
+ * Please change the jumper setting corresponding to below Macros:
+ *
+ * SEL_CAN01_HEADER:
+ *	1: CAN0/1	0: External Header Pin
+ */
+
+#define SEL_CAN01_HEADER	1
+
 / {
 	model = "Renesas EVK ver1 based on r9a09g057h4";
 	compatible = "renesas,r9a09g057h4-evk-ver1", "renesas,r9a09g057h4", "renesas,r9a09g057";
@@ -233,6 +244,7 @@
 		regulator-always-on;
 	};
 
+#if (!SEL_CAN01_HEADER)
 	codec_test0: codec_test0 {
 		compatible = "linux,snd-soc-dummy";
 		#sound-dai-cells = <0>;
@@ -252,6 +264,7 @@
 			};
 		};
 	};
+#endif
 
 	gpio_dummy: gpio-dummy {
 		compatible = "gpio-dummy";
@@ -279,8 +292,10 @@
 
 		dais = <&rsnd_port0	/* DA7211 */
 			&rsnd_port1	/* HDMI0  */
+#if (!SEL_CAN01_HEADER)
 			&spdif_port0
 			&spdif_port1
+#endif
 			>;
 	};
 
@@ -294,6 +309,7 @@
 			 <RZV2H_PORT_PINMUX(B, 5, 5)>; /* RSPCK */
 	};
 
+#if (SEL_CAN01_HEADER)
 	can0_pins: can0 {
 		pinmux = <RZV2H_PORT_PINMUX(8, 0, 5)>, /* TX */
 			 <RZV2H_PORT_PINMUX(8, 1, 5)>; /* RX */
@@ -303,6 +319,7 @@
 		pinmux = <RZV2H_PORT_PINMUX(8, 2, 5)>, /* TX */
 			 <RZV2H_PORT_PINMUX(8, 3, 5)>; /* RX */
 	};
+#endif
 
 	scif_pins: scif {
 		pins =  "SCIF_RXD", "SCIF_TXD";
@@ -396,16 +413,6 @@
 			 <RZV2H_PORT_PINMUX(0, 7, 1)>; /* I2C8_SCL */
 	};
 
-	spdif0_pins: spdif0 {
-		pinmux = <RZV2H_PORT_PINMUX(8, 0, 8)>, /* SPDIF0_OUT */
-			 <RZV2H_PORT_PINMUX(8, 1, 8)>; /* SPDIF0_IN */
-	};
-
-	spdif2_pins: spdif2 {
-		pinmux = <RZV2H_PORT_PINMUX(8, 2, 8)>, /* SPDIF2_OUT */
-			 <RZV2H_PORT_PINMUX(8, 3, 8)>; /* SPDIF2_IN */
-	};
-
 	sound_clk_pins: sound_clk {
 		pinmux = <RZV2H_PORT_PINMUX(1, 0, 7)>, /* AUDIO_CLKB */
 			 <RZV2H_PORT_PINMUX(1, 1, 7)>, /* AUDIO_CLKC */
@@ -413,10 +420,24 @@
 	};
 
 	sound_pins: sound {
-		pinmux = <RZV2H_PORT_PINMUX(1, 2, 7)>, /* SSI3_SCK */
-			 <RZV2H_PORT_PINMUX(1, 3, 7)>, /* SSI3_WS */
-			 <RZV2H_PORT_PINMUX(0, 4, 7)>, /* SSI3_SDATA */
-			 <RZV2H_PORT_PINMUX(1, 5, 7)>; /* SSI4_SDATA */
+		ssi34 {
+			pinmux = <RZV2H_PORT_PINMUX(1, 2, 7)>, /* SSI3_SCK */
+				 <RZV2H_PORT_PINMUX(1, 3, 7)>, /* SSI3_WS */
+				 <RZV2H_PORT_PINMUX(0, 4, 7)>, /* SSI3_SDATA */
+				 <RZV2H_PORT_PINMUX(1, 5, 7)>; /* SSI4_SDATA */
+		};
+
+#if (!SEL_CAN01_HEADER)
+		spdif0 {
+			pinmux = <RZV2H_PORT_PINMUX(8, 0, 8)>, /* SPDIF0_OUT */
+				 <RZV2H_PORT_PINMUX(8, 1, 8)>; /* SPDIF0_IN */
+		};
+
+		spdif2 {
+			pinmux = <RZV2H_PORT_PINMUX(8, 2, 8)>, /* SPDIF2_OUT */
+				 <RZV2H_PORT_PINMUX(8, 3, 8)>; /* SPDIF2_IN */
+		};
+#endif
 	};
 
 	usb30_pins: usb30 {
@@ -479,10 +500,11 @@
 	status = "okay";
 };
 
+#if (SEL_CAN01_HEADER)
 &canfd {
 	pinctrl-0 = <&can0_pins &can1_pins>;
 	pinctrl-names = "default";
-//	status = "okay";
+	status = "okay";
 
 	channel0 {
 		status = "okay";
@@ -492,6 +514,7 @@
 		status = "okay";
 	};
 };
+#endif
 
 &spi2 {
 	pinctrl-0 = <&spi2_pins>;
@@ -1074,7 +1097,7 @@
 };
 
 &rcar_sound {
-	pinctrl-0 = <&sound_clk_pins &sound_pins_hdmi &sound_pins &spdif0_pins &spdif2_pins>;
+	pinctrl-0 = <&sound_clk_pins &sound_pins_hdmi &sound_pins>;
 	pinctrl-names = "default";
 
 	status = "okay";
@@ -1117,6 +1140,7 @@
 			};
 		};
 
+#if (!SEL_CAN01_HEADER)
 		spdif_port0: port@2 {
 			reg = <2>;
 			spdif0_endpoint: endpoint {
@@ -1142,6 +1166,7 @@
 				capture  = <&spdif2>;
 			};
 		};
+#endif
 
 	};
 };
