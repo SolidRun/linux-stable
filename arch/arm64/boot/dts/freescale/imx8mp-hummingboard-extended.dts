@@ -1,0 +1,8 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Device Tree Source for the i.MX8MP HummingBoard Pro/Extended
+ *
+ * Copyright (C) 2023 SolidRun Ltd.
+ */
+
+#include "imx8mp-hummingboard-pro.dts"

@@ -1,0 +1,36 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+* Device Tree Source for the i.MX8MP HummingBoard Pro 
+*/
+
+/dts-v1/;
+
+#include <dt-bindings/usb/pd.h>
+#include "imx8mp-sr-som.dtsi"
+#include "imx8mp-hummingboard-pulse.dtsi"
+
+/ {
+	model = "SolidRun i.MX8MP HummingBoard Pro";
+	compatible = "fsl,imx8mp-sr-som", "fsl,imx8mp";
+
+	/*
+	 * leave m.2 W_DISABLE signal floating to improve
+	 * compatibility with certain pcie cards;
+	 */
+	/delete-node/ rfkill_m2_wdis;
+};
+
+&fec {
+	status = "okay";
+};
+
+&iomuxc {
+	pinctrl_pcie: pciegrp {
+		fsl,pins = <MX8MP_IOMUXC_GPIO1_IO06__GPIO1_IO06	0x19>;
+	};
+};
+
+&pcie{
+	pinctrl-0 = <&pinctrl_pcie>;
+	reset-gpio = <&gpio1 6 GPIO_ACTIVE_LOW>;
+};
