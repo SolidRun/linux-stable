@@ -15,6 +15,7 @@
 #include <sound/pcm_params.h>
 #include <sound/soc.h>
 #include <linux/iopoll.h>
+#include <linux/dmaengine.h>
 
 /* Register offset	*/
 /* Control registers	*/
@@ -144,6 +145,11 @@ struct rz_pdm_stream {
 	int period_counter;
 	int buffer_pos;
 
+	/* For DMA */
+	int dma_buffer_pos;
+	struct dma_chan *dma_ch[MAX_CHANNELS];
+	u32 ch;
+
 	int (*transfer)(struct rz_pdm_priv *pdm, u32 ch, struct rz_pdm_stream *strm);
 };
 
@@ -196,6 +202,11 @@ static const unsigned int rz_pdm_lpf[] = {
 	0x1fdc, 0x0018, 0x1ff0, 0x000a, 0x1ff8,
 };
 
+static int rz_pdm_dma_slave_config(struct rz_pdm_priv *pdm, u32 ch);
+static void rz_pdm_dma_complete(void *data);
+static int rz_pdm_dma_transfer(struct rz_pdm_priv *pdm,
+			       struct rz_pdm_stream *strm);
+
 static void rz_pdm_set_substream(struct rz_pdm_stream *strm,
 				 struct snd_pcm_substream *substream)
 {
@@ -220,6 +231,11 @@ static void rz_pdm_reg_bset(struct rz_pdm_priv *priv, uint reg,
 	val = readl(priv->base + reg);
 	val = (val & ~bit_mask) | bset;
 	writel(val, (priv->base + reg));
+}
+
+static inline bool rz_pdm_is_dma_enabled(struct rz_pdm_priv *pdm, u32 ch)
+{
+	return pdm->capture.dma_ch[ch] && !IS_ERR(pdm->capture.dma_ch[ch]);
 }
 
 static bool rz_pdm_stream_is_valid(struct rz_pdm_priv *pdm,
@@ -320,12 +336,14 @@ static void rz_pdm_channel_init(struct rz_pdm_priv *pdm, int ch)
 static int rz_pdm_start(struct rz_pdm_priv *pdm, struct rz_pdm_stream *strm)
 {
 	u32 ch, pdscr = 0;
+	int ret;
 
 	for_each_set_bit(ch, &pdm->ch_mask, MAX_CHANNELS) {
 		/* Activate target channel’s filtering */
 		rz_pdm_reg_writel(pdm, PDMm_PDSTRTRCH(ch), 1);
+
 		/* Wait for settling time */
-		udelay(4);
+		mdelay(22);
 
 		/* Clear Channel’s Status */
 		pdscr |= BFOWDFC | OVUDFC | OVLDFC | SCDFC | SDFC;
@@ -336,6 +354,15 @@ static int rz_pdm_start(struct rz_pdm_priv *pdm, struct rz_pdm_stream *strm)
 		/* Set Channel’s Interrupt Control */
 		rz_pdm_reg_bset(pdm, PDMm_PDICRCH(ch), IEDE, IEDE);
 		rz_pdm_reg_bset(pdm, PDMm_PDICRCH(ch), ISDE, ISDE);
+
+		if (rz_pdm_is_dma_enabled(pdm, ch)) {
+			/* Config the channelx's dma */
+			ret = rz_pdm_dma_slave_config(pdm, ch);
+			if (ret < 0)
+				return ret;
+
+			rz_pdm_dma_transfer(pdm, strm);
+		}
 	}
 	pdm->is_running = 1;
 
@@ -349,6 +376,9 @@ static int rz_pdm_stop(struct rz_pdm_priv *pdm, struct rz_pdm_stream *strm)
 
 	pdm->is_running = 0;
 	for_each_set_bit(ch, &pdm->ch_mask, MAX_CHANNELS) {
+		if (rz_pdm_is_dma_enabled(pdm, ch))
+			dmaengine_terminate_async(strm->dma_ch[ch]);
+
 		/* Disable Channel’s Data Read */
 		rz_pdm_reg_bset(pdm, PDMm_PDDRCRCH(ch), DATRE, 0);
 
@@ -448,6 +478,10 @@ static void rz_pdm_stream_init(struct rz_pdm_stream *strm,
 	rz_pdm_set_substream(strm, substream);
 	strm->period_counter = 0;
 	strm->buffer_pos = 0;
+	strm->dma_buffer_pos = 0;
+
+	/* Calculate the start channel for DMA */
+	strm->ch = ffs(strm->priv->ch_mask) - 1;
 }
 
 static int rz_pdm_dai_trigger(struct snd_pcm_substream *substream, int cmd,
@@ -693,6 +727,8 @@ static irqreturn_t rz_pdm_sdet_irq_handler(int irq, void *data)
 		if (stat & SDF) {
 			/* Disable sound detection */
 			rz_pdm_reg_bset(pdm, PDMm_PDICRCH(ch), SDF, 0);
+			/* Disable Channel’s Status Detection */
+			rz_pdm_reg_bset(pdm, PDMm_PDSDCRCH(ch), SDF, 0);
 			/* Clear the sound detection flag */
 			rz_pdm_reg_bset(pdm, PDMm_PDSCRCH(ch), SDFC, SDFC);
 
@@ -713,6 +749,112 @@ static irqreturn_t rz_pdm_sdet_irq_handler(int irq, void *data)
 	return IRQ_HANDLED;
 }
 
+static int rz_pdm_dma_transfer(struct rz_pdm_priv *pdm,
+			       struct rz_pdm_stream *strm)
+{
+	struct snd_pcm_substream *substream = strm->substream;
+	struct dma_async_tx_descriptor *desc;
+	struct snd_pcm_runtime *runtime;
+	u32 dma_paddr, dma_size, ch;
+	int amount;
+
+	if (!rz_pdm_stream_is_valid(pdm, strm))
+		return -EINVAL;
+
+	runtime = substream->runtime;
+	if (runtime->state == SNDRV_PCM_STATE_DRAINING)
+		/*
+		 * Stream is ending, so do not queue up any more DMA
+		 * transfers otherwise we play partial sound clips
+		 * because we can't shut off the DMA quick enough.
+		 */
+		return 0;
+
+	ch = strm->ch;
+	/* Update the DMA channel after completed */
+	do {
+		strm->ch = (strm->ch + 1) % MAX_CHANNELS;
+	} while (!(pdm->ch_mask & (1 << strm->ch)));
+
+	/* Always transfer 1 period */
+	amount = runtime->period_size;
+
+	/* DMA physical address and size */
+	dma_paddr = runtime->dma_addr + frames_to_bytes(runtime,
+							strm->dma_buffer_pos);
+	dma_size = frames_to_bytes(runtime, amount);
+	desc = dmaengine_prep_slave_single(strm->dma_ch[ch], dma_paddr, dma_size,
+					   DMA_DEV_TO_MEM,
+					   DMA_PREP_INTERRUPT | DMA_CTRL_ACK);
+	if (!desc) {
+		dev_err(pdm->dev, "dmaengine_prep_slave_single() fail\n");
+		return -ENOMEM;
+	}
+
+	desc->callback = rz_pdm_dma_complete;
+	desc->callback_param = strm;
+
+	if (dmaengine_submit(desc) < 0) {
+		dev_err(pdm->dev, "dmaengine_submit() fail\n");
+		return -EIO;
+	}
+
+	/* Update DMA pointer */
+	strm->dma_buffer_pos += amount;
+	if (strm->dma_buffer_pos >= runtime->buffer_size)
+		strm->dma_buffer_pos = 0;
+
+	/* Start DMA */
+	dma_async_issue_pending(strm->dma_ch[ch]);
+
+	return 0;
+}
+
+static void rz_pdm_dma_complete(void *data)
+{
+	struct rz_pdm_stream *strm = (struct rz_pdm_stream *)data;
+
+	if (!strm->substream || !strm->substream->runtime)
+		return;
+
+	rz_pdm_pointer_update(strm, strm->substream->runtime->period_size);
+	/* Queue up another DMA transaction */
+	rz_pdm_dma_transfer(strm->priv, strm);
+}
+
+static void rz_pdm_release_dma_channels(struct rz_pdm_priv *pdm)
+{
+	u32 ch;
+
+	for_each_set_bit(ch, &pdm->ch_mask, MAX_CHANNELS)
+		if (pdm->capture.dma_ch[ch]) {
+			dma_release_channel(pdm->capture.dma_ch[ch]);
+			pdm->capture.dma_ch[ch] = NULL;
+		}
+}
+
+static int rz_pdm_dma_slave_config(struct rz_pdm_priv *pdm, u32 ch)
+{
+	struct dma_slave_config cfg;
+
+	memset(&cfg, 0, sizeof(cfg));
+
+	cfg.direction = DMA_DEV_TO_MEM;
+	cfg.src_addr = pdm->phys + PDMm_PDDRRCH(ch);
+
+	if (pdm->width == 16)
+		cfg.src_addr_width = DMA_SLAVE_BUSWIDTH_2_BYTES;
+	else
+		cfg.src_addr_width = DMA_SLAVE_BUSWIDTH_4_BYTES;
+
+	if (dmaengine_slave_config(pdm->capture.dma_ch[ch], &cfg) < 0) {
+		rz_pdm_release_dma_channels(pdm);
+		return -ENODEV;
+	}
+
+	return 0;
+}
+
 static struct rz_pdm_irq_desc rz_pdm_irqs[MAX_CHANNELS][2] = {
 	{ { "int_pdm_err0", rz_pdm_err_irq_handler }, { "int_pdm_dat0", rz_pdm_dat_irq_handler } },
 	{ { "int_pdm_err1", rz_pdm_err_irq_handler }, { "int_pdm_dat1", rz_pdm_dat_irq_handler } },
@@ -725,9 +867,10 @@ static int rz_pdm_probe(struct platform_device *pdev)
 	struct rz_pdm_priv *pdm;
 	struct resource *res;
 	struct device_node *of_child;
-	int ret, i, j;
+	int ret, i;
 	unsigned long channels_mask = 0;
 	char name[9] = "channelX";
+	char *dma_names[MAX_CHANNELS] = { "rx0", "rx1", "rx2" };
 	char *rst_names[MAX_RSTS] = { "pclk", "cclk" };
 
 	pdm = devm_kzalloc(dev, sizeof(*pdm), GFP_KERNEL);
@@ -740,8 +883,6 @@ static int rz_pdm_probe(struct platform_device *pdev)
 		return PTR_ERR(pdm->base);
 
 	pdm->phys = res->start;
-	pdm->capture.transfer = rz_pdm_pio_rx;
-	pdm->capture.priv = pdm;
 
 	/* Channel Enable Detection */
 	for (i = 0; i < MAX_CHANNELS; ++i) {
@@ -750,25 +891,48 @@ static int rz_pdm_probe(struct platform_device *pdev)
 		if (of_child && of_device_is_available(of_child)) {
 			channels_mask |= BIT(i);
 
-			/* Data Interrupt and Error Interrupt per channel */
-			for (j = 0; j < 2; ++j) {
-				ret = platform_get_irq_byname(pdev, rz_pdm_irqs[i][j].name);
+			/* DMA request per channel */
+			pdm->capture.dma_ch[i] = dma_request_chan(dev, dma_names[i]);
+
+			if (IS_ERR(pdm->capture.dma_ch[i])) {
+				pdm->capture.dma_ch[i] = NULL;
+				dev_warn(dev, "DMA channel %d not available, using PIO\n", i);
+
+				/* Data Interrupt per channel */
+				ret = platform_get_irq_byname(pdev, rz_pdm_irqs[i][1].name);
 				if (ret < 0)
 					return dev_err_probe(dev, ret,
 							     "failed to get %s irq\n",
-							     rz_pdm_irqs[i][j].name);
+							     rz_pdm_irqs[i][1].name);
 
-				ret = devm_request_irq(dev, ret, rz_pdm_irqs[i][j].handler, 0,
-						       rz_pdm_irqs[i][j].name, pdm);
+				ret = devm_request_irq(dev, ret, rz_pdm_irqs[i][1].handler, 0,
+						       rz_pdm_irqs[i][1].name, pdm);
 				if (ret)
 					return dev_err_probe(dev, ret,
 							     "failed to request %s irq\n",
-							     rz_pdm_irqs[i][j].name);
-			}
+							     rz_pdm_irqs[i][1].name);
+			} else
+				dev_info(dev, "DMA channel %d enabled\n", i);
+
+			/* Error Interrupt per channel */
+			ret = platform_get_irq_byname(pdev, rz_pdm_irqs[i][0].name);
+			if (ret < 0)
+				return dev_err_probe(dev, ret,
+						     "failed to get %s irq\n",
+						     rz_pdm_irqs[i][0].name);
+
+			ret = devm_request_irq(dev, ret, rz_pdm_irqs[i][0].handler, 0,
+					       rz_pdm_irqs[i][0].name, pdm);
+			if (ret)
+				return dev_err_probe(dev, ret,
+						     "failed to request %s irq\n",
+						     rz_pdm_irqs[i][0].name);
 		}
 		of_node_put(of_child);
 	}
 	pdm->ch_mask = channels_mask;
+
+	pdm->capture.priv = pdm;
 
 	spin_lock_init(&pdm->lock);
 	dev_set_drvdata(dev, pdm);
@@ -812,6 +976,7 @@ static int rz_pdm_probe(struct platform_device *pdev)
 	return 0;
 
 probe_err:
+	rz_pdm_release_dma_channels(pdm);
 	pm_runtime_put(dev);
 	pm_runtime_disable(dev);
 	for (i = 0; i < MAX_RSTS; i++)
@@ -824,6 +989,8 @@ static int rz_pdm_remove(struct platform_device *pdev)
 {
 	struct rz_pdm_priv *pdm = dev_get_drvdata(&pdev->dev);
 	int i;
+
+	rz_pdm_release_dma_channels(pdm);
 
 	pm_runtime_put(pdm->dev);
 	pm_runtime_disable(pdm->dev);
