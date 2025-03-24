@@ -43,6 +43,34 @@ properties:
       - const: pclk
       - const: cclk
 
+  dmas:
+    minItems: 1
+    maxItems: 3
+    description:
+      The first cell represents a phandle to dmac.
+      The second cell specifies DMAC REQ values of the PDM channel
+      configuration connected to ICU parameters.
+      bits[0:9]   - Specifies DMAC REQ value of PDM channel as below
+                    DMAC REQ value of PDM0_0 rx0 = 0x0C2
+                    DMAC REQ value of PDM0_1 rx1 = 0x0C3
+                    DMAC REQ value of PDM0_2 rx2 = 0x0C4
+                    DMAC REQ value of PDM1_0 rx0 = 0x0C5
+                    DMAC REQ value of PDM1_1 rx1 = 0x0C6
+                    DMAC REQ value of PDM1_2 rx2 = 0x0C7
+      bit[10]     - HIEN = 1, Detects a request in response to the rising edge
+                    of the signal
+      bit[11]     - LVL = 1, Detects the level of a DMA request
+      bits[12:14] - AM = 2, ACK bus cycle output
+      bit[15]     - TM = 0, Single transfer mode
+      bits[22:16] - Specifies DMAACK output number : not use define as 7F (all 1)
+
+  dma-names:
+    oneOf:
+      - items:
+          - const: rx0
+          - const: rx1
+          - const: rx2
+
   '#sound-dai-cells':
     const: 0
 
@@ -81,7 +109,7 @@ examples:
 		clock-names = "pdm_pclk", "pdm_cclk";
 		resets = <&cpg R9A08G046_PDM_PRESETN>;
 		reset-names = "pclk";
-		dmas = <&dmac 0x4e7f>, <&dmac 0x4e83>, <&dmac 0x4e87>;
+		dmas = <&dmac1 0x7F2CC2>, <&dmac1 0x7F2CC3>, <&dmac1 0x7F2CC4>;
 		dma-names = "rx0", "rx1", "rx2";
 		power-domains = <&cpg>;
 		#sound-dai-cells = <0>;
