@@ -9,6 +9,7 @@
 #include "r9a09g057.dtsi"
 #include <dt-bindings/pinctrl/rzv2h-pinctrl.h>
 #include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/soc/renesas,rsci.h>
 
 /*
  * SSI-DA7212
@@ -49,10 +50,22 @@
  *	1: CAN0/1	0: External Header Pin
  * RSCI5_UART_I2C_SEL:
  *	0 - SCI5 (default)	1 - RSCI_I2C5
+ * RSPI2_RSCI9_SEL:
+ *	0 - RSPI2 (default)	1 - RSCI9
+ * RSPI9_SEL:
+ *	0 - RSCI9_UART (default)
+ *	1 - RSCI9_I2C
+ *	2 - RSCI9_SPI
  */
 
 #define SEL_CAN01_HEADER	1
 #define RSCI5_UART_I2C_SEL	0
+#define RSPI2_RSCI9_SEL		0
+#define RSCI9_SEL		0
+
+#if (RSCI9_SEL != 0 && RSCI9_SEL != 1 && RSCI9_SEL != 2)
+#error "Cannot set mode for RSCI9"
+#endif
 
 / {
 	model = "Renesas EVK ver1 based on r9a09g057h4";
@@ -63,6 +76,11 @@
 		serial1 = &sci4;
 #if (!RSCI5_UART_I2C_SEL)
 		serial2 = &sci5;
+#endif
+#if (RSPI2_RSCI9_SEL)
+#if (RSCI9_SEL == RSCI_UART)
+		serial3 = &sci9;
+#endif
 #endif
 		mmc0 = &sdhi0;
 		mmc1 = &sdhi1;
@@ -307,11 +325,53 @@
 };
 
 &pinctrl {
+#if (!RSPI2_RSCI9_SEL)
 	spi2_pins: spi2 {
 		pinmux = <RZV2H_PORT_PINMUX(B, 3, 5)>, /* MISO */
 			 <RZV2H_PORT_PINMUX(B, 4, 5)>, /* MOSI */
 			 <RZV2H_PORT_PINMUX(A, 7, 5)>, /* SSL */
 			 <RZV2H_PORT_PINMUX(B, 5, 5)>; /* RSPCK */
+	};
+#else
+#if (RSCI9_SEL == RSCI_UART)
+	sci9_pins: sci9 {
+		pinmux = <RZV2H_PORT_PINMUX(B, 4, 2)>, /* SCI9_TXD_MOSI_SDA */
+			 <RZV2H_PORT_PINMUX(B, 3, 2)>; /* SCI9_RXD_MISO_SCL */
+		bias-pull-up;
+	};
+#elif (RSCI9_SEL == RSCI_I2C)
+	rsci_i2c9_pins: rsci_i2c9 {
+		pinmux = <RZV2H_PORT_PINMUX(B, 4, 2)>, /* SCI9_TXD_MOSI_SDA */
+			 <RZV2H_PORT_PINMUX(B, 3, 2)>; /* SCI9_RXD_MISO_SCL */
+		drive-open-drain = <1>;
+	};
+#else
+	master_sci9_pins: master_sci9 {
+		pinmux = <RZV2H_PORT_PINMUX(B, 4, 2)>, /* SCI9_TXD_MOSI_SDA */
+			 <RZV2H_PORT_PINMUX(B, 3, 2)>, /* SCI9_RXD_MISO_SCL */
+			 <RZV2H_PORT_PINMUX(B, 5, 2)>; /* SCI9_SCLK */
+	};
+
+	slave_sci9_pins: slave_sci9 {
+		pinmux = <RZV2H_PORT_PINMUX(B, 4, 2)>, /* SCI9_TXD_MOSI_SDA */
+			 <RZV2H_PORT_PINMUX(B, 3, 2)>, /* SCI9_RXD_MISO_SCL */
+			 <RZV2H_PORT_PINMUX(B, 5, 2)>, /* SCI9_SCLK */
+			 <RZV2H_PORT_PINMUX(A, 7, 2)>; /* SCI9_SSL */
+	};
+#endif
+#endif
+
+	master_sci0_pins: master_sci0 {
+		pinmux = <RZV2H_PORT_PINMUX(5, 1, 1)>, /* SCI0_RXD_MISO_SCL */
+			 <RZV2H_PORT_PINMUX(5, 0, 1)>, /* SCI0_TXD_MOSI_SDA */
+			 <RZV2H_PORT_PINMUX(5, 2, 2)>; /* SCI0_SCLK */
+	};
+
+	slave_sci0_pins: slave_sci0 {
+		pinmux = <RZV2H_PORT_PINMUX(5, 1, 1)>, /* SCI0_RXD_MISO_SCL */
+			 <RZV2H_PORT_PINMUX(5, 0, 1)>, /* SCI0_TXD_MOSI_SDA */
+			 <RZV2H_PORT_PINMUX(5, 2, 2)>, /* SCI0_SCLK */
+			 <RZV2H_PORT_PINMUX(5, 3, 2)>; /* SCI0_SSL */
 	};
 
 #if (SEL_CAN01_HEADER)
@@ -525,11 +585,47 @@
 };
 #endif
 
+#if (!RSPI2_RSCI9_SEL)
 &spi2 {
 	pinctrl-0 = <&spi2_pins>;
 	pinctrl-names = "default";
 
 	status = "okay";
+};
+#else
+#if (RSCI9_SEL == RSCI_UART)
+&sci9 {
+	pinctrl-0 = <&sci9_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+#elif (RSCI9_SEL == RSCI_I2C)
+&rsci_i2c9 {
+	pinctrl-0 = <&rsci_i2c9_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+#else
+&rsci_spi9 {
+	pinctrl-0 = <&master_sci9_pins>;
+	pinctrl-1 = <&slave_sci9_pins>;
+	pinctrl-names = "master", "slave";
+	status = "okay";
+
+	/* Using cs-gpios property when is master mode */
+	cs-gpios = <&pinctrl RZV2H_GPIO(A, 7) GPIO_ACTIVE_HIGH>;
+};
+#endif
+#endif
+
+&rsci_spi0 {
+	pinctrl-0 = <&master_sci0_pins>;
+	pinctrl-1 = <&slave_sci0_pins>;
+	pinctrl-names = "master", "slave";
+	status = "okay";
+
+	/* Using cs-gpios property when is master mode */
+	cs-gpios = <&pinctrl RZV2H_GPIO(5, 3) GPIO_ACTIVE_HIGH>;
 };
 
 &sdhi0 {
