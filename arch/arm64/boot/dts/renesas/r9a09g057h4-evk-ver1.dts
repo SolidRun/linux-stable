@@ -47,9 +47,12 @@
  *
  * SEL_CAN01_HEADER:
  *	1: CAN0/1	0: External Header Pin
+ * RSCI5_UART_I2C_SEL:
+ *	0 - SCI5 (default)	1 - RSCI_I2C5
  */
 
 #define SEL_CAN01_HEADER	1
+#define RSCI5_UART_I2C_SEL	0
 
 / {
 	model = "Renesas EVK ver1 based on r9a09g057h4";
@@ -58,7 +61,9 @@
 	aliases {
 		serial0 = &scif;
 		serial1 = &sci4;
+#if (!RSCI5_UART_I2C_SEL)
 		serial2 = &sci5;
+#endif
 		mmc0 = &sdhi0;
 		mmc1 = &sdhi1;
 		mmc2 = &sdhi2;
@@ -335,7 +340,11 @@
 	sci5_pins: sci5 {
 		pinmux = <RZV2H_PORT_PINMUX(8, 6, 6)>, /* SCI5_TXD_MOSI_SDA */
 			 <RZV2H_PORT_PINMUX(8, 7, 6)>; /* SCI5_RXD_MISO_SCL */
+#if (!RSCI5_UART_I2C_SEL)
 		bias-pull-up;
+#else
+		drive-open-drain = <1>;
+#endif
 	};
 
 	/* cam0_pwr_en is used by Google Coral Camera from CSI20 and CSI21 */
@@ -987,11 +996,19 @@
 	status = "okay";
 };
 
+#if (!RSCI5_UART_I2C_SEL)
 &sci5 {
 	pinctrl-0 = <&sci5_pins>;
 	pinctrl-names = "default";
 	status = "okay";
 };
+#else
+&rsci_i2c5 {
+	pinctrl-0 = <&sci5_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+#endif
 
 &rtc {
 	status = "okay";
