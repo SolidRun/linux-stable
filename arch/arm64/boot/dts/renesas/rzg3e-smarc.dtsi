@@ -32,6 +32,12 @@
  * SW_GPIO9_CAN1_STB:
  *	0 - Connect to GPIO9 PMOD (default)
  *	1 - Connect to CAN1 transceiver STB pin
+ *
+ * Please change the corresponding selection to below Macros:
+ *
+ * RSPI0_RSCI8_SPI_SEL:
+ *	0 - RSPI0 (default)
+ *	1 - RSCI_SPI8
  */
 
 / {
@@ -197,6 +203,19 @@
 			 <RZV2H_PORT_PINMUX(6, 5, 5)>; /* SCI9_RXD_MISO_SCL */
 		drive-open-drain = <1>;
 	};
+#else
+	master_sci9_pins: master_sci9 {
+		pinmux = <RZV2H_PORT_PINMUX(6, 6, 5)>, /* SCI9_TXD_MOSI_SDA */
+			 <RZV2H_PORT_PINMUX(6, 5, 5)>, /* SCI9_RXD_MISO_SCL */
+			 <RZV2H_PORT_PINMUX(8, 4, 5)>; /* SCI9_SCLK */
+	};
+
+	slave_sci9_pins: slave_sci9 {
+		pinmux = <RZV2H_PORT_PINMUX(6, 6, 5)>, /* SCI9_TXD_MOSI_SDA */
+			 <RZV2H_PORT_PINMUX(6, 5, 5)>, /* SCI9_RXD_MISO_SCL */
+			 <RZV2H_PORT_PINMUX(8, 4, 5)>, /* SCI9_SCLK */
+			 <RZV2H_PORT_PINMUX(8, 5, 5)>; /* SCI9_SSL */
+	};
 #endif
 #endif
 
@@ -249,24 +268,43 @@
 			 <RZV2H_PORT_PINMUX(4, 0, 12)>; /* OVR */
 	};
 
+#if (!RSPI0_RSCI8_SPI_SEL)
 	spi0_pins: spi0 {
 		pinmux = <RZV2H_PORT_PINMUX(M, 4, 2)>, /* MISOA */
 			 <RZV2H_PORT_PINMUX(M, 5, 2)>, /* MOSIA */
 			 <RZV2H_PORT_PINMUX(M, 7, 2)>, /* SSLA0 */
 			 <RZV2H_PORT_PINMUX(M, 6, 2)>; /* RSPCKA */
 	};
+#else
+	master_sci8_pins: master_sci8 {
+		pinmux = <RZV2H_PORT_PINMUX(M, 5, 5)>, /* SCI8_TXD_MOSI_SDA */
+			 <RZV2H_PORT_PINMUX(M, 4, 5)>, /* SCI8_RXD_MISO_SCL */
+			 <RZV2H_PORT_PINMUX(M, 6, 5)>; /* SCI8_SCLK */
+	};
+#endif
 };
 
 &scif {
 	status = "okay";
 };
 
+#if (!RSPI0_RSCI8_SPI_SEL)
 &spi0 {
 	pinctrl-0 = <&spi0_pins>;
 	pinctrl-names = "default";
 
 	status = "okay";
 };
+#else
+&rsci_spi8 {
+	pinctrl-0 = <&master_sci8_pins>;
+	pinctrl-names = "master";
+	status = "okay";
+
+	/* Using cs-gpios property when is master mode */
+	cs-gpios = <&pinctrl RZV2H_GPIO(M, 7) GPIO_ACTIVE_HIGH>;
+};
+#endif
 
 #if (!SW_LCD_EN)
 &sci4 {
@@ -286,6 +324,16 @@
 	pinctrl-0 = <&rsci_i2c9_pins>;
 	pinctrl-names = "default";
 	status = "okay";
+};
+#else
+&rsci_spi9 {
+	pinctrl-0 = <&master_sci9_pins>;
+	pinctrl-1 = <&slave_sci9_pins>;
+	pinctrl-names = "master", "slave";
+	status = "okay";
+
+	/* Using cs-gpios property when is master mode */
+	cs-gpios = <&pinctrl RZV2H_GPIO(6, 4) GPIO_ACTIVE_HIGH>;
 };
 #endif
 #endif

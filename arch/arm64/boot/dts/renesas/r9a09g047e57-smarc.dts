@@ -17,12 +17,20 @@
 #define SW_GPIO9_CAN1_STB		0
 #define SW_HDMI_EN			0
 
+/* Mode selection settings */
+#define RSPI0_RSCI8_SPI_SEL		0
+
 /*
  * RSCI9_SEL mode:
  * 0 - RSCI9_UART (default)
  * 1 - RSCI9_I2C
-*/
+ * 2 - RSCI9_SPI
+ */
 #define RSCI9_SEL			0
+
+#if (RSCI9_SEL != 0 && RSCI9_SEL != 1 && RSCI9_SEL != 2)
+#error "Cannot set mode for RSCI9"
+#endif
 
 /*
  * I2C1 and GPT (PMOD) selection
