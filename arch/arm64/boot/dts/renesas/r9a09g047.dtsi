@@ -2132,6 +2132,8 @@
 			clocks = <&cpg CPG_MOD 133>,
 				 <&cpg CPG_MOD 134>;
 			clock-names = "fck", "tclk";
+			dmas = <&dmac2 0x7F44AB>, <&dmac2 0x7F44AA>;
+			dma-names = "tx", "rx";
 			power-domains = <&cpg>;
 			resets = <&cpg 145>,
 				 <&cpg 146>;
@@ -2192,6 +2194,8 @@
 			clocks = <&cpg CPG_MOD 138>,
 				 <&cpg CPG_MOD 139>;
 			clock-names = "fck", "tclk";
+			dmas = <&dmac1 0x7F44AE>, <&dmac1 0x7F44AD>;
+			dma-names = "tx", "rx";
 			power-domains = <&cpg>;
 			resets = <&cpg 147>,
 				 <&cpg 148>;
