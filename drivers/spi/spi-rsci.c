@@ -15,8 +15,11 @@
 #include <linux/platform_device.h>
 #include <linux/io.h>
 #include <linux/clk.h>
+#include <linux/dmaengine.h>
+#include <linux/dma-mapping.h>
 #include <linux/of_device.h>
 #include <linux/pm_runtime.h>
+#include <linux/sh_dma.h>
 #include <linux/reset.h>
 #include <linux/spi/spi.h>
 #include <linux/spinlock.h>
@@ -116,9 +119,12 @@ struct rsci_data {
 	struct clk *tclk;
 	bool slave;
 	u32 ccr0, ccr1, ccr2, ccr3, csr;
+	int rx_irq, tx_irq;
 	int bits_per_word;
 	const struct spi_ops *ops;
 
+	unsigned dma_callbacked:1;
+	unsigned byte_access:1;
 	struct reset_control *rstc;
 	struct pinctrl *pinctrl;
 	struct pinctrl_state *pins_master, *pins_slave;
@@ -368,6 +374,124 @@ static int rsci_spi_pio_transfer(struct rsci_data *rsci, const void *tx,
 	return 0;
 }
 
+static void rsci_spi_dma_complete(void *arg)
+{
+	struct rsci_data *rsci = arg;
+
+	rsci->dma_callbacked = 1;
+	wake_up_interruptible(&rsci->wait);
+}
+
+static int rsci_spi_dma_transfer(struct rsci_data *rsci, struct sg_table *tx,
+				 struct sg_table *rx)
+{
+	struct dma_async_tx_descriptor *desc_tx = NULL, *desc_rx = NULL;
+	u32 irq_mask = 0;
+	unsigned int other_irq = 0;
+	dma_cookie_t cookie;
+	int ret;
+
+	/* First prepare and submit the DMA request(s), as this may fail */
+	if (rx) {
+		desc_rx = dmaengine_prep_slave_sg(rsci->ctlr->dma_rx, rx->sgl,
+						  rx->nents, DMA_DEV_TO_MEM,
+					   DMA_PREP_INTERRUPT | DMA_CTRL_ACK);
+		if (!desc_rx) {
+			ret = -EAGAIN;
+			goto no_dma_rx;
+		}
+		desc_rx->callback = rsci_spi_dma_complete;
+		desc_rx->callback_param = rsci;
+		cookie = dmaengine_submit(desc_rx);
+		if (dma_submit_error(cookie)) {
+			ret = cookie;
+			goto no_dma_rx;
+		}
+
+		irq_mask |= CCR0_RIE;
+	}
+
+	if (tx) {
+		desc_tx = dmaengine_prep_slave_sg(rsci->ctlr->dma_tx, tx->sgl,
+						  tx->nents, DMA_MEM_TO_DEV,
+					   DMA_PREP_INTERRUPT | DMA_CTRL_ACK);
+		if (!desc_tx) {
+			ret = -EAGAIN;
+			goto no_dma_tx;
+		}
+		if (rx) {
+			/* No callback */
+			desc_tx->callback = NULL;
+		} else {
+			desc_tx->callback = rsci_spi_dma_complete;
+			desc_tx->callback_param = rsci;
+		}
+		cookie = dmaengine_submit(desc_tx);
+		if (dma_submit_error(cookie)) {
+			ret = cookie;
+			goto no_dma_tx;
+		}
+
+		irq_mask |= CCR0_TIE;
+	}
+
+	/*
+	 * DMAC needs CCR0_xIE, but if CCR0_xIE is set, the IRQ routine will be
+	 * called. So, this driver disables the IRQ while DMA transfer.
+	 */
+	if (tx)
+		disable_irq(other_irq = rsci->tx_irq);
+	if (rx && rsci->rx_irq != other_irq)
+		disable_irq(rsci->rx_irq);
+
+	rsci_spi_endisable_irq(rsci, irq_mask, 0);
+	rsci->dma_callbacked = 0;
+
+	/* Now start DMA */
+	if (rx)
+		dma_async_issue_pending(rsci->ctlr->dma_rx);
+	if (tx) {
+		dma_async_issue_pending(rsci->ctlr->dma_tx);
+		rsci_write32(rsci, CFCLR_TDREC | CFCLR_RDRFC, RSCI_CFCLR);
+	}
+	ret = wait_event_interruptible_timeout(rsci->wait,
+					       rsci->dma_callbacked, HZ);
+	if (rsci->dma_callbacked) {
+		ret = 0;
+		if (tx)
+			dmaengine_synchronize(rsci->ctlr->dma_tx);
+		if (rx)
+			dmaengine_synchronize(rsci->ctlr->dma_rx);
+	} else {
+		if (!ret) {
+			dev_err(&rsci->ctlr->dev, "DMA timeout\n");
+			ret = -ETIMEDOUT;
+		}
+		if (tx)
+			dmaengine_terminate_sync(rsci->ctlr->dma_tx);
+		if (rx)
+			dmaengine_terminate_sync(rsci->ctlr->dma_rx);
+	}
+
+	rsci_spi_endisable_irq(rsci, 0, irq_mask);
+
+	if (tx)
+		enable_irq(rsci->tx_irq);
+	if (rx && rsci->rx_irq != other_irq)
+		enable_irq(rsci->rx_irq);
+	return ret;
+
+no_dma_tx:
+	if (rx)
+		dmaengine_terminate_sync(rsci->ctlr->dma_rx);
+no_dma_rx:
+	if (ret == -EAGAIN) {
+		dev_warn_once(&rsci->ctlr->dev,
+			"DMA not available, falling back to PIO\n");
+	}
+	return ret;
+}
+
 static void rsci_spi_receive_init(const struct rsci_data *rsci)
 {
 	u32 csr;
@@ -385,12 +509,56 @@ static void rsci_spi_common_receive_init(const struct rsci_data *rsci)
 	rsci_spi_receive_init(rsci);
 }
 
+static bool __rsci_spi_can_dma(const struct rsci_data *rsci,
+			       const struct spi_transfer *xfer)
+{
+	return xfer->len > rsci->ops->fifo_size;
+}
+
+static bool rsci_spi_can_dma(struct spi_controller *ctlr,
+			     struct spi_device *spi, struct spi_transfer *xfer)
+{
+	struct rsci_data *rsci = spi_controller_get_devdata(ctlr);
+
+	return __rsci_spi_can_dma(rsci, xfer);
+}
+
+static int rsci_spi_dma_check_then_transfer(struct rsci_data *rsci,
+					    struct spi_transfer *xfer)
+{
+	struct dma_slave_config cfg;
+
+	if (!rsci->ctlr->can_dma || !__rsci_spi_can_dma(rsci, xfer))
+		return -EAGAIN;
+
+	memset(&cfg, 0, sizeof(cfg));
+
+	cfg.dst_addr = rsci->pdev->resource->start + RSCI_TDR;
+	cfg.src_addr = rsci->pdev->resource->start + RSCI_RDR;
+	cfg.dst_addr_width = DMA_SLAVE_BUSWIDTH_1_BYTE;
+	cfg.src_addr_width = DMA_SLAVE_BUSWIDTH_1_BYTE;
+	cfg.direction = DMA_MEM_TO_DEV;
+
+	dmaengine_slave_config(rsci->ctlr->dma_tx, &cfg);
+
+	cfg.direction = DMA_DEV_TO_MEM;
+
+	dmaengine_slave_config(rsci->ctlr->dma_rx, &cfg);
+	/* rx_buf can be NULL on RSCI SPI on SH in TX-only Mode */
+	return rsci_spi_dma_transfer(rsci, &xfer->tx_sg,
+				     xfer->rx_buf ? &xfer->rx_sg : NULL);
+}
+
 static int rsci_spi_common_transfer(struct rsci_data *rsci,
 				    struct spi_transfer *xfer)
 {
 	int ret;
 
 	xfer->effective_speed_hz = rsci->speed_hz;
+
+	ret = rsci_spi_dma_check_then_transfer(rsci, xfer);
+	if (ret != -EAGAIN)
+		return ret;
 
 	ret = rsci_spi_pio_transfer(rsci, xfer->tx_buf, xfer->rx_buf,
 				    xfer->len);
@@ -525,8 +693,69 @@ static irqreturn_t rsci_spi_irq_err(int irq, void *_sr)
 	return 0;
 }
 
+static struct dma_chan *rsci_spi_request_dma_chan(struct device *dev,
+						enum dma_transfer_direction dir,
+						unsigned int id)
+{
+	dma_cap_mask_t mask;
+	struct dma_chan *chan;
+
+	dma_cap_zero(mask);
+	dma_cap_set(DMA_SLAVE, mask);
+
+	chan = dma_request_slave_channel_compat(mask, shdma_chan_filter,
+					(void *)(unsigned long)id, dev,
+					dir == DMA_MEM_TO_DEV ? "tx" : "rx");
+	if (!chan) {
+		dev_warn(dev, "dma_request_slave_channel_compat failed\n");
+		return NULL;
+	}
+
+	return chan;
+}
+
+static int rsci_spi_request_dma(struct device *dev, struct spi_controller *ctlr)
+{
+	unsigned int dma_tx_id, dma_rx_id;
+
+	if (dev->of_node) {
+		/* In the OF case we will get the slave IDs from the DT */
+		dma_tx_id = 0;
+		dma_rx_id = 0;
+	} else {
+		/* The driver assumes no error. */
+		return 0;
+	}
+
+	ctlr->dma_tx = rsci_spi_request_dma_chan(dev, DMA_MEM_TO_DEV, dma_tx_id);
+	if (!ctlr->dma_tx)
+		return -ENODEV;
+
+	ctlr->dma_rx = rsci_spi_request_dma_chan(dev, DMA_DEV_TO_MEM, dma_rx_id);
+	if (!ctlr->dma_rx) {
+		dma_release_channel(ctlr->dma_tx);
+		ctlr->dma_tx = NULL;
+		return -ENODEV;
+	}
+
+	ctlr->can_dma = rsci_spi_can_dma;
+	dev_info(dev, "DMA available");
+	return 0;
+}
+
+static void rsci_spi_release_dma(struct spi_controller *ctlr)
+{
+	if (ctlr->dma_tx)
+		dma_release_channel(ctlr->dma_tx);
+	if (ctlr->dma_rx)
+		dma_release_channel(ctlr->dma_rx);
+}
+
 static int rsci_spi_remove(struct platform_device *pdev)
 {
+	struct rsci_data *rsci = platform_get_drvdata(pdev);
+
+	rsci_spi_release_dma(rsci->ctlr);
 	pm_runtime_disable(&pdev->dev);
 
 	return 0;
@@ -717,24 +946,35 @@ static int rsci_spi_probe(struct platform_device *pdev)
 		if (ret < 0)
 			return ret;
 
+		if (rsci_irqs[i].res_num == 1)
+			rsci->rx_irq = ret;
+		else if (rsci_irqs[i].res_num == 2)
+			rsci->tx_irq = ret;
+
 		ret = devm_request_irq(&pdev->dev, ret, rsci_irqs[i].isr,
 						0, rsci_irqs[i].name, rsci);
 		if (ret) {
 			dev_err(&pdev->dev, "failed to request irq %s\n", rsci_irqs[i].name);
-			return ret;
+			goto error2;
 		}
 	}
+
+	ret = rsci_spi_request_dma(&pdev->dev, ctlr);
+	if (ret < 0)
+		dev_warn(&pdev->dev, "DMA not available, using PIO\n");
 
 	ret = devm_spi_register_controller(&pdev->dev, ctlr);
 	if (ret < 0) {
 		dev_err(&pdev->dev, "devm_spi_register_controller error.\n");
-		goto error2;
+		goto error3;
 	}
 
 	dev_info(&pdev->dev, "probed\n");
 
 	return 0;
 
+error3:
+	rsci_spi_release_dma(ctlr);
 error2:
 	pm_runtime_disable(&pdev->dev);
 error1:
