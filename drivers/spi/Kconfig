@@ -798,6 +798,12 @@ config SPI_RSPI_V2H
         help
           SPI driver for Renesas RSPI RZ/V2H
 
+config SPI_RZ_RSCI
+	tristate "Renesas RSCI RZ/V2H controller"
+	depends on ARCH_RZV2H || COMPILE_TEST
+	help
+	 SPI driver for Renesas RSCI RZ/V2H and similar SoCs.
+
 config SPI_QCOM_QSPI
 	tristate "QTI QSPI controller"
 	depends on ARCH_QCOM
