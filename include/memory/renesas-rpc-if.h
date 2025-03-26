@@ -60,43 +60,13 @@ struct rpcif_op {
 enum rpcif_type {
 	RPCIF_RCAR_GEN3,
 	RPCIF_RZ_G2L,
-	XSPI_RZ_G3S,
-	XSPI_RZ_V2H,
 };
 
 struct rpcif {
 	struct device *dev;
 	void __iomem *base;
 	void __iomem *dirmap;
-	struct regmap *regmap;
-	struct reset_control *rstc;
-	const struct rpcif_ops *ops;
 	size_t size;
-	enum rpcif_type type;
-	enum rpcif_data_dir dir;
-	u8 bus_size;
-	u8 xfer_size;
-	u8 addr_nbytes;
-	u32 proto;		/* Specified for xSPI */
-	void *buffer;
-	u32 xferlen;
-	u32 smcr;
-	u32 smadr;
-	u32 command;		/* DRCMR or SMCMR */
-	u32 option;		/* DROPR or SMOPR */
-	u32 enable;		/* DRENR or SMENR */
-	u32 dummy;		/* DRDMCR or SMDMCR */
-	u32 ddr;		/* DRDRENR or SMDRENR */
-};
-
-struct rpcif_ops {
-	int (*sw_init)(struct rpcif *rpc, struct device *dev);
-	int (*hw_init)(struct rpcif *rpc, bool hyperflash);
-	void (*prepare)(struct rpcif *rpc, const struct rpcif_op *op, u64 *offs,
-			   size_t *len);
-	int (*manual_xfer)(struct rpcif *rpc);
-	ssize_t (*dirmap_read)(struct rpcif *rpc, u64 offs, size_t len, void *buf);
-	ssize_t (*dirmap_write)(struct rpcif *rpc, u64 offs, size_t len, const void *buf);
 };
 
 int rpcif_sw_init(struct rpcif *rpc, struct device *dev);
