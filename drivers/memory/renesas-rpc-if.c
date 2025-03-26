@@ -1065,6 +1065,7 @@ static const struct of_device_id rpcif_of_match[] = {
 	{ .compatible = "renesas,rcar-gen3-rpc-if", .data = &rpcif_info_gen3 },
 	{ .compatible = "renesas,rzg2l-rpc-if", .data = &rpcif_info_rz_g2l },
 	{ .compatible = "renesas,g3e-xspi-if", .data = &xspi_info_r9a09g047 },
+	{ .compatible = "renesas,v2h-xspi-if", .data = &xspi_info_r9a09g047 },
 	{},
 };
 MODULE_DEVICE_TABLE(of, rpcif_of_match);
