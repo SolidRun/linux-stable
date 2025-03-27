@@ -193,7 +193,7 @@
 	sci2_pins: sci2 {
 		pinmux = <RZV2H_PORT_PINMUX(1, 1, 1)>, /* SCI2_TXD_MOSI_SDA */
 			 <RZV2H_PORT_PINMUX(1, 0, 1)>; /* SCI2_RXD_MISO_SCL */
-		bias-pull-up;\
+		bias-pull-up;
 	};
 #endif
 
