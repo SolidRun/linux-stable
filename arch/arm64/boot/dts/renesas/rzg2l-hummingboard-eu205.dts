@@ -1,0 +1,240 @@
+// SPDX-License-Identifier: GPL-2.0+
+/*
+ * Copyright (C) 2025 Josua Mayer <josua@solid-run.com>
+ *
+ * DTS for SolidRun RZ-G2L SoM,
+ * hosted on Renesas EU205 Evaluation Board.
+ *
+ */
+
+/dts-v1/;
+
+#include "rzg2l-sr-som.dtsi"
+#include "rzg2l-hummingboard-eu205.dtsi"
+
+/ {
+	model = "Solidrun RZ/G2L HummingBoard EU205";
+	compatible = "solidrun,rz-eu205", "solidrun,rzg2l-sr-som", "renesas,r9a07g044l2", "renesas,r9a07g044";
+
+	aliases {
+		serial4 = &scif4;
+		ethernet1 = &eth1;
+	};
+
+	pps {
+		compatible = "pps-gpio";
+		gpios = <&pinctrl RZG2L_GPIO(6, 1) GPIO_ACTIVE_HIGH>;
+	};
+
+	/* switch for vdd2, sourced from VIN, supplies high-voltage io controller, can be exposed on J26 with R121 */
+	vdd_motor: regulator-vdd2-motor {
+		gpios = <&pinctrl RZG2L_GPIO(39, 2) GPIO_ACTIVE_HIGH>; // J7-28
+		enable-active-high;
+	};
+
+	vdd2-output {
+		compatible = "regulator-output";
+		vout-supply = <&vdd_motor>;
+	};
+
+	/* vbat voltage for lte and wifi */
+	vbat_wireless: regulator-vbat-wireless {
+		gpios = <&pinctrl RZG2L_GPIO(42, 2) GPIO_ACTIVE_HIGH>;
+	};
+
+	/* lcd (dsi) power 10.5V, enable J7-36 */
+	vdd_lcd: regulator-vdd-video {
+		gpios = <&pinctrl RZG2L_GPIO(36, 1) GPIO_ACTIVE_HIGH>; // J7-36
+		enable-active-high;
+	};
+};
+
+&canfd {
+	pinctrl-0 = <&can0_pins>, <&can1_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+
+	channel0 {
+		status = "okay";
+
+		can-transceiver {
+			max-bitrate = <1000000>;
+		};
+	};
+
+	channel1 {
+		status = "okay";
+
+		can-transceiver {
+			max-bitrate = <1000000>;
+		};
+	};
+};
+
+&eth1 {
+	status = "okay";
+
+	// TODO: describe PHY LEDs
+};
+
+&i2c0 {
+	/* ZMOD4410AI1R air quality (U20) @ 32 */
+	co2-sensor@32 {
+		reset-gpios = <&pinctrl RZG2L_GPIO(32, 0) GPIO_ACTIVE_LOW>;
+		interrupt-parent = <&pinctrl>;
+		interrupts = <RZG2L_GPIO(33, 0) IRQ_TYPE_EDGE_FALLING>;
+	};
+
+	/* ISL76683AROZ-T7A ambient (U19) @ 44 */
+	light-sensor@44 {
+		/* IRQ shared between accelerometer, light-sensor and Tamper input (25) */
+		interrupt-parent = <&pinctrl>;
+		interrupts = <RZG2L_GPIO(5, 1) IRQ_TYPE_EDGE_FALLING>;
+	};
+
+	/* ADXL345 accelerometer (U17) @ 53 */
+	accelerometer@53 {
+		/* IRQ shared between accelerometer, light-sensor and Tamper input (25) */
+		interrupt-parent = <&pinctrl>;
+		interrupts = <RZG2L_GPIO(5, 1) IRQ_TYPE_EDGE_FALLING>;
+	};
+};
+
+&i2c1 {
+	/* touchscreen on DSI connector */
+	touchscreen@41 {
+		interrupt-parent = <&pinctrl>;
+		interrupts = <RZG2L_GPIO(17, 0) IRQ_TYPE_EDGE_FALLING>;
+	};
+};
+
+&pinctrl {
+	can0_pins: can-0-pins {
+		pinmux = <RZG2L_PORT_PINMUX(10, 1, 2)>, /* CAN0_TX */
+			 <RZG2L_PORT_PINMUX(11, 0, 2)>; /* CAN0_RX */
+	};
+
+	can1_pins: can-1-pins {
+		pinmux = <RZG2L_PORT_PINMUX(12, 1, 2)>, /* CAN1_TX */
+			 <RZG2L_PORT_PINMUX(13, 0, 2)>; /* CAN1_RX */
+	};
+
+	scif2_pins: scif2 /* scif-2-pins */ {
+		pinmux = <RZG2L_PORT_PINMUX(16, 0, 2)>, /* SCIF2_TXD */
+			 <RZG2L_PORT_PINMUX(16, 1, 2)>, /* SCIF2_RXD */
+			 <RZG2L_PORT_PINMUX(17, 1, 2)>, /* SCIF2_CTS */
+			 <RZG2L_PORT_PINMUX(17, 2, 2)>; /* SCIF2_RTS */
+	};
+
+	scif4_pins: scif-4-pins {
+		pinmux = <RZG2L_PORT_PINMUX(2, 0, 5)>, /* SCIF4_TXD */
+			 <RZG2L_PORT_PINMUX(2, 1, 5)>; /* SCIF4_RXD */
+	};
+
+	spi2_pins: spi-2-pins {
+		pinmux = <RZG2L_PORT_PINMUX(8, 0, 3)>, /* RSPI2_CK */
+			 <RZG2L_PORT_PINMUX(8, 1, 3)>, /* RSPI2_MOSI */
+			 <RZG2L_PORT_PINMUX(8, 2, 3)>, /* RSPI2_MISO */
+			 <RZG2L_PORT_PINMUX(9, 0, 3)>; /* RSPI2_SSL */
+	};
+
+	usb1_pins: usb-1-pins {
+		pinmux = <RZG2L_PORT_PINMUX(42, 0, 1)>; /* USB1_VBUSEN */
+	};
+
+	/* LTE conflicts with on-som bluetooth, hog bt-reg-on */
+	som-bt-reg-hog {
+		gpio-hog;
+		gpios = <RZG2L_GPIO(23, 0) GPIO_ACTIVE_LOW>;
+		output-high;
+		line-name = "som-bt-reg";
+	};
+
+	/* lte reset */
+	/* TODO: replace with rfkill device for Linux v6.3 or later */
+	lte-reset-hog {
+		gpio-hog;
+		gpios = <RZG2L_GPIO(45, 2) GPIO_ACTIVE_LOW>;
+		output-low;
+		line-name = "lte-reset";
+	};
+};
+
+&scif1 {
+	pinctrl-0 = <&scif1_pins>;
+	pinctrl-names = "default";
+	uart-has-rtscts;
+	/* disable dma to avoid kernel crashes on frame error */
+	/delete-property/ dmas;
+	/delete-property/ dma-names;
+	status = "okay";
+
+	bluetooth {
+		compatible = "renesas,DA14531";
+		reset-gpios = <&pinctrl RZG2L_GPIO(45, 1) GPIO_ACTIVE_HIGH>;
+		max-speed = <1000000>;
+	};
+};
+
+/* LTE */
+&scif2 {
+	/* conflict with on-som bluetooth (optional) */
+	/delete-node/ cyw;
+};
+
+/* RS485 */
+&scif3 {
+	/*
+	 * The SCIF hardware block does not support RS485 via
+	 * it's state machine.
+	 *
+	 * Often UART drivers implement software-support using
+	 * rts-gpios property, but SCIF driver does not.
+	 *
+	 * For now users should toggle the RS485 transceiver direction
+	 * from userspace with GPIO P3_0: Low = RX, High = TX.
+	 *
+	 * Once driver receives support, RS485 may be enabled as follows:
+	 *
+	 * rts-gpios = <&pinctrl RZG2L_GPIO(3, 0) GPIO_ACTIVE_LOW>;
+	 * uart-has-rtscts;
+	 * linux,rs485-enabled-at-boot-time;
+	 */
+};
+
+/* GPS */
+&scif4 {
+	pinctrl-0 = <&scif4_pins>;
+	pinctrl-names = "default";
+	/* disable dma to avoid kernel crashes on frame error */
+	/delete-property/ dmas;
+	/delete-property/ dma-names;
+	status = "okay";
+
+	gnss {
+		compatible = "u-blox,mia-m10", "u-blox,neo-m8";
+		reset-gpios = <&pinctrl RZG2L_GPIO(7, 0) GPIO_ACTIVE_LOW>;
+		//timepulse-gpios = <&pinctrl RZG2L_GPIO(6, 1) GPIO_ACTIVE_HIGH>;
+		current-speed = <38400>;
+		u-blox,extint-gpios = <&pinctrl RZG2L_GPIO(7, 1) GPIO_ACTIVE_HIGH>;
+	};
+};
+
+&spi1 {
+	wifi@0 {
+		irq0-gpios = <&pinctrl RZG2L_GPIO(45, 3) (GPIO_ACTIVE_LOW)>;
+	};
+};
+
+&spi2 {
+	pinctrl-0 = <&spi2_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+
+	/* J13 */
+};
+
+&usb2_phy1 {
+	pinctrl-0 = <&usb1_pins>;
+	pinctrl-names = "default";
+};

@@ -1,0 +1,356 @@
+// SPDX-License-Identifier: GPL-2.0+
+/*
+ * Copyright (C) 2025 Josua Mayer <josua@solid-run.com>
+ *
+ * DTS for Renesas EU205 Evaluation Board.
+ *
+ */
+
+/ {
+	aliases {
+		serial0 = &scif0;
+		serial1 = &scif1;
+		serial2 = &scif2;
+		serial3 = &scif3;
+		i2c0 = &i2c0;
+		i2c1 = &i2c1;
+		i2c2 = &i2c2;
+		i2c3 = &i2c3;
+		i2c4 = &clpd_i2c1;
+		mmc0 = &sdhi0;
+		mmc1 = &sdhi1;
+		ethernet0 = &eth0;
+		gpio0 = &pinctrl;
+		gpio1 = &clpd_gpio0;
+		gpio2 = &clpd_gpio1;
+	};
+
+	leds {
+		compatible = "gpio-leds";
+
+		led-0-red {
+			label = "d7:red";
+			gpios = <&clpd_gpio0 0 GPIO_ACTIVE_LOW>;
+		};
+
+		led-0-green {
+			label = "d7:green";
+			gpios = <&clpd_gpio0 1 GPIO_ACTIVE_LOW>;
+		};
+
+		led-0-blue {
+			label = "d7:blue";
+			gpios = <&clpd_gpio0 2 GPIO_ACTIVE_LOW>;
+		};
+	};
+
+	mipi_backlight: backlight {
+		compatible = "gpio-backlight";
+		gpios = <&clpd_gpio1 1 GPIO_ACTIVE_LOW>;
+	};
+
+	vdd_1v8: regulator-vdd-1v8 {
+		/* on Carrier, from vdd-3v3 */
+		compatible = "regulator-fixed";
+		regulator-name = "vdd-1v8";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		vin-supply = <&vdd_3v3>;
+		regulator-always-on;
+	};
+
+	vdd_3v3: regulator-vdd-3v3 {
+		/* on SoM, PMIC, buck3 */
+		compatible = "regulator-fixed";
+		regulator-name = "vdd-3v3";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-always-on;
+	};
+
+	vdd_5v0: regulator-vdd-5v0 {
+		/* on Carrier, from VIN */
+		compatible = "regulator-fixed";
+		regulator-name = "vdd-5v0";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		regulator-always-on;
+	};
+
+	/* switch for vdd2, sourced from VIN, supplies high-voltage io controller, can be exposed on J26 with R121 */
+	vdd_motor: regulator-vdd2-motor {
+		compatible = "regulator-fixed";
+		model = "renesas,SLG59H1019V";
+		regulator-name = "vdd2";
+		/* this voltage is variable, based on external power-supply voltage */
+		regulator-min-microvolt = <12000000>;
+		regulator-max-microvolt = <12000000>;
+		regulator-always-on;
+	};
+
+	vdd2-output {
+		compatible = "regulator-output";
+		vout-supply = <&vdd_motor>;
+	};
+
+	/* vbat voltage for lte and wifi */
+	vbat_wireless: regulator-vbat-wireless {
+		compatible = "regulator-fixed";
+		model = "renesas,RAA214020";
+		regulator-name = "vbat";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		vin-supply = <&vdd_5v0>;
+		startup-delay-us = <100000>;
+		enable-active-high;
+		regulator-always-on;
+	};
+
+	/* lcd (dsi) power 10.5V, enable J7-36 */
+	vdd_lcd: regulator-vdd-video {
+		compatible = "regulator-fixed";
+		model = "renesas,RAA211820";
+		regulator-name = "vdd-video";
+		regulator-min-microvolt = <10500000>;
+		regulator-max-microvolt = <10500000>;
+	};
+
+	/* power-button SW1 J9-62 to pmic PWRON signal */
+
+	clpd_i2c1: i2c {
+		compatible = "i2c-gpio";
+		sda-gpios = <&clpd_gpio1 10 (GPIO_ACTIVE_HIGH|GPIO_OPEN_DRAIN)>;
+		scl-gpios = <&clpd_gpio1 11 (GPIO_ACTIVE_HIGH|GPIO_OPEN_DRAIN)>;
+		i2c-gpio,delay-us = <500>; /* 1kHz ultra slow bus */
+		#address-cells = <1>;
+		#size-cells = <0>;
+	};
+};
+
+&dsi0 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+	status = "okay";
+
+	panel@0 {
+		/* this is not the correct driver, but close enough for proof of concept */
+		compatible = "ronbo,rb070d30";
+		reg = <0>;
+		vcc-lcd-supply = <&vdd_lcd>;
+		power-gpios = <&clpd_gpio1 12 (GPIO_ACTIVE_HIGH|GPIO_OPEN_DRAIN)>;
+		/* reset is active-low but ronbo driver inverts it internally */
+		reset-gpios = <&clpd_gpio1 13 (GPIO_ACTIVE_HIGH|GPIO_OPEN_DRAIN)>;
+		updn-gpios = <&clpd_gpio1 0 GPIO_ACTIVE_LOW>;
+		shlr-gpios = <&clpd_gpio1 14 GPIO_ACTIVE_HIGH>;
+		backlight = <&mipi_backlight>;
+
+		port {
+			dsi_in_panel: endpoint {
+				remote-endpoint = <&dsi0_out>;
+			};
+		};
+	};
+};
+
+&dsi0_out {
+	remote-endpoint = <&dsi_in_panel>;
+};
+
+&du {
+	status = "okay";
+};
+
+/* PHY is on the SoM, should be enabled in SoM dts */
+&eth0 {
+	status = "okay";
+
+	// TODO: describe PHY LEDs
+};
+
+&ehci0 {
+	dr_mode = "otg";
+	status = "okay";
+};
+
+&ehci1 {
+	dr_mode = "host";
+	status = "okay";
+};
+
+&i2c0 {
+	pinctrl-0 = <&i2c0_pins>;
+	pinctrl-names = "default";
+	clock-frequency = <400000>;
+	status = "okay";
+
+	/* U16 */
+	clpd_gpio0: gpio@10 {
+		compatible = "renesas,slg46826-gpio";
+		reg = <0x10>;
+		gpio-controller;
+		#gpio-cells = <2>;
+		gpio-line-names = "LED_R", "LED_G", "LED_B", "", "", "", "",
+				  "DIG_OUT1", "bDIG_IN1", "", "", "DIG_OUT2",
+				  "bDIG_IN2", "", "";
+	};
+
+	/* U16 */
+	eeprom@13 {
+		/* SLG46826V emulated eeprom */
+		compatible = "atmel,24c02";
+		reg = <0x13>;
+		pagesize = <1>;
+	};
+
+	/* U29 */
+	clpd_gpio1: gpio@18 {
+		compatible = "renesas,slg46826-gpio";
+		reg = <0x18>;
+		gpio-controller;
+		#gpio-cells = <2>;
+		gpio-line-names = "DSI_U/D", "DSI_PWM_BL", "DSI_CTP_/RST",
+				  "CAM_RST#", "", "", "", "", "", "CAM_TRIG",
+				  "", "", "DSI_STBYB", "DSI_RESET", "DSI_L/R";
+	};
+
+	/* U29 */
+	eeprom@1b {
+		/* SLG46826V emulated eeprom */
+		compatible = "atmel,24c02";
+		reg = <0x1b>;
+		pagesize = <1>;
+	};
+
+	/* HS4003 temp/humidity (U18) @ 54 */
+	temperature-sensor@54 {
+		compatible = "renesas,hs4003"; // no driver
+		reg = <0x54>;
+		interrupt-parent = <&pinctrl>;
+		interrupts = <RZG2L_GPIO(39, 1) IRQ_TYPE_EDGE_FALLING>;
+	};
+
+	/* ZMOD4410AI1R air quality (U20) @ 32 */
+	co2-sensor@32 {
+		compatible = "renesas,zmod4410"; // no driver
+		reg = <0x32>;
+	};
+
+	/* ISL76683AROZ-T7A ambient (U19) @ 44 */
+	light-sensor@44 {
+		/*
+		 * 76683 only hs some similarities with 76682.
+		 * The register set in particular is substantially different.
+		 * There is no driver (yet) for 76683.
+		 */
+		compatible = "isil,isl76683";
+		reg = <0x44>;
+	};
+
+	/* ADXL345 accelerometer (U17) @ 53 */
+	accelerometer@53 {
+		compatible = "adi,adxl345";
+		reg = <0x53>;
+	};
+
+	/* R1EX24002ASAS0I#S0 eeprom (U26) @ 1010111 0x57 */
+	carrier_eeprom: eeprom@57 {
+		compatible = "atmel,24c02";
+		reg = <0x57>;
+		pagesize = <16>;
+	};
+};
+
+&i2c1 {
+	/* routed to CSI connector (J10) level-shifted via U29 */
+	/* routed to DSI connector (J15) */
+
+	/* touchscreen on DSI connector */
+	touchscreen@41 {
+		compatible = "ilitek,ili2130", "ilitek,ili210x";
+		reg = <0x41>;
+		reset-gpios = <&clpd_gpio1 2 (GPIO_ACTIVE_LOW|GPIO_OPEN_DRAIN)>;
+	};
+
+	/* MIA-M10Q gps @ 0x42 (no driver, similar neo-m8 ) */
+	gnss_ddc: gnss@42 {
+		compatible = "u-blox,mia-m10";
+		reg = <0x42>;
+	};
+
+	/* SLG47115V (U22) high voltage programmable IO controller (no driver) */
+};
+
+&ohci0 {
+	dr_mode = "otg";
+	status = "okay";
+};
+
+&ohci1 {
+	dr_mode = "host";
+	status = "okay";
+};
+
+&pinctrl {
+	usb0_pins: usb-0-pins {
+		pinmux = <RZG2L_PORT_PINMUX(4, 0, 1)>; /* USB0_VBUSEN */
+	};
+};
+
+&scif1 {
+	pinctrl-0 = <&scif1_pins>;
+	pinctrl-names = "default";
+	uart-has-rtscts;
+	/* disable dma to avoid kernel crashes on frame error */
+	/delete-property/ dmas;
+	/delete-property/ dma-names;
+	status = "okay";
+
+	bluetooth {
+		compatible = "renesas,DA14531";
+		reset-gpios = <&pinctrl RZG2L_GPIO(45, 1) GPIO_ACTIVE_HIGH>;
+		max-speed = <1000000>;
+	};
+};
+
+/* LTE */
+&scif2 {
+	/* conflict with on-som bluetooth (optional) */
+	/delete-node/ cyw;
+};
+
+/* RS485 */
+&scif3 {
+	pinctrl-0 = <&scif3_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&sdhi0_pwr_en_gpio {
+	output-low;
+};
+
+&spi1 {
+	pinctrl-0 = <&spi1_pins>;
+	pinctrl-names = "default";
+	dmas = <&dmac 0x2e99>, <&dmac 0x2e9a>;
+	dma-names = "tx", "rx";
+	status = "okay";
+
+	wifi@0 {
+		compatible = "renesas,da16xxx";
+		reg = <0>;
+		/* RZ-G2L maximum clock for second SPI is 25MHz */
+		spi-max-frequency = <25000000>;
+		reset-gpios = <&pinctrl RZG2L_GPIO(45, 0) GPIO_ACTIVE_LOW>;
+	};
+};
+
+&usb2_phy0 {
+	pinctrl-0 = <&usb0_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&usb2_phy1 {
+	status = "okay";
+};

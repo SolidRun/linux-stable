@@ -1,0 +1,171 @@
+// SPDX-License-Identifier: GPL-2.0+
+/*
+ * Copyright (C) 2025 Josua Mayer <josua@solid-run.com>
+ *
+ * DTS for SolidRun RZ-G2LC SoM,
+ * hosted on Renesas EU205 Evaluation Board.
+ *
+ */
+
+/dts-v1/;
+
+#include "rzg2lc-sr-som.dtsi"
+#include "rzg2l-hummingboard-eu205.dtsi"
+
+/ {
+	model = "Solidrun RZ/G2LC HummingBoard EU205";
+	compatible = "solidrun,rz-eu205", "solidrun,rzg2lc-sr-som", "renesas,r9a07g044c2", "renesas,r9a07g044";
+
+	vbus1: regulator-usb-vbus-1 {
+		compatible = "regulator-fixed";
+		model = "renesas,SLG59M1639V";
+		regulator-name = "vbus-1";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		vin-supply = <&vdd_5v0>;
+		/* pinmux automatic */
+		gpios = <&pinctrl RZG2L_GPIO(5, 0) GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+	};
+
+	/* switch for vdd2, sourced from VIN, supplies high-voltage io controller, can be exposed on J26 with R121 */
+	vdd_motor: regulator-vdd2-motor {
+		/* TODO: remove R110 to power on */
+	};
+
+	vdd2-output {
+		compatible = "regulator-output";
+		vout-supply = <&vdd_motor>;
+	};
+
+	/* vbat voltage for lte and wifi */
+	vbat_wireless: regulator-vbat-wireless {
+		gpios = <&pinctrl RZG2L_GPIO(19, 1) GPIO_ACTIVE_HIGH>;
+	};
+
+	/* lcd (dsi) power 10.5V, enable J7-36 */
+	vdd_lcd: regulator-vdd-video {
+		regulator-always-on;
+		/* TODO: remove R12 to power on */
+	};
+};
+
+&dsi0 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+	status = "okay";
+
+	panel@0 {
+		/* this is not the correct driver, but close enough for proof of concept */
+		compatible = "ronbo,rb070d30";
+		reg = <0>;
+		vcc-lcd-supply = <&vdd_lcd>;
+		power-gpios = <&clpd_gpio1 12 (GPIO_ACTIVE_HIGH|GPIO_OPEN_DRAIN)>;
+		/* reset is active-low but ronbo driver inverts it internally */
+		reset-gpios = <&clpd_gpio1 13 (GPIO_ACTIVE_HIGH|GPIO_OPEN_DRAIN)>;
+		updn-gpios = <&clpd_gpio1 0 GPIO_ACTIVE_LOW>;
+		shlr-gpios = <&clpd_gpio1 14 GPIO_ACTIVE_HIGH>;
+		backlight = <&mipi_backlight>;
+
+		port {
+			dsi_in_panel: endpoint {
+				remote-endpoint = <&dsi0_out>;
+			};
+		};
+	};
+};
+
+&i2c0 {
+	/* ISL76683AROZ-T7A ambient (U19) @ 44 */
+	light-sensor@44 {
+		/* IRQ shared between accelerometer, light-sensor and Tamper input (25) */
+		interrupt-parent = <&pinctrl>;
+		interrupts = <RZG2L_GPIO(19, 0) IRQ_TYPE_EDGE_FALLING>;
+	};
+
+	/* ADXL345 accelerometer (U17) @ 53 */
+	accelerometer@53 {
+		/* IRQ shared between accelerometer, light-sensor and Tamper input (25) */
+		interrupt-parent = <&pinctrl>;
+		interrupts = <RZG2L_GPIO(19, 0) IRQ_TYPE_EDGE_FALLING>;
+	};
+};
+
+&i2c1 {
+	/* touchscreen on DSI connector */
+	touchscreen@41 {
+		interrupt-parent = <&pinctrl>;
+		interrupts = <RZG2L_GPIO(39, 2) IRQ_TYPE_EDGE_FALLING>;
+	};
+};
+
+&pinctrl {
+	/* LTE conflicts with on-som bluetooth, hog bt-reg-on */
+	som-bt-reg-hog {
+		gpio-hog;
+		gpios = <RZG2L_GPIO(23, 1) GPIO_ACTIVE_LOW>;
+		output-high;
+		line-name = "som-bt-reg";
+	};
+
+	/* lte reset */
+	/* TODO: replace with rfkill device for Linux v6.3 or later */
+	lte-reset-hog {
+		gpio-hog;
+		gpios = <RZG2L_GPIO(3, 1) GPIO_ACTIVE_LOW>;
+		output-low;
+		line-name = "lte-reset";
+	};
+};
+
+&scif1 {
+	pinctrl-0 = <&scif1_pins>;
+	pinctrl-names = "default";
+	uart-has-rtscts;
+	/* disable dma to avoid kernel crashes on frame error */
+	/delete-property/ dmas;
+	/delete-property/ dma-names;
+	status = "okay";
+
+	bluetooth {
+		compatible = "renesas,DA14531";
+		reset-gpios = <&pinctrl RZG2L_GPIO(45, 1) GPIO_ACTIVE_HIGH>;
+		max-speed = <1000000>;
+	};
+};
+
+/* LTE */
+&scif2 {
+	/* conflict with on-som bluetooth (optional) */
+	/delete-node/ cyw;
+};
+
+/* RS485 */
+&scif3 {
+	/*
+	 * The SCIF hardware block does not support RS485 via
+	 * it's state machine.
+	 *
+	 * Often UART drivers implement software-support using
+	 * rts-gpios property, but SCIF driver does not.
+	 *
+	 * For now users should toggle the RS485 transceiver direction
+	 * from userspace with GPIO P3_0: Low = RX, High = TX.
+	 *
+	 * Once driver receives support, RS485 may be enabled as follows:
+	 *
+	 * rts-gpios = <&pinctrl RZG2L_GPIO(40, 2) GPIO_ACTIVE_LOW>;
+	 * uart-has-rtscts;
+	 * linux,rs485-enabled-at-boot-time;
+	 */
+};
+
+&spi1 {
+	wifi@0 {
+		irq0-gpios = <&pinctrl RZG2L_GPIO(45, 2) (GPIO_ACTIVE_LOW)>;
+	};
+};
+
+&usb2_phy1 {
+	vbus-supply = <&vbus1>;
+};
