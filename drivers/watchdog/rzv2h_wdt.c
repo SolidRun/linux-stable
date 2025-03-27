@@ -43,6 +43,10 @@
 
 #define WDT_DEFAULT_TIMEOUT	60U
 
+#define CPG_ERRORRST_SEL2(x)	((x) - 0x3c)
+#define CPG_ERRRSTSELx(x)	BIT(x)
+#define CPG_ERRRSTSELx_WEN(x)	BIT((x) + 16)
+
 #define CPG_ERROR_RST2(x)	BIT(x)
 #define CPG_ERROR_RST2_WEN(x)	BIT((x) + 16)
 
@@ -246,6 +250,16 @@ static int rzv2h_wdt_probe(struct platform_device *pdev)
 				return ret;
 		}
 		bootstatus = val & CPG_ERROR_RST2(bit) ? WDIOF_CARDRESET : 0;
+
+		/*
+		 * configure CPG_ERRORRST_SEL2 register to issue a reset request
+		 * upon WDT underflow
+		 */
+		ret = regmap_write(syscon, CPG_ERRORRST_SEL2(offset),
+				   CPG_ERRRSTSELx(bit) |
+				   CPG_ERRRSTSELx_WEN(bit));
+		if (ret)
+			return ret;
 	}
 
 	priv = devm_kzalloc(dev, sizeof(*priv), GFP_KERNEL);
