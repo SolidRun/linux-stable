@@ -93,6 +93,7 @@
 	pinctrl-0 = <&eth0_pins>;
 	pinctrl-names = "default";
 	phy-handle = <&phy0>;
+	/* ravb driver enables tx&rx delays 2ns for rgmii-id regardless of phy delay support */
 	phy-mode = "rgmii-id";
 	status = "disabled";
 	renesas,no-ether-link;
@@ -106,9 +107,11 @@
 		MXL8611X_LEDX_CFG_LINK_UP_100MB_ON |
 		MXL8611X_LEDX_CFG_LINK_UP_10MB_ON
 		)>;
+		/* disable phy delays as mac already adds them */
 		mxl-8611x,rx-internal-delay-ps = <0>;
-		mxl-8611x,tx-internal-delay-ps-100m = <2250>;
-		mxl-8611x,tx-internal-delay-ps-1g = <300>;
+		mxl-8611x,tx-internal-delay-ps-1g = <0>;
+		/* mac adds 2ns, recommended total is 8ns, add 6ns on phy (multiplied factor 4 inside phy) */
+		mxl-8611x,tx-internal-delay-ps-100m = <1500>;
 	};
 };
 
