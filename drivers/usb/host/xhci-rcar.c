@@ -266,7 +266,7 @@ static const struct xhci_plat_priv xhci_plat_renesas_rzv2m = {
 
 static const struct xhci_plat_priv xhci_plat_renesas_rzv2h = {
 	.quirks = XHCI_RESET_ON_RESUME  | XHCI_SUSPEND_RESUME_CLKS |
-		  XHCI_RZV2H_REINIT_AFTER_RESET,
+		  XHCI_RZV2H_REINIT_AFTER_RESET | XHCI_NO_64BIT_SUPPORT,
 	.plat_start = xhci_rzv2h_start,
 	.suspend_quirk = xhci_rzv2h_suspend,
 	.resume_quirk = xhci_rzv2h_resume,
