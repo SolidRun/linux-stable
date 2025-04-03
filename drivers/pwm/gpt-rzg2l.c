@@ -63,16 +63,20 @@
 #define GTCR_MODE_MASK		(0x7<<16)
 #define GTIOR_OBE		BIT(24)
 #define GTIOR_CHANNEL_B_OUTPUT_MASK		(0x01FF<<16)
+#define GTIOB_RETAIN_OUTPUT			(0x3<<16)
 #define GTIOB_OUTPUT_HIGH_END_TOGGLE_COMPARE	(0x11B<<16)
 #define GTIOB_OUTPUT_LOW_END_TOGGLE_COMPARE	(0x147<<16)
+#define GTIOB_OBDFLT				(1<<22)
 /* GTIOR.GTIOB = 11001 */
 /* GTIOR.OBE = 1 */
 #define GTIOR_OAE		BIT(8)
 #define GTIOR_CHANNEL_A_OUTPUT_MASK		0x01FF
+#define GTIOA_RETAIN_OUTPUT			0x3
 #define GTIOA_OUTPUT_HIGH_END_TOGGLE_COMPARE	0x11B
 #define GTIOA_OUTPUT_LOW_END_TOGGLE_COMPARE	0x147
+#define GTIOA_OADFLT				(1<<6)
 #define GTCR_CST	0x00000001
-#define UP_COUNTING	3
+#define UP_COUNTING	1
 #define INPUT_CAP_GTIOB_BOTH_EDGE	0x0000F000
 #define INPUT_CAP_GTIOB_RISING_EDGE	0x00003000
 #define INPUT_CAP_GTIOB_FALLING_EDGE	0x0000C000
@@ -636,6 +640,16 @@ static int rzg2l_gpt_enable(struct pwm_chip *chip, struct pwm_device *pwm)
 	struct rzg2l_gpt_chip *pc = to_rzg2l_gpt_chip(chip);
 	int rc = 0;
 
+	/* Enable GTIOCA pin output */
+	rzg2l_gpt_write_mask(pc,
+	channel_set[CHANNEL_A].phase.polar[pc->channel_polar[CHANNEL_A]],
+	channel_set[CHANNEL_A].phase.mask, GTIOR);
+
+	/* Enable GTIOCB pin output */
+	rzg2l_gpt_write_mask(pc,
+	channel_set[CHANNEL_B].phase.polar[pc->channel_polar[CHANNEL_B]],
+	channel_set[CHANNEL_B].phase.mask, GTIOR);
+
 	/* Start count */
 	rzg2l_gpt_write_mask(pc, 1, GTCR_CST, GTCR);
 
@@ -648,6 +662,8 @@ static void rzg2l_gpt_disable(struct pwm_chip *chip, struct pwm_device *pwm)
 
 	/* Stop count */
 	rzg2l_gpt_write_mask(pc, 0, GTCR_CST, GTCR);
+	/* Reset counter value */
+	rzg2l_gpt_write(pc, 0, GTCNT);
 }
 
 static int
@@ -1150,7 +1166,7 @@ static irqreturn_t gpt_gtciv_interrupt(int irq, void *data)
 	int ret = IRQ_NONE;
 	uint32_t irq_flags;
 	unsigned long flags;
-	uint32_t tmp;
+	uint32_t tmp, reg_gtior;
 
 	spin_lock_irqsave(&pc->lock, flags);
 
@@ -1210,10 +1226,34 @@ static irqreturn_t gpt_gtciv_interrupt(int irq, void *data)
 		}
 
 		if (pc->pulse_number) {
+			/* Set pin output value when count stop */
+			reg_gtior = rzg2l_gpt_read(pc, GTIOR);
+			if (pc->channel_polar[CHANNEL_A] == PWM_POLARITY_NORMAL)
+				reg_gtior |= GTIOA_OADFLT;
+			else
+				reg_gtior &= ~GTIOA_OADFLT;
+
+			if (pc->channel_polar[CHANNEL_B] == PWM_POLARITY_NORMAL)
+				reg_gtior |= GTIOB_OBDFLT;
+			else
+				reg_gtior &= ~GTIOB_OBDFLT;
+
+			rzg2l_gpt_write(pc, reg_gtior, GTIOR);
+
 			pc->pulse_number--;
+			if (pc->pulse_number == 2) {
+				/* Enable interrupt GTINTA and GTINTB */
+				rzg2l_gpt_write_mask(pc, GTINTA,
+							      GTINTA, GTINTAD);
+				rzg2l_gpt_write_mask(pc, GTINTB,
+							      GTINTB, GTINTAD);
+			}
+
 			if (!pc->pulse_number) {
 				/* Stop count */
 				rzg2l_gpt_write_mask(pc, 0, GTCR_CST, GTCR);
+				/* Reset counter value */
+				rzg2l_gpt_write(pc, 0, GTCNT);
 				pc->chip.pwms[0].state.enabled = 0;
 				if ((!pc->poeg) &&
 					(pc->gpt_operation == NORMAL_OUTPUT))
@@ -1246,29 +1286,38 @@ static irqreturn_t gpt_gtcia_interrupt(int irq, void *data)
 
 	irq_flags = rzg2l_gpt_read(pc, GTST);
 	if (irq_flags & TCFA) {
-		pc->snapshot[pc->index] = rzg2l_gpt_read(pc, GTCCRA) +
-			(pc->overflow_count) * GTPR_MAX_VALUE;
-		switch (pc->index) {
-		case 0:
-		case 1:
-			tmp = rzg2l_gpt_read(pc, GTICASR);
-			if (tmp & INPUT_CAP_GTIOA_RISING_EDGE)
-				rzg2l_gpt_write(pc,
-				INPUT_CAP_GTIOA_FALLING_EDGE, GTICASR);
-			if (tmp & INPUT_CAP_GTIOA_FALLING_EDGE)
-				rzg2l_gpt_write(pc, INPUT_CAP_GTIOA_RISING_EDGE,
-						GTICASR);
-			pc->index++;
-			break;
-		case 2:
-			/* Disable capture operation */
-			rzg2l_gpt_write(pc, 0, GTICASR);
-			wake_up(&pc->wait);
-			break;
-		default:
-			dev_err(pc->chip.dev, "Internal error\n");
-		}
+		if (pc->pulse_number > 0) {
+			if (pc->pulse_number == 1) {
+				/* Retain output at GTCCRA */
+				rzg2l_gpt_write_mask(pc, 0, GTIOA_RETAIN_OUTPUT, GTIOR);
+				/* Disable interrupt GTINTA */
+				rzg2l_gpt_write_mask(pc, 0, GTINTA, GTINTAD);
+			}
 
+		} else {
+			pc->snapshot[pc->index] = rzg2l_gpt_read(pc, GTCCRA) +
+				(pc->overflow_count) * GTPR_MAX_VALUE;
+			switch (pc->index) {
+			case 0:
+			case 1:
+				tmp = rzg2l_gpt_read(pc, GTICASR);
+				if (tmp & INPUT_CAP_GTIOA_RISING_EDGE)
+					rzg2l_gpt_write(pc,
+					INPUT_CAP_GTIOA_FALLING_EDGE, GTICASR);
+				if (tmp & INPUT_CAP_GTIOA_FALLING_EDGE)
+					rzg2l_gpt_write(pc, INPUT_CAP_GTIOA_RISING_EDGE,
+							GTICASR);
+				pc->index++;
+				break;
+			case 2:
+				/* Disable capture operation */
+				rzg2l_gpt_write(pc, 0, GTICASR);
+				wake_up(&pc->wait);
+				break;
+			default:
+				dev_err(pc->chip.dev, "Internal error\n");
+			}
+		}
 		irq_flags &= ~TCFA;
 		ret = IRQ_HANDLED;
 	}
@@ -1293,27 +1342,37 @@ static irqreturn_t gpt_gtcib_interrupt(int irq, void *data)
 
 	irq_flags = rzg2l_gpt_read(pc, GTST);
 	if (irq_flags & TCFB) {
-		pc->snapshot[pc->index] = rzg2l_gpt_read(pc, GTCCRB) +
-			(pc->overflow_count) * GTPR_MAX_VALUE;
-		switch (pc->index) {
-		case 0:
-		case 1:
-			tmp = rzg2l_gpt_read(pc, GTICBSR);
-			if (tmp & INPUT_CAP_GTIOB_RISING_EDGE)
-				rzg2l_gpt_write(pc,
-					INPUT_CAP_GTIOB_FALLING_EDGE, GTICBSR);
-			if (tmp & INPUT_CAP_GTIOB_FALLING_EDGE)
-				rzg2l_gpt_write(pc, INPUT_CAP_GTIOB_RISING_EDGE,
-						GTICBSR);
-			pc->index++;
-			break;
-		case 2:
-			/* Disable capture operation */
-			rzg2l_gpt_write(pc, 0, GTICBSR);
-			wake_up(&pc->wait);
-			break;
-		default:
-			dev_err(pc->chip.dev, "Internal error\n");
+		if (pc->pulse_number > 0) {
+			if (pc->pulse_number == 1) {
+				/* Retain output at GTCCRB */
+				rzg2l_gpt_write_mask(pc, 0, GTIOB_RETAIN_OUTPUT, GTIOR);
+				/* Disable interrupt GTINTB */
+				rzg2l_gpt_write_mask(pc, 0, GTINTB, GTINTAD);
+			}
+		} else {
+			pc->snapshot[pc->index] = rzg2l_gpt_read(pc, GTCCRB) +
+				(pc->overflow_count) * GTPR_MAX_VALUE;
+			switch (pc->index) {
+			case 0:
+			case 1:
+				tmp = rzg2l_gpt_read(pc, GTICBSR);
+				if (tmp & INPUT_CAP_GTIOB_RISING_EDGE)
+					rzg2l_gpt_write(pc,
+						INPUT_CAP_GTIOB_FALLING_EDGE, GTICBSR);
+				if (tmp & INPUT_CAP_GTIOB_FALLING_EDGE)
+					rzg2l_gpt_write(pc, INPUT_CAP_GTIOB_RISING_EDGE,
+							GTICBSR);
+				pc->index++;
+				break;
+			case 2:
+				/* Disable capture operation */
+				rzg2l_gpt_write(pc, 0, GTICBSR);
+				wake_up(&pc->wait);
+				break;
+			default:
+				dev_err(pc->chip.dev, "Internal error\n");
+
+			}
 		}
 
 		irq_flags &= ~TCFB;
@@ -2213,6 +2272,12 @@ static ssize_t pulse_number_store(struct device *dev, struct device_attribute *a
 	struct platform_device *pdev = to_platform_device(dev);
 	struct rzg2l_gpt_chip *pc = platform_get_drvdata(pdev);
 	int val, ret;
+	uint32_t reg_gtior;
+
+	if (pc->chip.pwms[0].state.enabled) {
+		dev_err(pc->chip.dev, "PWM clock is enabled. Set pulse number failed\n");
+		return -EINVAL;
+	}
 
 	if ((pc->gpt_operation != NORMAL_OUTPUT) &&
 		(pc->gpt_operation != SINGLE_BUFFER_OUTPUT) &&
@@ -2236,7 +2301,30 @@ static ssize_t pulse_number_store(struct device *dev, struct device_attribute *a
 	/* Enable interrupt */
 	rzg2l_gpt_write_mask(pc, GTINTPROV, GTINTAD_GTINTPR_MASK, GTINTAD);
 
+	/* Reset counter value when set pulse number */
+	rzg2l_gpt_write(pc, 0, GTCNT);
+
+	/* Enable pin output */
+	rzg2l_gpt_write_mask(pc, GTIOA_RETAIN_OUTPUT,
+						GTIOA_RETAIN_OUTPUT, GTIOR);
+	rzg2l_gpt_write_mask(pc, GTIOB_RETAIN_OUTPUT,
+						GTIOB_RETAIN_OUTPUT, GTIOR);
+
 	pc->pulse_number = val;
+
+	/* Reset value setting at the count stop */
+	reg_gtior = rzg2l_gpt_read(pc, GTIOR);
+	if (pc->channel_polar[CHANNEL_A] == PWM_POLARITY_NORMAL)
+		reg_gtior &= ~GTIOA_OADFLT;
+	else
+		reg_gtior |= GTIOA_OADFLT;
+
+	if (pc->channel_polar[CHANNEL_B] == PWM_POLARITY_NORMAL)
+		reg_gtior &= ~GTIOB_OBDFLT;
+	else
+		reg_gtior |= GTIOB_OBDFLT;
+
+	rzg2l_gpt_write(pc, reg_gtior, GTIOR);
 
 	mutex_unlock(&pc->mutex);
 
