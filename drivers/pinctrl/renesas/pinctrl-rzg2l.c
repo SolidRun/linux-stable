@@ -391,6 +391,7 @@ struct rzg2l_pinctrl_reg_cache {
 	u32	*pupd[2];
 	u32	*isel[2];
 	u32	*sr[2];
+	u32	*nod[2];
 	u32	*extra;
 };
 
@@ -2829,6 +2830,11 @@ static int rzg2l_pinctrl_reg_cache_alloc(struct rzg2l_pinctrl *pctrl)
 		if (!cache->sr[i])
 			return -ENOMEM;
 
+		cache->nod[i] = devm_kcalloc(pctrl->dev, nports, sizeof(*cache->nod[i]),
+						GFP_KERNEL);
+		if (!cache->nod[i])
+			return -ENOMEM;
+
 		/* Allocate dedicated cache. */
 		dedicated_cache->iolh[i] = devm_kcalloc(pctrl->dev, n_dedicated_pins,
 							sizeof(*dedicated_cache->iolh[i]),
@@ -2860,6 +2866,13 @@ static int rzg2l_pinctrl_reg_cache_alloc(struct rzg2l_pinctrl *pctrl)
 							GFP_KERNEL);
 		if (!dedicated_cache->sr[i])
 			return -ENOMEM;
+
+		dedicated_cache->nod[i] = devm_kcalloc(pctrl->dev, n_dedicated_pins,
+							sizeof(*dedicated_cache->nod[i]),
+							GFP_KERNEL);
+		if (!dedicated_cache->nod[i])
+			return -ENOMEM;
+
 	}
 
 	if (n_eoffs > 0) {
@@ -3108,7 +3121,7 @@ static void rzg2l_pinctrl_pm_setup_regs(struct rzg2l_pinctrl *pctrl, bool suspen
 	struct rzg2l_pinctrl_reg_cache *cache = pctrl->cache;
 
 	for (u32 port = 0; port < nports; port++) {
-		bool has_iolh, has_ien, has_pupd, has_sr;
+		bool has_iolh, has_ien, has_pupd, has_sr, has_nod;
 		u32 off, caps;
 		u8 pincnt;
 		u64 cfg;
@@ -3122,6 +3135,7 @@ static void rzg2l_pinctrl_pm_setup_regs(struct rzg2l_pinctrl *pctrl, bool suspen
 		has_ien = !!(caps & PIN_CFG_IEN);
 		has_pupd = !!(caps & PIN_CFG_PUPD);
 		has_sr = !!(caps & PIN_CFG_SR);
+		has_nod = !!(caps & PIN_CFG_NOD);
 
 		if (suspend)
 			RZG2L_PCTRL_REG_ACCESS32(suspend, pctrl->base + PFC(off), cache->pfc[port]);
@@ -3177,6 +3191,17 @@ static void rzg2l_pinctrl_pm_setup_regs(struct rzg2l_pinctrl *pctrl, bool suspen
 							cache->sr[1][port]);
 			}
 		}
+
+		if (has_nod) {
+			RZG2L_PCTRL_REG_ACCESS32(suspend, pctrl->base + NOD(off),
+						cache->nod[0][port]);
+
+			if (pincnt >= 4) {
+				RZG2L_PCTRL_REG_ACCESS32(suspend, pctrl->base + NOD(off) + 4,
+							cache->nod[1][port]);
+			}
+		}
+
 	}
 }
 
