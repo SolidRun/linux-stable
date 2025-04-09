@@ -78,15 +78,6 @@ static int rz_mtu3_clk_enable(struct rz_mtu3_clk_channel_priv *ch)
 {
 	unsigned long periodic;
 	unsigned long rate;
-	int ret;
-
-	/* enable clock */
-	ret = clk_enable(ch->mtu->clk);
-	if (ret) {
-		dev_err(&ch->mtu->pdev->dev, "ch%u: cannot enable clock\n",
-			ch->index);
-		return ret;
-	}
 
 	/* make sure channel is disabled */
 	rz_mtu3_disable(ch->chan);
@@ -123,8 +114,6 @@ static void rz_mtu3_clk_disable(struct rz_mtu3_clk_channel_priv *ch)
 {
 	/* disable channel */
 	rz_mtu3_disable(ch->chan);
-	/* stop clock */
-	clk_disable(ch->mtu->clk);
 	dev_pm_syscore_device(&ch->mtu->pdev->dev, false);
 	pm_runtime_put(&ch->mtu->pdev->dev);
 }
@@ -209,12 +198,12 @@ static int rz_mtu3_clk_clock_event_set_periodic(struct clock_event_device *ced)
 
 static void rz_mtu3_clk_clock_event_suspend(struct clock_event_device *ced)
 {
-	pm_genpd_syscore_poweroff(&ced_to_rz_mtu3_clk(ced)->mtu->pdev->dev);
+	dev_pm_genpd_suspend(&ced_to_rz_mtu3_clk(ced)->mtu->pdev->dev);
 }
 
 static void rz_mtu3_clk_clock_event_resume(struct clock_event_device *ced)
 {
-	pm_genpd_syscore_poweron(&ced_to_rz_mtu3_clk(ced)->mtu->pdev->dev);
+	dev_pm_genpd_resume(&ced_to_rz_mtu3_clk(ced)->mtu->pdev->dev);
 }
 
 static struct rz_mtu3_clk_channel_priv *cs_to_sh_mtu(struct clocksource *cs)
@@ -278,7 +267,7 @@ static void rz_mtu3_clk_clocksource_suspend(struct clocksource *cs)
 	if (!ch->cs_enabled)
 		return;
 	rz_mtu3_clk_stop(ch, FLAG_CLOCKSOURCE);
-	pm_genpd_syscore_poweroff(&ch->mtu->pdev->dev);
+	dev_pm_genpd_suspend(&ch->mtu->pdev->dev);
 }
 
 static void rz_mtu3_clk_clocksource_resume(struct clocksource *cs)
@@ -287,7 +276,7 @@ static void rz_mtu3_clk_clocksource_resume(struct clocksource *cs)
 
 	if (!ch->cs_enabled)
 		return;
-	pm_genpd_syscore_poweron(&ch->mtu->pdev->dev);
+	dev_pm_genpd_resume(&ch->mtu->pdev->dev);
 	rz_mtu3_clk_start(ch, FLAG_CLOCKSOURCE);
 }
 
@@ -427,7 +416,6 @@ static int rz_mtu3_clk_setup(struct rz_mtu3_clk_device *mtu,
 		goto err_clk_unprepare;
 
 	mtu->rate = clk_get_rate(mtu->clk) / 64;
-	clk_disable(mtu->clk);
 	/* Allocate and setup the channels. */
 	mtu->has_clockevent = true;
 	mtu->has_clocksource = false;
@@ -458,8 +446,6 @@ static int rz_mtu3_clk_setup(struct rz_mtu3_clk_device *mtu,
 			mtu->has_clockevent = true;
 		}
 	}
-
-	clk_disable(mtu->clk);
 
 	platform_set_drvdata(pdev, mtu);
 
