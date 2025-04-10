@@ -530,6 +530,11 @@
 			 <RZG2L_PORT_PINMUX(9, 6, 14)>; /* OVC */
 	};
 
+	gpt0_2_pins: gpt0_2 {
+		pinmux = <RZG2L_PORT_PINMUX(7, 2, 9)>, /* Channel A */
+			 <RZG2L_PORT_PINMUX(7, 3, 9)>; /* Channel B */
+	};
+
 	usb30_pins: usb30 {
 		pinmux = <RZG2L_PORT_PINMUX(11, 0, 14)>, /* VBUS */
 			 <RZG2L_PORT_PINMUX(11, 1, 14)>; /* OVC */
@@ -740,6 +745,13 @@
 &usb2_phy0 {
 	pinctrl-0 = <&usb20_pins>;
 	pinctrl-names = "default";
+	status = "okay";
+};
+
+&gpt0_2 {
+	pinctrl-0 = <&gpt0_2_pins>;
+	pinctrl-names = "default";
+	channel = "both_AB";
 	status = "okay";
 };
 
