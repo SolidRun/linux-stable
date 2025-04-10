@@ -27,7 +27,15 @@
 #define USB3TEST_RAMCTRL			0x100c
 #define USB3TEST_RAMCTRL_SRAM_INIT_DONE		BIT(2)
 #define USB3TEST_CREGCTRL			0x1010
+#define USB3TEST_CREGCTRL_ENTRY			BIT(0)
+#define USB3TEST_CREGCTRL_READ			BIT(2)
+#define USB3TEST_CREGCTRL_WRITE			BIT(3)
+#define USB3TEST_CREGCTRL_BUSY			BIT(4)
 #define USB3TEST_CREGCTRL_PARA_SEL		BIT(8)
+#define USB3TEST_CREGCTRL_MASK			0xFFFFFFE2
+#define USB3TEST_CREGADDRESS			0x1014
+#define USB3TEST_CREGWRITEDATA			0x1018
+#define USB3TEST_CREGREADDATA			0x101C
 #define USB3TEST_LANECONFIG0			0x1030
 
 struct rz_usb3 {
@@ -36,6 +44,117 @@ struct rz_usb3 {
 	struct clk	*clk;
 	bool		skip_reinitialize;
 };
+
+static int __maybe_unused usb3test_phy_read(void __iomem *usbtest, u16 phy_adrs)
+{
+	u32 data;
+	u8 timeout = 100;
+
+	writel(USB3TEST_CREGCTRL_PARA_SEL, usbtest + USB3TEST_CREGCTRL);
+	writel(phy_adrs, usbtest + USB3TEST_CREGADDRESS);
+
+	data = readl(usbtest + USB3TEST_CREGCTRL);
+	data = (data & USB3TEST_CREGCTRL_MASK) | USB3TEST_CREGCTRL_READ | USB3TEST_CREGCTRL_ENTRY;
+	writel(data, usbtest + USB3TEST_CREGCTRL);
+
+	while (timeout--) {
+		if (readl(usbtest + USB3TEST_CREGCTRL) & USB3TEST_CREGCTRL_BUSY)
+			break;
+
+		cpu_relax();
+	};
+
+	if (!timeout)
+		goto err;
+
+	/* Reset timeout */
+	timeout = 100;
+
+	writel(data & ~USB3TEST_CREGCTRL_ENTRY, usbtest + USB3TEST_CREGCTRL);
+
+	while (timeout--) {
+		if ((readl(usbtest + USB3TEST_CREGCTRL) & USB3TEST_CREGCTRL_BUSY) == 0)
+			break;
+
+		cpu_relax();
+	};
+
+err:
+	if (!timeout)
+		return -ETIMEDOUT;
+
+	return readl(usbtest + USB3TEST_CREGREADDATA);
+}
+
+static int  __maybe_unused usb3test_phy_write(void __iomem *usbtest, u32 phy_adrs, u32 phy_wdata)
+{
+	u32 data;
+	u8 timeout = 100;
+
+	writel(USB3TEST_CREGCTRL_PARA_SEL, usbtest + USB3TEST_CREGCTRL);
+	writel(phy_adrs, usbtest + USB3TEST_CREGADDRESS);
+	writel(phy_wdata, usbtest + USB3TEST_CREGWRITEDATA);
+
+	data = readl(usbtest + USB3TEST_CREGCTRL);
+	data = (data & USB3TEST_CREGCTRL_MASK) | USB3TEST_CREGCTRL_WRITE | USB3TEST_CREGCTRL_ENTRY;
+	writel(data, usbtest + USB3TEST_CREGCTRL);
+
+	while (timeout--) {
+		if (readl(usbtest + USB3TEST_CREGCTRL) & USB3TEST_CREGCTRL_BUSY)
+			break;
+
+		cpu_relax();
+	};
+
+	if (!timeout)
+		goto err;
+
+	/* Reset timeout */
+	timeout = 100;
+
+	writel(data & ~USB3TEST_CREGCTRL_ENTRY, usbtest + USB3TEST_CREGCTRL);
+
+	while (timeout--) {
+		if ((readl(usbtest + USB3TEST_CREGCTRL) & USB3TEST_CREGCTRL_BUSY) == 0)
+			break;
+
+		cpu_relax();
+	};
+
+err:
+	if (!timeout)
+		return -ETIMEDOUT;
+
+	return 0;
+}
+
+static int __maybe_unused usb3test_phy_write_mon(void __iomem *usbtest, u16 phy_adrs, u32 phy_wdata)
+{
+	u32 data;
+	u8 timeout = 100;
+
+	pr_info("before : 0x%04x, 0x%04x", phy_adrs, usb3test_phy_read(usbtest, phy_adrs));
+
+	writel(USB3TEST_CREGCTRL_PARA_SEL, usbtest + USB3TEST_CREGCTRL);
+	writel(phy_adrs, usbtest + USB3TEST_CREGADDRESS);
+	writel(phy_wdata, usbtest + USB3TEST_CREGWRITEDATA);
+
+	data = readl(usbtest + USB3TEST_CREGCTRL);
+	data = (data & USB3TEST_CREGCTRL_MASK) | USB3TEST_CREGCTRL_WRITE | USB3TEST_CREGCTRL_ENTRY;
+	writel(data, usbtest + USB3TEST_CREGCTRL);
+
+	while (timeout--) {
+		if ((readl(usbtest + USB3TEST_CREGCTRL) & USB3TEST_CREGCTRL_BUSY) == 0)
+			break;
+
+		cpu_relax();
+	};
+
+	if (!timeout)
+		return -ETIMEDOUT;
+
+	return 0;
+}
 
 void usb2test_phy_init(void __iomem *usbtest)
 {
