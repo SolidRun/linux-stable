@@ -315,7 +315,7 @@
 	pinctrl-1 = <&sdhi0_emmc_pins>;
 	pinctrl-names = "default", "state_uhs";
 
-	vmmc-supply = <&vmmc_sdhi0>;
+	vmmc-supply = <&reg_3p3v>;
 	vqmmc-supply = <&reg_1p8v>;
 	bus-width = <8>;
 	mmc-hs200-1_8v;
