@@ -1268,7 +1268,7 @@
 
 		gpt0_4: gpt@13010400 {
                         compatible = "renesas,gpt-r9a09g047";
-                        reg = <0 0x13010000 0 0xa4>;
+                        reg = <0 0x13010400 0 0xa4>;
                         #pwm-cells = <2>;
                         interrupts = <GIC_SPI 542 IRQ_TYPE_EDGE_RISING>,
                                      <GIC_SPI 550 IRQ_TYPE_EDGE_RISING>,
