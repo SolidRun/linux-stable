@@ -177,21 +177,46 @@ static inline void riic_clear_set_bit(struct riic_dev *riic, u8 clear, u8 set, u
 	riic_writeb(riic, (riic_readb(riic, reg) & ~clear) | set, reg);
 }
 
+static int riic_bus_barrier(struct riic_dev *riic)
+{
+	int ret;
+	u8 val;
+
+	/*
+	 * The SDA line can still be low even when BBSY = 0. Therefore, after checking
+	 * the BBSY flag, also verify that the SDA and SCL lines are not being held low.
+	 */
+	ret = readb_poll_timeout(riic->base + riic->info->regs[RIIC_ICCR2], val,
+				!(val & ICCR2_BBSY), 10, riic->adapter.timeout);
+	if (ret)
+		goto i2c_recover;
+
+	if (!(riic_readb(riic, RIIC_ICCR1) & ICCR1_SDAI) ||
+		!(riic_readb(riic, RIIC_ICCR1) & ICCR1_SCLI))
+		goto i2c_recover;
+
+	return 0;
+
+i2c_recover:
+	return i2c_recover_bus(&riic->adapter);
+}
+
 static int riic_xfer_atomic(struct i2c_adapter *adap, struct i2c_msg msgs[],
 			    int num)
 {
 	struct riic_dev *riic = i2c_get_adapdata(adap);
+	struct device *dev = adap->dev.parent;
 	unsigned long time_left;
-	int i;
+	int i, ret;
 	u8 start_bit, val;
-	int ret;
 
-	pm_runtime_get_sync(adap->dev.parent);
+	ret = pm_runtime_resume_and_get(dev);
+	if (ret)
+		return ret;
 
-	if (riic_readb(riic, RIIC_ICCR2) & ICCR2_BBSY) {
-		riic->err = -EBUSY;
+	riic->err = riic_bus_barrier(riic);
+	if (riic->err)
 		goto out;
-	}
 
 	riic->err = 0;
 
@@ -311,33 +336,10 @@ static int riic_xfer_atomic(struct i2c_adapter *adap, struct i2c_msg msgs[],
 	}
 
 out:
-	pm_runtime_put(adap->dev.parent);
+	pm_runtime_mark_last_busy(dev);
+	pm_runtime_put_autosuspend(dev);
 
 	return riic->err ?: num;
-}
-
-static int riic_bus_barrier(struct riic_dev *riic)
-{
-	int ret;
-	u8 val;
-
-	/*
-	 * The SDA line can still be low even when BBSY = 0. Therefore, after checking
-	 * the BBSY flag, also verify that the SDA and SCL lines are not being held low.
-	 */
-	ret = readb_poll_timeout(riic->base + riic->info->regs[RIIC_ICCR2], val,
-				 !(val & ICCR2_BBSY), 10, riic->adapter.timeout);
-	if (ret)
-		goto i2c_recover;
-
-	if (!(riic_readb(riic, RIIC_ICCR1) & ICCR1_SDAI) ||
-	    !(riic_readb(riic, RIIC_ICCR1) & ICCR1_SCLI))
-		goto i2c_recover;
-
-	return 0;
-
-i2c_recover:
-	return i2c_recover_bus(&riic->adapter);
 }
 
 static int riic_xfer(struct i2c_adapter *adap, struct i2c_msg msgs[], int num)
