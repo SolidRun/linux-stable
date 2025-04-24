@@ -519,6 +519,7 @@ static irqreturn_t riic_rdrf_isr(int irq, void *data)
 {
 	struct riic_dev *riic = data;
 	u8 val;
+	int ret;
 
 	if (riic_readb(riic, RIIC_ICSR1) == ICSR1_AAS0)
 		riic->num_slave = 0;
@@ -529,8 +530,11 @@ static irqreturn_t riic_rdrf_isr(int irq, void *data)
 
 	if (riic->slave[riic->num_slave]) {
 		if (!riic->first_receive) {
-			i2c_slave_event(riic->slave[riic->num_slave],
+			ret = i2c_slave_event(riic->slave[riic->num_slave],
 						I2C_SLAVE_WRITE_REQUESTED, &val);
+			if (ret < 0)
+				riic_clear_set_bit(riic, ICMR3_RDRFS, ICMR3_ACKBT,
+							RIIC_ICMR3);
 			riic->first_receive++;
 			riic_readb(riic, RIIC_ICDRR);
 		} else {
@@ -582,6 +586,7 @@ static irqreturn_t riic_start_isr(int irq, void *data)
 	riic->first_transmit = 0;
 	riic->first_receive = 0;
 	riic->num_slave = -1;
+	riic_clear_set_bit(riic, 0, ICMR3_RDRFS, RIIC_ICMR3);
 
 	return IRQ_HANDLED;
 
