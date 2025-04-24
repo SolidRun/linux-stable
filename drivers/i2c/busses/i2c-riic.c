@@ -214,6 +214,12 @@ static int riic_xfer_atomic(struct i2c_adapter *adap, struct i2c_msg msgs[],
 	if (ret)
 		return ret;
 
+	if (riic->slave[0] || riic->slave[1] || riic->slave[2]) {
+		dev_dbg(&adap->dev, "Bus busy due to in slave mode\n");
+		riic->err = -EBUSY;
+		goto out;
+	}
+
 	riic->err = riic_bus_barrier(riic);
 	if (riic->err)
 		goto out;
@@ -353,6 +359,12 @@ static int riic_xfer(struct i2c_adapter *adap, struct i2c_msg msgs[], int num)
 	ret = pm_runtime_resume_and_get(dev);
 	if (ret)
 		return ret;
+
+	if (riic->slave[0] || riic->slave[1] || riic->slave[2]) {
+		dev_dbg(&adap->dev, "Bus busy due to in slave mode\n");
+		riic->err = -EBUSY;
+		goto out;
+	}
 
 	riic->err = riic_bus_barrier(riic);
 	if (riic->err)
