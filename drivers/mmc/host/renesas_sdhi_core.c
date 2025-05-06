@@ -730,7 +730,8 @@ static int renesas_sdhi_execute_tuning(struct mmc_host *mmc, u32 opcode)
 			mmc_send_abort_tuning(mmc, opcode);
 
 		/* FIXME: Needed for some SD cards. The reason is not known yet */
-		usleep_range(1000, 2500);
+		if (!(host->mmc->caps & MMC_CAP_NONREMOVABLE))
+			usleep_range(1000, 1250);
 	}
 
 	ret = renesas_sdhi_select_tuning(host);
