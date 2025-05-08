@@ -213,6 +213,9 @@ int rsnd_mod_init(struct rsnd_priv *priv,
 	mod->rstc	= rstc;
 	mod->priv	= priv;
 
+	if (mod->rstc)
+		priv->rstc[priv->count_clk_rstc++] = mod->rstc;
+
 	usleep_range(2000, 4000);
 
 	ret = reset_control_deassert(mod->rstc);
@@ -973,7 +976,8 @@ static int rsnd_soc_hw_rule_channels(struct snd_pcm_hw_params *params,
 static const struct snd_pcm_hardware rsnd_pcm_hardware = {
 	.info =		SNDRV_PCM_INFO_INTERLEAVED	|
 			SNDRV_PCM_INFO_MMAP		|
-			SNDRV_PCM_INFO_MMAP_VALID,
+			SNDRV_PCM_INFO_MMAP_VALID	|
+			SNDRV_PCM_INFO_RESUME,
 	.buffer_bytes_max	= 64 * 1024,
 	.period_bytes_min	= 32,
 	.period_bytes_max	= 8192,
@@ -2011,8 +2015,20 @@ static int rsnd_remove(struct platform_device *pdev)
 static int __maybe_unused rsnd_suspend(struct device *dev)
 {
 	struct rsnd_priv *priv = dev_get_drvdata(dev);
+	int i;
+
+	for (i = priv->count_clk_dma; i >= 0; i--)
+		clk_disable_unprepare(priv->clk_dma[i]);
 
 	rsnd_adg_clk_disable(priv);
+	clk_disable_unprepare(priv->clk_adg);
+	clk_disable_unprepare(priv->clk_scux2);
+	clk_disable_unprepare(priv->clk_scu);
+
+	for (i = priv->count_clk_rstc; i >= 0; i--) {
+		if (priv->rstc[i])
+			reset_control_assert(priv->rstc[i]);
+	}
 
 	return 0;
 }
@@ -2020,8 +2036,21 @@ static int __maybe_unused rsnd_suspend(struct device *dev)
 static int __maybe_unused rsnd_resume(struct device *dev)
 {
 	struct rsnd_priv *priv = dev_get_drvdata(dev);
+	int ret;
+	int i;
 
+	for (i = 0; i < priv->count_clk_rstc; i++) {
+		if (priv->rstc[i])
+			reset_control_deassert(priv->rstc[i]);
+	}
+
+	clk_prepare_enable(priv->clk_scu);
+	clk_prepare_enable(priv->clk_scux2);
+	clk_prepare_enable(priv->clk_adg);
 	rsnd_adg_clk_enable(priv);
+
+	for (i = 0; i < priv->count_clk_dma; i++)
+		ret = clk_prepare_enable(priv->clk_dma[i]);
 
 	return 0;
 }

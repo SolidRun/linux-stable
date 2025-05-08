@@ -653,6 +653,8 @@ int rsnd_adg_set_cmd_timsel_gen2(struct rsnd_mod *cmd_mod,
 void rsnd_adg_clk_control(struct rsnd_priv *priv, int enable);
 void rsnd_adg_clk_dbg_info(struct rsnd_priv *priv, struct seq_file *m);
 
+#define MAX_RESETS 60
+#define MAX_DMA 10
 /*
  *	R-Car sound priv
  */
@@ -660,6 +662,13 @@ struct rsnd_priv {
 
 	struct platform_device *pdev;
 	spinlock_t lock;
+	struct reset_control *rstc[MAX_RESETS];
+	struct clk *clk_dma[MAX_DMA];
+	struct clk *clk_adg;
+	struct clk *clk_scu;
+	struct clk *clk_scux2;
+	int count_clk_rstc;
+	int count_clk_dma;
 	unsigned long flags;
 #define RSND_GEN_MASK	(0xF << 0)
 #define RSND_GEN1	(1 << 0)

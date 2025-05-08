@@ -550,6 +550,8 @@ static int rsnd_src_quit(struct rsnd_mod *mod,
 			 struct rsnd_priv *priv)
 {
 	struct rsnd_src *src = rsnd_mod_to_src(mod);
+	struct device *dev = rsnd_priv_to_dev(priv);
+	struct clk *clk;
 
 	rsnd_src_halt(mod);
 
@@ -558,6 +560,11 @@ static int rsnd_src_quit(struct rsnd_mod *mod,
 	/* reset sync convert_rate */
 	src->sync.val		=
 	src->current_sync_rate	= 0;
+
+	clk = devm_clk_get_optional(dev, "scu_supply_clk");
+	if (IS_ERR(clk))
+		dev_dbg(dev, "Not use scu_supply_clk\n");
+	clk_disable_unprepare(clk);
 
 	return 0;
 }
@@ -756,6 +763,7 @@ int rsnd_src_probe(struct rsnd_priv *priv)
 	clk = devm_clk_get_optional(dev, "scu_clk");
 	if (IS_ERR(clk))
 		dev_dbg(dev, "Not use scu_clk\n");
+	priv->clk_scu = clk;
 
 	ret = clk_prepare_enable(clk);
 	if (ret < 0)
@@ -765,6 +773,7 @@ int rsnd_src_probe(struct rsnd_priv *priv)
 	if (IS_ERR(clk))
 		dev_dbg(dev, "Not use scu_clkx2\n");
 
+	priv->clk_scux2 = clk;
 	ret = clk_prepare_enable(clk);
 	if (ret < 0)
 		dev_dbg(dev, "Can not enable scu_clkx2\n");

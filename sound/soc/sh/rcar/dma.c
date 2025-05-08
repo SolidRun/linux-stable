@@ -8,6 +8,7 @@
 #include <linux/delay.h>
 #include <linux/of_dma.h>
 #include <linux/reset.h>
+#include <linux/clk-provider.h>
 #include "rsnd.h"
 
 /*
@@ -1013,6 +1014,8 @@ static int rsnd_dma_alloc(struct rsnd_dai_stream *io, struct rsnd_mod *mod,
 	clk = devm_clk_get_optional(dev, "audmac-pp");
 	if (IS_ERR(clk))
 		dev_dbg(dev, "Not use audmac-pp\n");
+	if (clk)
+		priv->clk_dma[priv->count_clk_dma++] = clk;
 
 	rstc = devm_reset_control_get_optional_shared(dev, "audmac-pp");
 	if (IS_ERR(rstc))

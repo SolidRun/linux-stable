@@ -329,8 +329,17 @@ int rsnd_adg_ssi_clk_stop(struct rsnd_mod *ssi_mod)
 	struct rsnd_priv *priv = rsnd_mod_to_priv(ssi_mod);
 	struct device *dev = rsnd_priv_to_dev(priv);
 	struct clk *clk;
+	char name[16];
 
 	rsnd_adg_set_ssi_clk(ssi_mod, 0);
+
+	snprintf(name, 16, "%s.%s.%d", ADG_NAME, SSI_NAME, rsnd_mod_id(ssi_mod));
+
+	clk = devm_clk_get_optional(dev, name);
+	if (IS_ERR(clk))
+		dev_dbg(dev, "Not use %s\n", name);
+
+	clk_disable_unprepare(clk);
 
 	clk = devm_clk_get_optional(dev, "ssif_supply_clk");
 	if (IS_ERR(clk))
@@ -796,6 +805,7 @@ int rsnd_adg_probe(struct rsnd_priv *priv)
 	ret = clk_prepare_enable(clk);
 	if (ret < 0)
 		dev_dbg(dev, "Can not enable adg_clk\n");
+	priv->clk_adg = clk;
 
 	rstc = devm_reset_control_get_optional(dev, ADG_NAME);
 	if (IS_ERR(rstc))
