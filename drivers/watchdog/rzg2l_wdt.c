@@ -5,15 +5,18 @@
  * Copyright (C) 2021 Renesas Electronics Corporation
  */
 #include <linux/bitops.h>
+#include <linux/bitfield.h>
 #include <linux/clk.h>
 #include <linux/delay.h>
 #include <linux/io.h>
 #include <linux/kernel.h>
+#include <linux/mfd/syscon.h>
 #include <linux/module.h>
 #include <linux/of_device.h>
 #include <linux/platform_device.h>
 #include <linux/pm_domain.h>
 #include <linux/pm_runtime.h>
+#include <linux/regmap.h>
 #include <linux/reset.h>
 #include <linux/units.h>
 #include <linux/watchdog.h>
@@ -29,6 +32,9 @@
 #define PEEN_FORCE	BIT(0)
 
 #define WDT_DEFAULT_TIMEOUT		60U
+
+#define WDTOVF(x)			BIT(x)
+#define WDTOVF_WEN(x)			BIT((x) + 16)
 
 /* Setting period time register only 12 bit set in WDTSET[31:20] */
 #define WDTSET_COUNTER_MASK		(0xFFF00000)
@@ -251,9 +257,41 @@ static void rzg2l_wdt_pm_disable(void *data)
 static int rzg2l_wdt_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
+	struct device_node *np = dev->of_node;
 	struct rzg2l_wdt_priv *priv;
+	unsigned int bootstatus = 0;
+	struct regmap *syscon;
 	unsigned long pclk_rate;
 	int ret;
+
+	syscon = syscon_regmap_lookup_by_phandle(np, "renesas,syscon-cpg-wdtovf-rst");
+	if (!IS_ERR(syscon)) {
+		struct of_phandle_args args;
+		u32 offset;
+		u32 val;
+		u8 bit;
+
+		ret = of_parse_phandle_with_fixed_args(np, "renesas,syscon-cpg-wdtovf-rst",
+						       2, 0, &args);
+		if (ret)
+			return ret;
+
+		offset = args.args[0];
+		bit = args.args[1];
+		of_node_put(args.np);
+		ret = regmap_read(syscon, offset, &val);
+		if (ret)
+			return ret;
+
+		if (val & WDTOVF(bit)) {
+			ret = regmap_write(syscon, offset,
+					   WDTOVF(bit) |
+					   WDTOVF_WEN(bit));
+			if (ret)
+				return ret;
+		}
+		bootstatus = val & WDTOVF(bit) ? WDIOF_CARDRESET : 0;
+	}
 
 	priv = devm_kzalloc(dev, sizeof(*priv), GFP_KERNEL);
 	if (!priv)
@@ -296,6 +334,7 @@ static int rzg2l_wdt_probe(struct platform_device *pdev)
 	priv->wdev.info = &rzg2l_wdt_ident;
 	priv->wdev.ops = &rzg2l_wdt_ops;
 	priv->wdev.parent = dev;
+	priv->wdev.bootstatus = bootstatus;
 	priv->wdev.min_timeout = 1;
 	priv->wdev.max_timeout = rzg2l_wdt_get_cycle_usec(priv->osc_clk_rate, 0xfff) /
 				 USEC_PER_SEC;
