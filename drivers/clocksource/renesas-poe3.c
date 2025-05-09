@@ -68,6 +68,7 @@ struct renesas_poe3 {
 	struct reset_control *rstc;
 	struct mutex mutex;
 	int dev_base;
+	u8 spoer;
 };
 
 static inline unsigned int renesas_poe3_read(struct renesas_poe3 *poe3,
@@ -252,7 +253,7 @@ static ssize_t mtu67_output_enable_store(struct device *dev,
 
 static DEVICE_ATTR_WO(mtu67_output_enable);
 
-static void renesas_poe3_setup(struct renesas_poe3 *poe3)
+static void renesas_poe3_setup(struct renesas_poe3 *poe3, bool device_file_created)
 {
 	struct device *dev = &poe3->pdev->dev;
 	struct device_node *np = dev->of_node;
@@ -374,23 +375,28 @@ poe3_assign:
 			}
 		}
 
-		if (!strcmp(child->name, "mtu3_ch0"))
-			ret = device_create_file(&poe3->pdev->dev,
-					&dev_attr_mtu0_output_enable);
-		else if (!strcmp(child->name, "mtu3_ch34")) {
+		if (!strcmp(child->name, "mtu3_ch34"))
 			renesas_poe3_write(poe3, OCSR1, OCSR_OCE | OCSR_OIE);
-			ret = device_create_file(&poe3->pdev->dev,
-					&dev_attr_mtu34_output_enable);
-		} else if (!strcmp(child->name, "mtu3_ch67")) {
+		else if (!strcmp(child->name, "mtu3_ch67"))
 			renesas_poe3_write(poe3, OCSR2, OCSR_OCE | OCSR_OIE);
-			ret = device_create_file(&poe3->pdev->dev,
-					&dev_attr_mtu67_output_enable);
-		} else
-			ret = 0;
 
-		if (ret < 0)
-			dev_err(&poe3->pdev->dev, "Failed to create poe3 sysfs for %s\n",
-				child->name);
+		if (!device_file_created) {
+			if (!strcmp(child->name, "mtu3_ch0"))
+				ret = device_create_file(&poe3->pdev->dev,
+						&dev_attr_mtu0_output_enable);
+			else if (!strcmp(child->name, "mtu3_ch34"))
+				ret = device_create_file(&poe3->pdev->dev,
+						&dev_attr_mtu34_output_enable);
+			else if (!strcmp(child->name, "mtu3_ch67"))
+				ret = device_create_file(&poe3->pdev->dev,
+						&dev_attr_mtu67_output_enable);
+			else
+				ret = 0;
+
+			if (ret < 0)
+				dev_err(&poe3->pdev->dev, "Failed to create poe3 sysfs for %s\n",
+						child->name);
+		}
 	}
 
 	renesas_poe3_write(poe3, POECR1, poecr1_val);
@@ -421,21 +427,27 @@ static int renesas_poe3_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "failed to get reset control\n");
 		return PTR_ERR(poe3->rstc);
 	}
-	reset_control_deassert(poe3->rstc);
+	ret = reset_control_deassert(poe3->rstc);
+	if (ret < 0) {
+		dev_err(&pdev->dev, "failed to deassert reset control\n");
+		return ret;
+	}
 
 	poe3->clk = devm_clk_get(&pdev->dev, NULL);
 	if (IS_ERR(poe3->clk)) {
 		dev_err(&pdev->dev, "cannot get clock\n");
+		reset_control_assert(poe3->rstc);
 		return PTR_ERR(poe3->clk);
 	}
 
 	ret = clk_prepare_enable(poe3->clk);
 	if (ret < 0) {
 		dev_err(&pdev->dev, "failed to enable clock\n");
+		reset_control_assert(poe3->rstc);
 		return ret;
 	}
 
-	renesas_poe3_setup(poe3);
+	renesas_poe3_setup(poe3, false);
 
 	platform_set_drvdata(pdev, poe3);
 	dev_info(&pdev->dev, "Renesas POE3 driver probed\n");
@@ -456,6 +468,46 @@ static const struct of_device_id renesas_poe3_of_table[] = {
 	{ },
 };
 
+static int renesas_poe3_pm_suspend(struct device *dev)
+{
+	struct renesas_poe3 *poe3 = dev_get_drvdata(dev);
+	/* Save SPOER value */
+	poe3->spoer = renesas_poe3_read(poe3, SPOER);
+	clk_disable_unprepare(poe3->clk);
+	reset_control_assert(poe3->rstc);
+
+	return 0;
+}
+
+static int renesas_poe3_pm_resume(struct device *dev)
+{
+	struct renesas_poe3 *poe3 = dev_get_drvdata(dev);
+	int ret;
+
+	ret = reset_control_deassert(poe3->rstc);
+	if (ret) {
+		dev_err(dev, "failed to deassert reset control\n");
+		return ret;
+	}
+
+	ret = clk_prepare_enable(poe3->clk);
+	if (ret) {
+		dev_err(dev, "failed to enable clock\n");
+		reset_control_assert(poe3->rstc);
+		return ret;
+	}
+
+	renesas_poe3_setup(poe3, true);
+	renesas_poe3_write(poe3, SPOER, poe3->spoer);
+
+	return 0;
+}
+
+static const struct dev_pm_ops renesas_poe3_pm_ops = {
+	SET_SYSTEM_SLEEP_PM_OPS(renesas_poe3_pm_suspend,
+				renesas_poe3_pm_resume)
+};
+
 MODULE_DEVICE_TABLE(of, poe3_of_table);
 
 static struct platform_driver renesas_poe3_device_driver = {
@@ -464,6 +516,7 @@ static struct platform_driver renesas_poe3_device_driver = {
 	.driver		= {
 		.name	= "renesas_poe3",
 		.of_match_table = of_match_ptr(renesas_poe3_of_table),
+		.pm = &renesas_poe3_pm_ops,
 	}
 };
 
