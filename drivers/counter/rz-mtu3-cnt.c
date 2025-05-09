@@ -86,7 +86,9 @@ struct rz_mtu3_cnt {
 static const enum counter_function rz_mtu3_count_functions[] = {
 	COUNTER_FUNCTION_QUADRATURE_X4,
 	COUNTER_FUNCTION_PULSE_DIRECTION,
+	COUNTER_FUNCTION_PULSE_DIRECTION_AB,
 	COUNTER_FUNCTION_QUADRATURE_X2_B,
+	COUNTER_FUNCTION_INCREASE,
 };
 
 static inline size_t rz_mtu3_get_hw_ch(const size_t id)
@@ -215,15 +217,16 @@ static int rz_mtu3_count_function_read_helper(struct rz_mtu3_channel *const ch,
 	case RZ_MTU3_TMDR1_PH_CNT_MODE_2:
 		*function = COUNTER_FUNCTION_PULSE_DIRECTION;
 		return 0;
+	case RZ_MTU3_TMDR1_PH_CNT_MODE_3:
+		*function = COUNTER_FUNCTION_PULSE_DIRECTION_AB;
+		return 0;
 	case RZ_MTU3_TMDR1_PH_CNT_MODE_4:
 		*function = COUNTER_FUNCTION_QUADRATURE_X2_B;
 		return 0;
+	case RZ_MTU3_TMDR1_PH_CNT_MODE_5:
+		*function = COUNTER_FUNCTION_INCREASE;
+		return 0;
 	default:
-		/*
-		 * TODO:
-		 *  - need to add RZ_MTU3_TMDR1_PH_CNT_MODE_3
-		 *  - need to add RZ_MTU3_TMDR1_PH_CNT_MODE_5
-		 */
 		return -EINVAL;
 	}
 }
@@ -266,15 +269,16 @@ static int rz_mtu3_count_function_write(struct counter_device *counter,
 	case COUNTER_FUNCTION_PULSE_DIRECTION:
 		timer_mode = RZ_MTU3_TMDR1_PH_CNT_MODE_2;
 		break;
+	case COUNTER_FUNCTION_PULSE_DIRECTION_AB:
+		timer_mode = RZ_MTU3_TMDR1_PH_CNT_MODE_3;
+		break;
 	case COUNTER_FUNCTION_QUADRATURE_X2_B:
 		timer_mode = RZ_MTU3_TMDR1_PH_CNT_MODE_4;
 		break;
+	case COUNTER_FUNCTION_INCREASE:
+		timer_mode = RZ_MTU3_TMDR1_PH_CNT_MODE_5;
+		break;
 	default:
-		/*
-		 * TODO:
-		 *  - need to add RZ_MTU3_TMDR1_PH_CNT_MODE_3
-		 *  - need to add RZ_MTU3_TMDR1_PH_CNT_MODE_5
-		 */
 		mutex_unlock(&priv->lock);
 		return -EINVAL;
 	}
@@ -658,13 +662,31 @@ static int rz_mtu3_action_read(struct counter_device *counter,
 	switch (function) {
 	case COUNTER_FUNCTION_PULSE_DIRECTION:
 		/*
-		 * Rising edges on signal A (signal C) updates the respective
+		 * Falling edges on signal A (signal C) updates the respective
 		 * count. The input level of signal B (signal D) determines
 		 * direction.
 		 */
 		if (synapse->signal->id == SIGNAL_A_ID ||
 		    synapse->signal->id == SIGNAL_C_ID)
-			*action = COUNTER_SYNAPSE_ACTION_RISING_EDGE;
+			*action = COUNTER_SYNAPSE_ACTION_FALLING_EDGE;
+		break;
+	case COUNTER_FUNCTION_PULSE_DIRECTION_AB:
+		/*
+		 * Falling edges on signal A (signal C) and high level of
+		 * signal B (signal D) counts up the respective count.
+		 * Falling edges on signal B (signal D) and high level of
+		 * signal A (signal C) counts down the respective count.
+		 */
+		*action = COUNTER_SYNAPSE_ACTION_FALLING_EDGE;
+		break;
+	case COUNTER_FUNCTION_INCREASE:
+		/*
+		 * Falling edges on signal A (signal C) and high level of
+		 * signal B (signal D) counts up the respective count.
+		 */
+		if (synapse->signal->id == SIGNAL_A_ID ||
+		    synapse->signal->id == SIGNAL_C_ID)
+			*action = COUNTER_SYNAPSE_ACTION_FALLING_EDGE;
 		break;
 	case COUNTER_FUNCTION_QUADRATURE_X2_B:
 		/*

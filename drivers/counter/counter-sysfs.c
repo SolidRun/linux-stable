@@ -60,6 +60,7 @@ static const char *const counter_function_str[] = {
 	[COUNTER_FUNCTION_INCREASE] = "increase",
 	[COUNTER_FUNCTION_DECREASE] = "decrease",
 	[COUNTER_FUNCTION_PULSE_DIRECTION] = "pulse-direction",
+	[COUNTER_FUNCTION_PULSE_DIRECTION_AB] = "pulse-direction ab",
 	[COUNTER_FUNCTION_QUADRATURE_X1_A] = "quadrature x1 a",
 	[COUNTER_FUNCTION_QUADRATURE_X1_B] = "quadrature x1 b",
 	[COUNTER_FUNCTION_QUADRATURE_X2_A] = "quadrature x2 a",
