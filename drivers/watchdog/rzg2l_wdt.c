@@ -33,6 +33,9 @@
 
 #define WDT_DEFAULT_TIMEOUT		60U
 
+#define CPG_WDTRST_SEL(x)		((x) + 0x04)
+#define WDTSYSRESTx(x)			BIT(x)
+
 #define WDTOVF(x)			BIT(x)
 #define WDTOVF_WEN(x)			BIT((x) + 16)
 
@@ -291,6 +294,19 @@ static int rzg2l_wdt_probe(struct platform_device *pdev)
 				return ret;
 		}
 		bootstatus = val & WDTOVF(bit) ? WDIOF_CARDRESET : 0;
+
+		/*
+		 * configure CPG_WDTRST_SEL register to issue a reset request
+		 * upon WDT overflow
+		 */
+		ret = regmap_read(syscon, CPG_WDTRST_SEL(offset), &val);
+		if (ret)
+			return ret;
+
+		ret = regmap_write(syscon, CPG_WDTRST_SEL(offset),
+				   val | WDTSYSRESTx(bit));
+		if (ret)
+			return ret;
 	}
 
 	priv = devm_kzalloc(dev, sizeof(*priv), GFP_KERNEL);
