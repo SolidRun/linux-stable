@@ -259,7 +259,7 @@ static int riic_xfer_atomic(struct i2c_adapter *adap, struct i2c_msg msgs[],
 		 * - SDAO and SDAI should be at low level.
 		 */
 		ret = readb_poll_timeout_atomic(riic->base + riic->info->regs[RIIC_ICSR2],
-					val, (val & ICSR2_TDRE) && (val & ICSR2_TDRE), 10, 1000);
+					val, (val & ICSR2_START) && (val & ICSR2_TDRE), 10, 1000);
 		ret |= readb_poll_timeout_atomic(riic->base + riic->info->regs[RIIC_ICCR1],
 					val, !(val & (ICCR1_SDAO | ICCR1_SDAI)), 10, 1000);
 		if (ret) {
