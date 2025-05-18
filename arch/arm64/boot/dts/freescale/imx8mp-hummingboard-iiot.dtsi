@@ -9,17 +9,6 @@
 #include <dt-bindings/interrupt-controller/irq.h>
 #include "imx8mp-sr-som.dtsi"
 
-/* UARTA (UART3): Select RS232 or RS485 */
-#define UARTA_SEL_RS232_RS485 1 // {0:RS323,1:RS485}
-/* UARTB (UART4): Select RS232 or RS485 */
-#define UARTB_SEL_RS232_RS485 1 // {0:RS323,1:RS485}
-/* UARTA and UARTB: Select Internal or External */
-#define UARTA_UARTB_SEL_INT_EXT 0 // {0:INT,1:EXT}
-/* CANA and CANB: Select Internal or External */
-#define CANA_CANB_SEL_INT_EXT 0 // {0:INT,1:EXT}
-/* SPI MUX TPM/EXT {Select TPM or EXTERNAL_SPI_DEVICE} */
-#define SPI_SEL_TPM_EXT 0 // {0:TPM,1:EXT}
-
 / {
 	/* USB1_VBUS */
 	power-usb-port1 {
@@ -58,7 +47,7 @@
 		pinctrl-names = "default";
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
-		gpio = <&io_expander_u20 14 GPIO_ACTIVE_HIGH>; /* TBD - USB1_PWR_EN */
+		gpio = <&io_expander_u20 14 GPIO_ACTIVE_HIGH>; /* USB1_PWR_EN */
 		enable-active-high;
 	};
 
@@ -69,7 +58,7 @@
 		pinctrl-names = "default";
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
-		gpio = <&io_expander_u20 12 GPIO_ACTIVE_HIGH>; /* TBD - USB1_PWR_EN */
+		gpio = <&io_expander_u20 12 GPIO_ACTIVE_HIGH>; /* USB_HUB3_PWR_EN */
 		enable-active-high;
 	};
 
@@ -80,7 +69,7 @@
 		pinctrl-names = "default";
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
-		gpio = <&io_expander_u20 13 GPIO_ACTIVE_HIGH>; /* TBD - USB_HUB3_PWR_EN */
+		gpio = <&io_expander_u20 13 GPIO_ACTIVE_HIGH>; /* USB_HUB4_PWR_EN */
 		enable-active-high;
 	};
 
@@ -92,7 +81,6 @@
 		regulator-name = "VSD_3V3";
 		regulator-min-microvolt = <3300000>;
 		regulator-max-microvolt = <3300000>;
-		//gpio = <&gpio2 19 GPIO_ACTIVE_HIGH>;
 		regulator-always-on;
 	};
 
@@ -110,11 +98,9 @@
 		compatible = "regulator-fixed";
 		regulator-name = "can1-stby";
 		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_flexcan1_reg>;
+		//pinctrl-0 = <&pinctrl_flexcan1_reg>; /* TBD */
 		regulator-min-microvolt = <3300000>;
-		regulator-max-microvolt = <3300000>;
-		gpio = <&gpio5 5 GPIO_ACTIVE_HIGH>;
-		enable-active-high;
+		regulator-max-microvolt = <3300000>;		
 	};
 
 	/* CAN-2 Regulator */
@@ -122,11 +108,9 @@
 		compatible = "regulator-fixed";
 		regulator-name = "can2-stby";
 		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_flexcan2_reg>;
+		//pinctrl-0 = <&pinctrl_flexcan2_reg>; /* TBD */
 		regulator-min-microvolt = <3300000>;
 		regulator-max-microvolt = <3300000>;
-		gpio = <&gpio4 27 GPIO_ACTIVE_HIGH>;
-		enable-active-high;
 	};
 
 	/*
@@ -146,7 +130,7 @@
 		enable-active-high;
 	};
 
-	/* J6: M.2B_3V3 */
+	/* J6: M.2B_3V3 */ 
 	power-m2-j6 {
 		compatible = "reg-userspace-consumer";
 		regulator-name = "m2-j6-pwr-consumer";
@@ -264,7 +248,7 @@
     carrier_spi_mux: spi-mux-controller_carrier {
         compatible = "gpio-mux"; // MUX Type: 'TMUX1574Dx'
         #mux-control-cells = <0>;
-        mux-gpios = <&io_expander_u21 3 GPIO_ACTIVE_HIGH>; // SPI_TPM/EXT U21_P[0]
+        mux-gpios = <&io_expander_u21 0 GPIO_ACTIVE_HIGH>; // SPI_TPM/EXT U21_P[0]
 		#if SPI_SEL_TPM_EXT
 			idle-state = <1>; /* External */
 		#else
@@ -278,7 +262,7 @@
         regulator-name = "lcd_i2c_rst";
         regulator-min-microvolt = <1800000>;
         regulator-max-microvolt = <1800000>;
-        gpios = <&io_expander_u21 4 GPIO_ACTIVE_HIGH>; //
+        gpios = <&io_expander_u21 4 GPIO_ACTIVE_HIGH>;
         enable-active-high;
     };
 
@@ -313,40 +297,11 @@
 		};
 	};
 
-	dsi_reset: dsi-reset {
-		compatible = "gpio-reset"; // "regulator-fixed";
-		reset-gpios = <&gpio_dsi_expander 1 GPIO_ACTIVE_LOW>;
-		reset-delay-us = <2000>;
-		reset-post-delay-ms = <40>;
-		#reset-cells = <0>;
+	mipi_backlight: backlight {
+		compatible = "gpio-backlight";
+		gpios = <&gpio_dsi_expander 3 GPIO_ACTIVE_LOW>;
+		default-on;
 	};
-
-	vdd_panel: vdd-panel {
-			compatible = "regulator-fixed";
-			regulator-name = "vdd_panel";
-			regulator-min-microvolt = <3300000>;
-			regulator-max-microvolt = <3300000>;
-		#if 0 // <TBD>
-			gpios = <&io_expander_u20 15 GPIO_ACTIVE_HIGH>;
-			enable-active-high;
-		#endif
-	};
-
-#if 1
-	/* DSI Panel - Winstar WJ70N3TYJHMNG0 [J25] */
-	panel_dsi: panel-dsi {
-		status = "okay";
-		compatible = "winstar,wj70n3tyjhmng0"; // "panel-simple-dsi"
-		//reg = <0>;
-		power-supply = <&vdd_panel>;
-        dsi-lanes = <4>;
-		port {
-			panel0_in: endpoint {
-					remote-endpoint = <&mipi0_panel_out>;
-			};
-		};
-	};
-#endif
 };
 
 &ldb {
@@ -371,7 +326,7 @@
 };
 
 &i2c2 {
-	clock-frequency = <100000>;
+	clock-frequency = <400000>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_i2c2>;
 	status = "okay";
@@ -433,15 +388,15 @@
 
 			/* DSI Touch Screen [J25] */
 			touchscreen@41 {
-				/* ili2520 part of the Winstart Display WJ70N3TYJHMNG0 */
-				compatible = "ilitek,ili2520";
+				/* ili2130 part of the Winstart Display WJ70N3TYJHMNG0 */
+				compatible = "ilitek,ili2130";
 				reg = <0x41>;
 
 				interrupt-parent = <&io_expander_u21>;
-				interrupts = <13 IRQ_TYPE_LEVEL_LOW>;	// <TBD> U21_P[15]=LVDS_INT (shared INT for DSI and LVDS)
+				interrupts = <13 IRQ_TYPE_EDGE_FALLING>;	// U21_P[15]=LVDS_INT (shared INT for DSI and LVDS)
 				reset-gpios = <&gpio_dsi_expander 6 GPIO_ACTIVE_LOW>; // DSI_CTP/RST U48_P[6] (External Reset, Low is active)
 				//touchscreen-inverted-y;
-				//wakeup-source;
+				wakeup-source;
 			};
 		};
 
@@ -532,28 +487,7 @@
 				"DSI_U/D",
 				"DSI_CTP_/RST",
 				"NC-7";
-			#if 1 // <TBD>
-				DSI_RESET_hog {
-					gpio-hog;
-					gpios = <1 GPIO_ACTIVE_HIGH>;
-					output-high;
-					line-name = "DSI_RESET";
-				};
 
-				DSI_STBYB_hog {
-					gpio-hog;
-					gpios = <2 GPIO_ACTIVE_HIGH>;
-					output-high;
-					line-name = "DSI_STBYB";
-				};
-			#endif
-				/* Display Backlight control signal*/
-				DSI_PWM_BL_hog {
-					gpio-hog;
-					gpios = <3 GPIO_ACTIVE_LOW>;
-					output-high;
-					line-name = "DSI_PWM_BL";
-				};
 				DSI_LR_hog {
 					gpio-hog;
 					gpios = <4 GPIO_ACTIVE_HIGH>;
@@ -566,7 +500,7 @@
 					output-high;
 					line-name = "DSI_U/D";
 				};
-				/*
+				/* // <TBD>
 				DSI_CTP_RST_hog {
 					gpio-hog;
 					gpios = <6 GPIO_ACTIVE_HIGH>;
@@ -587,6 +521,7 @@
 				reset-gpios = <&gpio_lvds_expander 6 GPIO_ACTIVE_LOW>; // LVDS_CTP/RST U37_P[6] (External Reset, Low is active)
 				//touchscreen-inverted-y;
 				//wakeup-source;
+				status = "okay";
 			};
 		};
 	};
@@ -600,7 +535,7 @@
 
     /* io_expander_u20 */
     io_expander_u20: gpio@20 {
-        compatible = "ti,tca6416";
+        compatible = "nxp,pcal6416";
         reg = <0x20>;
         gpio-controller;
         #gpio-cells = <2>;
@@ -629,26 +564,27 @@
 			line-name = "NXP_REN";
 		};
 
-	#if 1
 		VIDEO_PWR_EN_hog {
 			gpio-hog;
 			gpios = <15 GPIO_ACTIVE_HIGH>;
 			output-high;
 			line-name = "VIDEO_PWR_EN";
 		};
-	#endif
+
     };
 
     /* io_expander_u21 */
     io_expander_u21: gpio@21 {
-        compatible = "ti,tca6416";
+        compatible = "nxp,pcal6416";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_tca6416_21>;
         reg = <0x21>;
         gpio-controller;
         #gpio-cells = <2>;
 		interrupt-controller;
 		#interrupt-cells = <2>;
-        interrupt-parent = <&gpio1>; //GPIO1_IO15
-        interrupts = <15 IRQ_TYPE_EDGE_FALLING>;//IRQ_TYPE_LEVEL_LOW, IRQ_TYPE_EDGE_FALLING, xxIRQ_TYPE_EDGE_RISING,
+        interrupt-parent = <&gpio1>; /* GPIO1_IO15 */
+        interrupts = <15 IRQ_TYPE_LEVEL_LOW>;
         gpio-line-names =
         "TCA_SPI_TPM/EXT",
         "TCA_TPM_RST#",
@@ -888,28 +824,33 @@
 };
 
 &mipi_dsi {
-	status = "disabled";
-	#if 0 // <TBD>
+	#address-cells = <1>;
+	#size-cells = <0>;
+	status = "okay";
 	panel@0 {
 		/* Winstart Display WJ70N3TYJHMNG0 [J25] */
-		status = "okay";
-		compatible = "winstar,wj70n3tyjhmng0";
+		compatible = "ronbo,rb070d30";
 		reg = <0>;
-		power-supply = <&vdd_panel>;
+		power-gpios = <&gpio_dsi_expander 2 GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&gpio_dsi_expander 1 GPIO_ACTIVE_HIGH>;
+		updn-gpios = <&gpio_dsi_expander 5 GPIO_ACTIVE_HIGH>;
+		shlr-gpios = <&gpio_dsi_expander 4 GPIO_ACTIVE_LOW>;
+
 		dsi-lanes = <4>;
+		status = "okay";
+
 		port {
-			panel0_in: endpoint {
-					remote-endpoint = <&mipi0_panel_out>;
+			panel_in: endpoint {
+				data-lanes = <1 2 3 4>;
+				remote-endpoint = <&mipi_dsi_out>;
 			};
 		};
 	};
-	#endif
 
 	port@1 {
 		reg = <1>;
-		mipi0_panel_out: endpoint {
-			remote-endpoint = <&panel0_in>;
-			//attach-bridge;
+		mipi_dsi_out: endpoint {
+			remote-endpoint = <&panel_in>;
 		};
 	};
 };
@@ -1078,8 +1019,8 @@ CAN MUX:
 
 	pinctrl_i2c2: i2c2grp {
 		fsl,pins = <
-			MX8MP_IOMUXC_I2C2_SCL__I2C2_SCL			0x400001c3
-			MX8MP_IOMUXC_I2C2_SDA__I2C2_SDA			0x400001c3
+			MX8MP_IOMUXC_I2C2_SCL__I2C2_SCL			0x400001c2
+			MX8MP_IOMUXC_I2C2_SDA__I2C2_SDA			0x400001c2
 		>;
 	};
 
@@ -1186,16 +1127,9 @@ CAN MUX:
 		>;
 	};
 
-	pinctrl_flexcan1_reg: flexcan1reggrp {
+	pinctrl_tca6416_21: tca6416_21_irq {
 		fsl,pins = <
-			MX8MP_IOMUXC_SPDIF_EXT_CLK__GPIO5_IO05  0x154   /* CAN1_STBY */
+			MX8MP_IOMUXC_GPIO1_IO15__GPIO1_IO15     0x19
 		>;
 	};
-
-	pinctrl_flexcan2_reg: flexcan2reggrp {
-		fsl,pins = <
-			MX8MP_IOMUXC_SAI2_MCLK__GPIO4_IO27      0x154   /* CAN2_STBY */
-		>;
-	};
-
 };

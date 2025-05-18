@@ -1,5 +1,16 @@
 /dts-v1/;
 
+/* UARTA (UART3): Select RS232 or RS485 */
+#define UARTA_SEL_RS232_RS485 1 // {0:RS323,1:RS485}
+/* UARTB (UART4): Select RS232 or RS485 */
+#define UARTB_SEL_RS232_RS485 0 // {0:RS323,1:RS485}
+/* UARTA and UARTB: Select Internal or External */
+#define UARTA_UARTB_SEL_INT_EXT 0 // {0:INT,1:EXT}
+/* CANA and CANB: Select Internal or External */
+#define CANA_CANB_SEL_INT_EXT 0 // {0:INT,1:EXT}
+/* SPI MUX TPM/EXT {Select TPM or EXTERNAL_SPI_DEVICE} */
+#define SPI_SEL_TPM_EXT 0 // {0:TPM,1:EXT}
+
 #include <dt-bindings/usb/pd.h>
 #include "imx8mp-sr-som.dtsi"
 #include "imx8mp-hummingboard-iiot.dtsi"
