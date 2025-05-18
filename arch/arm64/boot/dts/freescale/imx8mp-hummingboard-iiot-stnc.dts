@@ -1,0 +1,137 @@
+/dts-v1/;
+
+/* UARTA (UART3): Select RS232 or RS485 */
+#define UARTA_SEL_RS232_RS485 1 // {0:RS323,1:RS485}
+/* UARTB (UART4): Select RS232 or RS485 */
+#define UARTB_SEL_RS232_RS485 1 // {0:RS323,1:RS485}
+/* UARTA and UARTB: Select Internal or External */
+#define UARTA_UARTB_SEL_INT_EXT 0 // {0:INT,1:EXT}
+/* CANA and CANB: Select Internal or External */
+#define CANA_CANB_SEL_INT_EXT 1 // {0:INT,1:EXT}
+/* SPI MUX TPM/EXT {Select TPM or EXTERNAL_SPI_DEVICE} */
+#define SPI_SEL_TPM_EXT 0 // {0:TPM,1:EXT}
+
+#include <dt-bindings/usb/pd.h>
+#include "imx8mp-sr-som.dtsi"
+#include "imx8mp-hummingboard-iiot.dtsi"
+
+/ {
+    model = "SolidRun i.MX8MP HummingBoard IIOT STNC-800-BI";
+    compatible = "fsl,imx8mp-sr-som", "fsl,imx8mp";
+
+    /* MIA-M10Q RSTN */
+    gpns_reset: gps-reset {
+            compatible = "gpio-reset";
+            reset-gpios = <&gpio1 0 GPIO_ACTIVE_LOW>; // GPIO1_IO00
+            reset-delay-us = <100000>;  // 100 ms low pulse
+            reset-post-delay-ms = <50>; // Optional: wait 50ms after release
+            #reset-cells = <0>;
+            status = "okay";
+    };
+
+    #if 0
+        /* 
+        RelayO_1       - GPIO1_IO13
+        RelayC_1       - GPIO1_IO05
+        Relay_1_Info   - GPIO5_IO00 (SAI3_TXC)
+        RelayO_2       - GPIO1_IO12
+        RelayC_2       - SGPIO4_IO22 (AI2_RXC)
+        Relay_2_Info   - GPIO5_IO01 (SAI3_TXD)
+        */
+        relais {
+            compatible = "gpio-leds";
+            pinctrl-names = "default";
+            pinctrl-0 = <&relay_pins>;
+
+            relay1o {
+                label = "relay1o";
+                gpios = <&gpio1 13 GPIO_ACTIVE_HIGH>;
+                default-state = "off";  /* Relay off at boot */
+            };
+
+            relay1c {
+                label = "relay1c";
+                gpios = <&gpio1 5 GPIO_ACTIVE_HIGH>;
+                default-state = "off";
+            };
+
+            relay2o {
+                label = "relay2o";
+                gpios = <&gpio1 12 GPIO_ACTIVE_HIGH>;
+                default-state = "off"; /* Relay off at boot */
+            };
+
+            relay2c {
+                label = "relay2c";
+                gpios = <&gpio4 22 GPIO_ACTIVE_HIGH>;
+                default-state = "off";
+            };
+        };
+    #endif
+};
+
+&reg_can1_stby{
+        pinctrl-0 = <&pinctrl_flexcan1_reg>;
+        gpios = <&gpio3 28 GPIO_ACTIVE_HIGH>;
+        regulator-boot-off;//enable-active-high;
+        regulator-name = "reg_can1_stby";
+        status = "okay";
+};
+
+/* CAN-2 Settings */
+&reg_can2_stby{
+        pinctrl-0 = <&pinctrl_flexcan2_reg>;
+        gpios = <&gpio3 27 GPIO_ACTIVE_HIGH>;
+        regulator-boot-off;//enable-active-high;
+        regulator-name = "reg_can2_stby";
+        status = "okay";
+};
+
+&gpio3 {
+	status = "okay";
+
+	can1_silent: can1-silent-hog {
+		gpio-hog;
+		gpios = <26 GPIO_ACTIVE_HIGH>; // GPIO3_IO26
+		output-low; /* Set the default value to low (Normal operation) */
+		line-name = "CAN1 Silent";
+	};
+
+	can2_silent: can2-silent-hog {
+		gpio-hog;
+		gpios = <29 GPIO_ACTIVE_HIGH>; // GPIO3_IO29
+		output-low; /* Set the default value to low (Normal operation) */
+		line-name = "CAN2 Silent";
+	};
+
+#if 0
+	can2_stby: can2-stby-hog {
+		gpio-hog;
+		gpios = <27 GPIO_ACTIVE_HIGH>; // GPIO3_IO27
+		output-low; /* Set the default value to low (Normal operation) */
+		line-name = "CAN2 Silent";
+	};
+#endif
+
+};
+
+&iomuxc {
+    relay_pins: relay-pins {
+        fsl,pins = <
+            MX8MP_IOMUXC_GPIO1_IO12__GPIO1_IO12 0x19
+            MX8MP_IOMUXC_GPIO1_IO13__GPIO1_IO13 0x19
+        >;
+    };
+
+    pinctrl_flexcan1_reg: flexcan1reggrp {
+		fsl,pins = <
+			MX8MP_IOMUXC_HDMI_CEC__GPIO3_IO28 0x154   /* CAN1_STBY */
+		>;
+	};
+
+	pinctrl_flexcan2_reg: flexcan2reggrp {
+		fsl,pins = <
+			MX8MP_IOMUXC_HDMI_DDC_SDA__GPIO3_IO27 0x154   /* CAN2_STBY */
+		>;
+	};
+};
