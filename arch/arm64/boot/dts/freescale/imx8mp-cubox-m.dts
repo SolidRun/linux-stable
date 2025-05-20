@@ -37,15 +37,6 @@
 		};
 	};
 
-	power-usb-ports {
-		compatible = "reg-userspace-consumer";
-		regulator-name = "usb-ports-pwr-consumer";
-		regulator-boot-on;
-		regulator-supplies = "vcc";
-		vcc-supply = <&reg_usb_host_vbus>;
-		comment = "USB Ports vbus power switch";
-	};
-
 	reg_usb_host_vbus: regulator-usb-vbus {
 		compatible = "regulator-fixed";
 		regulator-name = "usb_host_vbus";
@@ -53,7 +44,7 @@
 		pinctrl-0 = <&pinctrl_usb_vbus>;
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
-		gpio = <&gpio1 7 GPIO_ACTIVE_HIGH>;
+		gpio = <&gpio1 7 GPIO_ACTIVE_HIGH>; // J9-28
 		enable-active-high;
 	};
 
@@ -155,34 +146,31 @@
 };
 
 &usb3_phy0 {
-	fsl,phy-tx-preemp-amp-tune = <2>;
+	fsl,phy-tx-preemp-amp-tune-microamp = <1200>;
+	vbus-supply = <&reg_usb_host_vbus>;
 	status = "okay";
 };
 
 &usb3_0 {
-	vbus-supply = <&reg_usb_host_vbus>;
 	status = "okay";
 };
 
 &usb_dwc3_0 {
 	dr_mode = "host";
-	status = "okay";
 };
 
 &usb3_phy1 {
-	fsl,phy-tx-preemp-amp-tune = <2>;
+	fsl,phy-tx-preemp-amp-tune-microamp = <1200>;
+	vbus-supply = <&reg_usb_host_vbus>;
 	status = "okay";
 };
 
 &usb3_1 {
-	vbus-supply = <&reg_usb_host_vbus>;
 	status = "okay";
 };
 
 &usb_dwc3_1 {
 	dr_mode = "host";
-	snps,parkmode-disable-ss-quirk;
-	status = "okay";
 };
 
 &usdhc2 {
