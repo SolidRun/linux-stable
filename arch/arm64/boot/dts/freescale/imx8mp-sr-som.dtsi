@@ -285,6 +285,8 @@
 	pinctrl-names = "default", "gpio";
 	pinctrl-0 = <&i2c3_pins>;
 	pinctrl-1 = <&i2c3_gpio_pins>;
+	scl-gpios = <&gpio5 18 GPIO_ACTIVE_HIGH>;
+	sda-gpios = <&gpio5 19 GPIO_ACTIVE_HIGH>;
 	status = "okay";
 };
 
