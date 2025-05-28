@@ -76,11 +76,15 @@
 	};
 
         rfkill-mpcie-wifi {
+		/*
+		 * The mpcie connector only has USB,
+		 * therefore this rfkill is for cellular radios only.
+		 */
 		compatible = "rfkill-gpio";
 		pinctrl-names = "default";
 		pinctrl-0 = <&pcie_rfkill_pins>;
-		label = "mpcie WiFi";
-		radio-type = "wlan";
+		label = "mpcie radio";
+		radio-type = "wwan";
 		/* rfkill-gpio inverts internally */
 		shutdown-gpios = <&gpio1 5 GPIO_ACTIVE_HIGH>;
 	};
@@ -123,6 +127,31 @@
 		regulator-name = "1v2";
 		regulator-min-microvolt = <1200000>;
 		regulator-max-microvolt = <1200000>;
+	};
+
+	vmpcie {
+		/* supplies mpcie connector */
+		compatible = "regulator-fixed";
+		regulator-name = "vmpcie";
+		gpio = <&gpio1 10 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+		pinctrl-names = "default";
+		pinctrl-0 = <&vmpcie_pins>;
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-always-on;
+	};
+};
+
+&gpio1 {
+	pinctrl-0 = <&mpcie_pins>;
+	pinctrl-names = "default";
+
+	mpcie-reset-hog {
+		gpio-hog;
+		gpios = <1 GPIO_ACTIVE_LOW>;
+		output-low;
+		line-name = "mpcie-reset";
 	};
 };
 
@@ -249,6 +278,12 @@
 		>;
 	};
 
+	mpcie_pins: mpcie-pins {
+		fsl,pins = <
+			MX8MP_IOMUXC_GPIO1_IO01__GPIO1_IO01	0x0
+		>;
+	};
+
 	led_pins: led-pins {
 		fsl,pins = <
 			MX8MP_IOMUXC_SAI2_RXC__GPIO4_IO22	0x0
@@ -325,6 +360,12 @@
 	vmmc_pins: vmmc-pins {
 		fsl,pins = <
 			MX8MP_IOMUXC_SD2_RESET_B__GPIO2_IO19	0x41
+		>;
+	};
+
+	vmpcie_pins: vmpcie-pins {
+		fsl,pins = <
+			MX8MP_IOMUXC_GPIO1_IO10__GPIO1_IO10	0x0
 		>;
 	};
 };
