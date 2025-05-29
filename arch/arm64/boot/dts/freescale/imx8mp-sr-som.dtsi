@@ -161,13 +161,21 @@
 	status = "okay";
 };
 
+&gpu_2d {
+	status = "okay";
+};
+
+&gpu_3d {
+	status = "okay";
+};
+
 &i2c1 {
 	clock-frequency = <400000>;
 	pinctrl-names = "default", "gpio";
 	pinctrl-0 = <&i2c1_pins>;
 	pinctrl-1 = <&i2c1_gpio_pins>;
-	scl-gpios = <&gpio5 14 GPIO_ACTIVE_HIGH>;
-	sda-gpios = <&gpio5 15 GPIO_ACTIVE_HIGH>;
+	scl-gpios = <&gpio5 14 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
+	sda-gpios = <&gpio5 15 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
 	status = "okay";
 
 	som_eeprom: eeprom@50{
@@ -183,6 +191,7 @@
 		pinctrl-names = "default";
 		interrupt-parent = <&gpio1>;
 		interrupts = <3 GPIO_ACTIVE_LOW>;
+		nxp,i2c-lt-enable;
 
 		regulators {
 			buck1: BUCK1 {
@@ -272,11 +281,13 @@
 	};
 };
 
-&gpu_2d {
-	status = "okay";
-};
-
-&gpu_3d {
+&i2c2 {
+	clock-frequency = <100000>;
+	pinctrl-names = "default", "gpio";
+	pinctrl-0 = <&i2c2_pins>;
+	pinctrl-1 = <&i2c2_gpio_pins>;
+	scl-gpios = <&gpio5 16 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
+	sda-gpios = <&gpio5 17 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
 	status = "okay";
 };
 
@@ -285,8 +296,8 @@
 	pinctrl-names = "default", "gpio";
 	pinctrl-0 = <&i2c3_pins>;
 	pinctrl-1 = <&i2c3_gpio_pins>;
-	scl-gpios = <&gpio5 18 GPIO_ACTIVE_HIGH>;
-	sda-gpios = <&gpio5 19 GPIO_ACTIVE_HIGH>;
+	scl-gpios = <&gpio5 18 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
+	sda-gpios = <&gpio5 19 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
 	status = "okay";
 };
 
@@ -340,6 +351,20 @@
 		fsl,pins = <
 			MX8MP_IOMUXC_I2C1_SCL__GPIO5_IO14		0x400001c3
 			MX8MP_IOMUXC_I2C1_SDA__GPIO5_IO15		0x400001c3
+		>;
+	};
+
+	i2c2_pins: i2c2-pins {
+		fsl,pins = <
+			MX8MP_IOMUXC_I2C2_SCL__I2C2_SCL			0x400001c3
+			MX8MP_IOMUXC_I2C2_SDA__I2C2_SDA			0x400001c3
+		>;
+	};
+
+	i2c2_gpio_pins: i2c2-gpio-pins {
+		fsl,pins = <
+			MX8MP_IOMUXC_I2C2_SCL__GPIO5_IO16		0x400001c3
+			MX8MP_IOMUXC_I2C2_SDA__GPIO5_IO17		0x400001c3
 		>;
 	};
 
