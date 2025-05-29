@@ -2626,12 +2626,12 @@ static int rzg2l_gpt_suspend(struct device *dev)
 	struct rzg2l_gpt_chip *rzg2l_gpt = dev_get_drvdata(dev);
 
 	if (!test_bit(PWMF_REQUESTED, &pwm->flags))
-		return 0;
+		return reset_control_assert(rzg2l_gpt->rstc);
 
 	rzg2l_gpt->GTIOR_val = rzg2l_gpt_read(rzg2l_gpt, GTIOR);
 	rzg2l_gpt->GTINTAD_val = rzg2l_gpt_read(rzg2l_gpt, GTINTAD);
 	reset_control_assert(rzg2l_gpt->rstc);
-	pm_runtime_put(dev);
+	pm_runtime_put_sync(dev);
 
 	return 0;
 }
@@ -2641,10 +2641,10 @@ static int rzg2l_gpt_resume(struct device *dev)
 	struct pwm_device *pwm = rzg2l_gpt_dev_to_pwm_dev(dev);
 	struct rzg2l_gpt_chip *rzg2l_gpt = dev_get_drvdata(dev);
 
+	reset_control_deassert(rzg2l_gpt->rstc);
 	if (!test_bit(PWMF_REQUESTED, &pwm->flags))
 		return 0;
 
-	reset_control_deassert(rzg2l_gpt->rstc);
 	pm_runtime_get_sync(dev);
 
 	rzg2l_gpt_config(pwm->chip, pwm, pwm->state.duty_cycle,
