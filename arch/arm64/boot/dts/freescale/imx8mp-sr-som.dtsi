@@ -573,6 +573,34 @@
 	pinctrl-0 = <&wdog1_pins>;
 	status = "okay";
 };
+
+/*
+ * Reserve all physical memory from within the first 1GB of DDR address
+ * space to avoid panic on low memory systems.
+ */
+&dsp_vdev0buffer {
+	reg = <0 0x6e000000 0 0x100000>;
+};
+
+&dsp_reserved_heap {
+	reg = <0 0x6e100000 0 0xef0000>;
+};
+
+&dsp_vdev0vring0 {
+	reg = <0 0x6eff0000 0 0x8000>;
+};
+
+&dsp_vdev0vring1 {
+	reg = <0 0x6eff8000 0 0x8000>;
+};
+
+&dsp_reserved {
+	reg = <0 0x6f000000 0 0x1000000>;
+};
+
+&gpu_reserved {
+	reg = <0x0 0x70000000 0 0x10000000>;
+};
 #else /* IMX8MP_SR_DTS_2025 */
 // SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 /*
