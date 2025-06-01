@@ -1,0 +1,57 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright 2025 Josua Mayer <josua@solid-run.com>
+ */
+
+/ {
+	sound-hdmi {
+		compatible = "fsl,imx-audio-hdmi";
+		model = "audio-hdmi";
+		audio-cpu = <&aud2htx>;
+		hdmi-out;
+		constraint-rate = <44100>, <88200>, <176400>, <32000>,
+				  <48000>, <96000>, <192000>;
+		status = "okay";
+	};
+};
+
+&aud2htx {
+	status = "okay";
+};
+
+&hdmi_blk_ctrl {
+	status = "okay";
+};
+
+&hdmi_pavi {
+	status = "okay";
+};
+
+&hdmi {
+	status = "okay";
+};
+
+&hdmiphy {
+	status = "okay";
+};
+
+&iomuxc {
+	hdmi_pins: hdmi-pins {
+		fsl,pins = <
+			MX8MP_IOMUXC_HDMI_DDC_SCL__HDMIMIX_HDMI_SCL	0x400001c3
+			MX8MP_IOMUXC_HDMI_DDC_SDA__HDMIMIX_HDMI_SDA	0x400001c3
+			MX8MP_IOMUXC_HDMI_CEC__HDMIMIX_HDMI_CEC		0x154
+			MX8MP_IOMUXC_HDMI_HPD__HDMIMIX_HDMI_HPD		0x154
+		>;
+	};
+};
+
+&irqsteer_hdmi {
+	status = "okay";
+};
+
+&lcdif3 {
+	thres-low  = <1 2>; /* (FIFO * 1 / 2) */
+	thres-high = <3 4>; /* (FIFO * 3 / 4) */
+	status = "okay";
+};

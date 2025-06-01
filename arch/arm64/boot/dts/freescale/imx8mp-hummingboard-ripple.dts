@@ -7,7 +7,8 @@
 
 #define IMX8MP_SR_DTS_2025
 #include "imx8mp-sr-som.dtsi"
-#include "imx8mp-hummingboard-common.dtsi"
+#include "imx8mp-hummingboard-pulse-common.dtsi"
+#include "imx8mp-hummingboard-pulse-mini-hdmi.dtsi"
 
 / {
 	model = "SolidRun i.MX8MP HummingBoard Ripple";
@@ -35,4 +36,9 @@
 		output-low;
 		line-name = "pcie-reset";
 	};
+};
+
+&iomuxc {
+	pinctrl-names = "default";
+	pinctrl-0 = <&mikro_pwm_pins>, <&mikro_int_pins>, <&mikro_rst_pins>;
 };

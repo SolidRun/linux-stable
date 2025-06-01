@@ -9,7 +9,9 @@
 
 #define IMX8MP_SR_DTS_2025
 #include "imx8mp-sr-som.dtsi"
-#include "imx8mp-hummingboard-common.dtsi"
+#include "imx8mp-hummingboard-pulse-common.dtsi"
+#include "imx8mp-hummingboard-pulse-hdmi.dtsi"
+#include "imx8mp-hummingboard-pulse-mini-hdmi.dtsi"
 
 / {
 	model = "SolidRun i.MX8MP HummingBoard Pulse";
@@ -42,16 +44,6 @@
 		shutdown-gpios = <&gpio1 13 GPIO_ACTIVE_HIGH>;
 	};
 
-	sound-hdmi {
-		compatible = "fsl,imx-audio-hdmi";
-		model = "audio-hdmi";
-		audio-cpu = <&aud2htx>;
-		hdmi-out;
-		constraint-rate = <44100>, <88200>, <176400>, <32000>,
-				  <48000>, <96000>, <192000>;
-		status = "okay";
-	};
-
 	sound-wm8904 {
 		compatible = "fsl,imx-audio-wm8904";
 		model = "audio-wm8904";
@@ -65,29 +57,9 @@
 	};
 };
 
-&aud2htx {
-	status = "okay";
-};
-
 &fec {
 	/* this board does not use second phy / ethernet on SoM */
 	status = "disabled";
-};
-
-&hdmi_blk_ctrl {
-	status = "okay";
-};
-
-&hdmi_pavi {
-	status = "okay";
-};
-
-&hdmi {
-	status = "okay";
-};
-
-&hdmiphy {
-	status = "okay";
 };
 
 &i2c2 {
@@ -120,15 +92,6 @@
 		>;
 	};
 
-	hdmi_pins: hdmi-pins {
-		fsl,pins = <
-			MX8MP_IOMUXC_HDMI_DDC_SCL__HDMIMIX_HDMI_SCL	0x400001c3
-			MX8MP_IOMUXC_HDMI_DDC_SDA__HDMIMIX_HDMI_SDA	0x400001c3
-			MX8MP_IOMUXC_HDMI_CEC__HDMIMIX_HDMI_CEC		0x154
-			MX8MP_IOMUXC_HDMI_HPD__HDMIMIX_HDMI_HPD		0x154
-		>;
-	};
-
 	m2_gnss_rfkill_pins: m2-gnss-rfkill-pins {
 		fsl,pins = <
 			MX8MP_IOMUXC_GPIO1_IO07__GPIO1_IO07		0x0
@@ -156,20 +119,6 @@
 			MX8MP_IOMUXC_GPIO1_IO06__GPIO1_IO06		0x20
 		>;
 	};
-};
-
-&irqsteer_hdmi {
-	status = "okay";
-};
-
-&lcdif3 {
-	thres-low  = <1 2>; /* (FIFO * 1 / 2) */
-	thres-high = <3 4>; /* (FIFO * 3 / 4) */
-	status = "okay";
-};
-
-&sdma2 {
-	status = "okay";
 };
 
 &pcie {
