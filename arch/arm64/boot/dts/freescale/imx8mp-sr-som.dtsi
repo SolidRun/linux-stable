@@ -305,6 +305,17 @@
 	status = "okay";
 };
 
+&i2c4 {
+	/* routed to basler camera connector */
+	clock-frequency = <100000>;
+	pinctrl-names = "default", "gpio";
+	pinctrl-0 = <&i2c4_pins>;
+	pinctrl-1 = <&i2c4_gpio_pins>;
+	scl-gpios = <&gpio5 20 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
+	sda-gpios = <&gpio5 21 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
+	status = "okay";
+};
+
 &iomuxc {
 	eqos_pins: eqos-pins {
 		fsl,pins = <
@@ -383,6 +394,20 @@
 		fsl,pins = <
 			MX8MP_IOMUXC_I2C3_SCL__GPIO5_IO18		0x400001c3
 			MX8MP_IOMUXC_I2C3_SDA__GPIO5_IO19		0x400001c3
+		>;
+	};
+
+	i2c4_pins: i2c4-pins {
+		fsl,pins = <
+			MX8MP_IOMUXC_I2C4_SCL__I2C4_SCL			0x400001c3
+			MX8MP_IOMUXC_I2C4_SDA__I2C4_SDA			0x400001c3
+		>;
+	};
+
+	i2c4_gpio_pins: i2c4-gpio-pins {
+		fsl,pins = <
+			MX8MP_IOMUXC_I2C4_SCL__GPIO5_IO20			0x400001c3
+			MX8MP_IOMUXC_I2C4_SDA__GPIO5_IO21			0x400001c3
 		>;
 	};
 
