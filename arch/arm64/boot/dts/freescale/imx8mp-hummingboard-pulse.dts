@@ -9,8 +9,10 @@
 
 #define IMX8MP_SR_DTS_2025
 #include "imx8mp-sr-som.dtsi"
+#include "imx8mp-hummingboard-pulse-codec.dtsi"
 #include "imx8mp-hummingboard-pulse-common.dtsi"
 #include "imx8mp-hummingboard-pulse-hdmi.dtsi"
+#include "imx8mp-hummingboard-pulse-m2con.dtsi"
 #include "imx8mp-hummingboard-pulse-mini-hdmi.dtsi"
 
 / {
@@ -22,39 +24,6 @@
 		ethernet0 = &eqos;
 		ethernet1 = &pcie_eth;
 	};
-
-	rfkill-m2-gnss {
-		compatible = "rfkill-gpio";
-		pinctrl-names = "default";
-		pinctrl-0 = <&m2_gnss_rfkill_pins>;
-		label = "m.2 GNSS";
-		radio-type = "gps";
-		/* rfkill-gpio inverts internally */
-		shutdown-gpios = <&gpio1 7 GPIO_ACTIVE_HIGH>;
-	};
-
-	/* M.2 is B-keyed, so w-disable is for WWAN */
-	rfkill-m2-wwan {
-		compatible = "rfkill-gpio";
-		pinctrl-names = "default";
-		pinctrl-0 = <&m2_wwan_rfkill_pins>;
-		label = "m.2 WWAN";
-		radio-type = "wwan";
-		/* rfkill-gpio inverts internally */
-		shutdown-gpios = <&gpio1 13 GPIO_ACTIVE_HIGH>;
-	};
-
-	sound-wm8904 {
-		compatible = "fsl,imx-audio-wm8904";
-		model = "audio-wm8904";
-		audio-cpu = <&sai3>;
-		audio-codec = <&codec>;
-		audio-routing =
-			"Headphone Jack", "HPOUTL",
-			"Headphone Jack", "HPOUTR",
-			"AMIC", "MICBIAS",
-			"IN2R", "AMIC";
-	};
 };
 
 &fec {
@@ -62,67 +31,20 @@
 	status = "disabled";
 };
 
-&i2c2 {
-	codec: codec@1a {
-		#sound-dai-cells = <0>;
-		compatible = "wlf,wm8904";
-		reg = <0x1a>;
-		clocks = <&audio_blk_ctrl IMX8MP_CLK_AUDIOMIX_SAI3_MCLK1>;
-		clock-names = "mclk";
-		AVDD-supply = <&v_1_8>;
-		CPVDD-supply = <&v_1_8>;
-		DBVDD-supply = <&v_3_3>;
-		DCVDD-supply = <&v_1_8>;
-		MICVDD-supply = <&v_3_3>;
-	};
-};
-
 &iomuxc {
 	pinctrl-names = "default";
 	pinctrl-0 = <&mikro_pwm_pins>, <&mikro_int_pins>, <&hdmi_pins>,
-		    <&m2_wwan_wake_pins>, <&m2_wwan_reset_pins>;
+		    <&m2_wwan_wake_pins>, <&m2_reset_pins>;
 
-	sai3_pins: sai3-pins {
+	pcie_eth_pins: pcie-eth-pins {
 		fsl,pins = <
-			MX8MP_IOMUXC_SAI3_MCLK__AUDIOMIX_SAI3_MCLK	0xd6
-			MX8MP_IOMUXC_SAI3_TXFS__AUDIOMIX_SAI3_TX_SYNC	0xd6
-			MX8MP_IOMUXC_SAI3_TXC__AUDIOMIX_SAI3_TX_BCLK	0xd6
-			MX8MP_IOMUXC_SAI3_TXD__AUDIOMIX_SAI3_TX_DATA00	0xd6
-			MX8MP_IOMUXC_SAI3_RXD__AUDIOMIX_SAI3_RX_DATA00	0xd6
-		>;
-	};
-
-	m2_gnss_rfkill_pins: m2-gnss-rfkill-pins {
-		fsl,pins = <
-			MX8MP_IOMUXC_GPIO1_IO07__GPIO1_IO07		0x0
-		>;
-	};
-
-	m2_wwan_rfkill_pins: m2-wwan-rfkill-pins {
-		fsl,pins = <
-			MX8MP_IOMUXC_GPIO1_IO13__GPIO1_IO13		0x0
-		>;
-	};
-
-	m2_wwan_wake_pins: m2-wwan-wake-pins {
-		fsl,pins = <
-			MX8MP_IOMUXC_GPIO1_IO12__GPIO1_IO12		0x0
-		>;
-	};
-
-	m2_wwan_reset_pins: m2-wwan-reset-pins {
-		fsl,pins = <
-			/*
-			 * 3.3V domain on SoC, set open-drain to ensure
-			 * 1.8V logic on connector
-			 */
-			MX8MP_IOMUXC_GPIO1_IO06__GPIO1_IO06		0x20
+			MX8MP_IOMUXC_SAI3_RXFS__GPIO4_IO28		0x0
 		>;
 	};
 };
 
 &pcie {
-	pinctrl-0 = <&pcie_pins>;
+	pinctrl-0 = <&pcie_eth_pins>;
 	pinctrl-names = "default";
 	reset-gpio = <&gpio4 28 GPIO_ACTIVE_LOW>;
 	status = "okay";
@@ -147,19 +69,5 @@
 	clock-names = "ref";
 	fsl,clkreq-unsupported;
 	fsl,refclk-pad-mode = <IMX8_PCIE_REFCLK_PAD_OUTPUT>;
-	status = "okay";
-};
-
-&sai3 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&sai3_pins>;
-	assigned-clocks = <&clk IMX8MP_CLK_SAI3>;
-	assigned-clock-parents = <&clk IMX8MP_AUDIO_PLL1_OUT>;
-	assigned-clock-rates = <12288000>;
-	clocks = <&audio_blk_ctrl IMX8MP_CLK_AUDIOMIX_SAI3_IPG>, <&clk IMX8MP_CLK_DUMMY>,
-		 <&audio_blk_ctrl IMX8MP_CLK_AUDIOMIX_SAI3_MCLK1>, <&clk IMX8MP_CLK_DUMMY>,
-		 <&clk IMX8MP_CLK_DUMMY>;
-	clock-names = "bus", "mclk0", "mclk1", "mclk2", "mclk3";
-	fsl,sai-mclk-direction-output;
 	status = "okay";
 };

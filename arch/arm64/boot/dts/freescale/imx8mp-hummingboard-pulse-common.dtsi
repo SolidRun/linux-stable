@@ -59,7 +59,7 @@
 		 */
 		compatible = "rfkill-gpio";
 		pinctrl-names = "default";
-		pinctrl-0 = <&pcie_rfkill_pins>;
+		pinctrl-0 = <&mpcie_rfkill_pins>;
 		label = "mpcie radio";
 		radio-type = "wwan";
 		/* rfkill-gpio inverts internally */
@@ -131,6 +131,18 @@
 		reg = <0>;
 		compatible = "rohm,dh2228fv";
 		spi-max-frequency = <500000>;
+	};
+};
+
+&gpio1 {
+	pinctrl-0 = <&mpcie_reset_pins>;
+	pinctrl-names = "default";
+
+	mpcie-reset-hog {
+		gpio-hog;
+		gpios = <1 GPIO_ACTIVE_LOW>;
+		output-low;
+		line-name = "mpcie-reset";
 	};
 };
 
@@ -209,15 +221,16 @@
 		>;
 	};
 
-	pcie_pins: pcie-pins {
+	mpcie_reset_pins: mpcie-reset-pins {
 		fsl,pins = <
 			MX8MP_IOMUXC_GPIO1_IO01__GPIO1_IO01		0x0
 		>;
 	};
 
-	pcie_rfkill_pins: pcie-rfkill-pins {
+	mpcie_rfkill_pins: pcie-rfkill-pins {
 		fsl,pins = <
-			MX8MP_IOMUXC_GPIO1_IO05__GPIO1_IO05		0x0
+			/* weak i/o, open drain */
+			MX8MP_IOMUXC_GPIO1_IO05__GPIO1_IO05		0x20
 		>;
 	};
 

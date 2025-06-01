@@ -60,6 +60,8 @@
 			compatible = "ethernet-phy-ieee802.3-c22";
 			reg = <0>;
 			reset-gpios = <&gpio4 19 GPIO_ACTIVE_LOW>;
+			interrupt-parent = <&gpio4>;
+			interrupts = <18 IRQ_TYPE_LEVEL_LOW>;
 		};
 	};
 
@@ -145,6 +147,8 @@
 			compatible = "ethernet-phy-ieee802.3-c22";
 			reg = <0x1>;
 			reset-gpios = <&gpio4 2 GPIO_ACTIVE_LOW>;
+			interrupt-parent = <&gpio4>;
+			interrupts = <3 IRQ_TYPE_LEVEL_LOW>;
 		};
 	};
 };
@@ -386,6 +390,8 @@
 		fsl,pins = <
 			/* RESET_N: weak i/o, open drain, external 1k pull-up */
 			MX8MP_IOMUXC_SAI1_TXD7__GPIO4_IO19		0x20
+			/* INT_N: weak i/o, open drain, internal pull-up */
+			MX8MP_IOMUXC_SAI1_TXD6__GPIO4_IO18		0x160
 		>;
 	};
 
@@ -393,6 +399,8 @@
 		fsl,pins = <
 			/* RESET_N: weak i/o, open drain, external 1k pull-up */
 			MX8MP_IOMUXC_SAI1_RXD0__GPIO4_IO02		0x20
+			/* INT_N: weak i/o, open drain, internal pull-up */
+			MX8MP_IOMUXC_SAI1_RXD1__GPIO4_IO03		0x160
 		>;
 	};
 

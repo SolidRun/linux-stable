@@ -26,18 +26,6 @@
 	status = "disabled";
 };
 
-&gpio1 {
-	pinctrl-0 = <&pcie_pins>;
-	pinctrl-names = "default";
-
-	pcie-reset-hog {
-		gpio-hog;
-		gpios = <1 GPIO_ACTIVE_LOW>;
-		output-low;
-		line-name = "pcie-reset";
-	};
-};
-
 &iomuxc {
 	pinctrl-names = "default";
 	pinctrl-0 = <&mikro_pwm_pins>, <&mikro_int_pins>, <&mikro_rst_pins>;
