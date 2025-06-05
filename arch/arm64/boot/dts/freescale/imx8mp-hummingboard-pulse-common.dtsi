@@ -168,10 +168,6 @@
 &iomuxc {
 	csi_pins: csi-pins {
 		fsl,pins = <
-			/*
-			 * Pin 18: FREX: shared with hdmi bridge
-			 * MX8MP_IOMUXC_GPIO1_IO08__GPIO1_IO08		0x0
-			 */
 			/* Pin 24: STROBE */
 			MX8MP_IOMUXC_NAND_DATA01__GPIO3_IO07		0x0
 		>;
