@@ -29,7 +29,7 @@
 &iomuxc {
 	pinctrl-names = "default";
 	pinctrl-0 = <&mikro_pwm_pins>, <&mikro_int_pins>, <&hdmi_pins>,
-		    <&m2_wwan_wake_pins>, <&m2_reset_pins>;
+		    <&m2_wwan_wake_pins>;
 };
 
 &pcie {
