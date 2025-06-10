@@ -67,6 +67,7 @@
 #define MAX_VCLK_FREQ		(148500000)
 
 #define PLL5_FOUTVCO_MIN	800000000
+#define PLL5_FOUTVCO_SEL	1500000000
 #define PLL5_FOUTVCO_MAX	3000000000
 #define PLL5_POSTDIV_MIN	1
 #define PLL5_POSTDIV_MAX	7
@@ -644,6 +645,14 @@ found_clk:
 			       params->pl5_refdiv) >> 24;
 	foutpostdiv_rate = DIV_ROUND_CLOSEST_ULL(foutvco_rate,
 						 params->pl5_postdiv1 * params->pl5_postdiv2);
+
+	/* If foutvco is above 1.5GHz, change parent and recalculate */
+	if ((priv->mux_dsi_div_params.clksrc) &&
+	    (foutvco_rate > PLL5_FOUTVCO_SEL)) {
+		priv->mux_dsi_div_params.clksrc = 0;
+		dsi_div_ab *= 2;
+		return rzg2l_cpg_get_foutpostdiv_rate(priv, params, rate);
+	}
 
 	return foutpostdiv_rate;
 }
