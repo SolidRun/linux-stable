@@ -17,16 +17,6 @@
 		// idle-state = <0>;
 	};
 
-
-	lcd_i2c_rst: lcd_i2c_rst {
-		compatible = "regulator-fixed";
-		regulator-name = "lcd_i2c_rst";
-		regulator-min-microvolt = <1800000>;
-		regulator-max-microvolt = <1800000>;
-		gpio = <&tca6416_21 4 GPIO_ACTIVE_HIGH>;
-		enable-active-high;
-	};
-
 	mipi_backlight: backlight {
 		compatible = "gpio-backlight";
 		gpios = <&gpio_dsi_expander 3 GPIO_ACTIVE_LOW>;
@@ -260,7 +250,7 @@
 };
 
 // Carrier I2C2
-&i2c1{
+&i2c1 {
 	i2c-switch@70 {
 		compatible = "nxp,pca9546";
 		reg = <0x70>;
@@ -290,16 +280,16 @@
 				reg = <0x21>;
 				gpio-controller;
 				#gpio-cells = <2>;
-				vcc-supply = <&lcd_i2c_rst>;
+				reset-gpios = <&tca6416_21 4 GPIO_ACTIVE_LOW>;
 				gpio-line-names =
-				"NC",
+				"CAM_RST#",
 				"DSI_RESET",
 				"DSI_STBYB",
 				"DSI_PWM_BL",
 				"DSI_L/R",
 				"DSI_U/D",
 				"DSI_CTP_/RST",
-				"NC";
+				"CAM_TRIG";
 			};
 
 			touchscreen@41 {
@@ -318,11 +308,11 @@
 			reg = <3>;
 
 			gpio_lvds_expander: tca6408@20 {
+				status = "disabled";
 				compatible = "ti,tca6408";
 				reg = <0x20>;
 				gpio-controller;
 				#gpio-cells = <2>;
-				vcc-supply = <&lcd_i2c_rst>;
 				gpio-line-names =
 				"SELB",
 				"LVDS_RESET",
