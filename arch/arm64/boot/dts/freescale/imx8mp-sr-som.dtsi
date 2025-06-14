@@ -571,11 +571,11 @@
 	status = "okay";
 
 	bluetooth {
-		compatible = "brcm,bcm4330-bt";
-		//compatible = "brcm,bcm4345c5";
+		compatible = "brcm,bcm4345c5";
 		device-wakeup-gpios = <&gpio2 7 GPIO_ACTIVE_HIGH>;
 		host-wakeup-gpios = <&gpio2 8 GPIO_ACTIVE_HIGH>;
 		shutdown-gpios = <&gpio2 10 GPIO_ACTIVE_HIGH>;
+		/* Murata 1MW module supports max. 3M baud */
 		max-speed = <3000000>;
 	};
 };
