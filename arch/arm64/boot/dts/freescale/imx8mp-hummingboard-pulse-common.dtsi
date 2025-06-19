@@ -7,8 +7,8 @@
 
 / {
 	aliases {
-		rtc0 = <&carrier_rtc>;
-		rtc1 = <&snvs_rtc>;
+		rtc0 = &carrier_rtc;
+		rtc1 = &snvs_rtc;
 	};
 
 	leds {

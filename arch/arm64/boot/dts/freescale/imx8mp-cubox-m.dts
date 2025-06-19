@@ -18,8 +18,8 @@
 	aliases {
 		ethernet0 = &eqos;
 		/delete-property/ ethernet1;
-		rtc0 = <&carrier_rtc>;
-		rtc1 = <&snvs_rtc>;
+		rtc0 = &carrier_rtc;
+		rtc1 = &snvs_rtc;
 	};
 
 	ir-receiver {
