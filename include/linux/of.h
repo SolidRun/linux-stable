@@ -296,6 +296,8 @@ extern struct device_node *of_get_compatible_child(const struct device_node *par
 					const char *compatible);
 extern struct device_node *of_get_child_by_name(const struct device_node *node,
 					const char *name);
+extern struct device_node *of_get_available_child_by_name(const struct device_node *node,
+							  const char *name);
 
 /* cache lookup */
 extern struct device_node *of_find_next_cache_node(const struct device_node *);
@@ -552,6 +554,13 @@ static inline struct device_node *of_get_compatible_child(const struct device_no
 }
 
 static inline struct device_node *of_get_child_by_name(
+					const struct device_node *node,
+					const char *name)
+{
+	return NULL;
+}
+
+static inline struct device_node *of_get_available_child_by_name(
 					const struct device_node *node,
 					const char *name)
 {
