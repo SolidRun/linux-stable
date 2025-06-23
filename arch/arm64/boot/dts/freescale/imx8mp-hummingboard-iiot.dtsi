@@ -130,8 +130,8 @@
 		enable-active-high;
 	};
 
-	/* J6: M.2B_3V3 */ 
-	power-m2-j6 {
+	/* J6: M.2B_3V3 */
+	power_m2_j6: power-m2-j6 {
 		compatible = "reg-userspace-consumer";
 		regulator-name = "m2-j6-pwr-consumer";
 		regulator-boot-on;
@@ -149,10 +149,12 @@
 		regulator-max-microvolt = <3300000>;
 		gpio = <&io_expander_u20 5 GPIO_ACTIVE_HIGH>; // U20[P5]
 		enable-active-high;
+		regulator-allow-bypass;
+		regulator-allow-user-space-control;
 	};
 
 	/* Enable this node for M.2 LTE modem rfkill support (M.2 J6) */
-	rfkill_m2_wdis {
+	rfkill_m2_wdis: rfkill-m2-wdis {
 		compatible = "rfkill-gpio";
 		pinctrl-names = "default";
 		rfkill-name = "m2_wdis";
@@ -162,7 +164,7 @@
 	};
 
 	/* GPIO Controll M.2-J6 rfkill */
-	rfkill_m2_gps {
+	rfkill_m2_gps: rfkill-m2-gps {
 		compatible = "rfkill-gpio";
 		pinctrl-names = "default";
 		rfkill-name = "m2_gps";
@@ -187,8 +189,8 @@
 		line-name = "M.2M_CLKREQ-J4";
 	};
 
-	/* M.2B-J4 Reset */
-	lte-reset {
+	/* M.2B-J6 Reset */
+	lte_reset: lte-reset {
 		compatible = "gpio-reset";
 		reset-gpios = <&io_expander_u20 8 GPIO_ACTIVE_LOW>; // M.2B_RESET U20_P[10]
 		reset-delay-us = <2000>;
@@ -576,8 +578,8 @@
     /* io_expander_u21 */
     io_expander_u21: gpio@21 {
         compatible = "nxp,pcal6416";
-		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_tca6416_21>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_tca6416_21>;
         reg = <0x21>;
         gpio-controller;
         #gpio-cells = <2>;

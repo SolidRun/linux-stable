@@ -19,16 +19,6 @@
     model = "SolidRun i.MX8MP HummingBoard IIOT STNC-800-BI";
     compatible = "fsl,imx8mp-sr-som", "fsl,imx8mp";
 
-    /* MIA-M10Q RSTN */
-    gpns_reset: gps-reset {
-            compatible = "gpio-reset";
-            reset-gpios = <&gpio1 0 GPIO_ACTIVE_LOW>; // GPIO1_IO00
-            reset-delay-us = <100000>;  // 100 ms low pulse
-            reset-post-delay-ms = <50>; // Optional: wait 50ms after release
-            #reset-cells = <0>;
-            status = "okay";
-    };
-
     #if 0
         /* 
         RelayO_1       - GPIO1_IO13
@@ -134,4 +124,29 @@
 			MX8MP_IOMUXC_HDMI_DDC_SDA__GPIO3_IO27 0x154   /* CAN2_STBY */
 		>;
 	};
+};
+
+/* Disable M.2B J6 LTE Modem Signlas */
+&rfkill_m2_wdis {
+    status = "disabled";
+};
+
+&rfkill_m2_gps {
+    status = "disabled";
+};
+
+&reg_m2_j6_pwr {
+    status = "disabled";
+};
+
+&power_m2_j6 {
+    status = "disabled";
+};
+
+&lte_reset {
+    status = "disabled";
+};
+
+&mipi_dsi {
+    status = "disabled";
 };
