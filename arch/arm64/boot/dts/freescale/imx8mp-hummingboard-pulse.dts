@@ -31,10 +31,22 @@
 	status = "disabled";
 };
 
+&gpio1 {
+	pinctrl-0 = <&mpcie_reset_pins>, <&m2_reset_pins>;
+	pinctrl-names = "default";
+
+	m2-reset-hog {
+		gpio-hog;
+		gpios = <6 GPIO_ACTIVE_LOW>;
+		output-low;
+		line-name = "m2-reset";
+	};
+};
+
 &iomuxc {
 	pinctrl-names = "default";
 	pinctrl-0 = <&mikro_pwm_pins>, <&mikro_int_pins>, <&hdmi_pins>,
-		    <&m2_wwan_wake_pins>, <&m2_reset_pins>;
+		    <&m2_wwan_wake_pins>;
 
 	pcie_eth_pins: pcie-eth-pins {
 		fsl,pins = <
