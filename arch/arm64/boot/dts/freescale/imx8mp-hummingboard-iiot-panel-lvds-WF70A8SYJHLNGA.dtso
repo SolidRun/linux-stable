@@ -9,4 +9,6 @@
 /dts-v1/;
 /plugin/;
 
-/* place-holder */
+&{/} {
+	/* place-holder */
+};
