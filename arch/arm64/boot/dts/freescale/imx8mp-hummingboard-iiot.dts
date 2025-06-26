@@ -46,7 +46,6 @@
 		regulator-max-microvolt = <11200000>;
 		gpios = <&tca6416_u20 15 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
-		regulator-always-on;
 	};
 
 	/* power for M.2 B-Key connector (J6) */
@@ -347,8 +346,15 @@
 };
 
 &i2c3 {
+	/* highest i2c clock supported by all peripherals is 400kHz */
+	clock-frequency = <400000>;
+
 	tca6416_u20: gpio@20 {
-		compatible = "ti,tca6416";
+		/*
+		 * This is a TI TCAL6416 using same programming model as
+		 * NXP PCAL6416, not to be confused with TI TCA6416.
+		 */
+		compatible = "nxp,pcal6416";
 		reg = <0x20>;
 		gpio-controller;
 		#gpio-cells = <2>;
@@ -370,7 +376,11 @@
 	};
 
 	tca6416_u21: gpio@21 {
-		compatible = "ti,tca6416";
+		/*
+		 * This is a TI TCAL6416 using same programming model as
+		 * NXP PCAL6416, not to be confused with TI TCA6416.
+		 */
+		compatible = "nxp,pcal6416";
 		reg = <0x21>;
 		gpio-controller;
 		#gpio-cells = <2>;
@@ -476,7 +486,7 @@
 		reg = <0x69>;
 		abracon,tc-diode = "schottky";
 		abracon,tc-resistor = <3>;
-		interrupts-extended = <&tca6416_u21 12 IRQ_TYPE_EDGE_FALLING>;
+		interrupts-extended = <&tca6416_u21 10 IRQ_TYPE_EDGE_FALLING>;
 	};
 };
 
