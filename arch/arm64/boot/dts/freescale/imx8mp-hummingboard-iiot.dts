@@ -308,7 +308,7 @@
 				 * supported through reset framework with
 				 * Linux v6.9 or later.
 				 *
-				 * reset-gpios = <&tca6416_u21 4 GPIO_ACTIVE_LOW>;
+				 * reset-gpios = <&tca6416_u21 4 (GPIO_ACTIVE_LOW|GPIO_PULL_UP|GPIO_OPEN_DRAIN)>;
 				 */
 				gpio-controller;
 				#gpio-cells = <2>;
@@ -332,7 +332,7 @@
 				 * supported through reset framework with
 				 * Linux v6.9 or later.
 				 *
-				 * reset-gpios = <&tca6416_u21 4 GPIO_ACTIVE_LOW>;
+				 * reset-gpios = <&tca6416_u21 4 (GPIO_ACTIVE_LOW|GPIO_PULL_UP|GPIO_OPEN_DRAIN)>;
 				 */
 				gpio-controller;
 				#gpio-cells = <2>;
@@ -403,6 +403,17 @@
 			gpios = <3 GPIO_ACTIVE_LOW>;
 			output-low;
 			line-name = "rs232-shutdown";
+		};
+
+		lcd-i2c-reset-hog {
+			/* reset shared between U37 and U48, to be
+			 * supported through reset framework with
+			 * Linux v6.9 or later.
+			*/
+			gpio-hog;
+			gpios = <4 (GPIO_ACTIVE_LOW|GPIO_PULL_UP|GPIO_OPEN_DRAIN)>;
+			output-low;
+			line-name = "lcd-i2c-reset";
 		};
 
 		m2-m-clkreq-hog {
