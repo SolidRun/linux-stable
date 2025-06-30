@@ -62,6 +62,7 @@
 		compatible = "ilitek,ili2130";
 		reset-gpios = <&tca6408_u37 6 GPIO_ACTIVE_LOW>;
 		interrupts-extended = <&tca6416_u21 13 IRQ_TYPE_LEVEL_LOW>;
+		vcc-lcd-supply = <&reg_dsi_panel>;
 	};
 };
 
