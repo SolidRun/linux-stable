@@ -7,7 +7,6 @@
 
 #include <dt-bindings/leds/common.h>
 
-#define IMX8MP_SR_DTS_2025
 #include "imx8mp-sr-som.dtsi"
 
 / {

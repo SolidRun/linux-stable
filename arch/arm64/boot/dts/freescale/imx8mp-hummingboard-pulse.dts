@@ -7,7 +7,6 @@
 
 #include <dt-bindings/phy/phy-imx8-pcie.h>
 
-#define IMX8MP_SR_DTS_2025
 #include "imx8mp-sr-som.dtsi"
 #include "imx8mp-hummingboard-pulse-codec.dtsi"
 #include "imx8mp-hummingboard-pulse-common.dtsi"

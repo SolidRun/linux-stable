@@ -5,7 +5,6 @@
 
 /dts-v1/;
 
-#define IMX8MP_SR_DTS_2025
 #include "imx8mp-sr-som.dtsi"
 #include "imx8mp-hummingboard-pulse-common.dtsi"
 #include "imx8mp-hummingboard-pulse-mini-hdmi.dtsi"
