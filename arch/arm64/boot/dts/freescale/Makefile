@@ -156,8 +156,6 @@ dtb-$(CONFIG_ARCH_MXC) += imx8mp-hummingboard-iiot-panel-dsi-WJ70N3TYJHMNG0.dtbo
 dtb-$(CONFIG_ARCH_MXC) += imx8mp-hummingboard-iiot-panel-lvds-WF70A8SYJHLNGA.dtbo
 dtb-$(CONFIG_ARCH_MXC) += imx8mp-hummingboard-iiot-rs485-a.dtbo
 dtb-$(CONFIG_ARCH_MXC) += imx8mp-hummingboard-iiot-rs485-b.dtbo
-dtb-$(CONFIG_ARCH_MXC) += imx8mp-hummingboard-iiot-main.dtb
-imx8mp-hummingboard-iiot-main-dtbs := imx8mp-hummingboard-iiot.dtb imx8mp-sr-som-basler.dtbo imx8mp-hummingboard-iiot-panel-dsi-WJ70N3TYJHMNG0.dtbo imx8mp-hummingboard-iiot-panel-lvds-WF70A8SYJHLNGA.dtbo imx8mp-hummingboard-iiot-rs485-a.dtbo
 dtb-$(CONFIG_ARCH_MXC) += imx8mp-hummingboard-pulse-basler.dtbo
 dtb-$(CONFIG_ARCH_MXC) += imx8mp-sr-som-basler.dtbo
 
