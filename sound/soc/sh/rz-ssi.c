@@ -143,7 +143,6 @@ struct rz_ssi_priv {
 	struct {
 		unsigned int rate;
 		unsigned int channels;
-		unsigned int sample_width;
 		unsigned int sample_bits;
 	} hw_params_cache;
 };
@@ -1002,12 +1001,10 @@ static int rz_ssi_dai_set_fmt(struct snd_soc_dai *dai, unsigned int fmt)
 
 static bool rz_ssi_is_valid_hw_params(struct rz_ssi_priv *ssi, unsigned int rate,
 				      unsigned int channels,
-				      unsigned int sample_width,
 				      unsigned int sample_bits)
 {
 	if (ssi->hw_params_cache.rate != rate ||
 	    ssi->hw_params_cache.channels != channels ||
-	    ssi->hw_params_cache.sample_width != sample_width ||
 	    ssi->hw_params_cache.sample_bits != sample_bits)
 		return false;
 
@@ -1016,12 +1013,10 @@ static bool rz_ssi_is_valid_hw_params(struct rz_ssi_priv *ssi, unsigned int rate
 
 static void rz_ssi_cache_hw_params(struct rz_ssi_priv *ssi, unsigned int rate,
 				   unsigned int channels,
-				   unsigned int sample_width,
 				   unsigned int sample_bits)
 {
 	ssi->hw_params_cache.rate = rate;
 	ssi->hw_params_cache.channels = channels;
-	ssi->hw_params_cache.sample_width = sample_width;
 	ssi->hw_params_cache.sample_bits = sample_bits;
 }
 
@@ -1030,7 +1025,6 @@ static int rz_ssi_dai_hw_params(struct snd_pcm_substream *substream,
 				struct snd_soc_dai *dai)
 {
 	struct rz_ssi_priv *ssi = snd_soc_dai_get_drvdata(dai);
-	struct rz_ssi_stream *strm = rz_ssi_stream_get(ssi, substream);
 	unsigned int sample_bits = hw_param_interval(params,
 					SNDRV_PCM_HW_PARAM_SAMPLE_BITS)->min;
 	unsigned int channels = params_channels(params);
@@ -1052,16 +1046,14 @@ static int rz_ssi_dai_hw_params(struct snd_pcm_substream *substream,
 
 	if (rz_ssi_is_stream_running(&ssi->playback) ||
 	    rz_ssi_is_stream_running(&ssi->capture)) {
-		if (rz_ssi_is_valid_hw_params(ssi, rate, channels,
-					      strm->sample_width, sample_bits))
+		if (rz_ssi_is_valid_hw_params(ssi, rate, channels, sample_bits))
 			return 0;
 
 		dev_err(ssi->dev, "Full duplex needs same HW params\n");
 		return -EINVAL;
 	}
 
-	rz_ssi_cache_hw_params(ssi, rate, channels, strm->sample_width,
-			       sample_bits);
+	rz_ssi_cache_hw_params(ssi, rate, channels, sample_bits);
 
 	ret = rz_ssi_swreset(ssi);
 	if (ret)
