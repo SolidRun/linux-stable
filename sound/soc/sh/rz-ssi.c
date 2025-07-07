@@ -403,7 +403,6 @@ static int rz_ssi_start(struct rz_ssi_priv *ssi, struct rz_ssi_stream *strm)
 			ssifcr |= SSIFCR_TFRST;
 	}
 
-	rz_ssi_reg_writel(ssi, SSICR, ssicr);
 	rz_ssi_reg_writel(ssi, SSIFCR, ssifcr);
 
 	/* Clear all error flags */
