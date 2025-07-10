@@ -71,13 +71,6 @@
 			 <RZG2L_PORT_PINMUX(41, 1, 1)>; /* RTS# */
 	};
 
-	sd1-pwr-en-hog {
-		gpio-hog;
-		gpios = <RZG2L_GPIO(39, 2) GPIO_ACTIVE_HIGH>;
-		output-high;
-		line-name = "sd1_pwr_en";
-	};
-
 	sdhi1_pins: sd1 {
 		sd1_data {
 			pins = "SD1_DATA0", "SD1_DATA1", "SD1_DATA2", "SD1_DATA3";

@@ -171,6 +171,11 @@
 };
 #endif
 
+&vmmc_sdhi1 {
+	gpios = <&pinctrl RZG2L_GPIO(0, 3) GPIO_ACTIVE_HIGH>;
+	enable-active-high;
+};
+
 &vccq_sdhi1 {
 	gpios = <&pinctrl RZG2L_GPIO(6, 1) GPIO_ACTIVE_HIGH>;
 };

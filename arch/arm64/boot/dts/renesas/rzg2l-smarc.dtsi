@@ -208,6 +208,16 @@
 	};
 };
 
+&vmmc_sdhi0 {
+	gpios = <&pinctrl RZG2L_GPIO(4, 1) GPIO_ACTIVE_HIGH>;
+	enable-active-high;
+};
+
+&vmmc_sdhi1 {
+	gpios = <&pinctrl RZG2L_GPIO(39, 2) GPIO_ACTIVE_HIGH>;
+	enable-active-high;
+};
+
 &vccq_sdhi1 {
 	gpios = <&pinctrl RZG2L_GPIO(39, 1) GPIO_ACTIVE_HIGH>;
 };
