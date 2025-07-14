@@ -20,6 +20,13 @@
 		clock-frequency = <0>;
 	};
 
+	rtc_clk: rtc-clk {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		/* This value must be overridden by the board */
+		clock-frequency = <0>;
+	};
+
 	/*
 	 * The default cluster table is based on the assumption that the PLLCA55 clock
 	 * frequency is set to 1.7GHz. The PLLCA55 clock frequency can be set to
@@ -351,6 +358,21 @@
 			clock-names = "fck0", "fck1", "fck2", "fck3";
 			resets = <&cpg 0x69>, <&cpg 0x6A>,
 				 <&cpg 0x6B>, <&cpg 0x6C>;
+			status = "disabled";
+		};
+
+		rtc: rtc@11c00800 {
+			compatible = "renesas,r9a09g047-rtc", "renesas,rz-rtca3";
+			reg = <0 0x11C00800 0 0x400>;
+			interrupts = <GIC_SPI 525 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 526 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 524 IRQ_TYPE_EDGE_RISING>;
+			interrupt-names = "period", "carry", "alarm";
+			clocks = <&cpg CPG_MOD 0x53>, <&rtc_clk>;
+			clock-names = "fck", "counter";
+			resets = <&cpg 0x79>, <&cpg 0x7A>;
+			reset-names = "rtc", "rtc_v";
+			power-domains = <&cpg>;
 			status = "disabled";
 		};
 
