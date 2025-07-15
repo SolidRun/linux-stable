@@ -513,6 +513,226 @@
 			renesas,icu = <&icu 3>;
 		};
 
+		cru0: video0@16000000 {
+			compatible = "renesas,r9a09g057-cru";
+			reg = <0 0x16000000 0 0x400>;
+			clocks = <&cpg CPG_MOD 0xD3>,
+				 <&cpg CPG_MOD 0xD4>,
+				 <&cpg CPG_MOD 0xD2>;
+			clock-names = "video", "apb", "axi";
+			interrupts = <GIC_SPI 838 IRQ_TYPE_LEVEL_HIGH>;
+			resets = <&cpg 0xC5>, <&cpg 0xC6>;
+			reset-names = "presetn", "aresetn";
+			power-domains = <&cpg>;
+			channel,id = <0>;
+			status = "disabled";
+
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				port@1 {
+					reg = <1>;
+
+					cru0_to_csi20: endpoint {
+						remote-endpoint =
+							<&csi20_to_cru0>;
+					};
+				};
+			};
+		};
+
+		cru1: video1@16010000 {
+			compatible = "renesas,r9a09g057-cru";
+			reg = <0 0x16010000 0 0x400>;
+			clocks = <&cpg CPG_MOD 0xD6>,
+				 <&cpg CPG_MOD 0xD7>,
+				 <&cpg CPG_MOD 0xD5>;
+			clock-names = "video", "apb", "axi";
+			interrupts = <GIC_SPI 844 IRQ_TYPE_LEVEL_HIGH>;
+			resets = <&cpg 0xC8>, <&cpg 0xC9>;
+			reset-names = "presetn", "aresetn";
+			power-domains = <&cpg>;
+			channel,id = <1>;
+			status = "disabled";
+
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				port@1 {
+					reg = <1>;
+
+					cru1_to_csi21: endpoint {
+						remote-endpoint =
+							<&csi21_to_cru1>;
+					};
+				};
+			};
+		};
+
+		cru2: video2@16020000 {
+			compatible = "renesas,r9a09g057-cru";
+			reg = <0 0x16020000 0 0x400>;
+			clocks = <&cpg CPG_MOD 0xD9>,
+				 <&cpg CPG_MOD 0xDA>,
+				 <&cpg CPG_MOD 0xD8>;
+			clock-names = "video", "apb", "axi";
+			interrupts = <GIC_SPI 850 IRQ_TYPE_LEVEL_HIGH>;
+			resets = <&cpg 0xCB>, <&cpg 0xCC>;
+			reset-names = "presetn", "aresetn";
+			power-domains = <&cpg>;
+			channel,id = <2>;
+			status = "disabled";
+
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				port@1 {
+					reg = <1>;
+
+					cru2_to_csi22: endpoint {
+						remote-endpoint =
+							<&csi22_to_cru2>;
+					};
+				};
+			};
+		};
+
+		cru3: video3@16030000 {
+			compatible = "renesas,r9a09g057-cru";
+			reg = <0 0x16030000 0 0x400>;
+			clocks = <&cpg CPG_MOD 0xDC>,
+				 <&cpg CPG_MOD 0xDD>,
+				 <&cpg CPG_MOD 0xDB>;
+			clock-names = "video", "apb", "axi";
+			interrupts = <GIC_SPI 855 IRQ_TYPE_LEVEL_HIGH>;
+			resets = <&cpg 0xCE>, <&cpg 0xCF>;
+			reset-names = "presetn", "aresetn";
+			power-domains = <&cpg>;
+			channel,id = <3>;
+			status = "disabled";
+
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				port@1 {
+					reg = <1>;
+
+					cru3_to_csi23: endpoint {
+						remote-endpoint =
+							<&csi23_to_cru3>;
+					};
+				};
+			};
+		};
+
+		csi20: csi20@16000400 {
+			compatible = "renesas,r9a09g057-csi2", "renesas,rzv2h-csi2";
+			reg = <0 0x16000400 0 0xc00>;
+			interrupts = <GIC_SPI 837 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 0xD3>,
+				 <&cpg CPG_MOD 0xD4>;
+			clock-names = "video", "apb";
+			resets = <&cpg 0xC5>, <&cpg 0xC7>;
+			reset-names ="presetn", "cmn-rstb";
+			status = "disabled";
+
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				port@1 {
+					reg = <1>;
+
+					csi20_to_cru0: endpoint {
+						remote-endpoint =
+							<&cru0_to_csi20>;
+					};
+				};
+			};
+		};
+
+		csi21: csi21@16010400 {
+			compatible = "renesas,r9a09g057-csi2", "renesas,rzv2h-csi2";
+			reg = <0 0x16010400 0 0xc00>;
+			interrupts = <GIC_SPI 843 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 0xD6>,
+				 <&cpg CPG_MOD 0xD7>;
+			clock-names = "video", "apb";
+			resets = <&cpg 0xC8>, <&cpg 0xCA>;
+			reset-names = "presetn", "cmn-rstb";
+			status = "disabled";
+
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				port@1 {
+					reg = <1>;
+
+					csi21_to_cru1: endpoint {
+						remote-endpoint =
+							<&cru1_to_csi21>;
+					};
+				};
+			};
+		};
+
+		csi22: csi22@16020400 {
+			compatible = "renesas,r9a09g057-csi2", "renesas,rzv2h-csi2";
+			reg = <0 0x16020400 0 0xc00>;
+			interrupts = <GIC_SPI 849 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 0xD9>,
+				 <&cpg CPG_MOD 0xDA>;
+			clock-names = "video", "apb";
+			resets = <&cpg 0xCB>, <&cpg 0xCD>;
+			reset-names = "presetn", "cmn-rstb";
+			status = "disabled";
+
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				port@1 {
+					reg = <1>;
+
+					csi22_to_cru2: endpoint {
+						remote-endpoint =
+							<&cru2_to_csi22>;
+					};
+				};
+			};
+		};
+
+		csi23: csi23@16030400 {
+			compatible = "renesas,r9a09g057-csi2", "renesas,rzv2h-csi2";
+			reg = <0 0x16030400 0 0xc00>;
+			interrupts = <GIC_SPI 854 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 0xDC>,
+				 <&cpg CPG_MOD 0xDD>;
+			clock-names = "video", "apb";
+			resets = <&cpg 0xCE>, <&cpg 0xD0>;
+			reset-names ="presetn", "cmn-rstb";
+			status = "disabled";
+
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				port@1 {
+					reg = <1>;
+
+					csi23_to_cru3: endpoint {
+						remote-endpoint =
+							<&cru3_to_csi23>;
+					};
+				};
+			};
+		};
+
 		ostm0: timer@11800000 {
 			compatible = "renesas,r9a09g057-ostm", "renesas,ostm";
 			reg = <0x0 0x11800000 0x0 0x1000>;
