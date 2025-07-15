@@ -301,7 +301,6 @@ err_free:
 
 TIMER_OF_DECLARE(ostm, "renesas,ostm", ostm_init);
 
-#if defined(CONFIG_ARCH_RZG2L) || defined(CONFIG_ARCH_R9A09G057)
 static int __init ostm_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
@@ -309,7 +308,7 @@ static int __init ostm_probe(struct platform_device *pdev)
 	return ostm_init(dev->of_node);
 }
 
-static const struct of_device_id ostm_of_table[] = {
+static const struct of_device_id __maybe_unused ostm_of_table[] = {
 	{ .compatible = "renesas,ostm", },
 	{ /* sentinel */ }
 };
@@ -322,4 +321,3 @@ static struct platform_driver ostm_device_driver = {
 	},
 };
 builtin_platform_driver_probe(ostm_device_driver, ostm_probe);
-#endif
