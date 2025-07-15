@@ -781,6 +781,10 @@
 	status = "okay";
 };
 
+&adc {
+	status = "okay";
+};
+
 &xspi {
 	pinctrl-0 = <&xspi_pins>;
 	pinctrl-names = "default";
