@@ -277,6 +277,46 @@
 			resets = <&cpg 0x36>;
 		};
 
+		adc: adc@11c00000 {
+			compatible = "renesas,r9a09g057-adc", "renesas,rzv2h-adc";
+			reg = <0 0x11C00000 0 0x400>;
+			clocks = <&cpg CPG_MOD 0x107>,
+				 <&cpg CPG_MOD 0x108>;
+			clock-names = "pclk", "adclk";
+			resets =  <&cpg 0xf6>;
+			reset-names = "adrst-n";
+			power-domains = <&cpg>;
+			status = "disabled";
+
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			channel@0 {
+				reg = <0>;
+			};
+			channel@1 {
+				reg = <1>;
+			};
+			channel@2 {
+				reg = <2>;
+			};
+			channel@3 {
+				reg = <3>;
+			};
+			channel@4 {
+				reg = <4>;
+			};
+			channel@5 {
+				reg = <5>;
+			};
+			channel@6 {
+				reg = <6>;
+			};
+			channel@7 {
+				reg = <7>;
+			};
+		};
+
 		pinctrl: pinctrl@10410000 {
 			compatible = "renesas,r9a09g057-pinctrl";
 			reg = <0 0x10410000 0 0x10000>;
