@@ -12,6 +12,7 @@
 #include <linux/reset.h>
 
 #include <media/v4l2-async.h>
+#include <media/v4l2-ctrls.h>
 #include <media/v4l2-dev.h>
 #include <media/v4l2-device.h>
 #include <media/videobuf2-v4l2.h>
@@ -115,6 +116,8 @@ struct rzg2l_cru_info {
  * @buf_addr:		Memory addresses where current video data is written.
  * @notifier:		V4L2 asynchronous subdevs notifier
  *
+ * @ctrl_handler:	V4L2 control handler associated with CRU
+ *
  * @ip:			Image processing subdev info
  * @csi:		CSI info
  * @mdev:		media device
@@ -150,9 +153,11 @@ struct rzg2l_cru_dev {
 	u8 num_buf;
 
 	u8 svc_channel;
-	dma_addr_t buf_addr[RZG2L_CRU_HW_BUFFER_DEFAULT];
+	dma_addr_t buf_addr[RZG2L_CRU_HW_BUFFER_MAX];
 
 	struct v4l2_async_notifier notifier;
+
+	struct v4l2_ctrl_handler ctrl_handler;
 
 	struct rzg2l_cru_ip ip;
 	struct rzg2l_cru_csi csi;

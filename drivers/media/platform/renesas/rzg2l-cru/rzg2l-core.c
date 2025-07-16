@@ -133,6 +133,34 @@ static const struct v4l2_async_notifier_operations rzg2l_cru_async_ops = {
 	.complete = rzg2l_cru_group_notify_complete,
 };
 
+static int rzg2l_cru_s_ctrl(struct v4l2_ctrl *ctrl)
+{
+	struct rzg2l_cru_dev *cru = container_of(ctrl->handler,
+						 struct rzg2l_cru_dev,
+						 ctrl_handler);
+	int ret = 0;
+
+	switch (ctrl->id) {
+	case V4L2_CID_MIN_BUFFERS_FOR_CAPTURE:
+		if ((cru->state == RZG2L_CRU_DMA_STOPPED) ||
+		    (cru->state == RZG2L_CRU_DMA_STOPPING))
+			cru->num_buf = ctrl->val;
+		else
+			ret = -EBUSY;
+
+		break;
+	default:
+		ret = -EINVAL;
+		break;
+	}
+
+	return ret;
+}
+
+static const struct v4l2_ctrl_ops rzg2l_cru_ctrl_ops = {
+	.s_ctrl = rzg2l_cru_s_ctrl,
+};
+
 static int rzg2l_cru_mc_parse_of(struct rzg2l_cru_dev *cru)
 {
 	struct v4l2_fwnode_endpoint vep = {
@@ -244,6 +272,7 @@ static int rzg2l_cru_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 	struct rzg2l_cru_dev *cru;
+	struct v4l2_ctrl *ctrl;
 	int irq, ret;
 
 	cru = devm_kzalloc(dev, sizeof(*cru), GFP_KERNEL);
@@ -297,7 +326,30 @@ static int rzg2l_cru_probe(struct platform_device *pdev)
 	if (ret)
 		goto error_dma_unregister;
 
+	/* Add the control about minimum amount of buffers */
+	v4l2_ctrl_handler_init(&cru->ctrl_handler, 1);
+	ctrl = v4l2_ctrl_new_std(&cru->ctrl_handler, &rzg2l_cru_ctrl_ops,
+				 V4L2_CID_MIN_BUFFERS_FOR_CAPTURE,
+				 1, RZG2L_CRU_HW_BUFFER_MAX, 1,
+				 RZG2L_CRU_HW_BUFFER_DEFAULT);
+
+	ctrl->flags &= ~V4L2_CTRL_FLAG_READ_ONLY;
+
+	v4l2_ctrl_handler_setup(&cru->ctrl_handler);
+
+	if (cru->ctrl_handler.error) {
+		dev_err(&pdev->dev, "%s: control initialization error %d\n",
+				    __func__, cru->ctrl_handler.error);
+		ret = cru->ctrl_handler.error;
+		goto free_ctrl;
+	}
+
+	cru->v4l2_dev.ctrl_handler = &cru->ctrl_handler;
+
 	return 0;
+
+free_ctrl:
+	v4l2_ctrl_handler_free(&cru->ctrl_handler);
 
 error_dma_unregister:
 	rzg2l_cru_dma_unregister(cru);
