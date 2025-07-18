@@ -40,6 +40,59 @@
 		reg = <0x2 0x40000000 0x2 0x00000000>;
 	};
 
+	reserved-memory {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		global_cma: linux,cma@58000000 {
+			compatible = "shared-dma-pool";
+			linux,cma-default;
+			reusable;
+			reg = <0x0 0x58000000 0x0 0x28000000>;
+		};
+
+		mmp_reserved: linux,multimedia {
+			compatible = "shared-dma-pool";
+			reusable;
+			reg = <0x00000000 0x80000000 0x0 0x10000000>;
+		};
+
+		isp_reserved: frame_buffer@90000000 {
+			compatible = "shared-dma-pool";
+			reusable;
+			reg = <0x0 0x90000000 0x0 0x18000000>;
+		};
+
+		opencva_reserved: OpenCVA@A8000000 {
+			reusable;
+			reg = <0x0 0xA8000000 0x0 0x7D00000>;
+		};
+
+		drp_codec: DRP-Codec@AFD00000 {
+			reusable;
+			reg = <0x0 0xAFD00000 0x0 0x300000>;
+		};
+
+		image_buf0: image_buf@B0000000 {
+			compatible = "shared-dma-pool";
+			reusable;
+			reg = <0x0 0xB0000000 0x0 0x4000000>;
+			label = "image_buf0";
+		};
+
+		cru_func: cru_buffer@B4000000 {
+			compatible = "shared-dma-pool";
+			reusable;
+			reg = <0x0 0xB4000000 0x0 0x16400000>;
+		};
+
+		drp_reserved: DRP-AI@240000000 {
+			reusable;
+			reg = <0x2 0x40000000 0x0 0x20000000>;
+		};
+	};
+
 	reg_0p8v: regulator-0p8v {
 		compatible = "regulator-fixed";
 
