@@ -22,6 +22,9 @@ enum clk_ids {
 	CLK_AUDIO_EXTAL,
 	CLK_RTXIN,
 	CLK_QEXTAL,
+	AUDIO_CLKA,
+	AUDIO_CLKB,
+	AUDIO_CLKC,
 
 	/* PLL Clocks */
 	CLK_PLLCM33,
@@ -33,20 +36,34 @@ enum clk_ids {
 	CLK_PLLGPU,
 
 	/* Internal Core Clocks */
+	CLK_PLLCM33_DIV2,
 	CLK_PLLCM33_DIV3,
 	CLK_PLLCM33_DIV4,
 	CLK_PLLCM33_DIV5,
 	CLK_PLLCM33_DIV16,
+	CLK_PLLCM33_DIV32,
+	CLK_PLLCM33_ADC_PCLK,
+	CLK_PLLCM33_ADC_ADCLK,
+	CLK_PLLCM33_ADC_PCLK_DIV2,
+	CLK_PLLCM33_DIV4_DDIV2,
+	CLK_PLLCM33_DIV4_DDIV2_DIV2,
 	CLK_PLLCM33_GEAR,
 	CLK_SMUX2_XSPI_CLK0,
 	CLK_SMUX2_XSPI_CLK1,
 	CLK_PLLCM33_XSPI,
 	CLK_PLLCLN_DIV2,
+	CLK_PLLCLN_DIV4,
 	CLK_PLLCLN_DIV8,
 	CLK_PLLCLN_DIV16,
+	CLK_PLLCLN_DIV20,
+	CLK_PLLCLN_DIV32,
+	CLK_PLLCLN_DIV64,
+	CLK_PLLCLN_DIV256,
+	CLK_PLLCLN_DIV1024,
 	CLK_PLLDTY_ACPU,
 	CLK_PLLDTY_ACPU_DIV2,
 	CLK_PLLDTY_ACPU_DIV4,
+	CLK_PLLDTY_DIV4,
 	CLK_PLLDTY_DIV8,
 	CLK_PLLDTY_DIV16,
 	CLK_PLLDTY_RCPU,
@@ -55,6 +72,8 @@ enum clk_ids {
 	CLK_PLLVDO_CRU1,
 	CLK_PLLVDO_CRU2,
 	CLK_PLLVDO_CRU3,
+	CLK_PLLVDO_ISU,
+	CLK_PLLDSI_SDIV2,
 	CLK_PLLETH_DIV_250_FIX,
 	CLK_PLLETH_DIV_125_FIX,
 	CLK_CSDIV_PLLETH_GBE0,
@@ -64,6 +83,7 @@ enum clk_ids {
 	CLK_SMUX2_GBE1_TXCLK,
 	CLK_SMUX2_GBE1_RXCLK,
 	CLK_PLLGPU_GEAR,
+	CDIV5_MAINOSC,
 
 	/* Module Clocks */
 	MOD_CLK_BASE,
@@ -107,6 +127,12 @@ static const struct clk_div_table dtable_2_100[] = {
 	{0, 0},
 };
 
+static const struct clk_div_table dtable_8_10[] = {
+	{0, 8},
+	{1, 10},
+	{0, 0},
+};
+
 /* Mux clock tables */
 static const char * const smux2_gbe0_rxclk[] = { ".plleth_gbe0", "et0_rxclk" };
 static const char * const smux2_gbe0_txclk[] = { ".plleth_gbe0", "et0_txclk" };
@@ -120,6 +146,9 @@ static const struct cpg_core_clk r9a09g057_core_clks[] __initconst = {
 	DEF_INPUT("audio_extal", CLK_AUDIO_EXTAL),
 	DEF_INPUT("rtxin", CLK_RTXIN),
 	DEF_INPUT("qextal", CLK_QEXTAL),
+	DEF_INPUT("audio_clka", AUDIO_CLKA),
+	DEF_INPUT("audio_clkb", AUDIO_CLKB),
+	DEF_INPUT("audio_clkc", AUDIO_CLKC),
 
 	/* PLL Clocks */
 	DEF_FIXED(".pllcm33", CLK_PLLCM33, CLK_QEXTAL, 200, 3),
@@ -131,24 +160,43 @@ static const struct cpg_core_clk r9a09g057_core_clks[] __initconst = {
 	DEF_PLL(".pllgpu", CLK_PLLGPU, CLK_QEXTAL, PLLGPU),
 
 	/* Internal Core Clocks */
+	DEF_FIXED(".pllcm33_div2", CLK_PLLCM33_DIV2, CLK_PLLCM33, 1, 2),
 	DEF_FIXED(".pllcm33_div3", CLK_PLLCM33_DIV3, CLK_PLLCM33, 1, 3),
 	DEF_FIXED(".pllcm33_div4", CLK_PLLCM33_DIV4, CLK_PLLCM33, 1, 4),
 	DEF_FIXED(".pllcm33_div5", CLK_PLLCM33_DIV5, CLK_PLLCM33, 1, 5),
+	DEF_CSDIV(".pllcm33_adc_pclk", CLK_PLLCM33_ADC_PCLK, CLK_PLLCM33_DIV2,
+		  CSDIV1_DIVCTL0, dtable_8_10),
+	DEF_FIXED(".pllcm33_adc_pclk_div2", CLK_PLLCM33_ADC_PCLK_DIV2,
+						CLK_PLLCM33_ADC_PCLK, 1, 2),
+	DEF_DDIV(".pllcm33_div4_ddiv2", CLK_PLLCM33_DIV4_DDIV2, CLK_PLLCM33_DIV4,
+						CDDIV0_DIVCTL1, dtable_2_64),
+	DEF_FIXED(".pllcm33_div4_ddiv2_div2", CLK_PLLCM33_DIV4_DDIV2_DIV2,
+						CLK_PLLCM33_DIV4_DDIV2, 1, 2),
+	DEF_CSDIV(".pllcm33_adc_adclk", CLK_PLLCM33_ADC_ADCLK, CLK_PLLCM33_ADC_PCLK,
+							CSDIV1_DIVCTL1, dtable_2_16),
 	DEF_DDIV(".pllcm33_gear", CLK_PLLCM33_GEAR,
 		 CLK_PLLCM33_DIV4, CDDIV0_DIVCTL1, dtable_2_64),
 	DEF_FIXED(".pllcm33_div16", CLK_PLLCM33_DIV16, CLK_PLLCM33, 1, 16),
+	DEF_FIXED(".pllcm33_div32", CLK_PLLCM33_DIV32, CLK_PLLCM33, 1, 32),
 	DEF_SMUX(".smux2_xspi_clk0", CLK_SMUX2_XSPI_CLK0, SSEL1_SELCTL2, smux2_xspi_clk0),
 	DEF_SMUX(".smux2_xspi_clk1", CLK_SMUX2_XSPI_CLK1, SSEL1_SELCTL3, smux2_xspi_clk1),
 	DEF_CSDIV(".pllcm33_xspi", CLK_PLLCM33_XSPI, CLK_SMUX2_XSPI_CLK1, CSDIV0_DIVCTL3,
 		  dtable_2_16),
 
 	DEF_FIXED(".pllcln_div2", CLK_PLLCLN_DIV2, CLK_PLLCLN, 1, 2),
+	DEF_FIXED(".pllcln_div4", CLK_PLLCLN_DIV4, CLK_PLLCLN, 1, 4),
 	DEF_FIXED(".pllcln_div8", CLK_PLLCLN_DIV8, CLK_PLLCLN, 1, 8),
 	DEF_FIXED(".pllcln_div16", CLK_PLLCLN_DIV16, CLK_PLLCLN, 1, 16),
+	DEF_FIXED(".pllcln_div20", CLK_PLLCLN_DIV20, CLK_PLLCLN, 1, 20),
+	DEF_FIXED(".pllcln_div32", CLK_PLLCLN_DIV32, CLK_PLLCLN, 1, 32),
+	DEF_FIXED(".pllcln_div64", CLK_PLLCLN_DIV64, CLK_PLLCLN, 1, 64),
+	DEF_FIXED(".pllcln_div256", CLK_PLLCLN_DIV256, CLK_PLLCLN, 1, 256),
+	DEF_FIXED(".pllcln_div1024", CLK_PLLCLN_DIV1024, CLK_PLLCLN, 1, 1024),
 
 	DEF_DDIV(".plldty_acpu", CLK_PLLDTY_ACPU, CLK_PLLDTY, CDDIV0_DIVCTL2, dtable_2_64),
 	DEF_FIXED(".plldty_acpu_div2", CLK_PLLDTY_ACPU_DIV2, CLK_PLLDTY_ACPU, 1, 2),
 	DEF_FIXED(".plldty_acpu_div4", CLK_PLLDTY_ACPU_DIV4, CLK_PLLDTY_ACPU, 1, 4),
+	DEF_FIXED(".plldty_div4", CLK_PLLDTY_DIV4, CLK_PLLDTY, 1, 4),
 	DEF_FIXED(".plldty_div8", CLK_PLLDTY_DIV8, CLK_PLLDTY, 1, 8),
 	DEF_FIXED(".plldty_div16", CLK_PLLDTY_DIV16, CLK_PLLDTY, 1, 16),
 	DEF_DDIV(".plldty_rcpu", CLK_PLLDTY_RCPU, CLK_PLLDTY, CDDIV3_DIVCTL2, dtable_2_64),
@@ -158,6 +206,7 @@ static const struct cpg_core_clk r9a09g057_core_clks[] __initconst = {
 	DEF_DDIV(".pllvdo_cru1", CLK_PLLVDO_CRU1, CLK_PLLVDO, CDDIV4_DIVCTL0, dtable_2_4),
 	DEF_DDIV(".pllvdo_cru2", CLK_PLLVDO_CRU2, CLK_PLLVDO, CDDIV4_DIVCTL1, dtable_2_4),
 	DEF_DDIV(".pllvdo_cru3", CLK_PLLVDO_CRU3, CLK_PLLVDO, CDDIV4_DIVCTL2, dtable_2_4),
+	DEF_DDIV(".pllvdo_isu", CLK_PLLVDO_ISU, CLK_PLLVDO, CDDIV3_DIVCTL0, dtable_2_64),
 	DEF_FIXED(".plleth_250_fix", CLK_PLLETH_DIV_250_FIX, CLK_PLLETH, 1, 4),
 	DEF_FIXED(".plleth_125_fix", CLK_PLLETH_DIV_125_FIX, CLK_PLLETH_DIV_250_FIX, 1, 2),
 	DEF_CSDIV(".plleth_gbe0", CLK_CSDIV_PLLETH_GBE0,
@@ -170,6 +219,7 @@ static const struct cpg_core_clk r9a09g057_core_clks[] __initconst = {
 	DEF_SMUX(".smux2_gbe1_rxclk", CLK_SMUX2_GBE1_RXCLK, SSEL1_SELCTL1, smux2_gbe1_rxclk),
 
 	DEF_DDIV(".pllgpu_gear", CLK_PLLGPU_GEAR, CLK_PLLGPU, CDDIV3_DIVCTL1, dtable_2_64),
+	DEF_FIXED(".cdiv5_mainosc", CDIV5_MAINOSC, CLK_QEXTAL, 1, 5),
 
 	/* Core Clocks */
 	DEF_FIXED("sys_0_pclk", R9A09G057_SYS_0_PCLK, CLK_QEXTAL, 1, 1),
@@ -207,6 +257,26 @@ static const struct rzv2h_mod_clk r9a09g057_mod_clks[] __initconst = {
 						BUS_MSTOP_NONE),
 	DEF_MOD_CRITICAL("gic_0_gicclk",	CLK_PLLDTY_ACPU_DIV4, 1, 3, 0, 19,
 						BUS_MSTOP(3, BIT(5))),
+	DEF_MOD("gpt0_pclk_sfr",		CLK_PLLCLN_DIV8, 3, 1, 1, 17,
+						BUS_MSTOP(6, BIT(11))),
+	DEF_MOD("gpt1_pclk_sfr",		CLK_PLLCLN_DIV8, 3, 2, 1, 18,
+						BUS_MSTOP(6, BIT(12))),
+	DEF_MOD("mcpu_cmtw0_clkm",		CLK_PLLCM33_DIV32, 3, 11, 1, 27,
+						BUS_MSTOP(3, BIT(15))),
+	DEF_MOD("mcpu_cmtw1_clkm",		CLK_PLLCM33_DIV32, 3, 12, 1, 28,
+						BUS_MSTOP(4, BIT(0))),
+	DEF_MOD("mcpu_cmtw2_clkm",		CLK_PLLCM33_DIV32, 3, 13, 1, 29,
+						BUS_MSTOP(4, BIT(1))),
+	DEF_MOD("mcpu_cmtw3_clkm",		CLK_PLLCM33_DIV32, 3, 14, 1, 30,
+						BUS_MSTOP(4, BIT(2))),
+	DEF_MOD("rcpu_cmtw0_clkm",		CLK_PLLCLN_DIV32, 3, 15, 1, 31,
+						BUS_MSTOP(5, BIT(15))),
+	DEF_MOD("rcpu_cmtw1_clkm",		CLK_PLLCLN_DIV32, 4, 0, 2, 0,
+						BUS_MSTOP(6, BIT(0))),
+	DEF_MOD("rcpu_cmtw2_clkm",		CLK_PLLCLN_DIV32, 4, 1, 2, 1,
+						BUS_MSTOP(6, BIT(1))),
+	DEF_MOD("rcpu_cmtw3_clkm",		CLK_PLLCLN_DIV32, 4, 2, 2, 2,
+						BUS_MSTOP(6, BIT(2))),
 	DEF_MOD("gtm_0_pclk",			CLK_PLLCM33_DIV16, 4, 3, 2, 3,
 						BUS_MSTOP(5, BIT(10))),
 	DEF_MOD("gtm_1_pclk",			CLK_PLLCM33_DIV16, 4, 4, 2, 4,
@@ -239,6 +309,8 @@ static const struct rzv2h_mod_clk r9a09g057_mod_clks[] __initconst = {
 						BUS_MSTOP(5, BIT(13))),
 	DEF_MOD("wdt_3_clk_loco",		CLK_QEXTAL, 5, 2, 2, 18,
 						BUS_MSTOP(5, BIT(13))),
+	DEF_MOD("rtc_clk_rtc",			CLK_PLLCM33_DIV16, 5, 3, 2, 19,
+						BUS_MSTOP(3, BIT(11) | BIT(12))),
 	DEF_MOD("rspi_0_pclk",			CLK_PLLCLN_DIV8, 5, 4, 2, 20,
 						BUS_MSTOP(11, BIT(0))),
 	DEF_MOD("rspi_0_pclk_sfr",		CLK_PLLCLN_DIV8, 5, 5, 2, 21,
@@ -257,8 +329,114 @@ static const struct rzv2h_mod_clk r9a09g057_mod_clks[] __initconst = {
 						BUS_MSTOP(11, BIT(2))),
 	DEF_MOD("rspi_2_tclk",			CLK_PLLCLN_DIV8, 5, 12, 2, 28,
 						BUS_MSTOP(11, BIT(2))),
+	DEF_MOD("rsci0_pclk",			CLK_PLLCM33_DIV16, 5, 13, 2, 29,
+						BUS_MSTOP(11, BIT(3))),
+	DEF_MOD("rsci0_tclk",			CLK_PLLCM33_DIV16, 5, 14, 2, 30,
+						BUS_MSTOP(11, BIT(3))),
+	DEF_MOD("rsci0_ps_ps3_n",		CLK_PLLCLN_DIV1024, 5, 15, 2, 31,
+						BUS_MSTOP(11, BIT(3))),
+	DEF_MOD("rsci0_ps_ps2_n",		CLK_PLLCLN_DIV256, 6, 0, 3, 0,
+						BUS_MSTOP(11, BIT(3))),
+	DEF_MOD("rsci0_ps_ps1_n",		CLK_PLLCLN_DIV64, 6, 1, 3, 1,
+						BUS_MSTOP(11, BIT(3))),
+	DEF_MOD("rsci1_pclk",			CLK_PLLCM33_DIV16, 6, 2, 3, 2,
+						BUS_MSTOP(11, BIT(4))),
+	DEF_MOD("rsci1_tclk",			CLK_PLLCM33_DIV16, 6, 3, 3, 3,
+						BUS_MSTOP(11, BIT(4))),
+	DEF_MOD("rsci1_ps_ps3_n",		CLK_PLLCLN_DIV1024, 6, 4, 3, 4,
+						BUS_MSTOP(11, BIT(4))),
+	DEF_MOD("rsci1_ps_ps2_n",		CLK_PLLCLN_DIV256, 6, 5, 3, 5,
+						BUS_MSTOP(11, BIT(4))),
+	DEF_MOD("rsci1_ps_ps1_n",		CLK_PLLCLN_DIV64, 6, 6, 3, 6,
+						BUS_MSTOP(11, BIT(4))),
+	DEF_MOD("rsci2_pclk",			CLK_PLLCM33_DIV16, 6, 7, 3, 7,
+						BUS_MSTOP(11, BIT(5))),
+	DEF_MOD("rsci2_tclk",			CLK_PLLCM33_DIV16, 6, 8, 3, 8,
+						BUS_MSTOP(11, BIT(5))),
+	DEF_MOD("rsci2_ps_ps3_n",		CLK_PLLCLN_DIV1024, 6, 9, 3, 9,
+						BUS_MSTOP(11, BIT(5))),
+	DEF_MOD("rsci2_ps_ps2_n",		CLK_PLLCLN_DIV256, 6, 10, 3, 10,
+						BUS_MSTOP(11, BIT(5))),
+	DEF_MOD("rsci2_ps_ps1_n",		CLK_PLLCLN_DIV64, 6, 11, 3, 11,
+						BUS_MSTOP(11, BIT(5))),
+	DEF_MOD("rsci3_pclk",			CLK_PLLCM33_DIV16, 6, 12, 3, 12,
+						BUS_MSTOP(11, BIT(6))),
+	DEF_MOD("rsci3_tclk",			CLK_PLLCM33_DIV16, 6, 13, 3, 13,
+						BUS_MSTOP(11, BIT(6))),
+	DEF_MOD("rsci3_ps_ps3_n",		CLK_PLLCLN_DIV1024, 6, 14, 3, 14,
+						BUS_MSTOP(11, BIT(6))),
+	DEF_MOD("rsci3_ps_ps2_n",		CLK_PLLCLN_DIV256, 6, 15, 3, 15,
+						BUS_MSTOP(11, BIT(6))),
+	DEF_MOD("rsci3_ps_ps1_n",		CLK_PLLCLN_DIV64, 7, 0, 3, 16,
+						BUS_MSTOP(11, BIT(6))),
+	DEF_MOD("rsci4_pclk",			CLK_PLLCM33_DIV16, 7, 1, 3, 17,
+						BUS_MSTOP(11, BIT(7))),
+	DEF_MOD("rsci4_tclk",			CLK_PLLCM33_DIV16, 7, 2, 3, 18,
+						BUS_MSTOP(11, BIT(7))),
+	DEF_MOD("rsci4_ps_ps3_n",		CLK_PLLCLN_DIV1024, 7, 3, 3, 19,
+						BUS_MSTOP(11, BIT(7))),
+	DEF_MOD("rsci4_ps_ps2_n",		CLK_PLLCLN_DIV256, 7, 4, 3, 20,
+						BUS_MSTOP(11, BIT(7))),
+	DEF_MOD("rsci4_ps_ps1_n",		CLK_PLLCLN_DIV64, 7, 5, 3, 21,
+						BUS_MSTOP(11, BIT(7))),
+	DEF_MOD("rsci5_pclk",			CLK_PLLCM33_DIV16, 7, 6, 3, 22,
+						BUS_MSTOP(11, BIT(8))),
+	DEF_MOD("rsci5_tclk",			CLK_PLLCM33_DIV16, 7, 7, 3, 23,
+						BUS_MSTOP(11, BIT(8))),
+	DEF_MOD("rsci5_ps_ps3_n",		CLK_PLLCLN_DIV1024, 7, 8, 3, 24,
+						BUS_MSTOP(11, BIT(8))),
+	DEF_MOD("rsci5_ps_ps2_n",		CLK_PLLCLN_DIV256, 7, 9, 3, 25,
+						BUS_MSTOP(11, BIT(8))),
+	DEF_MOD("rsci5_ps_ps1_n",		CLK_PLLCLN_DIV64, 7, 10, 3, 26,
+						BUS_MSTOP(11, BIT(8))),
+	DEF_MOD("rsci6_pclk",			CLK_PLLCM33_DIV16, 7, 11, 3, 27,
+						BUS_MSTOP(11, BIT(9))),
+	DEF_MOD("rsci6_tclk",			CLK_PLLCM33_DIV16, 7, 12, 3, 28,
+						BUS_MSTOP(11, BIT(9))),
+	DEF_MOD("rsci6_ps_ps3_n",		CLK_PLLCLN_DIV1024, 7, 13, 3, 29,
+						BUS_MSTOP(11, BIT(9))),
+	DEF_MOD("rsci6_ps_ps2_n",		CLK_PLLCLN_DIV256, 7, 14, 3, 30,
+						BUS_MSTOP(11, BIT(9))),
+	DEF_MOD("rsci6_ps_ps1_n",		CLK_PLLCLN_DIV64, 7, 15, 3, 31,
+						BUS_MSTOP(11, BIT(9))),
+	DEF_MOD("rsci7_pclk",			CLK_PLLCM33_DIV16, 8, 0, 4, 0,
+						BUS_MSTOP(11, BIT(10))),
+	DEF_MOD("rsci7_tclk",			CLK_PLLCM33_DIV16, 8, 1, 4, 1,
+						BUS_MSTOP(11, BIT(10))),
+	DEF_MOD("rsci7_ps_ps3_n",		CLK_PLLCLN_DIV1024, 8, 2, 4, 2,
+						BUS_MSTOP(11, BIT(10))),
+	DEF_MOD("rsci7_ps_ps2_n",		CLK_PLLCLN_DIV256, 8, 3, 4, 3,
+						BUS_MSTOP(11, BIT(10))),
+	DEF_MOD("rsci7_ps_ps1_n",		CLK_PLLCLN_DIV64, 8, 4, 4, 4,
+						BUS_MSTOP(11, BIT(10))),
+	DEF_MOD("rsci8_pclk",			CLK_PLLCM33_DIV16, 8, 5, 4, 5,
+						BUS_MSTOP(11, BIT(11))),
+	DEF_MOD("rsci8_tclk",			CLK_PLLCM33_DIV16, 8, 6, 4, 6,
+						BUS_MSTOP(11, BIT(11))),
+	DEF_MOD("rsci8_ps_ps3_n",		CLK_PLLCLN_DIV1024, 8, 7, 4, 7,
+						BUS_MSTOP(11, BIT(11))),
+	DEF_MOD("rsci8_ps_ps2_n",		CLK_PLLCLN_DIV256, 8, 8, 4, 8,
+						BUS_MSTOP(11, BIT(11))),
+	DEF_MOD("rsci8_ps_ps1_n",		CLK_PLLCLN_DIV64, 8, 9, 4, 9,
+						BUS_MSTOP(11, BIT(11))),
+	DEF_MOD("rsci9_pclk",			CLK_PLLCM33_DIV16, 8, 10, 4, 10,
+						BUS_MSTOP(11, BIT(12))),
+	DEF_MOD("rsci9_tclk",			CLK_PLLCM33_DIV16, 8, 11, 4, 11,
+						BUS_MSTOP(11, BIT(12))),
+	DEF_MOD("rsci9_ps_ps3_n",		CLK_PLLCLN_DIV1024, 8, 12, 4, 12,
+						BUS_MSTOP(11, BIT(12))),
+	DEF_MOD("rsci9_ps_ps2_n",		CLK_PLLCLN_DIV256, 8, 13, 4, 13,
+						BUS_MSTOP(11, BIT(12))),
+	DEF_MOD("rsci9_ps_ps1_n",		CLK_PLLCLN_DIV64, 8, 14, 4, 14,
+						BUS_MSTOP(11, BIT(12))),
 	DEF_MOD("scif_0_clk_pck",		CLK_PLLCM33_DIV16, 8, 15, 4, 15,
 						BUS_MSTOP(3, BIT(14))),
+	DEF_MOD("i3c_pclkrw",			CLK_PLLCLN_DIV16, 9, 0, 4, 16,
+						BUS_MSTOP(10, BIT(15))),
+	DEF_MOD("i3c_pclk",			CLK_PLLCLN_DIV16, 9, 1, 4, 17,
+						BUS_MSTOP(10, BIT(15))),
+	DEF_MOD("i3c_tclk",			CLK_PLLCLN_DIV8, 9, 2, 4, 18,
+						BUS_MSTOP(10, BIT(15))),
 	DEF_MOD("riic_8_ckm",			CLK_PLLCM33_DIV16, 9, 3, 4, 19,
 						BUS_MSTOP(3, BIT(13))),
 	DEF_MOD("riic_0_ckm",			CLK_PLLCLN_DIV16, 9, 4, 4, 20,
@@ -277,6 +455,12 @@ static const struct rzv2h_mod_clk r9a09g057_mod_clks[] __initconst = {
 						BUS_MSTOP(1, BIT(7))),
 	DEF_MOD("riic_7_ckm",			CLK_PLLCLN_DIV16, 9, 11, 4, 27,
 						BUS_MSTOP(1, BIT(8))),
+	DEF_MOD("canfd_pclk",			CLK_PLLCLN_DIV16, 9, 12, 4, 28,
+						BUS_MSTOP(10, BIT(14))),
+	DEF_MOD("canfd_clk_ram",		CLK_PLLCLN_DIV8, 9, 13, 4, 29,
+						BUS_MSTOP(10, BIT(14))),
+	DEF_MOD("canfd_clkc",			CLK_PLLCLN_DIV20, 9, 14, 4, 30,
+						BUS_MSTOP(10, BIT(14))),
 	DEF_MOD("spi_hclk",			CLK_PLLCM33_GEAR, 9, 15, 4, 31,
 						BUS_MSTOP(4, BIT(5))),
 	DEF_MOD("spi_aclk",			CLK_PLLCM33_GEAR, 10, 0, 5, 0,
@@ -307,6 +491,14 @@ static const struct rzv2h_mod_clk r9a09g057_mod_clks[] __initconst = {
 						BUS_MSTOP(8, BIT(4))),
 	DEF_MOD("sdhi_2_aclk",			CLK_PLLDTY_ACPU_DIV4, 10, 14, 5, 14,
 						BUS_MSTOP(8, BIT(4))),
+	DEF_MOD("usb30_aclk",			CLK_PLLDTY_DIV8, 10, 15, 5, 15,
+						BUS_MSTOP(7, BIT(12))),
+	DEF_MOD("usb30_pclk_usbtst",		CLK_PLLDTY_ACPU_DIV4, 11, 0, 5, 16,
+						BUS_MSTOP(7, BIT(14))),
+	DEF_MOD("usb31_aclk",			CLK_PLLDTY_DIV8, 11, 1, 5, 17,
+						BUS_MSTOP(7, BIT(13))),
+	DEF_MOD("usb31_pclk_usbtst",		CLK_PLLDTY_ACPU_DIV4, 11, 2, 5, 18,
+						BUS_MSTOP(7, BIT(15))),
 	DEF_MOD("usb2_0_u2h0_hclk",		CLK_PLLDTY_DIV8, 11, 3, 5, 19,
 						BUS_MSTOP(7, BIT(7))),
 	DEF_MOD("usb2_0_u2h1_hclk",		CLK_PLLDTY_DIV8, 11, 4, 5, 20,
@@ -341,6 +533,10 @@ static const struct rzv2h_mod_clk r9a09g057_mod_clks[] __initconst = {
 						BUS_MSTOP(8, BIT(6))),
 	DEF_MOD("gbeth_1_aclk_i",		CLK_PLLDTY_DIV8, 12, 3, 6, 3,
 						BUS_MSTOP(8, BIT(6))),
+	DEF_MOD("pcie_aclk",			CLK_PLLDTY_ACPU_DIV2, 12, 4, 6, 4,
+						BUS_MSTOP(1, BIT(15) | BIT(13))),
+	DEF_MOD("pcie_clk_pmu",			CLK_PLLDTY_ACPU_DIV2, 12, 5, 6, 5,
+						BUS_MSTOP(1, BIT(15) | BIT(13))),
 	DEF_MOD("cru_0_aclk",			CLK_PLLDTY_ACPU_DIV2, 13, 2, 6, 18,
 						BUS_MSTOP(9, BIT(4))),
 	DEF_MOD_NO_PM("cru_0_vclk",		CLK_PLLVDO_CRU0, 13, 3, 6, 19,
@@ -365,12 +561,154 @@ static const struct rzv2h_mod_clk r9a09g057_mod_clks[] __initconst = {
 						BUS_MSTOP(9, BIT(7))),
 	DEF_MOD("cru_3_pclk",			CLK_PLLDTY_DIV16, 13, 13, 6, 29,
 						BUS_MSTOP(9, BIT(7))),
+	DEF_MOD("cru_0_m_xi",			CLK_QEXTAL, 13, 14, 6, 30,
+						BUS_MSTOP(9, BIT(4))),
+	DEF_MOD("cru_1_m_xi",			CLK_QEXTAL, 13, 15, 6, 31,
+						BUS_MSTOP(9, BIT(5))),
+	DEF_MOD("cru_2_m_xi",			CLK_QEXTAL, 14, 0, 7, 0,
+						BUS_MSTOP(9, BIT(6))),
+	DEF_MOD("isu_aclk",			CLK_PLLVDO_ISU, 14, 6, 7, 6,
+						BUS_MSTOP(10, BIT(0))),
+	DEF_MOD("isu_pclk",			CLK_PLLDTY_DIV16, 14, 7, 7, 7,
+						BUS_MSTOP(10, BIT(0))),
+	DEF_MOD("lcdc_clka",			CLK_PLLDTY_ACPU_DIV2, 14, 13, 7, 13,
+						BUS_MSTOP(10, GENMASK(3, 1))),
+	DEF_MOD("lcdc_clkp",			CLK_PLLDTY_DIV16, 14, 14, 7, 14,
+						BUS_MSTOP(10, GENMASK(3, 1))),
+	DEF_MOD("lcdc_clkd",			CLK_PLLDSI_SDIV2, 14, 15, 7, 15,
+						BUS_MSTOP(10, GENMASK(3, 1))),
 	DEF_MOD("gpu_0_clk",			CLK_PLLGPU_GEAR, 15, 0, 7, 16,
 						BUS_MSTOP(3, BIT(4))),
 	DEF_MOD("gpu_0_axi_clk",		CLK_PLLDTY_ACPU_DIV2, 15, 1, 7, 17,
 						BUS_MSTOP(3, BIT(4))),
 	DEF_MOD("gpu_0_ace_clk",		CLK_PLLDTY_ACPU_DIV2, 15, 2, 7, 18,
 						BUS_MSTOP(3, BIT(4))),
+	DEF_MOD("vcd_aclk",			CLK_PLLDTY_DIV4, 15, 3, 7, 19,
+						BUS_MSTOP(9, GENMASK(13, 11))),
+	DEF_MOD("vcd_pclk",			CLK_PLLDTY_DIV8, 15, 4, 7, 20,
+						BUS_MSTOP(9, GENMASK(13, 11))),
+	DEF_MOD("ssif_clk",			CLK_PLLCLN_DIV8, 15, 5, 7, 21,
+						BUS_MSTOP(2, BIT(4) | BIT(3))),
+	DEF_MOD("scu_clk",			CLK_PLLCLN_DIV8, 15, 6, 7, 22,
+						BUS_MSTOP(2, BIT(1) | BIT(0))),
+	DEF_MOD("scu_clkx2",			CLK_PLLCLN_DIV4, 15, 7, 7, 23,
+						BUS_MSTOP(2, BIT(1) | BIT(0))),
+	DEF_MOD("dmacpp_clk",			CLK_PLLCLN_DIV8, 15, 8, 7, 24,
+						BUS_MSTOP(2, BIT(5))),
+	DEF_MOD("adg_clks1",			CLK_PLLCLN_DIV8, 15, 9, 7, 25,
+						BUS_MSTOP(2, BIT(2))),
+	DEF_MOD("adg_clk_195m",			CLK_PLLCLN_DIV8, 15, 10, 7, 26,
+						BUS_MSTOP(2, BIT(2))),
+	DEF_MOD("adg_audio_clka",		AUDIO_CLKA, 15, 11, 7, 27,
+						BUS_MSTOP(2, BIT(2))),
+	DEF_MOD("adg_audio_clkb",		AUDIO_CLKB, 15, 12, 7, 28,
+						BUS_MSTOP(2, BIT(2))),
+	DEF_MOD("adg_audio_clkc",		AUDIO_CLKC, 15, 13, 7, 29,
+						BUS_MSTOP(2, BIT(2))),
+	DEF_MOD("spdif_0_clkp",			CLK_PLLDTY_DIV16, 15, 14, 7, 30,
+						BUS_MSTOP(1, BIT(9))),
+	DEF_MOD("spdif_1_clkp",			CLK_PLLDTY_DIV16, 15, 15, 7, 31,
+						BUS_MSTOP(1, BIT(10))),
+	DEF_MOD("spdif_2_clkp",			CLK_PLLDTY_DIV16, 16, 0, 8, 0,
+						BUS_MSTOP(1, BIT(11))),
+	DEF_MOD("adc_pclk",			CLK_PLLCM33_ADC_PCLK_DIV2, 16, 7, 8, 7,
+						BUS_MSTOP(3, BIT(9))),
+	DEF_MOD("adc_adclk",			CLK_PLLCM33_ADC_ADCLK, 16, 8, 8, 8,
+						BUS_MSTOP(3, BIT(9))),
+	DEF_MOD("tsu_0_pclk",			CLK_QEXTAL, 16, 9, 8, 9,
+						BUS_MSTOP(5, BIT(2))),
+	DEF_MOD("tsu_1_pclk",			CLK_QEXTAL, 16, 10, 8, 10,
+						BUS_MSTOP(2, BIT(15))),
+	DEF_MOD("ssi_9_clk",			CLK_PLLCLN_DIV8, 24, 10, -1, -1,
+						BUS_MSTOP_NONE),
+	DEF_MOD("ssi_8_clk",			CLK_PLLCLN_DIV8, 24,  9, -1, -1,
+						BUS_MSTOP_NONE),
+	DEF_MOD("ssi_7_clk",			CLK_PLLCLN_DIV8, 24,  8, -1, -1,
+						BUS_MSTOP_NONE),
+	DEF_MOD("ssi_6_clk",			CLK_PLLCLN_DIV8, 24,  7, -1, -1,
+						BUS_MSTOP_NONE),
+	DEF_MOD("ssi_5_clk",			CLK_PLLCLN_DIV8, 24,  6, -1, -1,
+						BUS_MSTOP_NONE),
+	DEF_MOD("ssi_4_clk",			CLK_PLLCLN_DIV8, 24,  5, -1, -1,
+						BUS_MSTOP_NONE),
+	DEF_MOD("ssi_3_clk",			CLK_PLLCLN_DIV8, 24,  4, -1, -1,
+						BUS_MSTOP_NONE),
+	DEF_MOD("ssi_2_clk",			CLK_PLLCLN_DIV8, 24,  3, -1, -1,
+						BUS_MSTOP_NONE),
+	DEF_MOD("ssi_1_clk",			CLK_PLLCLN_DIV8, 24,  2, -1, -1,
+						BUS_MSTOP_NONE),
+	DEF_MOD("ssi_0_clk",			CLK_PLLCLN_DIV8, 24,  1, -1, -1,
+						BUS_MSTOP_NONE),
+	DEF_MOD("ssif_supply_clk",		CLK_PLLCLN_DIV8, 24,  0, -1, -1,
+						BUS_MSTOP_NONE),
+	DEF_MOD("src_9_clk",			CLK_PLLCLN_DIV8, 23, 13, -1, -1,
+						BUS_MSTOP_NONE),
+	DEF_MOD("src_8_clk",			CLK_PLLCLN_DIV8, 23, 12, -1, -1,
+						BUS_MSTOP_NONE),
+	DEF_MOD("src_7_clk",			CLK_PLLCLN_DIV8, 23, 11, -1, -1,
+						BUS_MSTOP_NONE),
+	DEF_MOD("src_6_clk",			CLK_PLLCLN_DIV8, 23, 10, -1, -1,
+						BUS_MSTOP_NONE),
+	DEF_MOD("src_5_clk",			CLK_PLLCLN_DIV8, 23,  9, -1, -1,
+						BUS_MSTOP_NONE),
+	DEF_MOD("src_4_clk",			CLK_PLLCLN_DIV8, 23,  8, -1, -1,
+						BUS_MSTOP_NONE),
+	DEF_MOD("src_3_clk",			CLK_PLLCLN_DIV8, 23,  7, -1, -1,
+						BUS_MSTOP_NONE),
+	DEF_MOD("src_2_clk",			CLK_PLLCLN_DIV8, 23,  6, -1, -1,
+						BUS_MSTOP_NONE),
+	DEF_MOD("src_1_clk",			CLK_PLLCLN_DIV8, 23,  5, -1, -1,
+						BUS_MSTOP_NONE),
+	DEF_MOD("src_0_clk",			CLK_PLLCLN_DIV8, 23,  4, -1, -1,
+						BUS_MSTOP_NONE),
+	DEF_MOD("dvc_0_clk",			CLK_PLLCLN_DIV8, 23,  0, -1, -1,
+						BUS_MSTOP_NONE),
+	DEF_MOD("dvc_1_clk",			CLK_PLLCLN_DIV8, 23,  1, -1, -1,
+						BUS_MSTOP_NONE),
+	DEF_MOD("ctu_0_mix_0_clk",		CLK_PLLCLN_DIV8, 23,  2, -1, -1,
+						BUS_MSTOP_NONE),
+	DEF_MOD("ctu_1_mix_1_clk",		CLK_PLLCLN_DIV8, 23,  3, -1, -1,
+						BUS_MSTOP_NONE),
+	DEF_MOD("scu_supply_clk",		CLK_PLLCLN_DIV8, 23, 14, -1, -1,
+						BUS_MSTOP_NONE),
+	DEF_MOD("adg_ssi_0_clk",		CLK_PLLCLN_DIV8, 22, 0, -1, -1,
+						BUS_MSTOP_NONE),
+	DEF_MOD("adg_ssi_1_clk",		CLK_PLLCLN_DIV8, 22, 1, -1, -1,
+						BUS_MSTOP_NONE),
+	DEF_MOD("adg_ssi_2_clk",		CLK_PLLCLN_DIV8, 22, 2, -1, -1,
+						BUS_MSTOP_NONE),
+	DEF_MOD("adg_ssi_3_clk",		CLK_PLLCLN_DIV8, 22, 3, -1, -1,
+						BUS_MSTOP_NONE),
+	DEF_MOD("adg_ssi_4_clk",		CLK_PLLCLN_DIV8, 22, 4, -1, -1,
+						BUS_MSTOP_NONE),
+	DEF_MOD("adg_ssi_5_clk",		CLK_PLLCLN_DIV8, 22, 5, -1, -1,
+						BUS_MSTOP_NONE),
+	DEF_MOD("adg_ssi_6_clk",		CLK_PLLCLN_DIV8, 22, 6, -1, -1,
+						BUS_MSTOP_NONE),
+	DEF_MOD("adg_ssi_7_clk",		CLK_PLLCLN_DIV8, 22, 7, -1, -1,
+						BUS_MSTOP_NONE),
+	DEF_MOD("adg_ssi_8_clk",		CLK_PLLCLN_DIV8, 22, 8, -1, -1,
+						BUS_MSTOP_NONE),
+	DEF_MOD("adg_ssi_9_clk",		CLK_PLLCLN_DIV8, 22, 9, -1, -1,
+						BUS_MSTOP_NONE),
+	DEF_MOD("adg_spdif_0_clk",		CLK_PLLCLN_DIV8, 22, 10, -1, -1,
+						BUS_MSTOP_NONE),
+	DEF_MOD("adg_spdif_1_clk",		CLK_PLLCLN_DIV8, 22, 11, -1, -1,
+						BUS_MSTOP_NONE),
+	DEF_MOD("adg_spdif_2_clk",		CLK_PLLCLN_DIV8, 22, 12, -1, -1,
+						BUS_MSTOP_NONE),
+	DEF_MOD("pdm_0_pclk",			CLK_PLLCM33_DIV4_DDIV2_DIV2, 16, 1, 8, 1,
+						BUS_MSTOP(5, BIT(6))),
+	DEF_MOD("pdm_0_pclk_sfr",		CLK_PLLCM33_DIV4_DDIV2_DIV2, 16, 2, 8, 2,
+						BUS_MSTOP(5, BIT(6))),
+	DEF_MOD("pdm_0_cclk",			CDIV5_MAINOSC, 16, 3, 8, 3,
+						BUS_MSTOP(5, BIT(6))),
+	DEF_MOD("pdm_1_pclk",			CLK_PLLCM33_DIV4_DDIV2_DIV2, 16, 4, 8, 4,
+						BUS_MSTOP(5, BIT(7))),
+	DEF_MOD("pdm_1_pclk_sfr",		CLK_PLLCM33_DIV4_DDIV2_DIV2, 16, 5, 8, 5,
+						BUS_MSTOP(5, BIT(7))),
+	DEF_MOD("pdm_1_cclk",			CDIV5_MAINOSC, 16, 6, 8, 6,
+						BUS_MSTOP(5, BIT(7))),
 };
 
 static const struct rzv2h_reset r9a09g057_resets[] __initconst = {
@@ -383,6 +721,18 @@ static const struct rzv2h_reset r9a09g057_resets[] __initconst = {
 	DEF_RST(3, 6, 1, 7),		/* ICU_0_PRESETN_I */
 	DEF_RST(3, 8, 1, 9),		/* GIC_0_GICRESET_N */
 	DEF_RST(3, 9, 1, 10),		/* GIC_0_DBG_GICRESET_N */
+	DEF_RST(5, 9, 2, 10),		/* GPT0_RST_P_REG */
+	DEF_RST(5, 10, 2, 11),		/* GPT0_RST_S_REG */
+	DEF_RST(5, 11, 2, 12),		/* GPT1_RST_P_REG */
+	DEF_RST(5, 12, 2, 13),		/* GPT1_RST_S_REG */
+	DEF_RST(6, 5, 2, 22),		/* MCPU_CMTW0_RST_M */
+	DEF_RST(6, 6, 2, 23),		/* MCPU_CMTW1_RST_M */
+	DEF_RST(6, 7, 2, 24),		/* MCPU_CMTW2_RST_M */
+	DEF_RST(6, 8, 2, 25),		/* MCPU_CMTW3_RST_M */
+	DEF_RST(6, 9, 2, 26),		/* RCPU_CMTW0_RST_M */
+	DEF_RST(6, 10, 2, 27),		/* RCPU_CMTW1_RST_M */
+	DEF_RST(6, 11, 2, 28),		/* RCPU_CMTW2_RST_M */
+	DEF_RST(6, 12, 2, 29),		/* RCPU_CMTW3_RST_M */
 	DEF_RST(6, 13, 2, 30),		/* GTM_0_PRESETZ */
 	DEF_RST(6, 14, 2, 31),		/* GTM_1_PRESETZ */
 	DEF_RST(6, 15, 3, 0),		/* GTM_2_PRESETZ */
@@ -395,13 +745,37 @@ static const struct rzv2h_reset r9a09g057_resets[] __initconst = {
 	DEF_RST(7, 6, 3, 7),		/* WDT_1_RESET */
 	DEF_RST(7, 7, 3, 8),		/* WDT_2_RESET */
 	DEF_RST(7, 8, 3, 9),		/* WDT_3_RESET */
+	DEF_RST(7, 9, 3, 10),		/* RTC_RST_RTC */
+	DEF_RST(7, 10, 3, 11),		/* RTC_RST_RTC_V */
 	DEF_RST(7, 11, 3, 12),		/* RSPI_0_PRESETN */
 	DEF_RST(7, 12, 3, 13),		/* RSPI_0_TRESETN */
 	DEF_RST(7, 13, 3, 14),		/* RSPI_1_PRESETN */
 	DEF_RST(7, 14, 3, 15),		/* RSPI_1_TRESETN */
 	DEF_RST(7, 15, 3, 16),		/* RSPI_2_PRESETN */
 	DEF_RST(8, 0, 3, 17),		/* RSPI_2_TRESETN */
+	DEF_RST(8, 1, 3, 18),		/* RSCI0_PRESETN */
+	DEF_RST(8, 2, 3, 19),		/* RSCI0_TRESETN */
+	DEF_RST(8, 3, 3, 20),		/* RSCI1_PRESETN */
+	DEF_RST(8, 4, 3, 21),		/* RSCI1_TRESETN */
+	DEF_RST(8, 5, 3, 22),		/* RSCI2_PRESETN */
+	DEF_RST(8, 6, 3, 23),		/* RSCI2_TRESETN */
+	DEF_RST(8, 7, 3, 24),		/* RSCI3_PRESETN */
+	DEF_RST(8, 8, 3, 25),		/* RSCI3_TRESETN */
+	DEF_RST(8, 9, 3, 26),		/* RSCI4_PRESETN */
+	DEF_RST(8, 10, 3, 27),		/* RSCI4_TRESETN */
+	DEF_RST(8, 11, 3, 28),		/* RSCI5_PRESETN */
+	DEF_RST(8, 12, 3, 29),		/* RSCI5_TRESETN */
+	DEF_RST(8, 13, 3, 30),		/* RSCI6_PRESETN */
+	DEF_RST(8, 14, 3, 31),		/* RSCI6_TRESETN */
+	DEF_RST(8, 15, 4, 0),		/* RSCI7_PRESETN */
+	DEF_RST(9, 0, 4, 1),		/* RSCI7_TRESETN */
+	DEF_RST(9, 1, 4, 2),		/* RSCI8_PRESETN */
+	DEF_RST(9, 2, 4, 3),		/* RSCI8_TRESETN */
+	DEF_RST(9, 3, 4, 4),		/* RSCI9_PRESETN */
+	DEF_RST(9, 4, 4, 5),		/* RSCI9_TRESETN */
 	DEF_RST(9, 5, 4, 6),		/* SCIF_0_RST_SYSTEM_N */
+	DEF_RST(9, 6, 4, 7),		/* I3C_PRESETN */
+	DEF_RST(9, 7, 4, 8),		/* I3C_TRESETN */
 	DEF_RST(9, 8, 4, 9),		/* RIIC_0_MRST */
 	DEF_RST(9, 9, 4, 10),		/* RIIC_1_MRST */
 	DEF_RST(9, 10, 4, 11),		/* RIIC_2_MRST */
@@ -411,17 +785,22 @@ static const struct rzv2h_reset r9a09g057_resets[] __initconst = {
 	DEF_RST(9, 14, 4, 15),		/* RIIC_6_MRST */
 	DEF_RST(9, 15, 4, 16),		/* RIIC_7_MRST */
 	DEF_RST(10, 0, 4, 17),		/* RIIC_8_MRST */
+	DEF_RST(10, 1, 4, 18),		/* CANFD_RSTP_N */
+	DEF_RST(10, 2, 4, 19),		/* CANFD_RSTC_N */
 	DEF_RST(10, 3, 4, 20),		/* SPI_HRESETN */
 	DEF_RST(10, 4, 4, 21),		/* SPI_ARESETN */
 	DEF_RST(10, 7, 4, 24),		/* SDHI_0_IXRST */
 	DEF_RST(10, 8, 4, 25),		/* SDHI_1_IXRST */
 	DEF_RST(10, 9, 4, 26),		/* SDHI_2_IXRST */
+	DEF_RST(10, 10, 4, 27),		/* USB30_ARESETN */
+	DEF_RST(10, 11, 4, 28),         /* USB31_ARESETN */
 	DEF_RST(10, 12, 4, 29),		/* USB2_0_U2H0_HRESETN */
 	DEF_RST(10, 13, 4, 30),		/* USB2_0_U2H1_HRESETN */
 	DEF_RST(10, 14, 4, 31),		/* USB2_0_U2P_EXL_SYSRST */
 	DEF_RST(10, 15, 5, 0),		/* USB2_0_PRESETN */
 	DEF_RST(11, 0, 5, 1),		/* GBETH_0_ARESETN_I */
 	DEF_RST(11, 1, 5, 2),		/* GBETH_1_ARESETN_I */
+	DEF_RST(11, 2, 5, 3),		/* PCIE_ARESETN	*/
 	DEF_RST(12, 5, 5, 22),		/* CRU_0_PRESETN */
 	DEF_RST(12, 6, 5, 23),		/* CRU_0_ARESETN */
 	DEF_RST(12, 7, 5, 24),		/* CRU_0_S_RESETN */
@@ -434,9 +813,39 @@ static const struct rzv2h_reset r9a09g057_resets[] __initconst = {
 	DEF_RST(12, 14, 5, 31),		/* CRU_3_PRESETN */
 	DEF_RST(12, 15, 6, 0),		/* CRU_3_ARESETN */
 	DEF_RST(13, 0, 6, 1),		/* CRU_3_S_RESETN */
+	DEF_RST(13, 5, 6, 6),		/* ISU_ARESETN */
+	DEF_RST(13, 6, 6, 7),		/* ISU_PRESETN */
+	DEF_RST(13, 7, 6, 8),		/* DSI_PRESETN */
+	DEF_RST(13, 8, 6, 9),		/* DSI_ARESETN */
+	DEF_RST(13, 12, 6, 13),		/* LCDC_RESET_N */
 	DEF_RST(13, 13, 6, 14),		/* GPU_0_RESETN */
 	DEF_RST(13, 14, 6, 15),		/* GPU_0_AXI_RESETN */
 	DEF_RST(13, 15, 6, 16),		/* GPU_0_ACE_RESETN */
+	DEF_RST(14, 0, 6, 17),		/* VCD_RESETN */
+	DEF_RST(14, 1, 6, 18),		/* SSIF_0_ASYNC_RESET_SSI */
+	DEF_RST(14, 2, 6, 19),		/* SSIF_0_SYNC_RESET_SSI0 */
+	DEF_RST(14, 3, 6, 20),		/* SSIF_0_SYNC_RESET_SSI1 */
+	DEF_RST(14, 4, 6, 21),		/* SSIF_0_SYNC_RESET_SSI2 */
+	DEF_RST(14, 5, 6, 22),		/* SSIF_0_SYNC_RESET_SSI3 */
+	DEF_RST(14, 6, 6, 23),		/* SSIF_0_SYNC_RESET_SSI4 */
+	DEF_RST(14, 7, 6, 24),		/* SSIF_0_SYNC_RESET_SSI5 */
+	DEF_RST(14, 8, 6, 25),		/* SSIF_0_SYNC_RESET_SSI6 */
+	DEF_RST(14, 9, 6, 26),		/* SSIF_0_SYNC_RESET_SSI7 */
+	DEF_RST(14, 10, 6, 27),		/* SSIF_0_SYNC_RESET_SSI8 */
+	DEF_RST(14, 11, 6, 28),		/* SSIF_0_SYNC_RESET_SSI9 */
+	DEF_RST(14, 12, 6, 29),		/* SCU_RESET_SRU */
+	DEF_RST(14, 13, 6, 30),		/* DMACPP_ARST */
+	DEF_RST(14, 14, 6, 31),		/* ADG_RST_RESET_ADG */
+	DEF_RST(14, 15, 7, 0),		/* SPDIF_0_RST */
+	DEF_RST(15, 0, 7, 1),		/* SPDIF1_RST */
+	DEF_RST(15, 1, 7, 2),		/* SPDIF2_RST */
+	DEF_RST(15, 2, 7, 3),		/* PDM0_PRESETN */
+	DEF_RST(15, 3, 7, 4),		/* PDM0_CRESETN */
+	DEF_RST(15, 4, 7, 5),		/* PDM1_PRESETN */
+	DEF_RST(15, 5, 7, 6),		/* PDM1_CRESETN */
+	DEF_RST(15, 6, 7, 7),		/* ADC_ADRST_N */
+	DEF_RST(15, 7, 7, 8),		/* TSU0_PRESETN */
+	DEF_RST(15, 8, 7, 9),		/* TSU1_PRESETN */
 };
 
 const struct rzv2h_cpg_info r9a09g057_cpg_info __initconst = {
