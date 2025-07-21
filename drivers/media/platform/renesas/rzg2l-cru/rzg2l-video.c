@@ -720,9 +720,16 @@ irqreturn_t rzg2l_cru_irq(int irq, void *data)
 	 * to capture first from slot 0.
 	 */
 	if (cru->state == RZG2L_CRU_DMA_STARTING) {
-		if (slot != 0) {
-			dev_dbg(cru->dev, "Starting sync slot: %d\n", slot);
-			goto done;
+		if (cru->frame_skip && (cru->sequence < cru->frame_skip)) {
+			dev_dbg(cru->dev, "Skipping %d frame\n",
+					cru->sequence);
+				cru->sequence++;
+				goto done;
+		} else {
+			if (slot != 0) {
+				dev_dbg(cru->dev, "Starting sync slot: %d\n", slot);
+				goto done;
+			}
 		}
 
 		dev_dbg(cru->dev, "Capture start synced!\n");
@@ -813,17 +820,24 @@ irqreturn_t rzg3e_cru_irq(int irq, void *data)
 			return IRQ_HANDLED;
 
 		dev_dbg(cru->dev, "Current written slot: %d\n", slot);
-		cru->buf_addr[slot] = 0;
 
 		/*
 		 * To hand buffers back in a known order to userspace start
 		 * to capture first from slot 0.
 		 */
 		if (cru->state == RZG2L_CRU_DMA_STARTING) {
-			if (slot != 0) {
-				dev_dbg(cru->dev, "Starting sync slot: %d\n", slot);
+			if (cru->frame_skip && (cru->sequence < cru->frame_skip)) {
+				dev_dbg(cru->dev, "Skipping %d frame\n",
+						cru->sequence);
+				cru->sequence++;
 				return IRQ_HANDLED;
+			} else {
+				if (slot != 0) {
+					dev_dbg(cru->dev, "Starting sync slot: %d\n", slot);
+					return IRQ_HANDLED;
+				}
 			}
+
 			dev_dbg(cru->dev, "Capture start synced!\n");
 			cru->state = RZG2L_CRU_DMA_RUNNING;
 		}
@@ -843,6 +857,7 @@ irqreturn_t rzg3e_cru_irq(int irq, void *data)
 		}
 
 		cru->sequence++;
+		cru->buf_addr[slot] = 0;
 
 		/* Prepare for next frame */
 		rzg2l_cru_fill_hw_slot(cru, slot);

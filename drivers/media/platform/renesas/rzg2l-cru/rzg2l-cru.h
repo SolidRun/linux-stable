@@ -37,6 +37,35 @@ enum rzg2l_csi2_pads {
 	RZG2L_CRU_IP_SOURCE,
 };
 
+/*
+ * The base for the RZ/G2L CRU driver controls.
+ * We reserve 16 controls for this driver
+ * The last USER-class private control IDs is V4L2_CID_USER_DW100_BASE.
+ */
+
+#define V4L2_CID_USER_CRU_BASE	(V4L2_CID_USER_BASE + 0x11a0)
+
+/* V4L2 private controls */
+#define V4L2_CID_CRU_FRAME_SKIP	(V4L2_CID_USER_CRU_BASE + 0)
+
+#define V4L2_CID_CRU_LIMIT	1
+
+static const struct v4l2_ctrl_ops rzg2l_cru_ctrl_ops;
+
+static const struct v4l2_ctrl_config rzg2l_cru_ctrls[V4L2_CID_CRU_LIMIT] = {
+	{
+		.id = V4L2_CID_CRU_FRAME_SKIP,
+		.type = V4L2_CTRL_TYPE_INTEGER,
+		.ops = &rzg2l_cru_ctrl_ops,
+		.name = "Disable or enable skipping frame with the amount of setting number",
+		.max = 127,
+		.min = 0,
+		.step = 1,
+		.def = 0,
+		.is_private = 1,
+	}
+};
+
 struct rzg2l_cru_dev;
 
 /**
@@ -187,6 +216,7 @@ struct rzg2l_cru_dev {
 	enum rzg2l_cru_dma_state state;
 
 	struct v4l2_pix_format format;
+	u8 frame_skip;
 
 	int id;
 };
