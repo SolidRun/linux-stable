@@ -41,7 +41,8 @@
 #define AMnFIFOPNTR_FIFOWPNTR_B1	GENMASK(15, 8)
 #define AMnFIFOPNTR_FIFORPNTR_Y		GENMASK(23, 16)
 #define AMnFIFOPNTR_FIFORPNTR_B0	AMnFIFOPNTR_FIFORPNTR_Y
-#define AMnFIFOPNTR_FIFORPNTR_B1	GENMASK(31, 24)
+#define AMnFIFOPNTR_FIFORPNTR_UV	GENMASK(31, 24)
+#define AMnFIFOPNTR_FIFORPNTR_B1	AMnFIFOPNTR_FIFORPNTR_UV
 
 #define AMnIS_IS_MASK			GENMASK(14, 7)
 #define AMnIS_IS(x)			((x) << 7)
@@ -103,6 +104,8 @@ enum rzg2l_cru_common_regs {
 	AMnMB7ADDRH,    /* Bank 7 Address (Higher) for CRU Image Data */
 	AMnMB8ADDRL,    /* Bank 8 Address (Lower) for CRU Image Data */
 	AMnMB8ADDRH,    /* Bank 8 Address (Higher) for CRU Image Data */
+	AMnUVAOFL,	/* UV Data Address Offset (Lower) Register for CRU Image Data*/
+	AMnUVAOFH,	/* UV Data Address Offset (Higher) Register for CRU Image Data*/
 	AMnMBVALID,	/* Memory Bank Enable for CRU Image Data */
 	AMnMBS,		/* Memory Bank Status for CRU Image Data */
 	AMnMADRSL,	/* VD Memory Address Lower Status Register */

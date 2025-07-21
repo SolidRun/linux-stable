@@ -317,6 +317,9 @@ static int rzg2l_cru_initialize_image_conv(struct rzg2l_cru_dev *cru,
 
 	/* Output format */
 	cru_video_fmt = rzg2l_cru_ip_format_to_fmt(cru->format.pixelformat);
+	if (cru->format.pixelformat == V4L2_PIX_FMT_NV16)
+		rzg2l_cru_write(cru, AMnUVAOFL,
+				ALIGN(cru->format.width * cru->format.height, 0x200));
 	if (!cru_video_fmt) {
 		dev_err(cru->dev, "Invalid pixelformat (0x%x)\n",
 			cru->format.pixelformat);
@@ -368,6 +371,7 @@ static int rzg2l_cru_initialize_image_conv(struct rzg2l_cru_dev *cru,
 		case MEDIA_BUS_FMT_SRGGB10_1X10:
 		case MEDIA_BUS_FMT_SRGGB12_1X12:
 		case MEDIA_BUS_FMT_SRGGB14_1X14:
+		case MEDIA_BUS_FMT_SRGGB16_1X16:
 			rzg2l_cru_write(cru, info->image_conv, icnmc |
 					ICnMC_RAWSTTYP_RGRG);
 			break;
@@ -375,6 +379,7 @@ static int rzg2l_cru_initialize_image_conv(struct rzg2l_cru_dev *cru,
 		case MEDIA_BUS_FMT_SGRBG10_1X10:
 		case MEDIA_BUS_FMT_SGRBG12_1X12:
 		case MEDIA_BUS_FMT_SGRBG14_1X14:
+		case MEDIA_BUS_FMT_SGRBG16_1X16:
 			rzg2l_cru_write(cru, info->image_conv, icnmc |
 					ICnMC_RAWSTTYP_GRGR);
 			break;
@@ -382,6 +387,7 @@ static int rzg2l_cru_initialize_image_conv(struct rzg2l_cru_dev *cru,
 		case MEDIA_BUS_FMT_SGBRG10_1X10:
 		case MEDIA_BUS_FMT_SGBRG12_1X12:
 		case MEDIA_BUS_FMT_SGBRG14_1X14:
+		case MEDIA_BUS_FMT_SGBRG16_1X16:
 			rzg2l_cru_write(cru, info->image_conv, icnmc |
 					ICnMC_RAWSTTYP_GBGB);
 			break;
@@ -389,6 +395,7 @@ static int rzg2l_cru_initialize_image_conv(struct rzg2l_cru_dev *cru,
 		case MEDIA_BUS_FMT_SBGGR10_1X10:
 		case MEDIA_BUS_FMT_SBGGR12_1X12:
 		case MEDIA_BUS_FMT_SBGGR14_1X14:
+		case MEDIA_BUS_FMT_SBGGR16_1X16:
 			rzg2l_cru_write(cru, info->image_conv, icnmc |
 					ICnMC_RAWSTTYP_BGBG);
 			break;
@@ -418,15 +425,21 @@ bool rzg3e_fifo_empty(struct rzg2l_cru_dev *cru)
 
 bool rzg2l_fifo_empty(struct rzg2l_cru_dev *cru)
 {
-	u32 amnfifopntr, amnfifopntr_w, amnfifopntr_r_y;
+	u32 amnfifopntr, amnfifopntr_w, amnfifopntr_r_y, amnfifopntr_r_uv;
 
 	amnfifopntr = rzg2l_cru_read(cru, AMnFIFOPNTR);
-
-	amnfifopntr_w = amnfifopntr & AMnFIFOPNTR_FIFOWPNTR;
-	amnfifopntr_r_y =
-		(amnfifopntr & AMnFIFOPNTR_FIFORPNTR_Y) >> 16;
-
-	return amnfifopntr_w == amnfifopntr_r_y;
+	if (cru->format.pixelformat == V4L2_PIX_FMT_NV16) {
+		amnfifopntr_w =
+			(amnfifopntr & AMnFIFOPNTR_FIFOWPNTR) >> 1;
+		amnfifopntr_r_uv =
+			(amnfifopntr & AMnFIFOPNTR_FIFORPNTR_UV) >> 25;
+		return amnfifopntr_w == amnfifopntr_r_uv;
+	} else {
+		amnfifopntr_w = amnfifopntr & AMnFIFOPNTR_FIFOWPNTR;
+		amnfifopntr_r_y =
+			(amnfifopntr & AMnFIFOPNTR_FIFORPNTR_Y) >> 16;
+		return amnfifopntr_w == amnfifopntr_r_y;
+	}
 }
 
 void rzg2l_cru_stop_image_processing(struct rzg2l_cru_dev *cru)
@@ -1226,7 +1239,15 @@ static int rzg2l_cru_video_link_validate(struct media_link *link)
 
 	cru->code = fmt.format.code;
 	switch (fmt.format.code) {
+	case MEDIA_BUS_FMT_UYVY8_2X8:
+	case MEDIA_BUS_FMT_UYVY10_2X10:
 	case MEDIA_BUS_FMT_UYVY8_1X16:
+	case MEDIA_BUS_FMT_YUYV8_1X16:
+	case MEDIA_BUS_FMT_Y8_1X8:
+	case MEDIA_BUS_FMT_RGB444_1X12:
+	case MEDIA_BUS_FMT_RGB565_2X8_LE:
+	case MEDIA_BUS_FMT_RGB666_1X18:
+	case MEDIA_BUS_FMT_RGB888_1X24:
 	case MEDIA_BUS_FMT_SBGGR8_1X8:
 	case MEDIA_BUS_FMT_SGBRG8_1X8:
 	case MEDIA_BUS_FMT_SGRBG8_1X8:
@@ -1243,10 +1264,10 @@ static int rzg2l_cru_video_link_validate(struct media_link *link)
 	case MEDIA_BUS_FMT_SGRBG14_1X14:
 	case MEDIA_BUS_FMT_SGBRG14_1X14:
 	case MEDIA_BUS_FMT_SBGGR14_1X14:
-	case MEDIA_BUS_FMT_RGB888_1X24:
-	case MEDIA_BUS_FMT_YUYV8_1X16:
-	case MEDIA_BUS_FMT_UYVY8_2X8:
-	case MEDIA_BUS_FMT_Y8_1X8:
+	case MEDIA_BUS_FMT_SRGGB16_1X16:
+	case MEDIA_BUS_FMT_SGRBG16_1X16:
+	case MEDIA_BUS_FMT_SGBRG16_1X16:
+	case MEDIA_BUS_FMT_SBGGR16_1X16:
 		video_fmt = rzg2l_cru_ip_code_to_fmt(fmt.format.code);
 		break;
 	default:

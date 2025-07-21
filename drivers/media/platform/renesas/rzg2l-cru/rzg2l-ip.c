@@ -23,6 +23,78 @@ static const struct rzg2l_cru_ip_format rzg2l_cru_ip_formats[] = {
 	},
 	{
 		.codes = {
+			MEDIA_BUS_FMT_UYVY8_1X16,
+		},
+		.format = V4L2_PIX_FMT_NV16,
+		.datatype = MIPI_CSI2_DT_YUV422_8B,
+		.icndmr = ICnDMR_YCMODE_NV16,
+		.fmt_types = V4L2_PIXEL_ENC_YUV,
+	},
+	{
+		.codes = {
+			MEDIA_BUS_FMT_UYVY10_2X10,
+		},
+		.format = V4L2_PIX_FMT_UYVY,
+		.datatype = MIPI_CSI2_DT_YUV422_10B,
+		.icndmr = ICnDMR_YCMODE_UYVY,
+		.fmt_types = V4L2_PIXEL_ENC_YUV,
+	},
+	{
+		.codes = {
+			MEDIA_BUS_FMT_YUYV8_1X16,
+		},
+		.format = V4L2_PIX_FMT_YUYV,
+		.datatype = MIPI_CSI2_DT_YUV422_8B,
+		.icndmr = ICnDMR_YCMODE_YUYV,
+		.fmt_types = V4L2_PIXEL_ENC_YUV,
+	},
+	{
+		.codes = {
+			MEDIA_BUS_FMT_Y8_1X8,
+		},
+		.format = V4L2_PIX_FMT_GREY,
+		.datatype = MIPI_CSI2_DT_RAW8,
+		.icndmr = ICnDMR_YCMODE_GREY,
+		.fmt_types = V4L2_PIXEL_ENC_YUV,
+	},
+	{
+		.codes = {
+			MEDIA_BUS_FMT_RGB888_1X24,
+		},
+		.format = V4L2_PIX_FMT_BGR24,
+		.datatype = MIPI_CSI2_DT_RGB888,
+		.icndmr = ICnDMR_RGBMODE_RGB24,
+		.fmt_types = V4L2_PIXEL_ENC_RGB,
+	},
+	{
+		.codes = {
+			MEDIA_BUS_FMT_RGB444_1X12,
+		},
+		.format = V4L2_PIX_FMT_XBGR32,
+		.datatype = MIPI_CSI2_DT_RGB444,
+		.icndmr = ICnDMR_RGBMODE_XRGB32,
+		.fmt_types = V4L2_PIXEL_ENC_RGB,
+	},
+	{
+		.codes = {
+			MEDIA_BUS_FMT_RGB565_2X8_LE,
+		},
+		.format = V4L2_PIX_FMT_ABGR32,
+		.datatype = MIPI_CSI2_DT_RGB565,
+		.icndmr = ICnDMR_RGBMODE_ABGR32,
+		.fmt_types = V4L2_PIXEL_ENC_RGB,
+	},
+	{
+		.codes = {
+			MEDIA_BUS_FMT_RGB666_1X18,
+		},
+		.format = V4L2_PIX_FMT_ARGB32,
+		.datatype = MIPI_CSI2_DT_RGB666,
+		.icndmr = ICnDMR_RGBMODE_ARGB32,
+		.fmt_types = V4L2_PIXEL_ENC_RGB,
+	},
+	{
+		.codes = {
 			MEDIA_BUS_FMT_SBGGR8_1X8,
 		},
 		.format = V4L2_PIX_FMT_SBGGR8,
@@ -93,6 +165,43 @@ static const struct rzg2l_cru_ip_format rzg2l_cru_ip_formats[] = {
 		.icndmr = 0,
 		.fmt_types = V4L2_PIXEL_ENC_BAYER,
 	},
+	{
+		.codes = {
+			MEDIA_BUS_FMT_SRGGB16_1X16,
+		},
+		.datatype = MIPI_CSI2_DT_RAW16,
+		.format = V4L2_PIX_FMT_SRGGB16,
+		.icndmr = 0,
+		.fmt_types = V4L2_PIXEL_ENC_BAYER,
+	},
+	{
+		.codes = {
+			MEDIA_BUS_FMT_SGRBG16_1X16,
+		},
+		.datatype = MIPI_CSI2_DT_RAW16,
+		.format = V4L2_PIX_FMT_SGRBG16,
+		.icndmr = 0,
+		.fmt_types = V4L2_PIXEL_ENC_BAYER,
+	},
+	{
+		.codes = {
+			MEDIA_BUS_FMT_SGBRG16_1X16,
+		},
+		.datatype = MIPI_CSI2_DT_RAW16,
+		.format = V4L2_PIX_FMT_SGBRG16,
+		.icndmr = 0,
+		.fmt_types = V4L2_PIXEL_ENC_BAYER,
+	},
+	{
+		.codes = {
+			MEDIA_BUS_FMT_SBGGR16_1X16,
+		},
+		.datatype = MIPI_CSI2_DT_RAW16,
+		.format = V4L2_PIX_FMT_SBGGR16,
+		.icndmr = 0,
+		.fmt_types = V4L2_PIXEL_ENC_BAYER,
+	},
+
 };
 
 const struct rzg2l_cru_ip_format *rzg2l_cru_ip_code_to_fmt(unsigned int code)
