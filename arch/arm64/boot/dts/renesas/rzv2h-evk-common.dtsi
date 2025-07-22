@@ -902,6 +902,26 @@
 			renesas,output-impedance = <3>;
 		};
 	};
+
+	usb30_pins: usb30 {
+		ovc {
+			pinmux = <RZV2H_PORT_PINMUX(B, 1, 14)>; /* OVC */
+		};
+
+		vbus {
+			pinmux = <RZV2H_PORT_PINMUX(B, 0, 14)>; /* VBUS */
+		};
+	};
+
+	usb31_pins: usb31 {
+		ovc {
+			pinmux = <RZV2H_PORT_PINMUX(6, 3, 14)>; /* OVC */
+		};
+
+		vbus {
+			pinmux = <RZV2H_PORT_PINMUX(6, 2, 14)>; /* VBUS */
+		};
+	};
 };
 
 &audio_clka {
@@ -1050,5 +1070,29 @@
 	pinctrl-0 = <&rspi2_pins>;
 	pinctrl-names = "default";
 
+	status = "okay";
+};
+
+&usb3_phy0 {
+	status = "okay";
+};
+
+&usb3_phy1 {
+	status = "okay";
+};
+
+&xhci0 {
+	pinctrl-0 = <&usb30_pins>;
+	pinctrl-names = "default";
+
+	memory-region = <&global_cma>;
+	status = "okay";
+};
+
+&xhci1 {
+	pinctrl-0 = <&usb31_pins>;
+	pinctrl-names = "default";
+
+	memory-region = <&global_cma>;
 	status = "okay";
 };
