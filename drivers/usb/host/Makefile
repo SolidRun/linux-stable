@@ -31,6 +31,7 @@ endif
 
 xhci-rcar-hcd-y				+= xhci-rcar.o
 xhci-rcar-hcd-$(CONFIG_USB_XHCI_RZV2M)	+= xhci-rzv2m.o
+xhci-rcar-hcd-$(CONFIG_USB_XHCI_RZV2H)	+= xhci-rzv2h.o
 
 obj-$(CONFIG_USB_PCI)	+= pci-quirks.o
 
