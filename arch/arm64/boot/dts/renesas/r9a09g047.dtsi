@@ -324,6 +324,36 @@
 			status = "disabled";
 		};
 
+		cmtw0: timer@11C01800 {
+			compatible = "renesas,rzg3e-cmtw";
+			reg = <0 0x11C01800 0 0x1000>;
+			interrupts = <GIC_SPI 455 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 456 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 457 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 458 IRQ_TYPE_EDGE_RISING>;
+			clocks = <&cpg CPG_MOD 0x3B>, <&cpg CPG_MOD 0x3C>,
+				 <&cpg CPG_MOD 0x3D>, <&cpg CPG_MOD 0x3E>;
+			clock-names = "fck0", "fck1", "fck2", "fck3";
+			resets = <&cpg 0x65>, <&cpg 0x66>,
+				 <&cpg 0x67>, <&cpg 0x68>;
+			status = "disabled";
+		};
+
+		cmtw1: timer@13000C00 {
+			compatible = "renesas,rzg3e-cmtw";
+			reg = <0 0x13000C00 0 0x1000>;
+			interrupts = <GIC_SPI 459 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 460 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 461 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 462 IRQ_TYPE_EDGE_RISING>;
+			clocks = <&cpg CPG_MOD 0x3F>, <&cpg CPG_MOD 0x40>,
+				 <&cpg CPG_MOD 0x41>, <&cpg CPG_MOD 0x42>;
+			clock-names = "fck0", "fck1", "fck2", "fck3";
+			resets = <&cpg 0x69>, <&cpg 0x6A>,
+				 <&cpg 0x6B>, <&cpg 0x6C>;
+			status = "disabled";
+		};
+
 		i2c0: i2c@14400400 {
 			compatible = "renesas,riic-r9a09g047", "renesas,riic-r9a09g057";
 			reg = <0 0x14400400 0 0x400>;
