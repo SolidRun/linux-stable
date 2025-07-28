@@ -535,3 +535,11 @@
 &cmtw1 {
 	status = "okay";
 };
+
+&rtc_clk {
+	clock-frequency = <32768>;
+};
+
+&rtc {
+	status = "okay";
+};
