@@ -20,6 +20,27 @@
 		clock-frequency = <0>;
 	};
 
+	audio_clka: audio-clka {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		/* This value must be overridden by the board */
+		clock-frequency = <0>;
+	};
+
+	audio_clkb: audio-clkb {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		/* This value must be overridden by the board */
+		clock-frequency = <0>;
+	};
+
+	audio_clkc: audio-clkc {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		/* This value must be overridden by the board */
+		clock-frequency = <0>;
+	};
+
 	rtc_clk: rtc-clk {
 		compatible = "fixed-clock";
 		#clock-cells = <0>;
@@ -273,8 +294,12 @@
 		cpg: clock-controller@10420000 {
 			compatible = "renesas,r9a09g057-cpg";
 			reg = <0 0x10420000 0 0x10000>;
-			clocks = <&audio_extal_clk>, <&rtxin_clk>, <&qextal_clk>;
-			clock-names = "audio_extal", "rtxin", "qextal";
+			clocks = <&audio_extal_clk>, <&audio_clka>,
+				 <&audio_clkb>, <&audio_clkc>,
+				 <&rtxin_clk>, <&qextal_clk>;
+			clock-names = "audio_extal", "audio_clka",
+				      "audio_clkb", "audio_clkc",
+				      "rtxin", "qextal";
 			#clock-cells = <2>;
 			#reset-cells = <1>;
 			#power-domain-cells = <0>;
