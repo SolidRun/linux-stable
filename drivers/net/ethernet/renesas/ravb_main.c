@@ -116,6 +116,87 @@ static void ravb_set_rate_rcar(struct net_device *ndev)
 	}
 }
 
+static void ravb_set_flowctrl_gbeth(struct net_device *ndev)
+{
+	struct ravb_private *priv = netdev_priv(ndev);
+
+	/* Set flow control */
+	ravb_modify(ndev, CCC, CCC_FCE,
+		    (priv->duplex > 0 && priv->cur_tx_pause > 0) ? CCC_FCE : 0);
+
+	/* Set transmit and receive flow control mode */
+	ravb_modify(ndev, ECMR, ECMR_TXF | ECMR_RXF,
+		    ((priv->duplex > 0 && priv->cur_tx_pause > 0) ? ECMR_TXF : 0) |
+		    ((priv->duplex > 0 && priv->cur_rx_pause > 0) ? ECMR_RXF : 0));
+}
+
+static void ravb_set_flowctrl_rcar(struct net_device *ndev)
+{
+	struct ravb_private *priv = netdev_priv(ndev);
+
+	/* Set flow control */
+	ravb_modify(ndev, CCC, CCC_FCE,
+		    priv->cur_tx_pause > 0 ? CCC_FCE : 0);
+
+	/* Set transmit and receive flow control mode */
+	ravb_modify(ndev, ECMR, ECMR_TXF | ECMR_RXF,
+		    (priv->cur_tx_pause > 0 ? ECMR_TXF : 0) |
+		    (priv->cur_rx_pause > 0 ? ECMR_RXF : 0));
+}
+
+static bool ravb_resolve_flowctrl(struct net_device *ndev)
+{
+	struct ravb_private *priv = netdev_priv(ndev);
+	const struct ravb_hw_info *info = priv->info;
+	struct phy_device *phydev = ndev->phydev;
+
+	bool new_state = false;
+	int old_tx_pause = priv->cur_tx_pause;
+	int old_rx_pause = priv->cur_rx_pause;
+	u16 rmt_adv = 0;
+	u16 lcl_adv = 0;
+	u8 cap;
+
+	/* Flow control conforming with the IEEE 802.3x standard
+	 * is possible during full-duplex operation.
+	 */
+	if (!info->half_duplex || (info->half_duplex && priv->duplex > 0)) {
+		if (priv->aneg_pause) {
+			/* Get pause capabilities advertised by link partner.
+			 */
+			if (phydev->pause)
+				rmt_adv |= LPA_PAUSE_CAP;
+			if (phydev->asym_pause)
+				rmt_adv |= LPA_PAUSE_ASYM;
+
+			/* Get pause capabilities advertised by
+			 * local interface.
+			 */
+			lcl_adv = linkmode_adv_to_lcl_adv_t(phydev->advertising);
+
+			/* Resolve flow control */
+			cap = mii_resolve_flowctrl_fdx(lcl_adv, rmt_adv);
+
+			priv->cur_tx_pause = cap & FLOW_CTRL_TX ? 1 : 0;
+			priv->cur_rx_pause = cap & FLOW_CTRL_RX ? 1 : 0;
+		} else {
+			priv->cur_tx_pause = priv->tx_pause;
+			priv->cur_rx_pause = priv->rx_pause;
+		}
+	} else {
+		priv->cur_tx_pause = 0;
+		priv->cur_rx_pause = 0;
+	}
+
+	if (old_tx_pause != priv->cur_tx_pause ||
+	    old_rx_pause != priv->cur_rx_pause) {
+		new_state = true;
+		info->set_flowctrl(ndev);
+	}
+
+	return new_state;
+}
+
 /* Get MAC address from the MAC address registers
  *
  * Ethernet AVB device doesn't have ROM for MAC address.
@@ -543,12 +624,18 @@ static void ravb_emac_init_gbeth(struct net_device *ndev)
 	/* Receive frame limit set register */
 	ravb_write(ndev, priv->info->rx_max_frame_size + ETH_FCS_LEN, RFLR);
 
-	/* EMAC Mode: PAUSE prohibition; Duplex; TX; RX; CRC Pass Through */
-	ravb_write(ndev, ECMR_ZPF | ((priv->duplex > 0) ? ECMR_DM : 0) |
-			 ECMR_TE | ECMR_RE | ECMR_RCPT |
-			 ECMR_TXF | ECMR_RXF, ECMR);
+	/* EMAC Mode: PAUSE; Duplex; TX; RX; CRC Pass Through */
+	ravb_write(ndev,
+		   ECMR_TZPF | ECMR_RZPF | ECMR_PFR |
+		   (priv->duplex > 0 ? ECMR_DM : 0) |
+		   ((priv->duplex > 0 && priv->cur_tx_pause > 0) ? ECMR_TXF : 0) |
+		   ((priv->duplex > 0 && priv->cur_rx_pause > 0) ? ECMR_RXF : 0) |
+		   ECMR_TE | ECMR_RE | ECMR_RCPT, ECMR);
 
 	ravb_set_rate_gbeth(ndev);
+
+	/* Set timer value for Auto PAUSE frame */
+	ravb_write(ndev, PAUSE_FRAME_TIMER, APR);
 
 	/* Set MAC address */
 	ravb_write(ndev,
@@ -562,7 +649,7 @@ static void ravb_emac_init_gbeth(struct net_device *ndev)
 	ravb_csum_init_gbeth(ndev);
 
 	/* E-MAC interrupt enable register */
-	ravb_write(ndev, ECSIPR_ICDIP, ECSIPR);
+	ravb_write(ndev, ECSIPR_ICDIP | ECSIPR_LCHNGIP | ECSIPR_PFRIM, ECSIPR);
 }
 
 static void ravb_emac_init_rcar(struct net_device *ndev)
@@ -578,12 +665,17 @@ static void ravb_emac_init_rcar(struct net_device *ndev)
 	 */
 	ravb_write(ndev, priv->info->rx_max_frame_size + ETH_FCS_LEN, RFLR);
 
-	/* EMAC Mode: PAUSE prohibition; Duplex; RX Checksum; TX; RX */
-	ravb_write(ndev, ECMR_ZPF | ECMR_DM |
+	/* EMAC Mode: PAUSE; Duplex; RX Checksum; TX; RX */
+	ravb_write(ndev, ECMR_TZPF | ECMR_RZPF | ECMR_PFR | ECMR_DM |
+		   (priv->cur_tx_pause > 0 ? ECMR_TXF : 0) |
+		   (priv->cur_rx_pause > 0 ? ECMR_RXF : 0) |
 		   (ndev->features & NETIF_F_RXCSUM ? ECMR_RCSC : 0) |
 		   ECMR_TE | ECMR_RE, ECMR);
 
 	ravb_set_rate_rcar(ndev);
+
+	/* Set timer value for Auto PAUSE frame */
+	ravb_write(ndev, PAUSE_FRAME_TIMER, APR);
 
 	/* Set MAC address */
 	ravb_write(ndev,
@@ -596,7 +688,8 @@ static void ravb_emac_init_rcar(struct net_device *ndev)
 	ravb_write(ndev, ECSR_ICD | ECSR_MPD, ECSR);
 
 	/* E-MAC interrupt enable register */
-	ravb_write(ndev, ECSIPR_ICDIP | ECSIPR_MPDIP | ECSIPR_LCHNGIP, ECSIPR);
+	ravb_write(ndev, ECSIPR_ICDIP | ECSIPR_MPDIP |
+			 ECSIPR_LCHNGIP | ECSIPR_PFRIM, ECSIPR);
 }
 
 /* E-MAC init function */
@@ -619,6 +712,10 @@ static int ravb_dmac_init_gbeth(struct net_device *ndev)
 
 	/* Descriptor format */
 	ravb_ring_format(ndev, RAVB_BE);
+
+	/* Set flow control */
+	ravb_modify(ndev, CCC, CCC_FCE,
+		   (priv->duplex > 0 && priv->cur_tx_pause > 0) ? CCC_FCE : 0);
 
 	/* Set DMAC RX */
 	ravb_write(ndev, 0x60000000, RCR);
@@ -661,6 +758,9 @@ static int ravb_dmac_init_rcar(struct net_device *ndev)
 	/* Descriptor format */
 	ravb_ring_format(ndev, RAVB_BE);
 	ravb_ring_format(ndev, RAVB_NC);
+
+	/* Set flow control */
+	ravb_modify(ndev, CCC, CCC_FCE, priv->cur_tx_pause > 0 ? CCC_FCE : 0);
 
 	/* Set AVB RX */
 	ravb_write(ndev,
@@ -1446,16 +1546,22 @@ static void ravb_adjust_link(struct net_device *ndev)
 			info->set_rate(ndev);
 		}
 		if (!priv->link) {
-			ravb_modify(ndev, ECMR, ECMR_TXF, 0);
 			new_state = true;
 			priv->link = phydev->link;
 		}
+
+		if (ravb_resolve_flowctrl(ndev))
+			new_state = true;
+
 	} else if (priv->link) {
 		new_state = true;
 		priv->link = 0;
 		priv->speed = 0;
 		if (info->half_duplex)
 			priv->duplex = -1;
+		priv->cur_tx_pause = -1;
+		priv->cur_rx_pause = -1;
+		info->set_flowctrl(ndev);
 	}
 
 	/* Enable TX and RX right over here, if E-MAC change is ignored */
@@ -1487,6 +1593,11 @@ static int ravb_phy_init(struct net_device *ndev)
 	priv->link = 0;
 	priv->speed = 0;
 	priv->duplex = -1;
+	priv->aneg_pause = 1;
+	priv->tx_pause = 1;
+	priv->rx_pause = 1;
+	priv->cur_tx_pause = -1;
+	priv->cur_rx_pause = -1;
 
 	/* Try connecting to PHY */
 	pn = of_parse_phandle(np, "phy-handle", 0);
@@ -1522,16 +1633,22 @@ static int ravb_phy_init(struct net_device *ndev)
 	}
 
 	if (!info->half_duplex) {
-		/* 10BASE, Pause and Asym Pause is not supported */
+		/* 10BASE is not supported */
 		phy_remove_link_mode(phydev, ETHTOOL_LINK_MODE_10baseT_Half_BIT);
 		phy_remove_link_mode(phydev, ETHTOOL_LINK_MODE_10baseT_Full_BIT);
-		phy_remove_link_mode(phydev, ETHTOOL_LINK_MODE_Pause_BIT);
-		phy_remove_link_mode(phydev, ETHTOOL_LINK_MODE_Asym_Pause_BIT);
 
 		/* Half Duplex is not supported */
 		phy_remove_link_mode(phydev, ETHTOOL_LINK_MODE_1000baseT_Half_BIT);
 		phy_remove_link_mode(phydev, ETHTOOL_LINK_MODE_100baseT_Half_BIT);
 	}
+
+	phy_support_asym_pause(phydev);
+
+	/*
+	 * Supported flag is Pause and Asym Pause. However, advertising flag
+	 * should clear Asym Pause to advertise tx on and rx on by default.
+	 */
+	linkmode_clear_bit(ETHTOOL_LINK_MODE_Asym_Pause_BIT, phydev->advertising);
 
 	phy_attached_info(phydev);
 
@@ -1756,6 +1873,43 @@ static int ravb_set_ringparam(struct net_device *ndev,
 	return 0;
 }
 
+static void ravb_get_pauseparam(struct net_device *ndev,
+				struct ethtool_pauseparam *pause)
+{
+	struct ravb_private *priv = netdev_priv(ndev);
+
+	pause->autoneg = priv->aneg_pause;
+	pause->tx_pause = priv->tx_pause;
+	pause->rx_pause = priv->rx_pause;
+}
+
+static int ravb_set_pauseparam(struct net_device *ndev,
+			       struct ethtool_pauseparam *pause)
+{
+	struct ravb_private *priv = netdev_priv(ndev);
+	int old_aneg_pause = priv->aneg_pause;
+
+	if (!ndev->phydev)
+		return -ENODEV;
+
+	priv->aneg_pause = pause->autoneg;
+	priv->tx_pause = pause->tx_pause;
+	priv->rx_pause = pause->rx_pause;
+
+	/* Configure Pause and Asym Pause. If there has been
+	 * a change in advertising, trigger a new autonegotiation.
+	 */
+	phy_set_asym_pause(ndev->phydev, priv->rx_pause, priv->tx_pause);
+
+	/* Resolve and set flow control if there has been a change in
+	 * pause autonegotiation.
+	 */
+	if (old_aneg_pause != priv->aneg_pause)
+		ravb_resolve_flowctrl(ndev);
+
+	return 0;
+}
+
 static int ravb_get_ts_info(struct net_device *ndev,
 			    struct ethtool_ts_info *info)
 {
@@ -1812,6 +1966,8 @@ static const struct ethtool_ops ravb_ethtool_ops = {
 	.get_sset_count		= ravb_get_sset_count,
 	.get_ringparam		= ravb_get_ringparam,
 	.set_ringparam		= ravb_set_ringparam,
+	.get_pauseparam		= ravb_get_pauseparam,
+	.set_pauseparam		= ravb_set_pauseparam,
 	.get_ts_info		= ravb_get_ts_info,
 	.get_link_ksettings	= phy_ethtool_get_link_ksettings,
 	.set_link_ksettings	= phy_ethtool_set_link_ksettings,
@@ -2697,6 +2853,7 @@ static int ravb_mdio_release(struct ravb_private *priv)
 static const struct ravb_hw_info ravb_gen3_hw_info = {
 	.receive = ravb_rx_rcar,
 	.set_rate = ravb_set_rate_rcar,
+	.set_flowctrl = ravb_set_flowctrl_rcar,
 	.set_feature = ravb_set_features_rcar,
 	.dmac_init = ravb_dmac_init_rcar,
 	.emac_init = ravb_emac_init_rcar,
@@ -2723,6 +2880,7 @@ static const struct ravb_hw_info ravb_gen3_hw_info = {
 static const struct ravb_hw_info ravb_gen2_hw_info = {
 	.receive = ravb_rx_rcar,
 	.set_rate = ravb_set_rate_rcar,
+	.set_flowctrl = ravb_set_flowctrl_rcar,
 	.set_feature = ravb_set_features_rcar,
 	.dmac_init = ravb_dmac_init_rcar,
 	.emac_init = ravb_emac_init_rcar,
@@ -2746,6 +2904,7 @@ static const struct ravb_hw_info ravb_gen2_hw_info = {
 static const struct ravb_hw_info ravb_rzv2m_hw_info = {
 	.receive = ravb_rx_rcar,
 	.set_rate = ravb_set_rate_rcar,
+	.set_flowctrl = ravb_set_flowctrl_rcar,
 	.set_feature = ravb_set_features_rcar,
 	.dmac_init = ravb_dmac_init_rcar,
 	.emac_init = ravb_emac_init_rcar,
@@ -2770,6 +2929,7 @@ static const struct ravb_hw_info ravb_rzv2m_hw_info = {
 static const struct ravb_hw_info gbeth_hw_info = {
 	.receive = ravb_rx_gbeth,
 	.set_rate = ravb_set_rate_gbeth,
+	.set_flowctrl = ravb_set_flowctrl_gbeth,
 	.set_feature = ravb_set_features_gbeth,
 	.dmac_init = ravb_dmac_init_gbeth,
 	.emac_init = ravb_emac_init_gbeth,
