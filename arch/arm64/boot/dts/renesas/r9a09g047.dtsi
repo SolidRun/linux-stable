@@ -271,7 +271,7 @@
 		};
 
 		cpg: clock-controller@10420000 {
-			compatible = "renesas,r9a09g047-cpg";
+			compatible = "renesas,r9a09g047-cpg", "syscon";
 			reg = <0 0x10420000 0 0x10000>;
 			clocks = <&audio_extal_clk>, <&rtxin_clk>, <&qextal_clk>;
 			clock-names = "audio_extal", "rtxin", "qextal";
