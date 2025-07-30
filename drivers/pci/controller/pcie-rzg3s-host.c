@@ -34,139 +34,7 @@
 #include <linux/units.h>
 
 #include "../pci.h"
-
-/* AXI registers */
-#define RZG3S_PCI_REQDATA(id)			(0x80 + (id) * 0x4)
-#define RZG3S_PCI_REQRCVDAT			0x8c
-
-#define RZG3S_PCI_REQADR1			0x90
-#define RZG3S_PCI_REQADR1_BUS			GENMASK(31, 24)
-#define RZG3S_PCI_REQADR1_DEV			GENMASK(23, 19)
-#define RZG3S_PCI_REQADR1_FUNC			GENMASK(18, 16)
-#define RZG3S_PCI_REQADR1_REG			GENMASK(11, 0)
-
-#define RZG3S_PCI_REQBE				0x98
-#define RZG3S_PCI_REQBE_BYTE_EN			GENMASK(3, 0)
-
-#define RZG3S_PCI_REQISS			0x9c
-#define RZG3S_PCI_REQISS_MOR_STATUS		GENMASK(18, 16)
-#define RZG3S_PCI_REQISS_TR_TYPE		GENMASK(11, 8)
-#define RZG3S_PCI_REQISS_TR_TP0_RD		FIELD_PREP(RZG3S_PCI_REQISS_TR_TYPE, 0x4)
-#define RZG3S_PCI_REQISS_TR_TP0_WR		FIELD_PREP(RZG3S_PCI_REQISS_TR_TYPE, 0x5)
-#define RZG3S_PCI_REQISS_REQ_ISSUE		BIT(0)
-
-#define RZG3S_PCI_MSIRCVWADRL			0x100
-#define RZG3S_PCI_MSIRCVWADRL_MSG_DATA_ENA	BIT(1)
-#define RZG3S_PCI_MSIRCVWADRL_ENA		BIT(0)
-
-#define RZG3S_PCI_MSIRCVWADRU			0x104
-#define RZG3S_PCI_MSIRCVWMSKL			0x108
-#define RZG3S_PCI_MSIRCVWMSKU			0x10c
-
-#define RZG3S_PCI_PINTRCVIE			0x110
-#define RZG3S_PCI_PINTRCVIE_INTX(i)		BIT(i)
-#define RZG3S_PCI_PINTRCVIE_MSI			BIT(4)
-
-#define RZG3S_PCI_PINTRCVIS			0x114
-#define RZG3S_PCI_PINTRCVIS_INTX(i)		BIT(i)
-#define RZG3S_PCI_PINTRCVIS_MSI			BIT(4)
-
-#define RZG3S_PCI_MSGRCVIE			0x120
-#define RZG3S_PCI_MSGRCVIE_MSG_RCV		BIT(24)
-
-#define RZG3S_PCI_MSGRCVIS			0x124
-#define RZG3S_PCI_MSGRCVIS_MRI			BIT(24)
-
-#define RZG3S_PCI_PEIE0				0x200
-
-#define RZG3S_PCI_PEIS0				0x204
-#define RZG3S_PCI_PEIS0_RX_DLLP_PM_ENTER	BIT(12)
-#define RZG3S_PCI_PEIS0_DL_UPDOWN		BIT(9)
-
-#define RZG3S_PCI_PEIE1				0x208
-#define RZG3S_PCI_PEIS1				0x20c
-#define RZG3S_PCI_AMEIE				0x210
-#define RZG3S_PCI_AMEIS				0x214
-#define RZG3S_PCI_ASEIE1			0x220
-#define RZG3S_PCI_ASEIS1			0x224
-
-#define RZG3S_PCI_PCSTAT1			0x408
-#define RZG3S_PCI_PCSTAT1_LTSSM_STATE		GENMASK(14, 10)
-#define RZG3S_PCI_PCSTAT1_DL_DOWN_STS		BIT(0)
-
-#define RZG3S_PCI_PCCTRL2			0x410
-#define RZG3S_PCI_PCCTRL2_LS_CHG		GENMASK(9, 8)
-#define RZG3S_PCI_PCCTRL2_LS_CHG_REQ		BIT(0)
-
-#define RZG3S_PCI_PCSTAT2			0x414
-#define RZG3S_PCI_PCSTAT2_LS_CHG_DONE		BIT(28)
-#define RZG3S_PCI_PCSTAT2_STATE_RX_DETECT	GENMASK(15, 8)
-#define RZG3S_PCI_PCSTAT2_SDRIRE		GENMASK(7, 0)
-
-#define RZG3S_PCI_PERM				0x300
-#define RZG3S_PCI_PERM_CFG_HWINIT_EN		BIT(2)
-#define RZG3S_PCI_PERM_PIPE_PHY_REG_EN		BIT(1)
-
-#define RZG3S_PCI_MSIRE(id)			(0x600 + (id) * 0x10)
-#define RZG3S_PCI_MSIRE_ENA			BIT(0)
-
-#define RZG3S_PCI_MSIRM(id)			(0x608 + (id) * 0x10)
-#define RZG3S_PCI_MSIRS(id)			(0x60c + (id) * 0x10)
-
-#define RZG3S_PCI_AWBASEL(id)			(0x1000 + (id) * 0x20)
-#define RZG3S_PCI_AWBASEL_WIN_ENA		BIT(0)
-
-#define RZG3S_PCI_AWBASEU(id)			(0x1004 + (id) * 0x20)
-#define RZG3S_PCI_AWMASKL(id)			(0x1008 + (id) * 0x20)
-#define RZG3S_PCI_AWMASKU(id)			(0x100c + (id) * 0x20)
-#define RZG3S_PCI_ADESTL(id)			(0x1010 + (id) * 0x20)
-#define RZG3S_PCI_ADESTU(id)			(0x1014 + (id) * 0x20)
-
-#define RZG3S_PCI_PWBASEL(id)			(0x1100 + (id) * 0x20)
-#define RZG3S_PCI_PWBASEL_ENA			BIT(0)
-
-#define RZG3S_PCI_PWBASEU(id)			(0x1104 + (id) * 0x20)
-#define RZG3S_PCI_PDESTL(id)			(0x1110 + (id) * 0x20)
-#define RZG3S_PCI_PDESTU(id)			(0x1114 + (id) * 0x20)
-#define RZG3S_PCI_PWMASKL(id)			(0x1108 + (id) * 0x20)
-#define RZG3S_PCI_PWMASKU(id)			(0x110c + (id) * 0x20)
-
-/* PHY control registers */
-#define RZG3S_PCI_PHY_XCFGD(id)			(0x2000 + (id) * 0x10)
-#define RZG3S_PCI_PHY_XCFGD_NUM			39
-
-#define RZG3S_PCI_PHY_XCFGA_CMN(id)		(0x2400 + (id) * 0x10)
-#define RZG3S_PCI_PHY_XCFGA_CMN_NUM		16
-
-#define RZG3S_PCI_PHY_XCFGA_RX(id)		(0x2500 + (id) * 0x10)
-#define RZG3S_PCI_PHY_XCFGA_RX_NUM		13
-
-#define RZG3S_PCI_PHY_XCFGA_TX			0x25d0
-
-#define RZG3S_PCI_PHY_XCFG_CTRL			0x2a20
-#define RZG3S_PCI_PHY_XCFG_CTRL_PHYREG_SEL	BIT(0)
-
-/* PCIe registers */
-#define RZG3S_PCI_CFG_BASE			0x6000
-#define RZG3S_PCI_CFG_BARMSK00L			0xa0
-#define RZG3S_PCI_CFG_BARMSK00U			0xa4
-
-#define RZG3S_PCI_CFG_PCIEC			0x60
-
-/* System controller registers */
-#define RZG3S_SYS_PCIE_RST_RSM_B		0xd74
-#define RZG3S_SYS_PCIE_RST_RSM_B_MASK		BIT(0)
-
-/* Maximum number of windows */
-#define RZG3S_MAX_WINDOWS			8
-
-/* Number of MSI interrupts per register */
-#define RZG3S_PCI_MSI_INT_PER_REG		32
-/* The number of MSI interrupts */
-#define RZG3S_PCI_MSI_INT_NR			RZG3S_PCI_MSI_INT_PER_REG
-
-/* Timeouts experimentally determined. */
-#define RZG3S_REQ_ISSUE_TIMEOUT_US		2500
+#include "pcie-rzg3s-regs.h"
 
 /**
  * struct rzg3s_pcie_msi - RZ/G3S PCIe MSI data structure
@@ -188,20 +56,35 @@ struct rzg3s_pcie_msi {
 
 struct rzg3s_pcie_host;
 
+enum rz_pcie_type {
+	RZG3S_PCIE,
+	RZV2H_PCIE,
+};
+
 /**
  * struct rzg3s_pcie_soc_data - SoC specific data
+ * @reset_deassert: reset deassert function after configuration
+ * @reset_assert: reset assert function when failed
+ * @late_init: initialize late function
+ * @pre_init: prepare initialization function
  * @init_phy: PHY initialization function
  * @power_resets: array with the resets that need to be de-asserted after
  *                power-on
  * @cfg_resets: array with the resets that need to be de-asserted after
  *              configuration
+ * @rz_pcie_type: number of device type SoCs
  * @num_power_resets: number of power resets
  * @num_cfg_resets: number of configuration resets
  */
 struct rzg3s_pcie_soc_data {
+	int (*reset_deassert)(struct rzg3s_pcie_host *host);
+	int (*reset_assert)(struct rzg3s_pcie_host *host);
+	void (*late_init)(struct rzg3s_pcie_host *host);
+	void (*pre_init)(struct rzg3s_pcie_host *host);
 	int (*init_phy)(struct rzg3s_pcie_host *host);
 	const char * const *power_resets;
 	const char * const *cfg_resets;
+	enum rz_pcie_type devtype;
 	u8 num_power_resets;
 	u8 num_cfg_resets;
 };
@@ -221,6 +104,7 @@ struct rzg3s_pcie_soc_data {
  * @intx_irqs: INTx interrupts
  * @vendor_id: Vendor ID
  * @device_id: Device ID
+ * @channel: channel of PCIe
  */
 struct rzg3s_pcie_host {
 	void __iomem *axi;
@@ -236,6 +120,7 @@ struct rzg3s_pcie_host {
 	int intx_irqs[PCI_NUM_INTX];
 	u32 vendor_id;
 	u32 device_id;
+	int channel;
 };
 
 #define rzg3s_msi_to_host(_msi)	container_of(_msi, struct rzg3s_pcie_host, msi)
@@ -1033,6 +918,12 @@ static int rzg3s_pcie_config_init(struct rzg3s_pcie_host *host)
 	/* Enable access control to the CFGU */
 	writel(RZG3S_PCI_PERM_CFG_HWINIT_EN, host->axi + RZG3S_PCI_PERM);
 
+	/* Update Revision ID and Class Code */
+	writeb(RZG3S_PCIE_CONF_REVISION_ID, host->pcie + PCI_REVISION_ID);
+	writeb(RZG3S_PCIE_CONF_PROGRAMING_IF, host->pcie + PCI_CLASS_PROG);
+	writew((RZG3S_PCIE_CONF_BASE_CLASS << 8) | RZG3S_PCIE_CONF_SUB_CLASS,
+	       host->pcie + PCI_CLASS_DEVICE);
+
 	/* Update vendor ID and device ID */
 	writew(host->vendor_id, host->pcie + PCI_VENDOR_ID);
 	writew(host->device_id, host->pcie + PCI_DEVICE_ID);
@@ -1096,8 +987,12 @@ static void rzg3s_pcie_cfg_resets_action(void *data)
 {
 	struct rzg3s_pcie_host *host = data;
 
-	reset_control_bulk_assert(host->data->num_cfg_resets,
-				  host->cfg_resets);
+	if (host->data->devtype == RZG3S_PCIE)
+		reset_control_bulk_assert(host->data->num_cfg_resets,
+					  host->cfg_resets);
+	else
+		rzg3s_pcie_update_bits(host->axi, RZV2H_PCI_RESET_REG,
+				       RZV2H_RESET_ALL_ASSERT, 0);
 }
 
 static int rzg3s_pcie_power_resets_deassert(struct rzg3s_pcie_host *host)
@@ -1119,41 +1014,45 @@ static int rzg3s_pcie_resets_prepare(struct rzg3s_pcie_host *host)
 	const struct rzg3s_pcie_soc_data *data = host->data;
 	int ret;
 
-	host->power_resets = devm_kmalloc_array(host->dev,
-						data->num_power_resets,
-						sizeof(*host->power_resets),
-						GFP_KERNEL);
-	if (!host->power_resets)
-		return -ENOMEM;
+	if (data->num_power_resets > 0) {
+		host->power_resets = devm_kmalloc_array(host->dev,
+							data->num_power_resets,
+							sizeof(*host->power_resets),
+							GFP_KERNEL);
+		if (!host->power_resets)
+			return -ENOMEM;
 
-	for (unsigned int i = 0; i < data->num_power_resets; i++)
-		host->power_resets[i].id = data->power_resets[i];
+		for (unsigned int i = 0; i < data->num_power_resets; i++)
+			host->power_resets[i].id = data->power_resets[i];
 
-	host->cfg_resets = devm_kmalloc_array(host->dev,
-					      data->num_cfg_resets,
-					      sizeof(*host->cfg_resets),
-					      GFP_KERNEL);
-	if (!host->cfg_resets)
-		return -ENOMEM;
+		ret = devm_reset_control_bulk_get_exclusive(host->dev,
+							    data->num_power_resets,
+							    host->power_resets);
+		if (ret)
+			return ret;
 
-	for (unsigned int i = 0; i < data->num_cfg_resets; i++)
-		host->cfg_resets[i].id = data->cfg_resets[i];
+		ret = rzg3s_pcie_power_resets_deassert(host);
+		if (ret)
+			return ret;
+	}
 
-	ret = devm_reset_control_bulk_get_exclusive(host->dev,
-						    data->num_power_resets,
-						    host->power_resets);
-	if (ret)
-		return ret;
+	if (data->num_cfg_resets > 0) {
+		host->cfg_resets = devm_kmalloc_array(host->dev,
+						      data->num_cfg_resets,
+						      sizeof(*host->cfg_resets),
+						      GFP_KERNEL);
+		if (!host->cfg_resets)
+			return -ENOMEM;
 
-	ret = devm_reset_control_bulk_get_exclusive(host->dev,
-						    data->num_cfg_resets,
-						    host->cfg_resets);
-	if (ret)
-		return ret;
+		for (unsigned int i = 0; i < data->num_cfg_resets; i++)
+			host->cfg_resets[i].id = data->cfg_resets[i];
 
-	ret = rzg3s_pcie_power_resets_deassert(host);
-	if (ret)
-		return ret;
+		ret = devm_reset_control_bulk_get_exclusive(host->dev,
+							    data->num_cfg_resets,
+							    host->cfg_resets);
+		if (ret)
+			return ret;
+	}
 
 	return devm_add_action_or_reset(host->dev,
 					rzg3s_pcie_power_resets_action, host);
@@ -1162,20 +1061,31 @@ static int rzg3s_pcie_resets_prepare(struct rzg3s_pcie_host *host)
 static int rzg3s_pcie_host_init(struct rzg3s_pcie_host *host, bool probe)
 {
 	u32 val;
-	int ret;
+	int ret, err;
+
+	/* Set the prepare init, if any */
+	if (host->data->pre_init)
+		host->data->pre_init(host);
 
 	/* Initialize the PCIe related registers */
 	ret = rzg3s_pcie_config_init(host);
 	if (ret)
 		return ret;
 
+	/* Set the late init, if any */
+	if (host->data->late_init)
+		host->data->late_init(host);
+
 	/* Initialize the interrupts */
 	rzg3s_pcie_irq_init(host);
 
-	ret = reset_control_bulk_deassert(host->data->num_cfg_resets,
-					  host->cfg_resets);
-	if (ret)
-		return ret;
+	/* Set the reset deassert, if any */
+	if (host->data->reset_deassert) {
+		err = host->data->reset_deassert(host);
+		if (err)
+			return dev_err_probe(host->dev, err,
+					     "Failed to set the reset deassert!\n");
+	}
 
 	/* Wait for link up */
 	ret = readl_poll_timeout(host->axi + RZG3S_PCI_PCSTAT1, val,
@@ -1183,15 +1093,20 @@ static int rzg3s_pcie_host_init(struct rzg3s_pcie_host *host, bool probe)
 				 PCIE_LINK_WAIT_SLEEP_MS,
 				 PCIE_LINK_WAIT_SLEEP_MS *
 				 PCIE_LINK_WAIT_MAX_RETRIES * MILLI);
+
 	if (ret) {
-		reset_control_bulk_assert(host->data->num_cfg_resets,
-					  host->cfg_resets);
+		/* Set the reset assert, if any */
+		if (host->data->reset_assert) {
+			err = host->data->reset_assert(host);
+			if (err)
+				return dev_err_probe(host->dev, err,
+					"Failed to set the reset assert!\n");
+		}
 		return ret;
 	}
 
 	val = readl(host->axi + RZG3S_PCI_PCSTAT2);
 	dev_info(host->dev, "PCIe link status [0x%x]\n", val);
-
 	val = FIELD_GET(RZG3S_PCI_PCSTAT2_STATE_RX_DETECT, val);
 	dev_info(host->dev, "PCIe x%d: link up\n", hweight32(val));
 
@@ -1416,6 +1331,88 @@ static int rzg3s_soc_pcie_init_phy(struct rzg3s_pcie_host *host)
 	return 0;
 }
 
+static void rzv2h_soc_pcie_pre_init(struct rzg3s_pcie_host *host)
+{
+	struct regmap *sysc = host->sysc;
+
+	/* Set Lane mode */
+	if (host->device_id == 0x003b)
+		regmap_update_bits(sysc, RZV2H_SYS_PCIE_LANE_MODE,
+				   RZV2H_SYS_PCIE_LANE_MODE_MASK,
+				   FIELD_PREP(RZV2H_SYS_PCIE_LANE_MODE_MASK,
+				   RZV2H_LINK_MASTER_4_LANE_MODE));
+	/* SYS setting mode port */
+	regmap_update_bits(sysc, RZV2H_SYS_PCIE_MODE_CH(host->channel),
+			   RZV2H_MODE_PORT_SYS_MASK,
+			   FIELD_PREP(RZV2H_MODE_PORT_SYS_MASK,
+			   RZV2H_MODE_PORT_SYS_RC));
+
+	/* Set to the PCIe reset state : step7 */
+	rzg3s_pcie_update_bits(host->axi, RZV2H_PCI_RESET_REG,
+			       RZV2H_RESET_ALL_ASSERT, 0);
+
+	/* Release the PCIe reset : step8 : RST_LOAD_B, RST_CFG_B */
+	rzg3s_pcie_update_bits(host->axi, RZV2H_PCI_RESET_REG,
+			       RZV2H_RESET_LOAD_CFG_RELEASE,
+			       RZV2H_RESET_LOAD_CFG_RELEASE);
+}
+
+static void rzv2h_soc_pcie_late_init(struct rzg3s_pcie_host *host)
+{
+	struct regmap *sysc = host->sysc;
+
+	regmap_update_bits(sysc, RZV2H_SYS_PCIE_MISC_CH(host->channel),
+			   RZV2H_ALLOW_ENTER_MASK,
+			   FIELD_PREP(RZV2H_ALLOW_ENTER_MASK, 1));
+}
+
+static int rzv2h_soc_pcie_reset_deassert(struct rzg3s_pcie_host *host)
+{
+	/* Release the PCIe reset : step12 : RST_PS_B, RST_GP_B, RST_B */
+	rzg3s_pcie_update_bits(host->axi, RZV2H_PCI_RESET_REG,
+			       RZV2H_RESET_PS_GP_RELEASE,
+			       RZV2H_RESET_PS_GP_RELEASE);
+	/* Wait for 500 μs or more : step13 */
+	msleep(20);
+	/* Release the PCIe reset : step14 : RST_OUT_B, RST_RSM_B */
+	rzg3s_pcie_update_bits(host->axi, RZV2H_PCI_RESET_REG,
+			       RZV2H_RESET_OUT_RSM_RELEASE,
+			       RZV2H_RESET_OUT_RSM_RELEASE);
+	return 0;
+}
+
+static int rzg3s_soc_pcie_reset_deassert(struct rzg3s_pcie_host *host)
+{
+	int ret;
+
+	ret = reset_control_bulk_deassert(host->data->num_cfg_resets,
+					  host->cfg_resets);
+	if (ret)
+		return ret;
+
+	return 0;
+}
+
+static int rzv2h_soc_pcie_reset_assert(struct rzg3s_pcie_host *host)
+{
+	rzg3s_pcie_update_bits(host->axi, RZV2H_PCI_RESET_REG,
+			       RZV2H_RESET_ALL_ASSERT, 0);
+
+	return 0;
+}
+
+static int rzg3s_soc_pcie_reset_assert(struct rzg3s_pcie_host *host)
+{
+	int ret;
+
+	ret = reset_control_bulk_assert(host->data->num_cfg_resets,
+					host->cfg_resets);
+	if (ret)
+		return ret;
+
+	return 0;
+}
+
 static void rzg3s_pcie_pm_runtime_put(void *data)
 {
 	pm_runtime_put_sync(data);
@@ -1511,7 +1508,7 @@ static int rzg3s_pcie_probe(struct platform_device *pdev)
 	struct device_node *sysc_np __free(device_node) =
 		of_parse_phandle(np, "renesas,sysc", 0);
 	struct rzg3s_pcie_host *host;
-	int ret;
+	int ret, channel;
 
 	bridge = devm_pci_alloc_host_bridge(dev, sizeof(*host));
 	if (!bridge)
@@ -1539,16 +1536,33 @@ static int rzg3s_pcie_probe(struct platform_device *pdev)
 	if (IS_ERR(host->sysc))
 		return PTR_ERR(host->sysc);
 
-	ret = regmap_update_bits(host->sysc, RZG3S_SYS_PCIE_RST_RSM_B,
-				 RZG3S_SYS_PCIE_RST_RSM_B_MASK,
-				 FIELD_PREP(RZG3S_SYS_PCIE_RST_RSM_B_MASK, 1));
-	if (ret)
-		return ret;
+	if (host->data->devtype == RZG3S_PCIE) {
+		ret = regmap_update_bits(host->sysc, RZG3S_SYS_PCIE_RST_RSM_B,
+					 RZG3S_SYS_PCIE_RST_RSM_B_MASK,
+					 FIELD_PREP(RZG3S_SYS_PCIE_RST_RSM_B_MASK, 1));
+		if (ret)
+			return ret;
 
-	ret = devm_add_action_or_reset(dev, rzg3s_pcie_sysc_signal_action,
-				       host->sysc);
-	if (ret)
-		return ret;
+		ret = devm_add_action_or_reset(dev, rzg3s_pcie_sysc_signal_action,
+					       host->sysc);
+		if (ret)
+			return ret;
+
+	} else {
+		ret = of_property_read_u32(np, "pcie,channel", &channel);
+		if (ret) {
+			dev_err(dev, "%pOF: No pcie,channel property found\n",
+				np);
+			return -EINVAL;
+		}
+
+		host->channel = channel;
+		if (host->channel >= PCIE_MAX_CHANNEL) {
+			dev_err(dev, "%pOF: Invalid pcie,channel '%u'\n",
+				np, host->channel);
+			return -EINVAL;
+		}
+	}
 
 	ret = rzg3s_pcie_resets_prepare(host);
 	if (ret)
@@ -1684,17 +1698,38 @@ static const char * const rzg3s_soc_cfg_resets[] = {
 };
 
 static const struct rzg3s_pcie_soc_data rzg3s_soc_data = {
+	.devtype = RZG3S_PCIE,
 	.power_resets = rzg3s_soc_power_resets,
 	.num_power_resets = ARRAY_SIZE(rzg3s_soc_power_resets),
 	.cfg_resets = rzg3s_soc_cfg_resets,
 	.num_cfg_resets = ARRAY_SIZE(rzg3s_soc_cfg_resets),
 	.init_phy = rzg3s_soc_pcie_init_phy,
+	.reset_assert = rzg3s_soc_pcie_reset_assert,
+	.reset_deassert = rzg3s_soc_pcie_reset_deassert,
+};
+
+static const char * const rzv2h_soc_power_resets[] = {
+	"aresetn",
+};
+
+static const struct rzg3s_pcie_soc_data rzv2h_soc_data = {
+	.devtype = RZV2H_PCIE,
+	.power_resets = rzv2h_soc_power_resets,
+	.num_power_resets = ARRAY_SIZE(rzv2h_soc_power_resets),
+	.pre_init = rzv2h_soc_pcie_pre_init,
+	.late_init = rzv2h_soc_pcie_late_init,
+	.reset_assert = rzv2h_soc_pcie_reset_assert,
+	.reset_deassert = rzv2h_soc_pcie_reset_deassert,
 };
 
 static const struct of_device_id rzg3s_pcie_of_match[] = {
 	{
 		.compatible = "renesas,r9a08g045s33-pcie",
 		.data = &rzg3s_soc_data,
+	},
+	{
+		.compatible = "renesas,r9a09g057-pcie",
+		.data = &rzv2h_soc_data,
 	},
 	{},
 };

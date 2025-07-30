@@ -1,0 +1,182 @@
+/* SPDX-License-Identifier: GPL-2.0 */
+/*
+ * PCIe driver for Renesas RZ/G3S SoCs
+ *
+ * Copyright (C) 2025 Renesas Electronics Corp.
+ *
+ */
+
+#ifndef _PCIE_RZG3S_H
+#define _PCIE_RZG3S_H
+
+/* AXI registers */
+#define RZG3S_PCI_REQDATA(id)			(0x80 + (id) * 0x4)
+#define RZG3S_PCI_REQRCVDAT			0x8c
+
+#define RZG3S_PCI_REQADR1			0x90
+#define RZG3S_PCI_REQADR1_BUS			GENMASK(31, 24)
+#define RZG3S_PCI_REQADR1_DEV			GENMASK(23, 19)
+#define RZG3S_PCI_REQADR1_FUNC			GENMASK(18, 16)
+#define RZG3S_PCI_REQADR1_REG			GENMASK(11, 0)
+
+#define RZG3S_PCI_REQBE				0x98
+#define RZG3S_PCI_REQBE_BYTE_EN			GENMASK(3, 0)
+
+#define RZG3S_PCI_REQISS			0x9c
+#define RZG3S_PCI_REQISS_MOR_STATUS		GENMASK(18, 16)
+#define RZG3S_PCI_REQISS_TR_TYPE		GENMASK(11, 8)
+#define RZG3S_PCI_REQISS_TR_TP0_RD		FIELD_PREP(RZG3S_PCI_REQISS_TR_TYPE, 0x4)
+#define RZG3S_PCI_REQISS_TR_TP0_WR		FIELD_PREP(RZG3S_PCI_REQISS_TR_TYPE, 0x5)
+#define RZG3S_PCI_REQISS_REQ_ISSUE		BIT(0)
+
+#define RZG3S_PCI_MSIRCVWADRL			0x100
+#define RZG3S_PCI_MSIRCVWADRL_MSG_DATA_ENA	BIT(1)
+#define RZG3S_PCI_MSIRCVWADRL_ENA		BIT(0)
+
+#define RZG3S_PCI_MSIRCVWADRU			0x104
+#define RZG3S_PCI_MSIRCVWMSKL			0x108
+#define RZG3S_PCI_MSIRCVWMSKU			0x10c
+
+#define RZG3S_PCI_PINTRCVIE			0x110
+#define RZG3S_PCI_PINTRCVIE_INTX(i)		BIT(i)
+#define RZG3S_PCI_PINTRCVIE_MSI			BIT(4)
+
+#define RZG3S_PCI_PINTRCVIS			0x114
+#define RZG3S_PCI_PINTRCVIS_INTX(i)		BIT(i)
+#define RZG3S_PCI_PINTRCVIS_MSI			BIT(4)
+
+#define RZG3S_PCI_MSGRCVIE			0x120
+#define RZG3S_PCI_MSGRCVIE_MSG_RCV		BIT(24)
+
+#define RZG3S_PCI_MSGRCVIS			0x124
+#define RZG3S_PCI_MSGRCVIS_MRI			BIT(24)
+
+#define RZG3S_PCI_PEIE0				0x200
+
+#define RZG3S_PCI_PEIS0				0x204
+#define RZG3S_PCI_PEIS0_RX_DLLP_PM_ENTER	BIT(12)
+#define RZG3S_PCI_PEIS0_DL_UPDOWN		BIT(9)
+
+#define RZG3S_PCI_PEIE1				0x208
+#define RZG3S_PCI_PEIS1				0x20c
+#define RZG3S_PCI_AMEIE				0x210
+#define RZG3S_PCI_AMEIS				0x214
+#define RZG3S_PCI_ASEIE1			0x220
+#define RZG3S_PCI_ASEIS1			0x224
+
+#define RZG3S_PCI_PCSTAT1			0x408
+#define RZG3S_PCI_PCSTAT1_LTSSM_STATE		GENMASK(14, 10)
+#define RZG3S_PCI_PCSTAT1_DL_DOWN_STS		BIT(0)
+
+#define RZG3S_PCI_PCCTRL2			0x410
+#define RZG3S_PCI_PCCTRL2_LS_CHG		GENMASK(9, 8)
+#define RZG3S_PCI_PCCTRL2_LS_CHG_REQ		BIT(0)
+
+#define RZG3S_PCI_PCSTAT2			0x414
+#define RZG3S_PCI_PCSTAT2_LS_CHG_DONE		BIT(28)
+#define RZG3S_PCI_PCSTAT2_STATE_RX_DETECT	GENMASK(15, 8)
+#define RZG3S_PCI_PCSTAT2_SDRIRE		GENMASK(7, 0)
+
+#define RZG3S_PCI_PERM				0x300
+#define RZG3S_PCI_PERM_CFG_HWINIT_EN		BIT(2)
+#define RZG3S_PCI_PERM_PIPE_PHY_REG_EN		BIT(1)
+
+#define RZG3S_PCI_MSIRE(id)			(0x600 + (id) * 0x10)
+#define RZG3S_PCI_MSIRE_ENA			BIT(0)
+
+#define RZG3S_PCI_MSIRM(id)			(0x608 + (id) * 0x10)
+#define RZG3S_PCI_MSIRS(id)			(0x60c + (id) * 0x10)
+
+#define RZG3S_PCI_AWBASEL(id)			(0x1000 + (id) * 0x20)
+#define RZG3S_PCI_AWBASEL_WIN_ENA		BIT(0)
+
+#define RZG3S_PCI_AWBASEU(id)			(0x1004 + (id) * 0x20)
+#define RZG3S_PCI_AWMASKL(id)			(0x1008 + (id) * 0x20)
+#define RZG3S_PCI_AWMASKU(id)			(0x100c + (id) * 0x20)
+#define RZG3S_PCI_ADESTL(id)			(0x1010 + (id) * 0x20)
+#define RZG3S_PCI_ADESTU(id)			(0x1014 + (id) * 0x20)
+
+#define RZG3S_PCI_PWBASEL(id)			(0x1100 + (id) * 0x20)
+#define RZG3S_PCI_PWBASEL_ENA			BIT(0)
+
+#define RZG3S_PCI_PWBASEU(id)			(0x1104 + (id) * 0x20)
+#define RZG3S_PCI_PDESTL(id)			(0x1110 + (id) * 0x20)
+#define RZG3S_PCI_PDESTU(id)			(0x1114 + (id) * 0x20)
+#define RZG3S_PCI_PWMASKL(id)			(0x1108 + (id) * 0x20)
+#define RZG3S_PCI_PWMASKU(id)			(0x110c + (id) * 0x20)
+
+/* PHY control registers */
+#define RZG3S_PCI_PHY_XCFGD(id)			(0x2000 + (id) * 0x10)
+#define RZG3S_PCI_PHY_XCFGD_NUM			39
+
+#define RZG3S_PCI_PHY_XCFGA_CMN(id)		(0x2400 + (id) * 0x10)
+#define RZG3S_PCI_PHY_XCFGA_CMN_NUM		16
+
+#define RZG3S_PCI_PHY_XCFGA_RX(id)		(0x2500 + (id) * 0x10)
+#define RZG3S_PCI_PHY_XCFGA_RX_NUM		13
+
+#define RZG3S_PCI_PHY_XCFGA_TX			0x25d0
+
+#define RZG3S_PCI_PHY_XCFG_CTRL			0x2a20
+#define RZG3S_PCI_PHY_XCFG_CTRL_PHYREG_SEL	BIT(0)
+
+/* PCIe registers */
+#define RZG3S_PCI_CFG_BASE			0x6000
+#define RZG3S_PCI_CFG_BARMSK00L			0xa0
+#define RZG3S_PCI_CFG_BARMSK00U			0xa4
+
+#define RZG3S_PCI_CFG_PCIEC			0x60
+
+/* PCIe Configuration Register */
+#define RZG3S_PCIE_CONF_REVISION_ID		0x00
+#define RZG3S_PCIE_CONF_PROGRAMING_IF		0x00
+#define RZG3S_PCIE_CONF_BASE_CLASS		0x06
+#define RZG3S_PCIE_CONF_SUB_CLASS		0x04
+
+/* System controller registers */
+#define RZG3S_SYS_PCIE_RST_RSM_B		0xd74
+#define RZG3S_SYS_PCIE_RST_RSM_B_MASK		BIT(0)
+
+/* Maximum number of windows */
+#define RZG3S_MAX_WINDOWS			8
+
+/* Number of MSI interrupts per register */
+#define RZG3S_PCI_MSI_INT_PER_REG		32
+/* The number of MSI interrupts */
+#define RZG3S_PCI_MSI_INT_NR			RZG3S_PCI_MSI_INT_PER_REG
+
+/* Timeouts experimentally determined. */
+#define RZG3S_REQ_ISSUE_TIMEOUT_US		2500
+
+/* Only in RZ/V2H */
+#define PCIE_MAX_CHANNEL			2
+
+/* PCIE SYS Registers */
+#define RZV2H_SYS_PCIE_MISC_CH(x)		(0x1020 + ((x) * 0x30))
+#define	RZV2H_ALLOW_ENTER_MASK			BIT(0)
+
+#define RZV2H_SYS_PCIE_MODE_CH(x)		(0x1024 + ((x) * 0x30))
+#define RZV2H_MODE_PORT_SYS_MASK		BIT(0)
+#define RZV2H_MODE_PORT_SYS_RC			1
+
+#define RZV2H_SYS_PCIE_LANE_MODE		0x1060
+#define RZV2H_SYS_PCIE_LANE_MODE_MASK		GENMASK(9, 8)
+#define RZV2H_LINK_MASTER_4_LANE_MODE		1	/* 4 lane * 1 mode */
+#define RZV2H_LINK_MASTER_2_LANE_MODE		3	/* 2 lane * 2 mode */
+
+/* AXI registers */
+#define RZV2H_PCI_RESET_REG			0x0310
+#define RZV2H_RST_B				BIT(0)
+#define RZV2H_RST_GP_B				BIT(1)
+#define RZV2H_RST_RSM_B				BIT(2)
+#define RZV2H_RST_CFG_B				BIT(3)
+#define RZV2H_RST_LOAD_B			BIT(4)
+#define RZV2H_RST_PS_B				BIT(5)
+#define RZV2H_RST_OUT_B				BIT(6)
+#define RZV2H_RST_PREG_B			BIT(7)
+#define RZV2H_RESET_ALL_ASSERT			GENMASK(6, 0)
+#define RZV2H_RESET_LOAD_CFG_RELEASE		(BIT(3) | BIT(4))
+#define RZV2H_RESET_PS_GP_RELEASE		(BIT(0) | BIT(1) | BIT(5))
+#define RZV2H_RESET_OUT_RSM_RELEASE		(BIT(2) | BIT(6))
+
+#endif
