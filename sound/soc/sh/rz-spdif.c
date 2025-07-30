@@ -15,6 +15,7 @@
 #include <sound/soc.h>
 #include <linux/dmaengine.h>
 #include <sound/asoundef.h>
+#include <linux/dma-mapping.h>
 
 /* Register offset	*/
 #define SPDIF_TLCA		0x00
@@ -118,6 +119,12 @@ struct rz_spdif_stream {
 	int dma_buffer_pos;	/* The address for the next DMA descriptor */
 	struct dma_chan *dma_ch;
 	bool running;
+
+	u32 *dma_pad_buf_tx;
+	dma_addr_t dma_pad_addr_tx;
+	u32 *dma_pad_buf_rx;
+	dma_addr_t dma_pad_addr_rx;
+	size_t dma_buf_size;
 
 	int (*transfer)(struct spdif_dev_data *spdif, struct rz_spdif_stream *strm);
 };
@@ -459,6 +466,7 @@ static int rz_spdif_dai_hw_params(struct snd_pcm_substream *substream,
 				  struct snd_soc_dai *dai)
 {
 	struct spdif_dev_data *spdif = snd_soc_dai_get_drvdata(dai);
+	struct rz_spdif_stream *strm = rz_spdif_stream_get(spdif, substream);
 	u32 channel_status1, channel_status2;
 
 	spdif->rate = params_rate(params);
@@ -512,12 +520,62 @@ static int rz_spdif_dai_hw_params(struct snd_pcm_substream *substream,
 	spdif->spdout.s_buf[SPDIF_CH1] = channel_status1;
 	spdif->spdout.s_buf[SPDIF_CH2] = channel_status2;
 
+	/*
+	 * Allocate a DMA buffer used specifically for S16_LE format in DMA transfer mode.
+	 * This buffer provides the required padding when converting 16-bit samples
+	 * to the 32-bit data width expected by the SPDIF hardware.
+	 */
+	if (spdif->is_dma && spdif->bit_width == 16) {
+		strm->dma_buf_size = params_period_size(params) * 2 * sizeof(u32);
+
+		if (rz_spdif_stream_is_play(substream)) {
+			strm->dma_pad_buf_tx = dma_alloc_coherent(spdif->dev,
+								  strm->dma_buf_size,
+								  &strm->dma_pad_addr_tx,
+								  GFP_KERNEL);
+
+			if (!strm->dma_pad_buf_tx)
+				return -ENOMEM;
+		} else {
+			strm->dma_pad_buf_rx = dma_alloc_coherent(spdif->dev,
+								  strm->dma_buf_size,
+								  &strm->dma_pad_addr_rx,
+								  GFP_KERNEL);
+
+			if (!strm->dma_pad_buf_rx)
+				return -ENOMEM;
+		}
+	}
+	return 0;
+}
+
+static int rz_spdif_dai_hw_free(struct snd_pcm_substream *substream,
+				struct snd_soc_dai *dai)
+{
+	struct spdif_dev_data *spdif = snd_soc_dai_get_drvdata(dai);
+	struct rz_spdif_stream *strm = rz_spdif_stream_get(spdif, substream);
+
+	/* Free padding buffer after use */
+	if (spdif->is_dma && spdif->bit_width == 16) {
+		if (strm->dma_pad_buf_tx) {
+			dma_free_coherent(spdif->dev, strm->dma_buf_size,
+					  strm->dma_pad_buf_tx, strm->dma_pad_addr_tx);
+			strm->dma_pad_buf_tx = NULL;
+		}
+		if (strm->dma_pad_buf_rx) {
+			dma_free_coherent(spdif->dev, strm->dma_buf_size,
+					  strm->dma_pad_buf_rx, strm->dma_pad_addr_rx);
+			strm->dma_pad_buf_rx = NULL;
+		}
+	}
+
 	return 0;
 }
 
 static const struct snd_soc_dai_ops rz_spdif_dai_ops = {
 	.trigger = rz_spdif_dai_trigger,
 	.hw_params = rz_spdif_dai_hw_params,
+	.hw_free = rz_spdif_dai_hw_free,
 };
 
 static const struct snd_pcm_hardware rz_spdif_pcm_hardware = {
@@ -731,28 +789,33 @@ static const struct snd_soc_component_driver rz_spdif_component = {
 
 static bool rz_spdif_pio_recv(int irq, struct spdif_dev_data *spdif)
 {
-	struct snd_pcm_runtime *runtime;
-	u32 *rx_buf;
-	int shift = 0;
+	struct snd_pcm_runtime *runtime = spdif->capture.substream->runtime;
+	snd_pcm_format_t fmt = runtime->format;
 	int byte_pos;
 	bool elapsed = false;
 
-	runtime = spdif->capture.substream->runtime;
-
-	rx_buf = (u32 *)(runtime->dma_area + spdif->rx_byte_pos);
-
-	if (snd_pcm_format_width(runtime->format) == 24)
-		shift = 8;
-	else if (snd_pcm_format_width(runtime->format) == 16)
-		shift = 16;
-
 	do {
-		/* Default record from right channel */
-		*rx_buf = (rz_spdif_reg_readl(spdif, SPDIF_RLCA) << shift);
-		*rx_buf = (rz_spdif_reg_readl(spdif, SPDIF_RRCA) << shift);
-	} while (rz_spdif_reg_readl(spdif, SPDIF_STAT) & SPDIF_CBRX_BIT);
+		switch (fmt) {
+		case SNDRV_PCM_FORMAT_S24_LE: {
+			u64 *rx_buf = (u64 *)(runtime->dma_area + spdif->rx_byte_pos);
 
-	byte_pos = spdif->rx_byte_pos + sizeof(*rx_buf);
+			*rx_buf = ((u64)(rz_spdif_reg_readl(spdif, SPDIF_RLCA) & 0xFFFFFF) << 32) |
+					 rz_spdif_reg_readl(spdif, SPDIF_RRCA);
+
+			byte_pos = spdif->rx_byte_pos + sizeof(*rx_buf);
+			break;
+		} case SNDRV_PCM_FORMAT_S16_LE: {
+			u32 *rx_buf = (u32 *)(runtime->dma_area + spdif->rx_byte_pos);
+
+			*rx_buf = ((rz_spdif_reg_readl(spdif, SPDIF_RLCA) & 0xFFFF) << 16) |
+				   (rz_spdif_reg_readl(spdif, SPDIF_RRCA) & 0xFFFF);
+			byte_pos = spdif->rx_byte_pos + sizeof(*rx_buf);
+			break;
+		} default:
+			return false;
+		}
+
+	} while (rz_spdif_reg_readl(spdif, SPDIF_STAT) & SPDIF_CBRX_BIT);
 
 	if (byte_pos >= spdif->rx_next_period_byte) {
 		int period_pos = byte_pos / spdif->rx_byte_per_period;
@@ -773,28 +836,38 @@ static bool rz_spdif_pio_recv(int irq, struct spdif_dev_data *spdif)
 
 static bool rz_spdif_pio_send(int irq, struct spdif_dev_data *spdif)
 {
-	struct snd_pcm_runtime *runtime;
-	u32 *tx_buf;
-	int shift = 0;
+	struct snd_pcm_runtime *runtime = spdif->playback.substream->runtime;
+	snd_pcm_format_t fmt = runtime->format;
 	int byte_pos;
 	bool elapsed = false;
-
-	runtime = spdif->playback.substream->runtime;
-
-	tx_buf = (u32 *)(runtime->dma_area + spdif->tx_byte_pos);
-
-	if (snd_pcm_format_width(runtime->format) == 24)
-		shift = 8;
-	else if (snd_pcm_format_width(runtime->format) == 16)
-		shift = 16;
+	u32 data;
 
 	do {
-		/* Write data to both channel left, right */
-		rz_spdif_reg_writel(spdif, SPDIF_TLCA, (*tx_buf) >> shift);
-		rz_spdif_reg_writel(spdif, SPDIF_TRCA, (*tx_buf) >> shift);
-	} while (rz_spdif_reg_readl(spdif, SPDIF_STAT) & SPDIF_CBTX_BIT);
+		switch (fmt) {
+		case SNDRV_PCM_FORMAT_S24_LE: {
+			u64 *tx_buf = (u64 *)(runtime->dma_area + spdif->tx_byte_pos);
 
-	byte_pos = spdif->tx_byte_pos + sizeof(*tx_buf);
+			data = ((*tx_buf) >> 32 & 0xFFFFFF);
+			rz_spdif_reg_writel(spdif, SPDIF_TLCA, data);
+			data = ((*tx_buf) & 0xFFFFFF);
+			rz_spdif_reg_writel(spdif, SPDIF_TRCA, data);
+
+			byte_pos = spdif->tx_byte_pos + sizeof(*tx_buf);
+			break;
+		} case SNDRV_PCM_FORMAT_S16_LE: {
+			u32 *tx_buf = (u32 *)(runtime->dma_area + spdif->tx_byte_pos);
+
+			data = ((*tx_buf) >> 16 & 0xFFFF);
+			rz_spdif_reg_writel(spdif, SPDIF_TLCA, data);
+			data = ((*tx_buf) & 0xFFFF);
+			rz_spdif_reg_writel(spdif, SPDIF_TRCA, data);
+
+			byte_pos = spdif->tx_byte_pos + sizeof(*tx_buf);
+			break;
+		} default:
+			return false;
+		}
+	} while (rz_spdif_reg_readl(spdif, SPDIF_STAT) & SPDIF_CBTX_BIT);
 
 	if (byte_pos >= spdif->tx_next_period_byte) {
 		int period_pos = byte_pos / spdif->tx_byte_per_period;
@@ -813,15 +886,92 @@ static bool rz_spdif_pio_send(int irq, struct spdif_dev_data *spdif)
 	return elapsed;
 }
 
+static void rz_spdif_out_restart(struct spdif_dev_data *spdif)
+{
+	if (spdif->is_dma)
+		/* Disable DMA transmitter */
+		rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_TDE_BIT, 0);
+	else
+		/* Disable Transmitter interrupt */
+		rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_TCBI_BIT, 0);
+
+	rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_TME_BIT, 0);
+	while (!(rz_spdif_reg_readl(spdif, SPDIF_STAT) & SPDIF_TIS_BIT))
+		;
+
+	rz_spdif_status_clear(spdif);
+
+	/* Retransmit */
+	/* Enable transmitter module */
+	rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_TME_BIT, SPDIF_TME_BIT);
+	while (rz_spdif_reg_readl(spdif, SPDIF_STAT) & SPDIF_TIS_BIT)
+		;
+
+	/* Enable interrupt (User data empty) */
+	if (spdif->count > 0)
+		rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_TUII_BIT, SPDIF_TUII_BIT);
+
+	/* Enable error interrupt */
+	rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_TEIE_BIT, SPDIF_TEIE_BIT);
+
+	if (spdif->is_dma) {
+		/* Enable underrun interrupt */
+		rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_ABUI_BIT, SPDIF_ABUI_BIT);
+		/* Enable DMA transmitter */
+		rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_TDE_BIT, SPDIF_TDE_BIT);
+	} else
+		/* Enable transmitter interrupt */
+		rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_TCBI_BIT, SPDIF_TCBI_BIT);
+}
+
+static void rz_spdif_in_restart(struct spdif_dev_data *spdif)
+{
+	if (spdif->is_dma)
+		/* Disable DMA receiver */
+		rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_RDE_BIT, 0);
+	else
+		/* Disable Receiver interrupt */
+		rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_RCBI_BIT, 0);
+	rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_RME_BIT, 0);
+	while (!(rz_spdif_reg_readl(spdif, SPDIF_STAT) & SPDIF_RIS_BIT))
+		;
+
+	rz_spdif_status_clear(spdif);
+
+	/* Retransmit */
+	/* Enable receiver module */
+	rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_RME_BIT, SPDIF_RME_BIT);
+	while (rz_spdif_reg_readl(spdif, SPDIF_STAT) & SPDIF_RIS_BIT)
+		;
+
+	/* Enable interrupt (Channel status full) */
+	rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_RCSI_BIT, SPDIF_RCSI_BIT);
+
+	/* Enable interrupt (User data full) */
+	if (spdif->spdin.u_idx < SPDIF_USER_BUFSZ)
+		rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_RUII_BIT, SPDIF_RUII_BIT);
+
+	/* Enable error interrupt */
+	rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_REIE_BIT, SPDIF_REIE_BIT);
+
+	if (spdif->is_dma) {
+		/* Enable overrun interrupt */
+		rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_ABOI_BIT, SPDIF_ABOI_BIT);
+		/* Enable DMA receiver */
+		rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_RDE_BIT, SPDIF_RDE_BIT);
+	} else
+		/* Enable Receiver interrupt */
+		rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_RCBI_BIT, SPDIF_RCBI_BIT);
+}
+
 static irqreturn_t rz_spdif_irq_handler(int irq, void *arg)
 {
 	struct spdif_dev_data *spdif = arg;
 	struct rz_spdif_stream *strm_playback = NULL;
 	struct rz_spdif_stream *strm_capture = NULL;
 	u32 stat, udata;
-	bool rx_elapsed = false;
-	bool tx_elapsed = false;
-	bool error = false;
+	bool tx_error = false;
+	bool rx_error = false;
 
 	spin_lock(&spdif->lock);
 	if (spdif->playback.substream)
@@ -838,17 +988,20 @@ static irqreturn_t rz_spdif_irq_handler(int irq, void *arg)
 		/* Clear error status */
 		if (stat & SPDIF_ABU_BIT) {
 			rz_spdif_bset(spdif, SPDIF_STAT, SPDIF_ABU_BIT, 0);
-			error = true;
+			tx_error = true;
 		}
 		if (stat & SPDIF_ABO_BIT) {
 			rz_spdif_bset(spdif, SPDIF_STAT, SPDIF_ABO_BIT, 0);
-			error = true;
+			rx_error = true;
 		}
 	} else {
 		if (stat & SPDIF_CBTX_BIT)
-			tx_elapsed = rz_spdif_pio_send(irq, spdif);
+			if (rz_spdif_pio_send(irq, spdif))
+				snd_pcm_period_elapsed(strm_playback->substream);
+
 		if (stat & SPDIF_CBRX_BIT)
-			rx_elapsed = rz_spdif_pio_recv(irq, spdif);
+			if (rz_spdif_pio_recv(irq, spdif))
+				snd_pcm_period_elapsed(strm_capture->substream);
 	}
 
 	/* Receiver channel status interrupt (CSRX) */
@@ -895,88 +1048,10 @@ static irqreturn_t rz_spdif_irq_handler(int irq, void *arg)
 
 	spin_unlock(&spdif->lock);
 
-	/* PIO elapse only */
-	if (tx_elapsed)
-		snd_pcm_period_elapsed(strm_playback->substream);
-	if (rx_elapsed)
-		snd_pcm_period_elapsed(strm_capture->substream);
-
-	if (error) {
-		if (rz_spdif_is_stream_running(&spdif->playback)) {
-			if (spdif->is_dma)
-				/* Disable DMA transmitter */
-				rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_TDE_BIT, 0);
-			else
-				/* Disable Transmitter interrupt */
-				rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_TCBI_BIT, 0);
-
-			rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_TME_BIT, 0);
-			while (!(rz_spdif_reg_readl(spdif, SPDIF_STAT) & SPDIF_TIS_BIT))
-				;
-		}
-		if (rz_spdif_is_stream_running(&spdif->capture)) {
-			if (spdif->is_dma)
-				/* Disable DMA receiver */
-				rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_RDE_BIT, 0);
-			else
-				/* Disable Receiver interrupt */
-				rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_RCBI_BIT, 0);
-			rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_RME_BIT, 0);
-			while (!(rz_spdif_reg_readl(spdif, SPDIF_STAT) & SPDIF_RIS_BIT))
-				;
-		}
-
-		rz_spdif_status_clear(spdif);
-
-		/* Retransmit */
-		if (rz_spdif_is_stream_running(&spdif->playback)) {
-			/* Enable transmitter module */
-			rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_TME_BIT, SPDIF_TME_BIT);
-			while (rz_spdif_reg_readl(spdif, SPDIF_STAT) & SPDIF_TIS_BIT)
-				;
-
-			/* Enable interrupt (User data empty) */
-			if (spdif->count > 0)
-				rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_TUII_BIT, SPDIF_TUII_BIT);
-
-			/* Enable error interrupt */
-			rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_TEIE_BIT, SPDIF_TEIE_BIT);
-
-			if (spdif->is_dma) {
-				/* Enable underrun interrupt */
-				rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_ABUI_BIT, SPDIF_ABUI_BIT);
-				/* Enable DMA transmitter */
-				rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_TDE_BIT, SPDIF_TDE_BIT);
-			} else
-				/* Enable transmitter interrupt */
-				rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_TCBI_BIT, SPDIF_TCBI_BIT);
-		}
-		if (rz_spdif_is_stream_running(&spdif->capture)) {
-			/* Enable receiver module */
-			rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_RME_BIT, SPDIF_RME_BIT);
-			while (rz_spdif_reg_readl(spdif, SPDIF_STAT) & SPDIF_RIS_BIT)
-				;
-
-			/* Enable interrupt (Channel status full) */
-			rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_RCSI_BIT, SPDIF_RCSI_BIT);
-
-			/* Enable interrupt (User data full) */
-			if (spdif->spdin.u_idx < SPDIF_USER_BUFSZ)
-				rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_RUII_BIT, SPDIF_RUII_BIT);
-
-			/* Enable error interrupt */
-			rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_REIE_BIT, SPDIF_REIE_BIT);
-
-			if (spdif->is_dma) {
-				/* Enable overrun interrupt */
-				rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_ABOI_BIT, SPDIF_ABOI_BIT);
-				/* Enable DMA receiver */
-				rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_RDE_BIT, SPDIF_RDE_BIT);
-			} else
-				/* Enable Receiver interrupt */
-				rz_spdif_bset(spdif, SPDIF_CTRL, SPDIF_RCBI_BIT, SPDIF_RCBI_BIT);
-		}
-	}
+	if (tx_error)
+		rz_spdif_out_restart(spdif);
+	if (rx_error)
+		rz_spdif_in_restart(spdif);
 
 	return IRQ_HANDLED;
 }
@@ -993,6 +1068,8 @@ static int rz_spdif_dma_slave_config(struct spdif_dev_data *spdif,
 	cfg.src_addr = spdif->phys + SPDIF_RDAD;
 	cfg.src_addr_width = DMA_SLAVE_BUSWIDTH_4_BYTES;
 	cfg.dst_addr_width = DMA_SLAVE_BUSWIDTH_4_BYTES;
+	cfg.src_maxburst = 1;
+	cfg.dst_maxburst = 1;
 
 	return dmaengine_slave_config(dma_ch, &cfg);
 }
@@ -1004,8 +1081,9 @@ static int rz_spdif_dma_transfer(struct spdif_dev_data *spdif,
 	struct dma_async_tx_descriptor *desc;
 	struct snd_pcm_runtime *runtime;
 	enum dma_transfer_direction dir;
-	u32 dma_paddr, dma_size;
 	int amount;
+	dma_addr_t dma_addr;
+	size_t dma_size;
 
 	if (!rz_spdif_stream_is_valid(spdif, strm))
 		return -EINVAL;
@@ -1024,13 +1102,40 @@ static int rz_spdif_dma_transfer(struct spdif_dev_data *spdif,
 	/* Always transfer 1 period */
 	amount = runtime->period_size;
 
-	/* DMA physical address and size */
-	dma_paddr = runtime->dma_addr + frames_to_bytes(runtime,
-							strm->dma_buffer_pos);
-	dma_size = frames_to_bytes(runtime, amount);
-	desc = dmaengine_prep_slave_single(strm->dma_ch, dma_paddr, dma_size,
-					dir,
-					DMA_PREP_INTERRUPT | DMA_CTRL_ACK);
+	/* As mentioned in the HW manual, SPDIF registers are longword registers
+	 * and must be accessed using 32-bit operations. DMA transfers audio
+	 * by sending channel 1 first, then channel 2.
+	 *
+	 * However, with the S16_LE format, ALSA sends 32 bits per frame
+	 * (16 bits per channel). Therefore, when using 16-bit audio formats,
+	 * we must pad each 16-bit channel sample to 32 bits as the HW requirement.
+	 */
+	if (runtime->format == SNDRV_PCM_FORMAT_S16_LE) {
+		if (rz_spdif_stream_is_play(substream)) {
+			/* For TX: Padding from 16-bit to 32-bit */
+			const u16 *src = (const u16 *)(runtime->dma_area +
+					 frames_to_bytes(runtime, strm->dma_buffer_pos));
+			u32 *dst = strm->dma_pad_buf_tx;
+
+			for (size_t i = 0; i < amount * 2; i++)
+				dst[i] = (u32)src[i];
+
+			dma_addr = strm->dma_pad_addr_tx;
+		} else
+			/* For RX: write directly to RX pad buffer */
+			dma_addr = strm->dma_pad_addr_rx;
+
+		dma_size = amount * 2 * sizeof(u32);
+	} else {
+		dma_addr = runtime->dma_addr + frames_to_bytes(runtime, strm->dma_buffer_pos);
+		dma_size = frames_to_bytes(runtime, amount);
+	}
+
+	desc = dmaengine_prep_slave_single(strm->dma_ch,
+					   dma_addr,
+					   dma_size,
+					   dir,
+					   DMA_PREP_INTERRUPT | DMA_CTRL_ACK);
 	if (!desc) {
 		dev_err(spdif->dev, "dmaengine_prep_slave_single() fail\n");
 		return -ENOMEM;
@@ -1058,9 +1163,23 @@ static int rz_spdif_dma_transfer(struct spdif_dev_data *spdif,
 static void rz_spdif_dma_complete(void *data)
 {
 	struct rz_spdif_stream *strm = (struct rz_spdif_stream *)data;
+	struct snd_pcm_runtime *runtime;
 
 	if (!strm->substream || !strm->substream->runtime)
 		return;
+
+	runtime = strm->substream->runtime;
+
+	if ((runtime->format == SNDRV_PCM_FORMAT_S16_LE) &&
+	    (strm->substream->stream == SNDRV_PCM_STREAM_CAPTURE)) {
+		/* For RX: Unpad from 32-bit to 16-bit */
+		const u32 *src = strm->dma_pad_buf_rx;
+		u16 *dst = (u16 *)(runtime->dma_area +
+				  frames_to_bytes(runtime, strm->dma_buffer_pos));
+
+		for (size_t i = 0; i < runtime->period_size * 2; i++)
+			dst[i] = (u16)(src[i] & 0xFFFF);
+	}
 
 	snd_pcm_period_elapsed(strm->substream);
 	/* Queue up another DMA transaction */
