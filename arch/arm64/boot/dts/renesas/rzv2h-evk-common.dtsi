@@ -247,9 +247,9 @@
 		compatible = "audio-graph-card";
 
 		label = "rcar-sound";
-		mclk-fs = <256>;
 
 		dais = <&rsnd_port0     /* DA7211 */
+			&rsnd_port1	/* HDMI0  */
 			>;
 	};
 
@@ -464,6 +464,13 @@
 					remote-endpoint = <&hdmi_con_out>;
 				};
 			};
+
+			port@2 {
+				reg = <2>;
+				dsi_hdmi0_snd_in: endpoint {
+					remote-endpoint = <&rsnd_endpoint1>;
+				};
+			};
 		};
 	};
 };
@@ -611,7 +618,7 @@
 };
 
 &rcar_sound {
-	pinctrl-0 = <&sound_clk_pins &sound_pins>;
+	pinctrl-0 = <&sound_pins>;
 	pinctrl-names = "default";
 
 	status = "okay";
@@ -634,11 +641,24 @@
 				dai-format = "i2s";
 				bitclock-master = <&rsnd_endpoint0>;
 				frame-master = <&rsnd_endpoint0>;
+				mclk-fs = <256>;
 
 				playback = <&ssi3>, <&src0>, <&dvc0>;
 				capture = <&ssi4>, <&src1>, <&dvc1>;
 			};
+		};
 
+		rsnd_port1: port@1 {
+			reg = <1>;
+			rsnd_endpoint1: endpoint {
+				remote-endpoint = <&dsi_hdmi0_snd_in>;
+
+				dai-format = "i2s";
+				bitclock-master = <&rsnd_endpoint1>;
+				frame-master = <&rsnd_endpoint1>;
+
+				playback = <&ssi0>;
+			};
 		};
 	};
 };
@@ -791,17 +811,25 @@
 			 <RZV2H_PORT_PINMUX(8, 3, 5)>; /* RX */
 	};
 
-	sound_clk_pins: sound_clk {
-		pinmux = <RZV2H_PORT_PINMUX(1, 0, 7)>, /* AUDIO_CLKB */
-			 <RZV2H_PORT_PINMUX(1, 1, 7)>, /* AUDIO_CLKC */
-			 <RZV2H_PORT_PINMUX(9, 7, 8)>; /* AUDIO_CLKOUT */
-	};
-
 	sound_pins: sound {
-		pinmux = <RZV2H_PORT_PINMUX(1, 2, 7)>, /* SSI3_SCK */
-			 <RZV2H_PORT_PINMUX(1, 3, 7)>, /* SSI3_WS */
-			 <RZV2H_PORT_PINMUX(0, 4, 7)>, /* SSI3_SDATA */
-			 <RZV2H_PORT_PINMUX(1, 5, 7)>; /* SSI4_SDATA */
+		ssi34_pins: ssi34 {
+			pinmux = <RZV2H_PORT_PINMUX(1, 2, 7)>, /* SSI3_SCK */
+				 <RZV2H_PORT_PINMUX(1, 3, 7)>, /* SSI3_WS */
+				 <RZV2H_PORT_PINMUX(0, 4, 7)>, /* SSI3_SDATA */
+				 <RZV2H_PORT_PINMUX(1, 5, 7)>; /* SSI4_SDATA */
+		};
+
+		ssi0_pins: ssi0 {
+			pinmux = <RZV2H_PORT_PINMUX(4, 0, 7)>, /* SSI0_SCK */
+				 <RZV2H_PORT_PINMUX(4, 1, 7)>, /* SSI0_WS */
+				 <RZV2H_PORT_PINMUX(4, 2, 7)>; /* SSI0_SDATA */
+		};
+
+		sound_clk_pins: sound_clk {
+			pinmux = <RZV2H_PORT_PINMUX(1, 0, 7)>, /* AUDIO_CLKB */
+				 <RZV2H_PORT_PINMUX(1, 1, 7)>, /* AUDIO_CLKC */
+				 <RZV2H_PORT_PINMUX(9, 7, 8)>; /* AUDIO_CLKOUT */
+		};
 	};
 
 	scif_pins: scif {
