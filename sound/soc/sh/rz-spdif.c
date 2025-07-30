@@ -1216,6 +1216,37 @@ static int rz_spdif_remove(struct platform_device *pdev)
 	return 0;
 }
 
+static int __maybe_unused rz_spdif_suspend(struct device *dev)
+{
+	struct spdif_dev_data *spdif = dev_get_drvdata(dev);
+
+	if (spdif->rstc)
+		reset_control_assert(spdif->rstc);
+
+	pm_runtime_put_sync(spdif->dev);
+
+	return 0;
+}
+
+static int __maybe_unused rz_spdif_resume(struct device *dev)
+{
+	struct spdif_dev_data *spdif = dev_get_drvdata(dev);
+	int ret;
+
+	if (spdif->rstc) {
+		ret = reset_control_deassert(spdif->rstc);
+		if (ret)
+			return ret;
+	}
+
+	pm_runtime_get_sync(spdif->dev);
+
+	return 0;
+}
+
+static SIMPLE_DEV_PM_OPS(rz_spdif_pm_ops, rz_spdif_suspend,
+			 rz_spdif_resume);
+
 static const struct of_device_id rz_spdif_of_match[] = {
 	{ .compatible = "renesas,rz-spdif", },
 	{/* Sentinel */},
@@ -1226,6 +1257,7 @@ static struct platform_driver rz_spdif_driver = {
 	.driver	= {
 		.name	= "rz-spdif",
 		.of_match_table = rz_spdif_of_match,
+		.pm = &rz_spdif_pm_ops,
 	},
 	.probe		= rz_spdif_probe,
 	.remove		= rz_spdif_remove,
