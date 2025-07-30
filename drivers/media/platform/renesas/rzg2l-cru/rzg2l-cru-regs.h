@@ -24,10 +24,10 @@
 #define CRUnRST_VRESETN			BIT(0)
 
 /* Memory Bank Base Address (Lower) Register for CRU Image Data */
-#define AMnMBxADDRL(x)			(AMnMB1ADDRL + (x) * 2)
+#define AMnMBxADDRL(base, x)			((base) + (x) * 2)
 
 /* Memory Bank Base Address (Higher) Register for CRU Image Data */
-#define AMnMBxADDRH(x)			(AMnMB1ADDRH + (x) * 2)
+#define AMnMBxADDRH(base, x)			((base) + (x) * 2)
 
 #define AMnMBVALID_MBVALID(x)		GENMASK(x, 0)
 

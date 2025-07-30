@@ -30,6 +30,8 @@
 #define RZG2L_CRU_MIN_INPUT_WIDTH	320
 #define RZG2L_CRU_MIN_INPUT_HEIGHT	240
 
+#define RZG2L_CRU_MAX			4
+
 enum rzg2l_csi2_pads {
 	RZG2L_CRU_IP_SINK = 0,
 	RZG2L_CRU_IP_SOURCE,
@@ -83,9 +85,16 @@ struct rzg2l_cru_ip_format {
 	bool yuv;
 };
 
+enum rz_cru_type {
+	RZG2L_CRU_TYPE,
+	RZV2H_CRU_TYPE,
+};
+
 struct rzg2l_cru_info {
 	unsigned int max_width;
 	unsigned int max_height;
+	u8 cru_type;
+	int max_cru_channels;
 	u16 image_conv;
 	const u16 *regs;
 	bool has_stride;
@@ -177,6 +186,8 @@ struct rzg2l_cru_dev {
 	enum rzg2l_cru_dma_state state;
 
 	struct v4l2_pix_format format;
+
+	int id;
 };
 
 int rzg2l_cru_start_image_processing(struct rzg2l_cru_dev *cru);

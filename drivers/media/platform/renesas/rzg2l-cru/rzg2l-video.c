@@ -105,6 +105,20 @@ __rzg2l_cru_read_constant(struct rzg2l_cru_dev *cru, u32 offset)
 	 __rzg2l_cru_read_constant(cru, offset) : \
 	 __rzg2l_cru_read(cru, offset))
 
+static void rzg2l_cru_set_mb(struct rzg2l_cru_dev *cru,
+			     u32 slot, dma_addr_t addr)
+{
+	rzg2l_cru_write(cru, AMnMBxADDRL(AMnMB1ADDRL, slot), lower_32_bits(addr));
+	rzg2l_cru_write(cru, AMnMBxADDRH(AMnMB1ADDRH, slot), upper_32_bits(addr));
+}
+
+static dma_addr_t rzg2l_cru_get_mb(struct rzg2l_cru_dev *cru,
+				   u32 slot)
+{
+	return ((dma_addr_t)rzg2l_cru_read(cru, AMnMBxADDRH(AMnMB1ADDRH, slot)) << 32) |
+		rzg2l_cru_read(cru, AMnMBxADDRL(AMnMB1ADDRL, slot));
+}
+
 /* Need to hold qlock before calling */
 static void return_unused_buffers(struct rzg2l_cru_dev *cru,
 				  enum vb2_buffer_state state)
@@ -184,11 +198,9 @@ static void rzg2l_cru_set_slot_addr(struct rzg2l_cru_dev *cru,
 	if (WARN_ON((addr) & RZG2L_CRU_HW_BUFFER_MASK))
 		return;
 
-	/* Currently, we just use the buffer in 32 bits address */
-	rzg2l_cru_write(cru, AMnMBxADDRL(slot), addr);
-	rzg2l_cru_write(cru, AMnMBxADDRH(slot), 0);
+	rzg2l_cru_set_mb(cru, slot, addr);
 
-	cru->buf_addr[slot] = addr;
+	cru->buf_addr[slot] = rzg2l_cru_get_mb(cru, slot);
 }
 
 /*

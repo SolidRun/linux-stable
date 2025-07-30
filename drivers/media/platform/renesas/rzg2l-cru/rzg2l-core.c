@@ -243,6 +243,24 @@ static int rzg2l_cru_media_init(struct rzg2l_cru_dev *cru)
 	if (ret)
 		return ret;
 
+	if (cru->info->max_cru_channels > 1) {
+		ret = of_property_read_u32(cru->dev->of_node, "channel,id", &cru->id);
+		if (ret) {
+			if (cru->info->cru_type == RZV2H_CRU_TYPE) {
+				dev_err(cru->dev, "%pOF: No channel,id property found\n",
+						cru->dev->of_node);
+				return -EINVAL;
+			}
+			cru->id = 0;
+		}
+	}
+
+	if (cru->id >= cru->info->max_cru_channels) {
+		dev_err(cru->dev, "%pOF: Invalid channel,id '%u'\n",
+			cru->dev->of_node, cru->id);
+		return -EINVAL;
+	}
+
 	mutex_init(&cru->mdev_lock);
 	mdev = &cru->mdev;
 	mdev->dev = cru->dev;
@@ -413,6 +431,7 @@ static const u16 rzg3e_cru_regs[] = {
 };
 
 static const struct rzg2l_cru_info rzg3e_cru_info = {
+	.cru_type = RZV2H_CRU_TYPE,
 	.max_width = 4095,
 	.max_height = 4095,
 	.image_conv = ICnIPMC_C0,
@@ -423,6 +442,22 @@ static const struct rzg2l_cru_info rzg3e_cru_info = {
 	.disable_interrupts = rzg3e_cru_disable_interrupts,
 	.fifo_empty = rzg3e_fifo_empty,
 	.csi_setup = rzg3e_cru_csi2_setup,
+	.max_cru_channels = 1,
+};
+
+static const struct rzg2l_cru_info rzv2h_cru_info = {
+	.cru_type = RZV2H_CRU_TYPE,
+	.max_width = 4095,
+	.max_height = 4095,
+	.image_conv = ICnIPMC_C0,
+	.has_stride = true,
+	.regs = rzg3e_cru_regs,
+	.irq_handler = rzg3e_cru_irq,
+	.enable_interrupts = rzg3e_cru_enable_interrupts,
+	.disable_interrupts = rzg3e_cru_disable_interrupts,
+	.fifo_empty = rzg3e_fifo_empty,
+	.csi_setup = rzg3e_cru_csi2_setup,
+	.max_cru_channels = 4,
 };
 
 static const u16 rzg2l_cru_regs[] = {
@@ -459,6 +494,7 @@ static const u16 rzg2l_cru_regs[] = {
 };
 
 static const struct rzg2l_cru_info rzg2l_cru_info = {
+	.cru_type = RZG2L_CRU_TYPE,
 	.max_width = 2800,
 	.max_height = 4095,
 	.image_conv = ICnMC,
@@ -468,12 +504,17 @@ static const struct rzg2l_cru_info rzg2l_cru_info = {
 	.disable_interrupts = rzg2l_cru_disable_interrupts,
 	.fifo_empty = rzg2l_fifo_empty,
 	.csi_setup = rzg2l_cru_csi2_setup,
+	.max_cru_channels = 1,
 };
 
 static const struct of_device_id rzg2l_cru_of_id_table[] = {
 	{
 		.compatible = "renesas,r9a09g047-cru",
 		.data = &rzg3e_cru_info,
+	},
+	{
+		.compatible = "renesas,r9a09g057-cru",
+		.data = &rzv2h_cru_info,
 	},
 	{
 		.compatible = "renesas,rzg2l-cru",
