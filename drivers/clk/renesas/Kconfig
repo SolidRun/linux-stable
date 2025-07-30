@@ -240,6 +240,7 @@ config CLK_RENESAS_VBATTB
 
 config CLK_RZV2H
 	bool "RZ/{G3E,V2H(P)} family clock support" if COMPILE_TEST
+	select MFD_SYSCON
 	select RESET_CONTROLLER
 
 # Generic
