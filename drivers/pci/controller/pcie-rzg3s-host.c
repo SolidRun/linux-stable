@@ -1144,7 +1144,7 @@ static int rzg3s_pcie_set_inbound_windows(struct rzg3s_pcie_host *host,
 	u64 pci_addr = entry->res->start - entry->offset;
 	u64 cpu_addr = entry->res->start;
 	u64 cpu_end = entry->res->end;
-	u64 size_id = 0;
+	u64 size_id = 0, mask;
 	int id = *index;
 	u64 size;
 
@@ -1173,16 +1173,28 @@ static int rzg3s_pcie_set_inbound_windows(struct rzg3s_pcie_host *host,
 		size = ALIGN(size, SZ_4K);
 
 		/*
+		 * If the size of the range is larger than the alignment of
+		 * the start address, we have to use multiple entries to
+		 * perform the mapping.
+		 */
+		if (cpu_addr > 0) {
+			unsigned long nr_zeros = __ffs64(cpu_addr);
+			u64 alignment = 1ULL << nr_zeros;
+
+			size = min(size, alignment);
+		}
+
+		/*
 		 * According to the RZ/G3S HW manual (Rev.1.10, section
 		 * 34.3.1.71 AXI Window Mask (Lower) Registers) HW expects first
 		 * 12 LSB bits to be 0xfff. Subtract 1 from size for this.
 		 */
-		size = roundup_pow_of_two(size) - 1;
+		mask = roundup_pow_of_two(size) - 1;
 
 		cpu_addr = ALIGN(cpu_addr, SZ_4K);
 		pci_addr = ALIGN(pci_addr, SZ_4K);
 
-		rzg3s_pcie_set_inbound_window(host, cpu_addr, pci_addr, size,
+		rzg3s_pcie_set_inbound_window(host, cpu_addr, pci_addr, mask,
 					      id);
 
 		pci_addr += size;
