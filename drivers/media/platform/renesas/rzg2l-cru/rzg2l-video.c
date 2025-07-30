@@ -307,8 +307,10 @@ static int rzg2l_cru_initialize_image_conv(struct rzg2l_cru_dev *cru,
 					   u8 csi_vc)
 {
 	const struct rzg2l_cru_info *info = cru->info;
+	const struct v4l2_format_info *src_finfo, *dst_finfo;
 	const struct rzg2l_cru_ip_format *cru_video_fmt;
 	const struct rzg2l_cru_ip_format *cru_ip_fmt;
+	u32 icnmc;
 
 	cru_ip_fmt = rzg2l_cru_ip_code_to_fmt(ip_sd_fmt->code);
 	info->csi_setup(cru, cru_ip_fmt, csi_vc);
@@ -321,13 +323,79 @@ static int rzg2l_cru_initialize_image_conv(struct rzg2l_cru_dev *cru,
 		return -EINVAL;
 	}
 
-	/* If input and output use same colorspace, do bypass mode */
-	if (cru_ip_fmt->yuv == cru_video_fmt->yuv)
+	/*
+	 * CRU can perform:
+	 * - Colorspace coversion: YUV <=> RGB.
+	 * - Demosaicing from RAW data to RGB.
+	 * To output YUV color format from RAW data input, we must process
+	 * demosaicing and colorspace conversion.
+	 * Do bypass mode for the remained mode.
+	 */
+
+	icnmc = rzg2l_cru_read(cru, info->image_conv);
+
+	src_finfo = v4l2_format_info(cru_ip_fmt->format);
+	dst_finfo = v4l2_format_info(cru->format.pixelformat);
+
+	if (src_finfo->pixel_enc == dst_finfo->pixel_enc)
+		rzg2l_cru_write(cru, info->image_conv, icnmc | ICnMC_CSCTHR |
+				ICnMC_DEMTHR);
+	else if ((src_finfo->pixel_enc == V4L2_PIXEL_ENC_YUV &&
+		dst_finfo->pixel_enc == V4L2_PIXEL_ENC_RGB) ||
+		(src_finfo->pixel_enc == V4L2_PIXEL_ENC_RGB &&
+		dst_finfo->pixel_enc == V4L2_PIXEL_ENC_YUV))
 		rzg2l_cru_write(cru, info->image_conv,
-				rzg2l_cru_read(cru, info->image_conv) | ICnMC_CSCTHR);
-	else
-		rzg2l_cru_write(cru, info->image_conv,
-				rzg2l_cru_read(cru, info->image_conv) & ~ICnMC_CSCTHR);
+				(icnmc | ICnMC_DEMTHR) & ~ICnMC_CSCTHR);
+	else if (src_finfo->pixel_enc == V4L2_PIXEL_ENC_BAYER &&
+		dst_finfo->pixel_enc == V4L2_PIXEL_ENC_RGB)
+		rzg2l_cru_write(cru, info->image_conv, icnmc & ~ICnMC_DEMTHR);
+	else if (src_finfo->pixel_enc == V4L2_PIXEL_ENC_BAYER &&
+		dst_finfo->pixel_enc == V4L2_PIXEL_ENC_YUV)
+		rzg2l_cru_write(cru, info->image_conv, icnmc &
+				~(ICnMC_CSCTHR | ICnMC_DEMTHR));
+	else {
+		dev_err(cru->dev, "Not support color space conversion for (0x%x)\n",
+			cru->format.pixelformat);
+		return -ENOEXEC;
+	}
+
+	icnmc = rzg2l_cru_read(cru, info->image_conv);
+	if (!(icnmc & ICnMC_DEMTHR)) {
+		icnmc &= ~ICnMC_RAWSTTYP_MASK;
+
+		switch (cru->code) {
+		case MEDIA_BUS_FMT_SRGGB8_1X8:
+		case MEDIA_BUS_FMT_SRGGB10_1X10:
+		case MEDIA_BUS_FMT_SRGGB12_1X12:
+		case MEDIA_BUS_FMT_SRGGB14_1X14:
+			rzg2l_cru_write(cru, info->image_conv, icnmc |
+					ICnMC_RAWSTTYP_RGRG);
+			break;
+		case MEDIA_BUS_FMT_SGRBG8_1X8:
+		case MEDIA_BUS_FMT_SGRBG10_1X10:
+		case MEDIA_BUS_FMT_SGRBG12_1X12:
+		case MEDIA_BUS_FMT_SGRBG14_1X14:
+			rzg2l_cru_write(cru, info->image_conv, icnmc |
+					ICnMC_RAWSTTYP_GRGR);
+			break;
+		case MEDIA_BUS_FMT_SGBRG8_1X8:
+		case MEDIA_BUS_FMT_SGBRG10_1X10:
+		case MEDIA_BUS_FMT_SGBRG12_1X12:
+		case MEDIA_BUS_FMT_SGBRG14_1X14:
+			rzg2l_cru_write(cru, info->image_conv, icnmc |
+					ICnMC_RAWSTTYP_GBGB);
+			break;
+		case MEDIA_BUS_FMT_SBGGR8_1X8:
+		case MEDIA_BUS_FMT_SBGGR10_1X10:
+		case MEDIA_BUS_FMT_SBGGR12_1X12:
+		case MEDIA_BUS_FMT_SBGGR14_1X14:
+			rzg2l_cru_write(cru, info->image_conv, icnmc |
+					ICnMC_RAWSTTYP_BGBG);
+			break;
+		default:
+			break;
+		}
+	}
 
 	/* Set output data format */
 	rzg2l_cru_write(cru, ICnDMR, cru_video_fmt->icndmr);
@@ -1155,6 +1223,35 @@ static int rzg2l_cru_video_link_validate(struct media_link *link)
 	cru = container_of(media_entity_to_video_device(link->sink->entity),
 			   struct rzg2l_cru_dev, vdev);
 	video_fmt = rzg2l_cru_ip_format_to_fmt(cru->format.pixelformat);
+
+	cru->code = fmt.format.code;
+	switch (fmt.format.code) {
+	case MEDIA_BUS_FMT_UYVY8_1X16:
+	case MEDIA_BUS_FMT_SBGGR8_1X8:
+	case MEDIA_BUS_FMT_SGBRG8_1X8:
+	case MEDIA_BUS_FMT_SGRBG8_1X8:
+	case MEDIA_BUS_FMT_SRGGB8_1X8:
+	case MEDIA_BUS_FMT_SRGGB10_1X10:
+	case MEDIA_BUS_FMT_SGRBG10_1X10:
+	case MEDIA_BUS_FMT_SGBRG10_1X10:
+	case MEDIA_BUS_FMT_SBGGR10_1X10:
+	case MEDIA_BUS_FMT_SRGGB12_1X12:
+	case MEDIA_BUS_FMT_SGRBG12_1X12:
+	case MEDIA_BUS_FMT_SGBRG12_1X12:
+	case MEDIA_BUS_FMT_SBGGR12_1X12:
+	case MEDIA_BUS_FMT_SRGGB14_1X14:
+	case MEDIA_BUS_FMT_SGRBG14_1X14:
+	case MEDIA_BUS_FMT_SGBRG14_1X14:
+	case MEDIA_BUS_FMT_SBGGR14_1X14:
+	case MEDIA_BUS_FMT_RGB888_1X24:
+	case MEDIA_BUS_FMT_YUYV8_1X16:
+	case MEDIA_BUS_FMT_UYVY8_2X8:
+	case MEDIA_BUS_FMT_Y8_1X8:
+		video_fmt = rzg2l_cru_ip_code_to_fmt(fmt.format.code);
+		break;
+	default:
+		return -EPIPE;
+	}
 
 	if (fmt.format.width != cru->format.width ||
 	    fmt.format.height != cru->format.height ||

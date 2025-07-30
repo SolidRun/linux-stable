@@ -57,14 +57,28 @@
 #define ICnSVC_SVC2(x)			((x) << 8)
 #define ICnSVC_SVC3(x)			((x) << 12)
 
+#define ICnMC_DEMTHR			BIT(3)
 #define ICnMC_CSCTHR			BIT(5)
 #define ICnMC_INF(x)			((x) << 16)
 #define ICnMC_VCSEL(x)			((x) << 22)
 #define ICnMC_INF_MASK			GENMASK(21, 16)
 
+#define ICnMC_RAWSTTYP_RGRG		0
+#define ICnMC_RAWSTTYP_GRGR		BIT(24)
+#define ICnMC_RAWSTTYP_GBGB		BIT(25)
+#define ICnMC_RAWSTTYP_BGBG		(BIT(25) | BIT(24))
+#define ICnMC_RAWSTTYP_MASK		(BIT(25) | BIT(24))
+
 #define ICnMS_IA			BIT(2)
 
+#define ICnDMR_RGBMODE_RGB24		(0 << 0)
+#define ICnDMR_RGBMODE_XRGB32		(1 << 0)
+#define ICnDMR_RGBMODE_ABGR32		(2 << 0)
+#define ICnDMR_RGBMODE_ARGB32		(3 << 0)
+#define ICnDMR_YCMODE_YUYV		(0 << 4)
 #define ICnDMR_YCMODE_UYVY		(1 << 4)
+#define ICnDMR_YCMODE_NV16		(2 << 4)
+#define ICnDMR_YCMODE_GREY		(3 << 4)
 
 enum rzg2l_cru_common_regs {
 	CRUnCTRL,	/* CRU Control */

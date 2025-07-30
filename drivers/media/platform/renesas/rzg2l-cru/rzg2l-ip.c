@@ -19,7 +19,7 @@ static const struct rzg2l_cru_ip_format rzg2l_cru_ip_formats[] = {
 		.datatype = MIPI_CSI2_DT_YUV422_8B,
 		.format = V4L2_PIX_FMT_UYVY,
 		.icndmr = ICnDMR_YCMODE_UYVY,
-		.yuv = true,
+		.fmt_types = V4L2_PIXEL_ENC_YUV,
 	},
 	{
 		.codes = {
@@ -28,7 +28,7 @@ static const struct rzg2l_cru_ip_format rzg2l_cru_ip_formats[] = {
 		.format = V4L2_PIX_FMT_SBGGR8,
 		.datatype = MIPI_CSI2_DT_RAW8,
 		.icndmr = 0,
-		.yuv = false,
+		.fmt_types = V4L2_PIXEL_ENC_BAYER,
 	},
 	{
 		.codes = {
@@ -37,7 +37,7 @@ static const struct rzg2l_cru_ip_format rzg2l_cru_ip_formats[] = {
 		.format = V4L2_PIX_FMT_SGBRG8,
 		.datatype = MIPI_CSI2_DT_RAW8,
 		.icndmr = 0,
-		.yuv = false,
+		.fmt_types = V4L2_PIXEL_ENC_BAYER,
 	},
 	{
 		.codes = {
@@ -46,7 +46,7 @@ static const struct rzg2l_cru_ip_format rzg2l_cru_ip_formats[] = {
 		.format = V4L2_PIX_FMT_SGRBG8,
 		.datatype = MIPI_CSI2_DT_RAW8,
 		.icndmr = 0,
-		.yuv = false,
+		.fmt_types = V4L2_PIXEL_ENC_BAYER,
 	},
 	{
 		.codes = {
@@ -55,7 +55,7 @@ static const struct rzg2l_cru_ip_format rzg2l_cru_ip_formats[] = {
 		.format = V4L2_PIX_FMT_SRGGB8,
 		.datatype = MIPI_CSI2_DT_RAW8,
 		.icndmr = 0,
-		.yuv = false,
+		.fmt_types = V4L2_PIXEL_ENC_BAYER,
 	},
 	{
 		.codes = {
@@ -67,7 +67,7 @@ static const struct rzg2l_cru_ip_format rzg2l_cru_ip_formats[] = {
 		.format = V4L2_PIX_FMT_RAW_CRU10,
 		.datatype = MIPI_CSI2_DT_RAW10,
 		.icndmr = 0,
-		.yuv = false,
+		.fmt_types = V4L2_PIXEL_ENC_BAYER,
 	},
 	{
 		.codes = {
@@ -79,7 +79,7 @@ static const struct rzg2l_cru_ip_format rzg2l_cru_ip_formats[] = {
 		.format = V4L2_PIX_FMT_RAW_CRU12,
 		.datatype = MIPI_CSI2_DT_RAW12,
 		.icndmr = 0,
-		.yuv = false,
+		.fmt_types = V4L2_PIXEL_ENC_BAYER,
 	},
 	{
 		.codes = {
@@ -91,7 +91,7 @@ static const struct rzg2l_cru_ip_format rzg2l_cru_ip_formats[] = {
 		.format = V4L2_PIX_FMT_RAW_CRU14,
 		.datatype = MIPI_CSI2_DT_RAW14,
 		.icndmr = 0,
-		.yuv = false,
+		.fmt_types = V4L2_PIXEL_ENC_BAYER,
 	},
 };
 
