@@ -1096,3 +1096,9 @@
 	memory-region = <&global_cma>;
 	status = "okay";
 };
+
+&pcie0 {
+	/* First 128MB is reserved for secure area. */
+	dma-ranges = <0x42000000 0 0x48000000 0 0x48000000 0x3 0xF8000000>;
+	status = "okay";
+};
