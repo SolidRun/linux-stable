@@ -138,6 +138,7 @@ struct rzg2l_csi2_info {
 	int (*dphy_enable)(struct rzg2l_csi2 *csi2);
 	int (*dphy_disable)(struct rzg2l_csi2 *csi2);
 	bool has_system_clk;
+	unsigned long vclk_rec_rate;
 };
 
 struct rzg2l_csi2_timings {
@@ -544,6 +545,7 @@ static const struct rzg2l_csi2_info rzv2h_csi2_info = {
 	.dphy_enable = rzv2h_csi2_dphy_enable,
 	.dphy_disable = rzv2h_csi2_dphy_disable,
 	.has_system_clk = false,
+	.vclk_rec_rate = 315000000,
 };
 
 static int rzg2l_csi2_mipi_link_setting(struct v4l2_subdev *sd, bool on)
@@ -923,6 +925,10 @@ static int rzg2l_csi2_probe(struct platform_device *pdev)
 	if (IS_ERR(csi2->vclk))
 		return dev_err_probe(dev, PTR_ERR(csi2->vclk),
 				     "Failed to get video clock\n");
+
+	if (csi2->info->vclk_rec_rate)
+		clk_set_rate(csi2->vclk, csi2->info->vclk_rec_rate);
+
 	csi2->vclk_rate = clk_get_rate(csi2->vclk);
 
 	csi2->dev = dev;
