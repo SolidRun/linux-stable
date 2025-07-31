@@ -244,6 +244,7 @@ static int rzv2h_wdt_probe(struct platform_device *pdev)
 	priv->wdev.ops = &rzv2h_wdt_ops;
 	priv->wdev.parent = dev;
 	watchdog_set_drvdata(&priv->wdev, priv);
+	dev_set_drvdata(dev, priv);
 	watchdog_set_nowayout(&priv->wdev, nowayout);
 	watchdog_stop_on_unregister(&priv->wdev);
 
@@ -253,6 +254,40 @@ static int rzv2h_wdt_probe(struct platform_device *pdev)
 
 	return devm_watchdog_register_device(dev, &priv->wdev);
 }
+
+static int __maybe_unused rzv2h_wdt_suspend(struct device *dev)
+{
+	struct rzv2h_wdt_priv *priv = dev_get_drvdata(dev);
+
+	if (watchdog_active(&priv->wdev))
+		rzv2h_wdt_stop(&priv->wdev);
+
+	return 0;
+}
+
+static int __maybe_unused rzv2h_wdt_resume(struct device *dev)
+{
+	struct rzv2h_wdt_priv *priv = dev_get_drvdata(dev);
+	int ret;
+
+	if (watchdog_active(&priv->wdev)) {
+		/*
+		 * Writing to the WDT Control Register (WDTCR) or WDT Reset
+		 * Control Register (WDTRCR) is possible once between the
+		 * release from the reset state and the first refresh operation.
+		 * Therefore, issue a reset if the watchdog is active.
+		 */
+		ret = reset_control_reset(priv->rstc);
+		if (ret)
+			return ret;
+
+		rzv2h_wdt_start(&priv->wdev);
+	}
+
+	return 0;
+}
+
+static SIMPLE_DEV_PM_OPS(rzv2h_wdt_pm_ops, rzv2h_wdt_suspend, rzv2h_wdt_resume);
 
 static const struct of_device_id rzv2h_wdt_ids[] = {
 	{ .compatible = "renesas,r9a09g057-wdt", },
@@ -264,6 +299,7 @@ static struct platform_driver rzv2h_wdt_driver = {
 	.driver = {
 		.name = "rzv2h_wdt",
 		.of_match_table = rzv2h_wdt_ids,
+		.pm = &rzv2h_wdt_pm_ops,
 	},
 	.probe = rzv2h_wdt_probe,
 };
