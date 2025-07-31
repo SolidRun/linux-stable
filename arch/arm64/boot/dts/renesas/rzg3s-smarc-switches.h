@@ -30,6 +30,14 @@
 #define SW_CONFIG3	SW_ON
 
 /*
+ * Select between SCIF1 and SPDIF due to pins multiplex:
+ * @SPDIF_SEL:
+ *     SW_OFF - SCIF1 pins are selected (default)
+ *     SW_ON  - SPDIF pins are selected
+ */
+#define SPDIF_SEL	SW_OFF
+
+/*
  * SW_OPT_MUX[x] switches' states:
  * @SW_OPT_MUX4:
  *	SW_OFF - The SMARC SER0 signals are routed to M.2 Key E UART

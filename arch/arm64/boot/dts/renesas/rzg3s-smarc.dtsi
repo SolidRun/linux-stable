@@ -55,21 +55,45 @@
 		};
 	};
 
+	dummy_codec: codec_test {
+		compatible = "linux,snd-soc-dummy";
+		#sound-dai-cells = <0>;
+	};
+
 	snd_rzg3s: sound {
 		compatible = "simple-audio-card";
-		simple-audio-card,format = "i2s";
-		simple-audio-card,bitclock-master = <&cpu_dai>;
-		simple-audio-card,frame-master = <&cpu_dai>;
-		simple-audio-card,mclk-fs = <256>;
+		simple-audio-card,name = "snd_rzg3s";
 
-		cpu_dai: simple-audio-card,cpu {
-			sound-dai = <&ssi3>;
+		ssi_link: simple-audio-card,dai-link@0 {
+			format = "i2s";
+			bitclock-master = <&cpu_dai0>;
+			frame-master = <&cpu_dai0>;
+			mclk-fs = <256>;
+
+			cpu_dai0: cpu {
+				sound-dai = <&ssi3>;
+			};
+
+			codec {
+				sound-dai = <&da7212>;
+				clocks = <&versa3 1>;
+			};
 		};
 
-		codec_dai: simple-audio-card,codec {
-			sound-dai = <&da7212>;
-			clocks = <&versa3 1>;
+#if SPDIF_SEL
+		spdif_link: simple-audio-card,dai-link@1 {
+			bitclock-master = <&cpu_dai1>;
+			frame-master = <&cpu_dai1>;
+
+			cpu_dai1: cpu {
+				sound-dai = <&spdif>;
+			};
+
+			codec {
+				sound-dai = <&dummy_codec>;
+			};
 		};
+#endif
 	};
 
 	vcc_sdhi1: regulator-vcc-sdhi1 {

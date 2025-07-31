@@ -20,6 +20,7 @@
  *
  * The following switches should be set as follows for SCIF1:
  * - SW_CONFIG2:  ON
+ * - SPDIF_SEL:	  OFF
  * - SW_OPT_MUX4: ON
  */
 
@@ -27,19 +28,33 @@
 #include "rzg3s-smarc-switches.h"
 
 &pinctrl {
+#if !SPDIF_SEL
 	scif1_pins: scif1-pins {
 		pinmux = <RZG2L_PORT_PINMUX(14, 0, 1)>, /* TXD */
 			 <RZG2L_PORT_PINMUX(14, 1, 1)>, /* RXD */
 			 <RZG2L_PORT_PINMUX(16, 0, 1)>, /* CTS# */
 			 <RZG2L_PORT_PINMUX(16, 1, 1)>; /* RTS# */
 	};
+#else
+	spdif_pins: spdif {
+		pinmux = <RZG2L_PORT_PINMUX(16, 0, 2)>, /* SPDIF_IN */
+			 <RZG2L_PORT_PINMUX(16, 1, 2)>; /* SPDIF_OUT */
+	};
+#endif
 };
 
-#if SW_CONFIG3 == SW_ON && SW_OPT_MUX4 == SW_ON
+#if SW_CONFIG3 == SW_ON && SW_OPT_MUX4 == SW_ON && !SPDIF_SEL
 &scif1 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&scif1_pins>;
 	uart-has-rtscts;
+	status = "okay";
+};
+#elif SPDIF_SEL
+&spdif {
+	pinctrl-names = "default";
+	pinctrl-0 = <&spdif_pins>, <&audio_clock_pins>;
+
 	status = "okay";
 };
 #endif
