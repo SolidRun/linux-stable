@@ -10,6 +10,8 @@
  */
 
 #include <linux/bitfield.h>
+#include <linux/clk.h>
+#include <linux/clk-provider.h>
 #include <linux/bitmap.h>
 #include <linux/bitops.h>
 #include <linux/cleanup.h>
@@ -110,6 +112,7 @@ struct rzg3s_pcie_host {
 	void __iomem *axi;
 	void __iomem *pcie;
 	struct device *dev;
+	struct clk *aclk;
 	struct reset_control_bulk_data *power_resets;
 	struct reset_control_bulk_data *cfg_resets;
 	struct regmap *sysc;
@@ -1425,6 +1428,11 @@ static int rzg3s_soc_pcie_reset_assert(struct rzg3s_pcie_host *host)
 	return 0;
 }
 
+static void rzg3s_pcie_clk_disable(void *data)
+{
+	clk_disable_unprepare(data);
+}
+
 static void rzg3s_pcie_pm_runtime_put(void *data)
 {
 	pm_runtime_put_sync(data);
@@ -1589,6 +1597,23 @@ static int rzg3s_pcie_probe(struct platform_device *pdev)
 		return ret;
 
 	ret = devm_add_action_or_reset(dev, rzg3s_pcie_pm_runtime_put, dev);
+	if (ret)
+		return ret;
+
+	host->aclk = devm_clk_get(dev, "aclk");
+	if (IS_ERR(host->aclk)) {
+		dev_err(dev, "cannot get aclk clock\n");
+		return PTR_ERR(host->aclk);
+	}
+
+	ret = clk_prepare_enable(host->aclk);
+	if (ret) {
+		dev_err(dev, "failed to enable aclk clock: %d\n", ret);
+		return ret;
+	}
+
+	ret = devm_add_action_or_reset(dev, rzg3s_pcie_clk_disable,
+				       host->aclk);
 	if (ret)
 		return ret;
 
