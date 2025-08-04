@@ -140,18 +140,7 @@ static int rzg2l_cru_s_ctrl(struct v4l2_ctrl *ctrl)
 						 ctrl_handler);
 	int ret = 0, order;
 
-	if ((cru->state == RZG2L_CRU_DMA_STOPPED) ||
-	    (cru->state == RZG2L_CRU_DMA_STOPPING))
 	switch (ctrl->id) {
-	case V4L2_CID_MIN_BUFFERS_FOR_CAPTURE:
-		cru->num_buf = ctrl->val;
-		break;
-	case V4L2_CID_CRU_FRAME_SKIP:
-		cru->frame_skip = ctrl->val;
-		break;
-	case V4L2_CID_CRU_LINEAR_MATRIX:
-		cru->is_linear_matrix_enable = ctrl->val;
-		break;
 	case V4L2_CID_CRU_LINEAR_MATRIX_ROF:
 	case V4L2_CID_CRU_LINEAR_MATRIX_GOF:
 	case V4L2_CID_CRU_LINEAR_MATRIX_BOF:
@@ -177,9 +166,28 @@ static int rzg2l_cru_s_ctrl(struct v4l2_ctrl *ctrl)
 		cru->linear_matrix_b[order] = ctrl->val;
 		break;
 	default:
-		ret = -EINVAL;
-		break;
-	}
+		if ((cru->state == RZG2L_CRU_DMA_STOPPED) ||
+		   (cru->state == RZG2L_CRU_DMA_STOPPING)) {
+			switch (ctrl->id) {
+			case V4L2_CID_CRU_LINEAR_MATRIX:
+				cru->is_linear_matrix_enable = ctrl->val;
+				break;
+			case V4L2_CID_MIN_BUFFERS_FOR_CAPTURE:
+				cru->num_buf = ctrl->val;
+				break;
+			case V4L2_CID_CRU_FRAME_SKIP:
+				cru->frame_skip = ctrl->val;
+				break;
+			default:
+				ret = -EINVAL;
+				break;
+			}
+		} else {
+			ret = -EBUSY;
+
+			break;
+		}
+	};
 
 	return ret;
 }
@@ -463,6 +471,7 @@ static const u16 rzg3e_cru_regs[] = {
 	[AMnAXISTPACK] = 0x114,
 	[AMnIS] = 0x128,
 	[ICnEN] = 0x1f0,
+	[ICnREGC] = 0x244,
 	[ICnSVCNUM] = 0x1f8,
 	[ICnSVC] = 0x1fc,
 	[ICnIPMC_C0] = 0x200,
@@ -538,6 +547,7 @@ static const u16 rzg2l_cru_regs[] = {
 	[AMnAXISTP] = 0x174,
 	[AMnAXISTPACK] = 0x178,
 	[ICnEN] = 0x200,
+	[ICnREGC] = 0x204,
 	[ICnMC] = 0x208,
 	[ICnLMXOF] = 0x224,
 	[ICnLMXRC1] = 0x228,

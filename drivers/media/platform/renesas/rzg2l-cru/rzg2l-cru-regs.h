@@ -58,6 +58,9 @@
 #define ICnSVC_SVC2(x)			((x) << 8)
 #define ICnSVC_SVC3(x)			((x) << 12)
 
+/* CRU Image Processing Register Setting Change Control Register */
+#define ICnREGC_REFEN			BIT(0)
+
 #define ICnMC_DEMTHR			BIT(3)
 #define ICnMC_LMXTHR			BIT(4)
 #define ICnMC_CSCTHR			BIT(5)
@@ -144,6 +147,7 @@ enum rzg2l_cru_common_regs {
 	AMnAXISTPACK,	/* AXI Master Transfer Stop Status for CRU Image Data */
 	AMnIS,		/* Image Stride Setting Register */
 	ICnEN,		/* CRU Image Processing Enable */
+	ICnREGC,	/* CRU Image Processing Register Setting Change Control Register */
 	ICnSVCNUM,	/* CRU SVC Number Register */
 	ICnSVC,		/* CRU VC Select Register */
 	ICnMC,		/* CRU Image Processing Main Control */

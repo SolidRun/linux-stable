@@ -121,6 +121,32 @@ static dma_addr_t rzg2l_cru_get_mb(struct rzg2l_cru_dev *cru,
 		rzg2l_cru_read(cru, AMnMBxADDRL(AMnMB1ADDRL, slot));
 }
 
+static void rzg2l_cru_linear_setting(struct rzg2l_cru_dev *cru)
+{
+	rzg2l_cru_write(cru, ICnLMXOF,
+			ICnLMXOF_ROF(cru->linear_matrix_rgb_offset[0]) |
+			ICnLMXOF_GOF(cru->linear_matrix_rgb_offset[1]) |
+			ICnLMXOF_BOF(cru->linear_matrix_rgb_offset[2]));
+
+	rzg2l_cru_write(cru, ICnLMXRC1,
+			ICnLMXRC1_RR(cru->linear_matrix_r[0]));
+	rzg2l_cru_write(cru, ICnLMXRC2,
+			ICnLMXRC2_RG(cru->linear_matrix_r[1]) |
+			ICnLMXRC2_RB(cru->linear_matrix_r[2]));
+
+	rzg2l_cru_write(cru, ICnLMXGC1,
+			ICnLMXGC1_GR(cru->linear_matrix_g[0]));
+	rzg2l_cru_write(cru, ICnLMXGC2,
+			ICnLMXGC2_GG(cru->linear_matrix_g[1]) |
+			ICnLMXGC2_GB(cru->linear_matrix_g[2]));
+
+	rzg2l_cru_write(cru, ICnLMXBC1,
+			ICnLMXBC1_BR(cru->linear_matrix_b[0]));
+	rzg2l_cru_write(cru, ICnLMXBC2,
+			ICnLMXBC2_BG(cru->linear_matrix_b[1]) |
+			ICnLMXBC2_BB(cru->linear_matrix_b[2]));
+}
+
 /* Need to hold qlock before calling */
 static void return_unused_buffers(struct rzg2l_cru_dev *cru,
 				  enum vb2_buffer_state state)
@@ -412,32 +438,13 @@ static int rzg2l_cru_initialize_image_conv(struct rzg2l_cru_dev *cru,
 	     (cru->is_linear_matrix_enable)) {
 		rzg2l_cru_write(cru, info->image_conv,
 				rzg2l_cru_read(cru, info->image_conv) & (~ICnMC_LMXTHR));
+		rzg2l_cru_linear_setting(cru);
+		rzg2l_cru_write(cru, ICnREGC, ICnREGC_REFEN);
 
-		rzg2l_cru_write(cru, ICnLMXOF,
-				ICnLMXOF_ROF(cru->linear_matrix_rgb_offset[0]) |
-				ICnLMXOF_GOF(cru->linear_matrix_rgb_offset[1]) |
-				ICnLMXOF_BOF(cru->linear_matrix_rgb_offset[2]));
-
-		rzg2l_cru_write(cru, ICnLMXRC1,
-				ICnLMXRC1_RR(cru->linear_matrix_r[0]));
-		rzg2l_cru_write(cru, ICnLMXRC2,
-				ICnLMXRC2_RG(cru->linear_matrix_r[1]) |
-				ICnLMXRC2_RB(cru->linear_matrix_r[2]));
-
-		rzg2l_cru_write(cru, ICnLMXGC1,
-				ICnLMXGC1_GR(cru->linear_matrix_g[0]));
-		rzg2l_cru_write(cru, ICnLMXGC2,
-				ICnLMXGC2_GG(cru->linear_matrix_g[1]) |
-				ICnLMXGC2_GB(cru->linear_matrix_g[2]));
-
-		rzg2l_cru_write(cru, ICnLMXBC1,
-				ICnLMXBC1_BR(cru->linear_matrix_b[0]));
-		rzg2l_cru_write(cru, ICnLMXBC2,
-				ICnLMXBC2_BG(cru->linear_matrix_b[1]) |
-				ICnLMXBC2_BB(cru->linear_matrix_b[2]));
 	} else {
 		rzg2l_cru_write(cru, info->image_conv,
 				rzg2l_cru_read(cru, info->image_conv) | ICnMC_LMXTHR);
+		rzg2l_cru_write(cru, ICnREGC, 0);
 	}
 
 	/* Set output data format */
@@ -738,6 +745,12 @@ irqreturn_t rzg2l_cru_irq(int irq, void *data)
 		goto done;
 	}
 
+	/* Support realtime update for Linear Matrix setting */
+	if (!(rzg2l_cru_read(cru, ICnMC) & ICnMC_LMXTHR)) {
+		rzg2l_cru_linear_setting(cru);
+		rzg2l_cru_write(cru, ICnREGC, ICnREGC_REFEN);
+	}
+
 	/* Prepare for capture and update state */
 	amnmbs = rzg2l_cru_read(cru, AMnMBS);
 	slot = amnmbs & AMnMBS_MBSTS;
@@ -866,6 +879,12 @@ irqreturn_t rzg3e_cru_irq(int irq, void *data)
 			    irq_status & CRUnINTS2_FSxS(3))
 				dev_dbg(cru->dev, "IRQ while state stopping\n");
 			return IRQ_HANDLED;
+		}
+
+		/* Support realtime update for Linear Matrix setting */
+		if (!(rzg2l_cru_read(cru, ICnIPMC_C0) & ICnMC_LMXTHR)) {
+			rzg2l_cru_linear_setting(cru);
+			rzg2l_cru_write(cru, ICnREGC, ICnREGC_REFEN);
 		}
 
 		slot = rzg3e_cru_get_current_slot(cru);
