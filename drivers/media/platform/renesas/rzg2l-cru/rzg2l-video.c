@@ -406,6 +406,40 @@ static int rzg2l_cru_initialize_image_conv(struct rzg2l_cru_dev *cru,
 		}
 	}
 
+	/* Linear Matrix Processing support */
+	if (((src_finfo->pixel_enc == V4L2_PIXEL_ENC_RGB) ||
+	   (src_finfo->pixel_enc == V4L2_PIXEL_ENC_BAYER)) &&
+	     (cru->is_linear_matrix_enable)) {
+		rzg2l_cru_write(cru, info->image_conv,
+				rzg2l_cru_read(cru, info->image_conv) & (~ICnMC_LMXTHR));
+
+		rzg2l_cru_write(cru, ICnLMXOF,
+				ICnLMXOF_ROF(cru->linear_matrix_rgb_offset[0]) |
+				ICnLMXOF_GOF(cru->linear_matrix_rgb_offset[1]) |
+				ICnLMXOF_BOF(cru->linear_matrix_rgb_offset[2]));
+
+		rzg2l_cru_write(cru, ICnLMXRC1,
+				ICnLMXRC1_RR(cru->linear_matrix_r[0]));
+		rzg2l_cru_write(cru, ICnLMXRC2,
+				ICnLMXRC2_RG(cru->linear_matrix_r[1]) |
+				ICnLMXRC2_RB(cru->linear_matrix_r[2]));
+
+		rzg2l_cru_write(cru, ICnLMXGC1,
+				ICnLMXGC1_GR(cru->linear_matrix_g[0]));
+		rzg2l_cru_write(cru, ICnLMXGC2,
+				ICnLMXGC2_GG(cru->linear_matrix_g[1]) |
+				ICnLMXGC2_GB(cru->linear_matrix_g[2]));
+
+		rzg2l_cru_write(cru, ICnLMXBC1,
+				ICnLMXBC1_BR(cru->linear_matrix_b[0]));
+		rzg2l_cru_write(cru, ICnLMXBC2,
+				ICnLMXBC2_BG(cru->linear_matrix_b[1]) |
+				ICnLMXBC2_BB(cru->linear_matrix_b[2]));
+	} else {
+		rzg2l_cru_write(cru, info->image_conv,
+				rzg2l_cru_read(cru, info->image_conv) | ICnMC_LMXTHR);
+	}
+
 	/* Set output data format */
 	rzg2l_cru_write(cru, ICnDMR, cru_video_fmt->icndmr);
 

@@ -138,25 +138,44 @@ static int rzg2l_cru_s_ctrl(struct v4l2_ctrl *ctrl)
 	struct rzg2l_cru_dev *cru = container_of(ctrl->handler,
 						 struct rzg2l_cru_dev,
 						 ctrl_handler);
-	int ret = 0;
+	int ret = 0, order;
 
+	if ((cru->state == RZG2L_CRU_DMA_STOPPED) ||
+	    (cru->state == RZG2L_CRU_DMA_STOPPING))
 	switch (ctrl->id) {
 	case V4L2_CID_MIN_BUFFERS_FOR_CAPTURE:
-		if ((cru->state == RZG2L_CRU_DMA_STOPPED) ||
-		    (cru->state == RZG2L_CRU_DMA_STOPPING))
-			cru->num_buf = ctrl->val;
-		else
-			ret = -EBUSY;
-
+		cru->num_buf = ctrl->val;
 		break;
 	case V4L2_CID_CRU_FRAME_SKIP:
-		if ((cru->state == RZG2L_CRU_DMA_STOPPED) ||
-		    (cru->state == RZG2L_CRU_DMA_STOPPING))
-			cru->frame_skip = ctrl->val;
-		else
-			ret = -EBUSY;
+		cru->frame_skip = ctrl->val;
 		break;
-
+	case V4L2_CID_CRU_LINEAR_MATRIX:
+		cru->is_linear_matrix_enable = ctrl->val;
+		break;
+	case V4L2_CID_CRU_LINEAR_MATRIX_ROF:
+	case V4L2_CID_CRU_LINEAR_MATRIX_GOF:
+	case V4L2_CID_CRU_LINEAR_MATRIX_BOF:
+		order = ctrl->id - V4L2_CID_CRU_LINEAR_MATRIX_ROF;
+		cru->linear_matrix_rgb_offset[order] = ctrl->val;
+		break;
+	case V4L2_CID_CRU_LINEAR_MATRIX_RR:
+	case V4L2_CID_CRU_LINEAR_MATRIX_RG:
+	case V4L2_CID_CRU_LINEAR_MATRIX_RB:
+		order = ctrl->id - V4L2_CID_CRU_LINEAR_MATRIX_RR;
+		cru->linear_matrix_r[order] = ctrl->val;
+		break;
+	case V4L2_CID_CRU_LINEAR_MATRIX_GR:
+	case V4L2_CID_CRU_LINEAR_MATRIX_GG:
+	case V4L2_CID_CRU_LINEAR_MATRIX_GB:
+		order = ctrl->id - V4L2_CID_CRU_LINEAR_MATRIX_GR;
+		cru->linear_matrix_g[order] = ctrl->val;
+		break;
+	case V4L2_CID_CRU_LINEAR_MATRIX_BR:
+	case V4L2_CID_CRU_LINEAR_MATRIX_BG:
+	case V4L2_CID_CRU_LINEAR_MATRIX_BB:
+		order = ctrl->id - V4L2_CID_CRU_LINEAR_MATRIX_BR;
+		cru->linear_matrix_b[order] = ctrl->val;
+		break;
 	default:
 		ret = -EINVAL;
 		break;
@@ -300,6 +319,7 @@ static int rzg2l_cru_probe(struct platform_device *pdev)
 	struct rzg2l_cru_dev *cru;
 	struct v4l2_ctrl *ctrl;
 	int irq, ret, i;
+	int num_ctrls;
 
 	ret = dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(64));
 	if (ret)
@@ -357,7 +377,8 @@ static int rzg2l_cru_probe(struct platform_device *pdev)
 		goto error_dma_unregister;
 
 	/* Add the control about minimum amount of buffers */
-	v4l2_ctrl_handler_init(&cru->ctrl_handler, 2);
+	num_ctrls = ARRAY_SIZE(rzg2l_cru_ctrls);
+	v4l2_ctrl_handler_init(&cru->ctrl_handler, num_ctrls + 1);
 	ctrl = v4l2_ctrl_new_std(&cru->ctrl_handler, &rzg2l_cru_ctrl_ops,
 				 V4L2_CID_MIN_BUFFERS_FOR_CAPTURE,
 				 1, RZG2L_CRU_HW_BUFFER_MAX, 1,
@@ -365,7 +386,7 @@ static int rzg2l_cru_probe(struct platform_device *pdev)
 
 	ctrl->flags &= ~V4L2_CTRL_FLAG_READ_ONLY;
 
-	for (i = 0; i < V4L2_CID_CRU_LIMIT; i++)
+	for (i = 0; i < num_ctrls; i++)
 		v4l2_ctrl_new_custom(&cru->ctrl_handler,
 				     &rzg2l_cru_ctrls[i], NULL);
 
@@ -445,6 +466,13 @@ static const u16 rzg3e_cru_regs[] = {
 	[ICnSVCNUM] = 0x1f8,
 	[ICnSVC] = 0x1fc,
 	[ICnIPMC_C0] = 0x200,
+	[ICnLMXOF] = 0x220,
+	[ICnLMXRC1] = 0x224,
+	[ICnLMXRC2] = 0x228,
+	[ICnLMXGC1] = 0x22C,
+	[ICnLMXGC2] = 0x230,
+	[ICnLMXBC1] = 0x234,
+	[ICnLMXBC2] = 0x238,
 	[ICnMS] = 0x2d8,
 	[ICnDMR] = 0x304,
 };
@@ -511,6 +539,13 @@ static const u16 rzg2l_cru_regs[] = {
 	[AMnAXISTPACK] = 0x178,
 	[ICnEN] = 0x200,
 	[ICnMC] = 0x208,
+	[ICnLMXOF] = 0x224,
+	[ICnLMXRC1] = 0x228,
+	[ICnLMXRC2] = 0x22C,
+	[ICnLMXGC1] = 0x230,
+	[ICnLMXGC2] = 0x234,
+	[ICnLMXBC1] = 0x238,
+	[ICnLMXBC2] = 0x23C,
 	[ICnMS] = 0x254,
 	[ICnDMR] = 0x26c,
 };

@@ -59,6 +59,7 @@
 #define ICnSVC_SVC3(x)			((x) << 12)
 
 #define ICnMC_DEMTHR			BIT(3)
+#define ICnMC_LMXTHR			BIT(4)
 #define ICnMC_CSCTHR			BIT(5)
 #define ICnMC_INF(x)			((x) << 16)
 #define ICnMC_VCSEL(x)			((x) << 22)
@@ -80,6 +81,32 @@
 #define ICnDMR_YCMODE_UYVY		(1 << 4)
 #define ICnDMR_YCMODE_NV16		(2 << 4)
 #define ICnDMR_YCMODE_GREY		(3 << 4)
+
+/* CRU Linear Matrix Offset register */
+#define ICnLMXOF_ROF(x)			(((x) & GENMASK(7, 0)) << 0)
+#define ICnLMXOF_GOF(x)			(((x) & GENMASK(7, 0)) << 8)
+#define ICnLMXOF_BOF(x)			(((x) & GENMASK(7, 0)) << 16)
+
+/* CRU Linear Matrix R Coefficient 1 Register */
+#define ICnLMXRC1_RR(x)			(((x) & GENMASK(12, 0)) << 0)
+
+/* CRU Linear Matrix R Coefficient 2 Register */
+#define ICnLMXRC2_RG(x)			(((x) & GENMASK(12, 0)) << 0)
+#define ICnLMXRC2_RB(x)			(((x) & GENMASK(12, 0)) << 16)
+
+/* CRU Linear Matrix G Coefficient 1 Register */
+#define ICnLMXGC1_GR(x)			(((x) & GENMASK(12, 0)) << 0)
+
+/* CRU Linear Matrix G Coefficient 2 Register */
+#define ICnLMXGC2_GG(x)			(((x) & GENMASK(12, 0)) << 0)
+#define ICnLMXGC2_GB(x)			(((x) & GENMASK(12, 0)) << 16)
+
+/* CRU Linear Matrix B Coefficient 1 Register */
+#define ICnLMXBC1_BR(x)			(((x) & GENMASK(12, 0)) << 0)
+
+/* CRU Linear Matrix B Coefficient 2 Register */
+#define ICnLMXBC2_BG(x)			(((x) & GENMASK(12, 0)) << 0)
+#define ICnLMXBC2_BB(x)			(((x) & GENMASK(12, 0)) << 16)
 
 enum rzg2l_cru_common_regs {
 	CRUnCTRL,	/* CRU Control */
@@ -120,6 +147,13 @@ enum rzg2l_cru_common_regs {
 	ICnSVCNUM,	/* CRU SVC Number Register */
 	ICnSVC,		/* CRU VC Select Register */
 	ICnMC,		/* CRU Image Processing Main Control */
+	ICnLMXOF,	/* CRU Linear Matrix Offset register */
+	ICnLMXRC1,	/* CRU Linear Matrix R Coefficient 1 Register */
+	ICnLMXRC2,	/* CRU Linear Matrix R Coefficient 2 Register */
+	ICnLMXGC1,	/* CRU Linear Matrix G Coefficient 1 Register */
+	ICnLMXGC2,	/* CRU Linear Matrix G Coefficient 2 Register */
+	ICnLMXBC1,	/* CRU Linear Matrix B Coefficient 1 Register */
+	ICnLMXBC2,	/* CRU Linear Matrix B Coefficient 2 Register */
 	ICnIPMC_C0,	/* CRU Image Converter Main Control 0 */
 	ICnMS,		/* CRU Module Status */
 	ICnDMR,		/* CRU Data Output Mode */
