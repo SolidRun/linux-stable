@@ -1394,6 +1394,9 @@ static int spi_transfer_wait(struct spi_controller *ctlr,
 				"SPI transfer timed out\n");
 			return -ETIMEDOUT;
 		}
+
+		if (xfer->error & SPI_TRANS_FAIL_IO)
+			return -EIO;
 	}
 
 	return 0;
