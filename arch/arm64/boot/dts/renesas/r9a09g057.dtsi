@@ -1713,6 +1713,86 @@
 			status = "disabled";
 		};
 
+		poega0: poega0@13001C00 {
+			compatible = "renesas,poeg-r9a09g057";
+			reg = <0 0x13001C00 0 0x04>;
+			interrupts = <GIC_SPI 666 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 0x33>;
+			power-domains = <&cpg>;
+			resets =  <&cpg 0x5D>;
+			status = "disabled";
+		};
+
+		poegb0: poegb0@13002000 {
+			compatible = "renesas,poeg-r9a09g057";
+			reg = <0 0x13002000 0 0x04>;
+			interrupts = <GIC_SPI 667 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 0x34>;
+			power-domains = <&cpg>;
+			resets =  <&cpg 0x5E>;
+			status = "disabled";
+		};
+
+		poegc0: poegc0@13002400 {
+			compatible = "renesas,poeg-r9a09g057";
+			reg = <0 0x13002400 0 0x04>;
+			interrupts = <GIC_SPI 668 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 0x35>;
+			power-domains = <&cpg>;
+			resets =  <&cpg 0x5F>;
+			status = "disabled";
+		};
+
+		poegd0: poegd0@13002800 {
+			compatible = "renesas,poeg-r9a09g057";
+			reg = <0 0x13002800 0 0x04>;
+			interrupts = <GIC_SPI 669 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 0x36>;
+			power-domains = <&cpg>;
+			resets =  <&cpg 0x60>;
+			status = "disabled";
+		};
+
+		poega1: poega1@13002C00 {
+			compatible = "renesas,poeg-r9a09g057";
+			reg = <0 0x13002C00 0 0x04>;
+			interrupts = <GIC_SPI 670 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 0x37>;
+			power-domains = <&cpg>;
+			resets =  <&cpg 0x61>;
+			status = "disabled";
+		};
+
+		poegb1: poegb1@13003000 {
+			compatible = "renesas,poeg-r9a09g057";
+			reg = <0 0x13003000 0 0x04>;
+			interrupts = <GIC_SPI 671 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 0x38>;
+			power-domains = <&cpg>;
+			resets =  <&cpg 0x62>;
+			status = "disabled";
+		};
+
+		poegc1: poegc1@13003400 {
+			compatible = "renesas,poeg-r9a09g057";
+			reg = <0 0x13003400 0 0x04>;
+			interrupts = <GIC_SPI 672 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 0x39>;
+			power-domains = <&cpg>;
+			resets =  <&cpg 0x63>;
+			status = "disabled";
+		};
+
+		poegd1: poegd1@13003800 {
+			compatible = "renesas,poeg-r9a09g057";
+			reg = <0 0x13003800 0 0x04>;
+			interrupts = <GIC_SPI 673 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 0x3A>;
+			power-domains = <&cpg>;
+			resets =  <&cpg 0x64>;
+			status = "disabled";
+		};
+
 		ostm0: timer@11800000 {
 			compatible = "renesas,r9a09g057-ostm", "renesas,ostm";
 			reg = <0x0 0x11800000 0x0 0x1000>;
