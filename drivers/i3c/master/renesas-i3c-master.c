@@ -1142,12 +1142,12 @@ static int renesas_i3c_master_i2c_xfers(struct i2c_dev_desc *dev,
 		start_bit = CNDCTL_SRCND;
 	}
 
-	ret = xfer->ret;
-
 out:
-	renesas_i3c_master_free_xfer(xfer);
+	ret = cmd->err;
 	renesas_i3c_master_dequeue_xfer(master, xfer);
-	return cmd->err ? : 0;
+	renesas_i3c_master_free_xfer(xfer);
+
+	return ret;
 }
 
 static int renesas_i3c_master_attach_i2c_dev(struct i2c_dev_desc *dev)
