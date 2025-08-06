@@ -956,6 +956,11 @@
 		};
 	};
 
+	gpt0_2_pins: gpt0_2 {
+			pinmux = <RZV2H_PORT_PINMUX(7, 2, 9)>, /* Channel A */
+				 <RZV2H_PORT_PINMUX(7, 3, 9)>; /* Channel B */
+	};
+
 	usb20_pins: usb20 {
 		ovc {
 			pinmux =  <RZV2H_PORT_PINMUX(9, 6, 14)>; /* OVC */
@@ -1111,6 +1116,13 @@
 };
 
 &adc {
+	status = "okay";
+};
+
+&gpt0_2 {
+	pinctrl-0 = <&gpt0_2_pins>;
+	pinctrl-names = "default";
+	channel = "both_AB";
 	status = "okay";
 };
 
