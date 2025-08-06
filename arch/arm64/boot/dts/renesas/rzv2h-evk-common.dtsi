@@ -42,6 +42,9 @@
  */
 
 /*
+ * I2C7 and POEG selection
+ * 	1 - POEG		0 - I2C7 (default)
+ *
  * Jumper setting
  *
  * Please change the jumper setting in board devicetree corresponding to below Macros:
@@ -561,6 +564,7 @@
 	};
 };
 
+#if (!I2C7_POEG_SEL)
 &i2c7 {
 	pinctrl-0 = <&i2c7_pins>;
 	pinctrl-names = "default";
@@ -588,6 +592,7 @@
 		};
 	};
 };
+#endif
 
 &cru2 {
 	status = "okay";
@@ -607,6 +612,7 @@
 	};
 };
 
+#if (!I2C7_POEG_SEL)
 &cru3 {
 	status = "okay";
 };
@@ -624,6 +630,7 @@
 		};
 	};
 };
+#endif
 
 &i2c8 {
 	pinctrl-0 = <&i2c8_pins>;
@@ -874,10 +881,12 @@
 			 <RZV2H_PORT_PINMUX(4, 5, 1)>; /* I2C6_SCL */
 	};
 
+#if (!I2C7_POEG_SEL)
 	i2c7_pins: i2c7 {
 		pinmux = <RZV2H_PORT_PINMUX(4, 6, 1)>, /* I2C7_SDA */
 			 <RZV2H_PORT_PINMUX(4, 7, 1)>; /* I2C7_SCL */
 	};
+#endif
 
 	i2c8_pins: i2c8 {
 		pinmux = <RZV2H_PORT_PINMUX(0, 6, 1)>, /* I2C8_SDA */
@@ -960,6 +969,12 @@
 			pinmux = <RZV2H_PORT_PINMUX(7, 2, 9)>, /* Channel A */
 				 <RZV2H_PORT_PINMUX(7, 3, 9)>; /* Channel B */
 	};
+
+#if (I2C7_POEG_SEL)
+	poega0_pins: poega0 {
+		pinmux = <RZV2H_PORT_PINMUX(6, 0, 9)>;
+	};
+#endif
 
 	usb20_pins: usb20 {
 		ovc {
@@ -1119,10 +1134,21 @@
 	status = "okay";
 };
 
+#if (I2C7_POEG_SEL)
+&poega0 {
+        pinctrl-0 = <&poega0_pins>;
+        pinctrl-names = "default";
+        status = "okay";
+};
+#endif
+
 &gpt0_2 {
 	pinctrl-0 = <&gpt0_2_pins>;
 	pinctrl-names = "default";
 	channel = "both_AB";
+#if (I2C7_POEG_SEL)
+	poeg = <&poega0>;
+#endif
 	status = "okay";
 };
 
