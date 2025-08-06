@@ -155,6 +155,11 @@
 			pinmux = <RZG3E_PORT_PINMUX(K, 2, 1)>; /* SD2PWEN */
 		};
 	};
+
+	i3c_pins: i3c {
+		pinmux = <RZG3E_PORT_PINMUX(2, 1, 2)>, /* I3C_SDA */
+			 <RZG3E_PORT_PINMUX(2, 0, 2)>; /* I3C_SCL */
+	};
 };
 
 &qextal_clk {
@@ -257,4 +262,11 @@
 
 &rtc {
 	status = "okay";
+};
+
+&i3c {
+	pinctrl-0 = <&i3c_pins>;
+	pinctrl-names = "default";
+	/* Enable when there is an I3C external device defined here */
+	/* status = "okay"; */
 };
