@@ -3063,8 +3063,9 @@
 				<0 0x13c20000 0 0x10000>, /* ADG */
 				<0 0x13c30000 0 0x1000>,  /* SSIU */
 				<0 0x13c31000 0 0x1F000>, /* SSI */
-				<0 0x13c50000 0 0x10000>; /* Audio DMAC peri peri */
-			reg-names = "scu", "adg", "ssiu", "ssi", "audmapp";
+				<0 0x13c50000 0 0x10000>, /* Audio DMAC peri peri */
+				<0 0x14402400 0 0x3000>;  /* SPDIF */
+			reg-names = "scu", "adg", "ssiu", "ssi", "audmapp", "spdif";
 			clocks = <&cpg CPG_MOD 0xf5>,
 				 <&cpg CPG_MOD 0x18a>,
 				 <&cpg CPG_MOD 0x189>,
@@ -3111,7 +3112,13 @@
 				 <&cpg CPG_MOD 0x163>,
 				 <&cpg CPG_MOD 0x162>,
 				 <&cpg CPG_MOD 0x161>,
-				 <&cpg CPG_MOD 0x160>;
+				 <&cpg CPG_MOD 0x160>,
+				 <&cpg CPG_MOD 0xfe>,
+				 <&cpg CPG_MOD 0xff>,
+				 <&cpg CPG_MOD 0x100>,
+				 <&cpg CPG_MOD 0x16a>,
+				 <&cpg CPG_MOD 0x16b>,
+				 <&cpg CPG_MOD 0x16c>;
 			clock-names = "ssi-all",
 				 "ssi.9", "ssi.8", "ssi.7", "ssi.6",
 				 "ssi.5", "ssi.4", "ssi.3", "ssi.2",
@@ -3130,19 +3137,23 @@
 				 "clk_a", "clk_b", "clk_c", "clk_i",
 				 "adg.ssi.9", "adg.ssi.8", "adg.ssi.7", "adg.ssi.6",
 				 "adg.ssi.5", "adg.ssi.4", "adg.ssi.3", "adg.ssi.2",
-				 "adg.ssi.1", "adg.ssi.0";
+				 "adg.ssi.1", "adg.ssi.0",
+				 "spdif.0", "spdif.1", "spdif.2",
+				 "adg.spdif.0", "adg.spdif.1", "adg.spdif.2";
 			power-domains = <&cpg>;
 			resets = <&cpg 0xe1>, <&cpg 0xeb>, <&cpg 0xea>,
 				 <&cpg 0xe9>, <&cpg 0xe8>, <&cpg 0xe7>,
 				 <&cpg 0xe6>, <&cpg 0xe5>, <&cpg 0xe4>,
 				 <&cpg 0xe3>, <&cpg 0xe2>, <&cpg 0xed>,
-				 <&cpg 0xec>, <&cpg 0xee>;
+				 <&cpg 0xec>, <&cpg 0xee>, <&cpg 0xef>,
+				 <&cpg 0xf0>, <&cpg 0xf1>;
 			reset-names = "ssi-all",
 				 "ssi.9", "ssi.8", "ssi.7", "ssi.6",
 				 "ssi.5", "ssi.4", "ssi.3", "ssi.2",
 				 "ssi.1", "ssi.0",
 				 "audmac-pp", "scu",
-				 "adg";
+				 "adg",
+				 "spdif.0", "spdif.1", "spdif.2";
 			status = "disabled";
 
 			rcar_sound,ctu {
@@ -3369,6 +3380,24 @@
 				};
 				ssiu93: ssiu-27 {
 					dmas = <&dmac1 0x521D97>, <&dmac2 0x531D98>;
+					dma-names = "tx", "rx";
+				};
+			};
+
+			rcar_sound,spdif {
+				spdif0: spdif-0 {
+					interrupts = <GIC_SPI 899 IRQ_TYPE_LEVEL_HIGH>;
+					dmas = <&dmac1 0x011D9A>, <&dmac2 0x001D99>;
+					dma-names = "tx", "rx";
+				};
+				spdif1: spdif-1 {
+					interrupts = <GIC_SPI 900 IRQ_TYPE_LEVEL_HIGH>;
+					dmas = <&dmac1 0x031D9C>, <&dmac2 0x021D9B>;
+					dma-names = "tx", "rx";
+				};
+				spdif2: spdif-2 {
+					interrupts = <GIC_SPI 901 IRQ_TYPE_LEVEL_HIGH>;
+					dmas = <&dmac1 0x051D9E>, <&dmac2 0x041D9D>;
 					dma-names = "tx", "rx";
 				};
 			};
