@@ -77,6 +77,7 @@ enum rz_pcie_type {
  * @rz_pcie_type: number of device type SoCs
  * @num_power_resets: number of power resets
  * @num_cfg_resets: number of configuration resets
+ * @max_speed: maximum speed of SoC support
  */
 struct rzg3s_pcie_soc_data {
 	int (*reset_deassert)(struct rzg3s_pcie_host *host);
@@ -89,6 +90,7 @@ struct rzg3s_pcie_soc_data {
 	enum rz_pcie_type devtype;
 	u8 num_power_resets;
 	u8 num_cfg_resets;
+	u32 max_speed;
 };
 
 /**
@@ -832,6 +834,7 @@ static int rzg3s_pcie_intx_setup(struct rzg3s_pcie_host *host)
 static int rzg3s_pcie_set_max_link_speed(struct rzg3s_pcie_host *host)
 {
 	u32 cs2, link_speed, remote_supported_link_speeds, tmp;
+	u32 lsp, link_supported, linkctrl2 = 0;
 	u32 pcie_cap = RZG3S_PCI_CFG_PCIEC;
 	u8 ltssm_state_l0 = 0xc;
 	u16 lcs;
@@ -855,33 +858,54 @@ static int rzg3s_pcie_set_max_link_speed(struct rzg3s_pcie_host *host)
 		return ret;
 	}
 
+	lsp = readl(host->pcie + pcie_cap + PCI_EXP_LNKCAP);
 	lcs = readw(host->pcie + pcie_cap + PCI_EXP_LNKSTA);
 	cs2 = readl(host->axi + RZG3S_PCI_PCSTAT2);
 
+	link_supported = FIELD_GET(PCI_EXP_LNKCAP_SLS, lsp);
 	link_speed = FIELD_GET(PCI_EXP_LNKSTA_CLS, lcs);
 	remote_supported_link_speeds = FIELD_GET(RZG3S_PCI_PCSTAT2_SDRIRE, cs2);
 
 	/*
-	 * Return if link is @ 5.0 GT/s or the connected device doesn't support
-	 * it.
+	 * Return if link is @ 5.0 GT/s with RZ/G3S and @ 8.0 GT/s with RZ/V2H SoC
+	 * or the connected device doesn't support it.
 	 */
-	if (link_speed == PCI_EXP_LNKSTA_CLS_5_0GB ||
-	    !(remote_supported_link_speeds != GENMASK(PCI_EXP_LNKSTA_CLS_5_0GB - 1, 0)))
+	if (link_speed == host->data->max_speed ||
+	    !(remote_supported_link_speeds != GENMASK(host->data->max_speed - 1, 0)))
 		return 0;
+
+	switch (remote_supported_link_speeds & PCIE_LINK_DATA_RATE) {
+	case (PCIE_LINK_DATA_RATE_8_0GTS):
+		linkctrl2 = PCI_EXP_LNKCTL2_TLS_8_0GT;
+		break;
+	case (PCIE_LINK_DATA_RATE_5_0GTS):
+		linkctrl2 = PCI_EXP_LNKCTL2_TLS_5_0GT;
+		break;
+	case (PCIE_LINK_DATA_RATE_2_5GTS):
+		linkctrl2 = PCI_EXP_LNKCTL2_TLS_2_5GT;
+		break;
+	default:
+		break;
+	}
+
+	if (linkctrl2 > link_supported)
+		linkctrl2 = link_supported;
 
 	/* Set target Link speed to 5.0 GT/s */
 	rzg3s_pcie_update_bits(host->pcie, pcie_cap + PCI_EXP_LNKCTL2,
 			       PCI_EXP_LNKCTL2_TLS,
 			       FIELD_PREP(PCI_EXP_LNKCTL2_TLS,
-					  PCI_EXP_LNKCTL2_TLS_5_0GT));
+					  linkctrl2));
 
 	/* Request link speed change */
 	rzg3s_pcie_update_bits(host->axi, RZG3S_PCI_PCCTRL2,
-			       RZG3S_PCI_PCCTRL2_LS_CHG_REQ |
+			       RZG3S_PCI_PCCTRL2_LS_CHG_REQ  |
+			       RZG3S_PCI_PCCTRL2_LINK_REASON |
 			       RZG3S_PCI_PCCTRL2_LS_CHG,
-			       RZG3S_PCI_PCCTRL2_LS_CHG_REQ |
+			       RZG3S_PCI_PCCTRL2_LS_CHG_REQ  |
+			       RZG3S_PCI_PCCTRL2_LINK_REASON |
 			       FIELD_PREP(RZG3S_PCI_PCCTRL2_LS_CHG,
-					  PCI_EXP_LNKCTL2_TLS_5_0GT - 1));
+					  linkctrl2 - 1));
 
 	ret = readl_poll_timeout(host->axi + RZG3S_PCI_PCSTAT2, cs2,
 				 (cs2 & RZG3S_PCI_PCSTAT2_LS_CHG_DONE),
@@ -1743,6 +1767,7 @@ static const struct rzg3s_pcie_soc_data rzg3s_soc_data = {
 	.init_phy = rzg3s_soc_pcie_init_phy,
 	.reset_assert = rzg3s_soc_pcie_reset_assert,
 	.reset_deassert = rzg3s_soc_pcie_reset_deassert,
+	.max_speed = PCI_EXP_LNKSTA_CLS_5_0GB,
 };
 
 static const char * const rzv2h_soc_power_resets[] = {
@@ -1757,6 +1782,7 @@ static const struct rzg3s_pcie_soc_data rzv2h_soc_data = {
 	.late_init = rzv2h_soc_pcie_late_init,
 	.reset_assert = rzv2h_soc_pcie_reset_assert,
 	.reset_deassert = rzv2h_soc_pcie_reset_deassert,
+	.max_speed = PCI_EXP_LNKSTA_CLS_8_0GB,
 };
 
 static const struct of_device_id rzg3s_pcie_of_match[] = {
