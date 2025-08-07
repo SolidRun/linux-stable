@@ -1638,6 +1638,9 @@ static int renesas_i3c_resume(struct device *dev)
 	struct renesas_i3c_master *master = dev_get_drvdata(dev);
 	struct renesas_i3c_xfer *xfer;
 	struct renesas_i3c_cmd *cmd;
+	struct i3c_bus *bus = i3c_master_get_bus(&master->base);
+	struct i2c_dev_desc *i2c_dev;
+	u8 pos, i2c_devs = 0;
 
 	/* Re-do Dynamic Address Assignment. */
 	renesas_i3c_master_bus_enable(&master->base, true);
@@ -1647,13 +1650,21 @@ static int renesas_i3c_resume(struct device *dev)
 	if (!xfer)
 		return -ENOMEM;
 
+	/* Get number of i2c devices */
+	i3c_bus_for_each_i2cdev(bus, i2c_dev) {
+		for (pos = 0; pos < master->maxdevs; pos++) {
+			if (i2c_dev->addr == master->addrs[pos])
+				i2c_devs++;
+		}
+	}
+
 	init_completion(&xfer->comp);
 	cmd = xfer->cmds;
 	cmd->rx_count = 0;
 	cmd->cmd0 = NCMDQP_CMD_ATTR(NCMDQP_ADDR_ASSGN) | NCMDQP_ROC |
 		NCMDQP_TID(I3C_COMMAND_ADDRESS_ASSIGNMENT) |
-		NCMDQP_CMD(I3C_CCC_ENTDAA) | NCMDQP_DEV_INDEX(1) |
-		NCMDQP_DEV_COUNT(master->maxdevs - 1) | NCMDQP_TOC;
+		NCMDQP_CMD(I3C_CCC_ENTDAA) | NCMDQP_DEV_INDEX(i2c_devs) |
+		NCMDQP_DEV_COUNT(master->maxdevs - i2c_devs) | NCMDQP_TOC;
 
 	renesas_i3c_master_enqueue_xfer(master, xfer);
 	if (!wait_for_completion_timeout(&xfer->comp, msecs_to_jiffies(1000)))
