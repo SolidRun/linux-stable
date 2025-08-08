@@ -1668,6 +1668,8 @@ static int rzg3s_pcie_suspend_noirq(struct device *dev)
 	struct regmap *sysc = host->sysc;
 	int ret;
 
+	clk_disable_unprepare(host->aclk);
+
 	ret = pm_runtime_put_sync(dev);
 	if (ret)
 		return ret;
@@ -1723,9 +1725,14 @@ static int rzg3s_pcie_resume_noirq(struct device *dev)
 	if (ret)
 		goto assert_power_resets;
 
+	ret = clk_prepare_enable(host->aclk);
+	if (ret) {
+		goto rpm_put;
+	}
+
 	ret = rzg3s_pcie_host_setup(host, NULL, rzg3s_pcie_msi_hw_setup, false);
 	if (ret)
-		goto rpm_put;
+		goto disable_clk;
 
 	return 0;
 
@@ -1733,6 +1740,8 @@ static int rzg3s_pcie_resume_noirq(struct device *dev)
 	 * If any error happens there is no way to recover the IP. Put it in the
 	 * lowest possible power state.
 	 */
+disable_clk:
+	clk_disable_unprepare(host->aclk);
 rpm_put:
 	pm_runtime_put_sync(dev);
 assert_power_resets:
