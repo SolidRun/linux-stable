@@ -477,7 +477,7 @@ static void renesas_i3c_master_write_to_tx_fifo(struct renesas_i3c_master *maste
 {
 	writesl(master->regs + NTDTBP0, bytes, nbytes / 4);
 	if (nbytes & 3) {
-                u32 tmp = 0;
+		u32 tmp = 0;
 
 		memcpy(&tmp, bytes + (nbytes & ~3), nbytes & 3);
 		writesl(master->regs + NTDTBP0, &tmp, 1);
@@ -726,7 +726,7 @@ static int renesas_i3c_master_bus_init(struct i3c_master_controller *m)
 			(unsigned long)bus->scl_rate.i2c, (unsigned long)bus->scl_rate.i3c);
 		ret = -EINVAL;
 		return ret;
-        }
+	}
 
 	/* SCL clock period calculation in Open-drain mode */
 	od_high_ticks = i2c_total_ticks - od_low_ticks;
@@ -810,7 +810,7 @@ static int renesas_i3c_master_daa(struct i3c_master_controller *m)
 	struct renesas_i3c_xfer *xfer;
 	struct renesas_i3c_cmd *cmd;
 	u32 olddevs, newdevs;
-	u8 last_addr = 0,pos;
+	u8 last_addr = 0, pos;
 	int ret;
 
 	/* Enable I3C bus. */
@@ -947,7 +947,7 @@ static int renesas_i3c_master_send_ccc_cmd(struct i3c_master_controller *m,
 			    NCMDQP_DEV_COUNT(0) | NCMDQP_TOC;
 		master->internal_state = I3C_INTERNAL_STATE_MASTER_SETDASA;
 		break;
-       default:
+	default:
 		/* Calculate the command descriptor. */
 		cmd->cmd0 = NCMDQP_TID(I3C_COMMAND_WRITE) |
 			NCMDQP_CMD(ccc->id) | NCMDQP_CP | NCMDQP_DEV_INDEX(pos) |
@@ -1264,7 +1264,7 @@ static irqreturn_t i3c_resp_isr(int irq, void *data)
 		break;
 	}
 
-        switch (NRSPQP_ERR_STATUS(resp_descriptor)) {
+	switch (NRSPQP_ERR_STATUS(resp_descriptor)) {
 	case NRSPQP_NO_ERROR:
 		break;
 	case NRSPQP_ERROR_PARITY:
@@ -1282,7 +1282,7 @@ static irqreturn_t i3c_resp_isr(int irq, void *data)
 	default:
 		ret = -EINVAL;
 		break;
-        }
+	}
 
 	ntst = i3c_reg_read(master->regs, NTST);
 
