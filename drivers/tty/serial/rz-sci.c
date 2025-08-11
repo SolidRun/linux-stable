@@ -160,7 +160,7 @@ static const struct sci_port_params sci_port_params[SCIx_NR_REGTYPES] = {
 			[CFCLR]		= { 0x68,  32 },
 			[FFCLR]		= { 0x70,  32 },
 		},
-		.fifosize = 16,
+		.fifosize = 32,
 		.sampling_rate_mask = SCI_SR(32),
 		.error_mask = RSCI_DEFAULT_ERROR_MASK,
 		.error_clear = RSCI_ERROR_CLEAR,
