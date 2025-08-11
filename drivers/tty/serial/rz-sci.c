@@ -1002,6 +1002,8 @@ static void sci_set_termios(struct uart_port *port, struct ktermios *termios,
 	if (termios->c_cflag & CSTOPB)
 		ccr3_val |= CCR3_STP;
 
+	/* Enable noise filter function */
+		ccr1_val |= CCR1_NFEN;
 	/*
 	 * earlyprintk comes here early on with port->uartclk set to zero.
 	 * the clock framework is not up and running at this point so here
