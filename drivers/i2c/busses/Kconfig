@@ -988,6 +988,15 @@ config I2C_RIIC
 	  This driver can also be built as a module.  If so, the module
 	  will be called i2c-riic.
 
+config I2C_RSCI
+	tristate "Renesas RSCI I2C adapter"
+	help
+	 If you say yes to this option, support will be included for the
+	 Renesas RSCI I2C interface.
+
+	 This driver can also be built as a module.  If so, the module
+	 will be called i2c-rsci.
+
 config I2C_RK3X
 	tristate "Rockchip RK3xxx I2C adapter"
 	depends on OF && COMMON_CLK
