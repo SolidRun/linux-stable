@@ -111,6 +111,7 @@ struct rsci_dev {
 	struct clk *t_clk;
 	struct device *dev;
 	struct i2c_timings i2c_t;
+	struct reset_control *rstc;
 };
 
 struct rsci_irq_desc {
@@ -375,7 +376,6 @@ static int rsci_i2c_probe(struct platform_device *pdev)
 	struct device *dev = &pdev->dev;
 	struct rsci_dev *riic;
 	struct i2c_adapter *adap;
-	struct reset_control *rstc;
 	int i, ret;
 
 	riic = devm_kzalloc(dev, sizeof(*riic), GFP_KERNEL);
@@ -394,19 +394,19 @@ static int rsci_i2c_probe(struct platform_device *pdev)
 
 	riic->dev = dev;
 
-	rstc = devm_reset_control_array_get(dev, false, false);
-	if (IS_ERR(rstc))
-		return dev_err_probe(dev, PTR_ERR(rstc),
+	riic->rstc = devm_reset_control_array_get(dev, false, false);
+	if (IS_ERR(riic->rstc))
+		return dev_err_probe(dev, PTR_ERR(riic->rstc),
 				     "Error: failed to get reset ctrl\n");
 
-	ret = reset_control_deassert(rstc);
+	ret = reset_control_deassert(riic->rstc);
 	if (ret) {
 		dev_err(dev, "failed to deassert reset %d\n", ret);
 		return ret;
 	}
 
 	ret = devm_add_action_or_reset(dev, rsci_reset_control_assert,
-				       rstc);
+				       riic->rstc);
 	if (ret) {
 		dev_err(dev,
 			"failed to register assert devm action, %d\n", ret);
@@ -508,6 +508,50 @@ static const struct rsci_of_data rsci_common_info = {
 	.regs = rsci_common_regs,
 };
 
+static int rsci_i2c_suspend(struct device *dev)
+{
+	struct rsci_dev *riic = dev_get_drvdata(dev);
+	int ret;
+
+	ret = pm_runtime_resume_and_get(dev);
+	if (ret)
+		return ret;
+
+	i2c_mark_adapter_suspended(&riic->adapter);
+
+	/* Disable output on transmit/receive pins. */
+	rsci_write_reg(0, riic, RSCI_CCR0);
+
+	pm_runtime_mark_last_busy(dev);
+	pm_runtime_put_sync(dev);
+
+	return reset_control_assert(riic->rstc);
+}
+
+static int rsci_i2c_resume(struct device *dev)
+{
+	struct rsci_dev *riic = dev_get_drvdata(dev);
+	int ret;
+
+	ret = reset_control_deassert(riic->rstc);
+	if (ret)
+		return ret;
+
+	ret = rsci_i2c_init_hw(riic);
+	if (ret) {
+		reset_control_assert(riic->rstc);
+		return ret;
+	}
+
+	i2c_mark_adapter_resumed(&riic->adapter);
+
+	return 0;
+}
+
+static const struct dev_pm_ops rsci_i2c_pm_ops = {
+	SYSTEM_SLEEP_PM_OPS(rsci_i2c_suspend, rsci_i2c_resume)
+};
+
 static const struct of_device_id rsci_i2c_dt_ids[] = {
 	{ .compatible = "renesas,rsci-i2c", .data = &rsci_common_info },
 	{ /* Sentinel */ },
@@ -519,6 +563,7 @@ static struct platform_driver rsci_i2c_driver = {
 	.driver		= {
 		.name	= "rz-rsci-i2c",
 		.of_match_table = rsci_i2c_dt_ids,
+		.pm     = pm_ptr(&rsci_i2c_pm_ops),
 	},
 };
 
