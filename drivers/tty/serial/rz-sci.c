@@ -104,6 +104,9 @@ struct sci_port {
 	int				rx_trigger;
 	struct timer_list		rx_fifo_timer;
 	int				rx_fifo_timeout;
+
+	bool autorts;
+	bool has_rtscts;
 };
 
 #define SCI_NPORTS CONFIG_SERIAL_RZ_SCI_NR_UARTS
@@ -333,6 +336,13 @@ static void sci_init_pins(struct uart_port *port, unsigned int cflag)
 		s->cfg->ops->init_pins(port, cflag);
 		return;
 	}
+
+	if (!s->has_rtscts)
+		return;
+
+	if (s->autorts)
+		serial_port_out(port, CCR1, serial_port_in(port, CCR1)
+						| CCR1_CTSE | CCR1_CTSPEN);
 }
 
 static int sci_txfill(struct uart_port *port)
@@ -839,6 +849,28 @@ static void sci_enable_ms(struct uart_port *port)
 	mctrl_gpio_enable_ms(to_sci_port(port)->gpios);
 }
 
+static void sci_break_ctl(struct uart_port *port, int break_state)
+{
+	unsigned short ccr0_val, ccr1_val;
+	unsigned long flags;
+
+	spin_lock_irqsave(&port->lock, flags);
+	ccr1_val = serial_port_in(port, CCR1);
+	ccr0_val = serial_port_in(port, CCR0);
+
+	if (break_state == -1) {
+		ccr1_val = (ccr1_val | CCR1_SPB2IO) & ~CCR1_SPB2DT;
+		ccr0_val &= ~CCR0_TE;
+	} else {
+		ccr1_val = (ccr1_val | CCR1_SPB2DT) & ~CCR1_SPB2IO;
+		ccr0_val |= CCR0_TE;
+	}
+
+	serial_port_out(port, CCR1, ccr1_val);
+	serial_port_out(port, CCR0, ccr0_val);
+	spin_unlock_irqrestore(&port->lock, flags);
+}
+
 static int sci_startup(struct uart_port *port)
 {
 	struct sci_port *s = to_sci_port(port);
@@ -860,6 +892,7 @@ static void sci_shutdown(struct uart_port *port)
 
 	dev_dbg(port->dev, "%s(%d)\n", __func__, port->line);
 
+	s->autorts = false;
 	mctrl_gpio_disable_ms(to_sci_port(port)->gpios);
 
 	spin_lock_irqsave(&port->lock, flags);
@@ -1058,10 +1091,15 @@ done:
 			scif_set_rtrg(port, s->rx_trigger);
 	}
 
-	sci_init_pins(port, termios->c_cflag);
-
 	port->status &= ~UPSTAT_AUTOCTS;
+	s->autorts = false;
 
+	if ((port->flags & UPF_HARD_FLOW) && (termios->c_cflag & CRTSCTS)) {
+		port->status |= UPSTAT_AUTOCTS;
+		s->autorts = true;
+	}
+
+	sci_init_pins(port, termios->c_cflag);
 	serial_port_out(port, CFCLR, CFCLR_CLRFLAG);
 
 	if (port->type == PORT_SCIF)
@@ -1197,6 +1235,7 @@ static const struct uart_ops sci_uart_ops = {
 	.stop_tx	= sci_stop_tx,
 	.stop_rx	= sci_stop_rx,
 	.enable_ms	= sci_enable_ms,
+	.break_ctl      = sci_break_ctl,
 	.startup	= sci_startup,
 	.shutdown	= sci_shutdown,
 	.set_termios	= sci_set_termios,
@@ -1555,6 +1594,8 @@ static struct plat_sci_port *sci_parse_dt(struct platform_device *pdev,
 	p->type = SCI_OF_TYPE(data);
 	p->regtype = SCI_OF_REGTYPE(data);
 
+	sp->has_rtscts = of_property_read_bool(np, "uart-has-rtscts");
+
 	return p;
 }
 
@@ -1593,6 +1634,15 @@ static int sci_probe_single(struct platform_device *dev,
 	sciport->gpios = mctrl_gpio_init(&sciport->port, 0);
 	if (IS_ERR(sciport->gpios))
 		return PTR_ERR(sciport->gpios);
+
+	if (sciport->has_rtscts) {
+		if (mctrl_gpio_to_gpiod(sciport->gpios, UART_GPIO_CTS) ||
+		    mctrl_gpio_to_gpiod(sciport->gpios, UART_GPIO_RTS)) {
+			dev_err(&dev->dev, "Conflicting RTS/CTS config\n");
+			return -EINVAL;
+		}
+		sciport->port.flags |= UPF_HARD_FLOW;
+	}
 
 	ret = uart_add_one_port(&sci_uart_driver, &sciport->port);
 	if (ret) {
