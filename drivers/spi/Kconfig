@@ -800,6 +800,11 @@ config SPI_RZV2H_RSPI
 	  RSPI supports both SPI host and SPI target roles. This option only
 	  enables the SPI host role.
 
+config SPI_RZ_RSCI
+	tristate "Renesas RSCI RZ/V2H controller"
+	help
+	 SPI driver for Renesas RSCI RZ/V2H and similar SoCs.
+
 config SPI_QCOM_QSPI
 	tristate "QTI QSPI controller"
 	depends on ARCH_QCOM
