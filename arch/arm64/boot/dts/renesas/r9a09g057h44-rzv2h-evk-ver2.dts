@@ -10,6 +10,7 @@
 /* Switch selection settings */
 #define SEL_CAN01_HEADER		1
 #define SEL_SCI4_CAN01			0
+#define RSCI5_SEL			RSCI_UART
 
 /* Mode selection settings */
 /*

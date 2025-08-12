@@ -6,6 +6,7 @@
  */
 
 #include <dt-bindings/pinctrl/renesas,r9a09g057-pinctrl.h>
+#include <dt-bindings/soc/renesas,rsci.h>
 #include <dt-bindings/gpio/gpio.h>
 #include "r9a09g057.dtsi"
 
@@ -49,6 +50,8 @@
  *	1: CAN0/1 (default)	0: External Header Pin
  * SEL_SCI4_CAN01:
  *	1: SCI4			0: CAN0/1 (default)
+ * RSCI5_SEL mode:
+ *	RSCI_UART (default)
  */
 
 / {
@@ -67,7 +70,9 @@
 #if (SEL_CAN01_HEADER & SEL_SCI4_CAN01)
 		serial1 = &sci4;
 #endif
+#if (RSCI5_SEL == RSCI_UART)
 		serial2 = &sci5;
+#endif
 	};
 
 	chosen {
@@ -953,7 +958,11 @@
 	sci5_pins: sci5 {
 		pinmux = <RZV2H_PORT_PINMUX(8, 6, 6)>, /* SCI5_TXD_MOSI_SDA */
 			 <RZV2H_PORT_PINMUX(8, 7, 6)>; /* SCI5_RXD_MISO_SCL */
+#if (RSCI5_SEL == RSCI_UART)
 		bias-pull-up;
+#elif (RSCI5_SEL == RSCI_I2C)
+		drive-open-drain = <1>;
+#endif
 	};
 };
 
@@ -1095,11 +1104,19 @@
 };
 #endif
 
+#if (RSCI5_SEL == RSCI_UART)
 &sci5 {
 	pinctrl-0 = <&sci5_pins>;
 	pinctrl-names = "default";
 	status = "okay";
 };
+#elif (RSCI5_SEL == RSCI_I2C)
+&rsci_i2c5 {
+	pinctrl-0 = <&sci5_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+#endif
 
 &cmtw0 {
 	status = "okay";
