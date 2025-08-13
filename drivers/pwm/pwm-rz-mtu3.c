@@ -103,6 +103,22 @@ struct rz_mtu3_pwm_chip {
 	struct rz_mtu3_pwm_channel channel_data[RZ_MTU3_MAX_HW_CHANNELS];
 };
 
+struct rz_mtu3_tcr_tpsc_map {
+	u8 tpsc1;
+	u8 tpsc2;
+};
+
+static const struct rz_mtu3_tcr_tpsc_map prescale_map[RZ_MTU_NUM_CHANNELS][RZ_MTU_NUM_PRESCALES] = {
+	[RZ_MTU3_CHAN_0] = MTU_TCR_TPSC_256_1024(0, 0x4, 0, 0x5),
+	[RZ_MTU3_CHAN_1] = MTU_TCR_TPSC_256_1024(0x6, 0, 0, 0x4),
+	[RZ_MTU3_CHAN_2] = MTU_TCR_TPSC_256_1024(0, 0x4, 0x7, 0),
+	[RZ_MTU3_CHAN_3] = MTU_TCR_TPSC_256_1024(0x4, 0, 0x5, 0),
+	[RZ_MTU3_CHAN_4] = MTU_TCR_TPSC_256_1024(0x4, 0, 0x5, 0),
+	[RZ_MTU3_CHAN_5] = MTU_TCR_TPSC_256_1024(0, 0x4, 0, 0x5),
+	[RZ_MTU3_CHAN_6] = MTU_TCR_TPSC_256_1024(0x4, 0, 0x5, 0),
+	[RZ_MTU3_CHAN_7] = MTU_TCR_TPSC_256_1024(0x4, 0, 0x5, 0),
+	[RZ_MTU3_CHAN_8] = MTU_TCR_TPSC_256_1024(0x4, 0, 0x5, 0)
+};
 /*
  * The MTU channels are {0..4, 6, 7} and the number of IO on MTU1
  * and MTU2 channel is 1 compared to 2 on others.
@@ -142,14 +158,23 @@ static u8 rz_mtu3_pwm_calculate_prescale(struct rz_mtu3_pwm_chip *rz_mtu3,
 	u8 prescale;
 
 	/*
-	 * Supported prescale values are 1, 4, 16 and 64.
-	 * TODO: Support prescale values 2, 8, 32, 256 and 1024.
+	 * Supported prescale values are 1, 2, 4, 8, 16 ,32, 64, 256 and 1024.
+	 * 2^0 = 1 -> prescale = 0
+	 * 2^1 = 2 -> prescale = 1
+	 * 2^2 = 4 -> prescale = 2
+	 * 2^3 = 8 -> prescale = 3
+	 * 2^4 = 16 -> prescale = 4
+	 * 2^5 = 32 -> prescale = 5
+	 * 2^6 = 64 -> prescale = 6
+	 * 2^8 = 256 -> prescale = 8
+	 * 2^10 = 1024 -> prescale = 10
 	 */
 	prescaled_period_cycles = period_cycles >> 16;
-	if (prescaled_period_cycles >= 16)
-		prescale = 3;
-	else
-		prescale = (fls(prescaled_period_cycles) + 1) / 2;
+	prescale = fls(prescaled_period_cycles);
+	if (prescale == 7)
+		prescale = 8;
+	else if (prescale >= 9)
+		prescale = 10;
 
 	return prescale;
 }
@@ -434,6 +459,34 @@ static void rz_mtu3_pwm_disable(struct rz_mtu3_pwm_chip *rz_mtu3_pwm,
 	pm_runtime_put_sync(rz_mtu3_pwm->chip.dev);
 }
 
+static const struct rz_mtu3_tcr_tpsc_map *rz_mtu3_get_tpsc(unsigned int channel_number, u8 prescale)
+{
+	return &prescale_map[channel_number][prescale];
+}
+static u8 rz_mtu3_get_prescale(struct rz_mtu3_channel *mtu)
+{
+	u8 prescale, tmp, val_tpsc1, val_tpsc2, i;
+	unsigned int channel_number;
+	const struct rz_mtu3_tcr_tpsc_map *prescale_map;
+
+	tmp = rz_mtu3_8bit_ch_read(mtu, RZ_MTU3_TCR);
+	val_tpsc1 = FIELD_GET(RZ_MTU3_TCR_TPCS, tmp);
+	tmp = rz_mtu3_8bit_ch_read(mtu, RZ_MTU3_TCR2);
+	val_tpsc2 = FIELD_GET(RZ_MTU3_TCR_TPCS, tmp);
+
+	channel_number = mtu->channel_number;
+	for (i = 0; i < RZ_MTU_NUM_PRESCALES; i++) {
+		prescale_map = rz_mtu3_get_tpsc(channel_number, i);
+		if (prescale_map && val_tpsc1 == prescale_map->tpsc1 &&
+			val_tpsc2 == prescale_map->tpsc2) {
+			prescale = i;
+			break;
+		}
+	}
+
+	return prescale;
+}
+
 static int rz_mtu3_pwm_get_state(struct pwm_chip *chip, struct pwm_device *pwm,
 				 struct pwm_state *state)
 {
@@ -447,7 +500,7 @@ static int rz_mtu3_pwm_get_state(struct pwm_chip *chip, struct pwm_device *pwm,
 	state->enabled = rz_mtu3_pwm_is_ch_enabled(rz_mtu3_pwm, pwm->hwpwm);
 	if (state->enabled) {
 		struct rz_mtu3_pwm_channel *priv;
-		u8 prescale, val;
+		u8 prescale;
 		u16 dc, pv;
 		u64 tmp;
 
@@ -459,13 +512,12 @@ static int rz_mtu3_pwm_get_state(struct pwm_chip *chip, struct pwm_device *pwm,
 			rz_mtu3_pwm_read_tgr_registers(priv, RZ_MTU3_TGRC, &pv,
 						       RZ_MTU3_TGRD, &dc);
 
-		val = rz_mtu3_8bit_ch_read(priv->mtu, RZ_MTU3_TCR);
-		prescale = FIELD_GET(RZ_MTU3_TCR_TPCS, val);
+		prescale = rz_mtu3_get_prescale(priv->mtu);
 
-		/* With prescale <= 7 and pv <= 0xffff this doesn't overflow. */
-		tmp = NSEC_PER_SEC * (u64)pv << (2 * prescale);
+		/* With prescale <= 10 and pv <= 0xffff this doesn't overflow. */
+		tmp = NSEC_PER_SEC * (u64)pv << prescale;
 		state->period = DIV_ROUND_UP_ULL(tmp, rz_mtu3_pwm->rate);
-		tmp = NSEC_PER_SEC * (u64)dc << (2 * prescale);
+		tmp = NSEC_PER_SEC * (u64)dc << prescale;
 		state->duty_cycle = DIV_ROUND_UP_ULL(tmp, rz_mtu3_pwm->rate);
 
 		if (state->duty_cycle > state->period)
@@ -480,7 +532,7 @@ static int rz_mtu3_pwm_get_state(struct pwm_chip *chip, struct pwm_device *pwm,
 
 static u16 rz_mtu3_pwm_calculate_pv_or_dc(u64 period_or_duty_cycle, u8 prescale)
 {
-	return min(period_or_duty_cycle >> (2 * prescale), (u64)U16_MAX);
+	return min(period_or_duty_cycle >> prescale, (u64)U16_MAX);
 }
 
 static int rz_mtu3_pwm_config(struct pwm_chip *chip, struct pwm_device *pwm,
@@ -488,11 +540,12 @@ static int rz_mtu3_pwm_config(struct pwm_chip *chip, struct pwm_device *pwm,
 {
 	struct rz_mtu3_pwm_chip *rz_mtu3_pwm = to_rz_mtu3_pwm_chip(chip);
 	struct rz_mtu3_pwm_channel *priv;
+	const struct rz_mtu3_tcr_tpsc_map *tpsc_map;
 	u64 period_cycles;
 	u64 duty_cycles;
 	u8 prescale;
 	u16 pv, dc, deadtime;
-	u8 val, val_polarity, val_tder;
+	u8 val, val_tpsc1, val_tpsc2, val_polarity, val_tder;
 	u32 ch;
 
 	priv = rz_mtu3_get_channel(rz_mtu3_pwm, pwm->hwpwm);
@@ -538,7 +591,6 @@ static int rz_mtu3_pwm_config(struct pwm_chip *chip, struct pwm_device *pwm,
 					channel_data[ch].deadtime_ns,
 					      rz_mtu3_pwm->rate, NSEC_PER_SEC);
 		deadtime = rz_mtu3_pwm_calculate_pv_or_dc(deadtime, prescale);
-
 	}
 
 	dc = rz_mtu3_pwm_calculate_pv_or_dc(duty_cycles, prescale);
@@ -555,7 +607,11 @@ static int rz_mtu3_pwm_config(struct pwm_chip *chip, struct pwm_device *pwm,
 			return rc;
 	}
 
-	val = RZ_MTU3_TCR_CKEG_RISING | prescale;
+	tpsc_map = rz_mtu3_get_tpsc(priv->mtu->channel_number, prescale);
+
+	val_tpsc1 = tpsc_map->tpsc1;
+	val_tpsc2 = tpsc_map->tpsc2;
+	val = RZ_MTU3_TCR_CKEG_RISING | val_tpsc1;
 
 	/* Counter must be stopped while updating TCR register */
 	if (rz_mtu3_pwm->prescale[ch] != prescale && rz_mtu3_pwm->enable_count[ch])
@@ -565,11 +621,13 @@ static int rz_mtu3_pwm_config(struct pwm_chip *chip, struct pwm_device *pwm,
 		if (priv->map->base_pwm_number == pwm->hwpwm) {
 			rz_mtu3_8bit_ch_write(priv->mtu, RZ_MTU3_TCR,
 						RZ_MTU3_TCR_CCLR_TGRA | val);
+			rz_mtu3_8bit_ch_write(priv->mtu, RZ_MTU3_TCR2, val_tpsc2);
 			rz_mtu3_pwm_write_tgr_registers(priv, RZ_MTU3_TGRA, pv,
 						RZ_MTU3_TGRB, dc);
 		} else {
 			rz_mtu3_8bit_ch_write(priv->mtu, RZ_MTU3_TCR,
 						RZ_MTU3_TCR_CCLR_TGRC | val);
+			rz_mtu3_8bit_ch_write(priv->mtu, RZ_MTU3_TCR2, val_tpsc2);
 			rz_mtu3_pwm_write_tgr_registers(priv, RZ_MTU3_TGRC, pv,
 						RZ_MTU3_TGRD, dc);
 		}
@@ -577,7 +635,8 @@ static int rz_mtu3_pwm_config(struct pwm_chip *chip, struct pwm_device *pwm,
 						      MTU3_PWM_COMPLEMENTARY) {
 		rz_mtu3_8bit_ch_write(priv->mtu, RZ_MTU3_TCR, val);
 		rz_mtu3_8bit_ch_write(priv->mtu_comp_pwm, RZ_MTU3_TCR, val);
-
+		rz_mtu3_8bit_ch_write(priv->mtu, RZ_MTU3_TCR2, val_tpsc2);
+		rz_mtu3_8bit_ch_write(priv->mtu_comp_pwm, RZ_MTU3_TCR2, val_tpsc2);
 		rz_mtu3_16bit_ch_write(priv->mtu, RZ_MTU3_TGRC, pv + deadtime);
 		rz_mtu3_16bit_ch_write(priv->mtu, RZ_MTU3_TGRA, pv + deadtime);
 		rz_mtu3_16bit_ch_write(priv->mtu, RZ_MTU3_TGRB, dc);

@@ -131,6 +131,20 @@
 #define RZ_MTU3_TSTR_PWM_COMP_EN	(3 << 6)
 #define RZ_MTU3_TDER_EN			(1 << 0)
 
+#define MTU_TCR_TPSC_256_1024(_prescale_256_tpsc1, _prescale_256_tpsc2, \
+				_prescale_1024_tpsc1, _prescale_1024_tpsc2) \
+	{ \
+		[RZ_MTU3_PRESCALE_1] = { 0, 0 }, \
+		[RZ_MTU3_PRESCALE_2] = {0, 0x1}, \
+		[RZ_MTU3_PRESCALE_4] = {0x1, 0 }, \
+		[RZ_MTU3_PRESCALE_8] = {0, 0x2}, \
+		[RZ_MTU3_PRESCALE_16] = {0x2, 0}, \
+		[RZ_MTU3_PRESCALE_32] = {0, 0x3}, \
+		[RZ_MTU3_PRESCALE_64] = {0x3, 0}, \
+		[RZ_MTU3_PRESCALE_256] = {_prescale_256_tpsc1, _prescale_256_tpsc2}, \
+		[RZ_MTU3_PRESCALE_1024] = {_prescale_1024_tpsc1, _prescale_1024_tpsc2} \
+	}
+
 enum rz_mtu3_channels {
 	RZ_MTU3_CHAN_0,
 	RZ_MTU3_CHAN_1,
@@ -142,6 +156,19 @@ enum rz_mtu3_channels {
 	RZ_MTU3_CHAN_7,
 	RZ_MTU3_CHAN_8,
 	RZ_MTU_NUM_CHANNELS
+};
+
+enum rz_mtu3_prescales {
+	RZ_MTU3_PRESCALE_1 = 0,
+	RZ_MTU3_PRESCALE_2,
+	RZ_MTU3_PRESCALE_4,
+	RZ_MTU3_PRESCALE_8,
+	RZ_MTU3_PRESCALE_16,
+	RZ_MTU3_PRESCALE_32,
+	RZ_MTU3_PRESCALE_64,
+	RZ_MTU3_PRESCALE_256 = 8,
+	RZ_MTU3_PRESCALE_1024 = 10,
+	RZ_MTU_NUM_PRESCALES
 };
 
 /**
