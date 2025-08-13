@@ -40,6 +40,17 @@
  *	amixer set 'DVC Out',0 20%
  */
 
+/*
+ * Jumper setting
+ *
+ * Please change the jumper setting in board devicetree corresponding to below Macros:
+ *
+ * SEL_CAN01_HEADER:
+ *	1: CAN0/1 (default)	0: External Header Pin
+ * SEL_SCI4_CAN01:
+ *	1: SCI4			0: CAN0/1 (default)
+ */
+
 / {
 	aliases {
 		ethernet0 = &eth0;
@@ -53,6 +64,10 @@
 		i2c8 = &i2c8;
 		mmc1 = &sdhi1;
 		serial0 = &scif;
+#if (SEL_CAN01_HEADER & SEL_SCI4_CAN01)
+		serial1 = &sci4;
+#endif
+		serial2 = &sci5;
 	};
 
 	chosen {
@@ -801,6 +816,7 @@
 			 <RZV2H_PORT_PINMUX(0, 7, 1)>; /* I2C8_SCL */
 	};
 
+#if (SEL_CAN01_HEADER && !SEL_SCI4_CAN01)
 	can0_pins: can0 {
 		pinmux = <RZV2H_PORT_PINMUX(8, 0, 5)>, /* TX */
 			 <RZV2H_PORT_PINMUX(8, 1, 5)>; /* RX */
@@ -810,6 +826,7 @@
 		pinmux = <RZV2H_PORT_PINMUX(8, 2, 5)>, /* TX */
 			 <RZV2H_PORT_PINMUX(8, 3, 5)>; /* RX */
 	};
+#endif
 
 	sound_pins: sound {
 		ssi34_pins: ssi34 {
@@ -922,6 +939,22 @@
 			pinmux = <RZV2H_PORT_PINMUX(6, 2, 14)>; /* VBUS */
 		};
 	};
+
+#if (SEL_CAN01_HEADER & SEL_SCI4_CAN01)
+	sci4_pins: sci4 {
+		pinmux = <RZV2H_PORT_PINMUX(8, 4, 6)>, /* SCI4_TXD_MOSI_SDA */
+			 <RZV2H_PORT_PINMUX(8, 5, 6)>, /* SCI4_RXD_MISO_SCL */
+			 <RZV2H_PORT_PINMUX(8, 0, 3)>, /* SCI4_CTS# */
+			 <RZV2H_PORT_PINMUX(8, 1, 1)>; /* SCI4_RTS# */
+		bias-pull-up;
+	};
+#endif
+
+	sci5_pins: sci5 {
+		pinmux = <RZV2H_PORT_PINMUX(8, 6, 6)>, /* SCI5_TXD_MOSI_SDA */
+			 <RZV2H_PORT_PINMUX(8, 7, 6)>; /* SCI5_RXD_MISO_SCL */
+		bias-pull-up;
+	};
 };
 
 &audio_clka {
@@ -951,6 +984,7 @@
 	status = "okay";
 };
 
+#if (SEL_CAN01_HEADER && !SEL_SCI4_CAN01)
 &canfd {
 	pinctrl-0 = <&can0_pins &can1_pins>;
 	pinctrl-names = "default";
@@ -964,6 +998,7 @@
 		status = "okay";
 	};
 };
+#endif
 
 &sdhi1 {
 	pinctrl-0 = <&sdhi1_pins>;
@@ -1048,6 +1083,22 @@
 			};
 		};
 	};
+};
+
+#if (SEL_CAN01_HEADER & SEL_SCI4_CAN01)
+&sci4 {
+	pinctrl-0 = <&sci4_pins>;
+	pinctrl-names = "default";
+
+	uart-has-rtscts;
+	status = "okay";
+};
+#endif
+
+&sci5 {
+	pinctrl-0 = <&sci5_pins>;
+	pinctrl-names = "default";
+	status = "okay";
 };
 
 &cmtw0 {

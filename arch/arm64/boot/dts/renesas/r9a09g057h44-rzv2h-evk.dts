@@ -6,6 +6,9 @@
  */
 
 /dts-v1/;
+/* Switch selection settings */
+#define SEL_CAN01_HEADER		1
+#define SEL_SCI4_CAN01			0
 
 #include "rzv2h-evk-common.dtsi"
 
