@@ -178,6 +178,18 @@ static int rzg2l_cru_s_ctrl(struct v4l2_ctrl *ctrl)
 			case V4L2_CID_CRU_FRAME_SKIP:
 				cru->frame_skip = ctrl->val;
 				break;
+			case V4L2_CID_CRU_STATISTICS:
+				cru->is_statistics = ctrl->val;
+				break;
+			case V4L2_CID_CRU_SD_BLKSIZE:
+				cru->sd_blksize = ctrl->val;
+				break;
+			case V4L2_CID_CRU_SD_STHPOS:
+				cru->sd_sthpos = ctrl->val;
+				break;
+			case V4L2_CID_CRU_SD_STSADPOS:
+				cru->sd_stsadpos = ctrl->val;
+				break;
 			default:
 				ret = -EINVAL;
 				break;
@@ -394,9 +406,14 @@ static int rzg2l_cru_probe(struct platform_device *pdev)
 
 	ctrl->flags &= ~V4L2_CTRL_FLAG_READ_ONLY;
 
-	for (i = 0; i < num_ctrls; i++)
+	for (i = 0; i < num_ctrls; i++) {
+		if ((cru->info->cru_type == RZV2H_CRU_TYPE) && (cru->id > 1) &&
+		    (rzg2l_cru_ctrls[i].id >= V4L2_CID_CRU_STATISTICS) &&
+		    (rzg2l_cru_ctrls[i].id <= V4L2_CID_CRU_SD_STSADPOS))
+			continue;
 		v4l2_ctrl_new_custom(&cru->ctrl_handler,
 				     &rzg2l_cru_ctrls[i], NULL);
+	}
 
 	v4l2_ctrl_handler_setup(&cru->ctrl_handler);
 
@@ -470,6 +487,27 @@ static const u16 rzg3e_cru_regs[] = {
 	[AMnAXISTP] = 0x110,
 	[AMnAXISTPACK] = 0x114,
 	[AMnIS] = 0x128,
+	[AMnSDMB1ADDRL] = 0x13C,
+	[AMnSDMB1ADDRH] = 0x140,
+	[AMnSDMB2ADDRL] = 0x144,
+	[AMnSDMB2ADDRH] = 0x148,
+	[AMnSDMB3ADDRL] = 0x14C,
+	[AMnSDMB3ADDRH] = 0x150,
+	[AMnSDMB4ADDRL] = 0x154,
+	[AMnSDMB4ADDRH] = 0x158,
+	[AMnSDMB5ADDRL] = 0x15C,
+	[AMnSDMB5ADDRH] = 0x160,
+	[AMnSDMB6ADDRL] = 0x164,
+	[AMnSDMB6ADDRH] = 0x168,
+	[AMnSDMB7ADDRL] = 0x16C,
+	[AMnSDMB7ADDRH] = 0x170,
+	[AMnSDMB8ADDRL] = 0x174,
+	[AMnSDMB8ADDRH] = 0x178,
+	[AMnSDMBVALID] = 0x18C,
+	[AMnSDMBS] = 0x190,
+	[AMnSDFIFOPNTR] = 0x1C0,
+	[AMnSDAXISTP] = 0x1D8,
+	[AMnSDAXISTPACK] = 0x1DC,
 	[ICnEN] = 0x1f0,
 	[ICnREGC] = 0x244,
 	[ICnSVCNUM] = 0x1f8,
@@ -482,6 +520,7 @@ static const u16 rzg3e_cru_regs[] = {
 	[ICnLMXGC2] = 0x230,
 	[ICnLMXBC1] = 0x234,
 	[ICnLMXBC2] = 0x238,
+	[ICnSTIC1] = 0x23C,
 	[ICnMS] = 0x2d8,
 	[ICnDMR] = 0x304,
 };
@@ -546,6 +585,28 @@ static const u16 rzg2l_cru_regs[] = {
 	[AMnFIFOPNTR] = 0x168,
 	[AMnAXISTP] = 0x174,
 	[AMnAXISTPACK] = 0x178,
+	[AMnSDMB1ADDRL] = 0x190,
+	[AMnSDMB1ADDRH] = 0x194,
+	[AMnSDMB2ADDRL] = 0x198,
+	[AMnSDMB2ADDRH] = 0x19C,
+	[AMnSDMB3ADDRL] = 0x1A0,
+	[AMnSDMB3ADDRH] = 0x1A4,
+	[AMnSDMB4ADDRL] = 0x1A8,
+	[AMnSDMB4ADDRH] = 0x1AC,
+	[AMnSDMB5ADDRL] = 0x1B0,
+	[AMnSDMB5ADDRH] = 0x1B4,
+	[AMnSDMB6ADDRL] = 0x1B8,
+	[AMnSDMB6ADDRH] = 0x1BC,
+	[AMnSDMB7ADDRL] = 0x1C0,
+	[AMnSDMB7ADDRH] = 0x1C4,
+	[AMnSDMB8ADDRL] = 0x1C8,
+	[AMnSDMB8ADDRH] = 0x1CC,
+	[AMnSDMBVALID] = 0x1D0,
+	[AMnSDMBS] = 0x1D4,
+	[AMnSDAXIATTR] = 0x1D8,
+	[AMnSDFIFOPNTR] = 0x1E8,
+	[AMnSDAXISTP] = 0x1F4,
+	[AMnSDAXISTPACK] = 0x1F8,
 	[ICnEN] = 0x200,
 	[ICnREGC] = 0x204,
 	[ICnMC] = 0x208,
@@ -556,6 +617,8 @@ static const u16 rzg2l_cru_regs[] = {
 	[ICnLMXGC2] = 0x234,
 	[ICnLMXBC1] = 0x238,
 	[ICnLMXBC2] = 0x23C,
+	[ICnSTIC1] = 0x240,
+	[ICnSTIC2] = 0x244,
 	[ICnMS] = 0x254,
 	[ICnDMR] = 0x26c,
 };

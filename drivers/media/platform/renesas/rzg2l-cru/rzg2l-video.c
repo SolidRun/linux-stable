@@ -219,16 +219,36 @@ static void rzg2l_cru_buffer_queue(struct vb2_buffer *vb)
 static void rzg2l_cru_set_slot_addr(struct rzg2l_cru_dev *cru,
 				    int slot, dma_addr_t addr)
 {
+	const struct rzg2l_cru_ip_format *fmt;
+	int offsetx, offsety;
+	dma_addr_t offset;
+
+	fmt = rzg2l_cru_ip_format_to_fmt(cru->format.pixelformat);
+
 	/*
 	 * The address needs to be 512 bytes aligned. Driver should never accept
 	 * settings that do not satisfy this in the first place...
 	 */
-	if (WARN_ON((addr) & RZG2L_CRU_HW_BUFFER_MASK))
+	offsetx = cru->compose.left;
+	offsety = cru->compose.top * cru->format.bytesperline;
+	offset = addr + offsetx + offsety;
+
+	if (WARN_ON((offsetx | offsety | offset) & RZG2L_CRU_HW_BUFFER_MASK))
 		return;
 
 	rzg2l_cru_set_mb(cru, slot, addr);
 
 	cru->buf_addr[slot] = rzg2l_cru_get_mb(cru, slot);
+
+	/* Statistic data memory address is located next to Image data area */
+	if (cru->is_statistics) {
+		offset = offset + cru->format.bytesperline * cru->format.height;
+
+		rzg2l_cru_write(cru, AMnSDMBxADDRL(AMnSDMB1ADDRL, slot),
+				lower_32_bits(offset));
+		rzg2l_cru_write(cru, AMnSDMBxADDRH(AMnSDMB1ADDRH, slot),
+				upper_32_bits(offset));
+	}
 }
 
 /*
@@ -278,6 +298,11 @@ static void rzg2l_cru_initialize_axi(struct rzg2l_cru_dev *cru)
 	 * Currently, we will use maximum address.
 	 */
 	rzg2l_cru_write(cru, AMnMBVALID, AMnMBVALID_MBVALID(cru->num_buf - 1));
+
+	/* Set Statistics data memory banks */
+	if (cru->is_statistics)
+		rzg2l_cru_write(cru, AMnSDMBVALID,
+				AMnSDMBVALID_SDMBVALID(cru->num_buf - 1));
 
 	for (slot = 0; slot < cru->num_buf; slot++)
 		rzg2l_cru_fill_hw_slot(cru, slot);
@@ -432,6 +457,45 @@ static int rzg2l_cru_initialize_image_conv(struct rzg2l_cru_dev *cru,
 		}
 	}
 
+	/* Statistics Data can be enabled if input format is BAYER RAW */
+	if (cru->is_statistics) {
+		u32 icnstic1, icnstic2;
+		int tmp;
+
+		if (src_finfo->pixel_enc == V4L2_PIXEL_ENC_BAYER)
+			rzg2l_cru_write(cru, info->image_conv,
+				rzg2l_cru_read(cru, info->image_conv) & ~ICnMC_STITHR);
+		else
+			return -EINVAL;
+
+		/*
+		 * Validate condition about STHPOS and STUNIT based on formula:
+		 * ((HSIZE-STHPOS)>>(4+STUNIT)) * (VSIZE>>(4+STUNIT)) * 4 > 512
+		 * before setting control for Statistics Data
+		 */
+		tmp = (cru->format.height - cru->sd_sthpos);
+		tmp >>= (4 + cru->sd_blksize);
+		tmp *= (cru->format.width >> (4 + cru->sd_blksize)) * 4;
+
+		if (tmp > 512) {
+			icnstic1 = ICnSTIC1_STUNIT(cru->sd_blksize) |
+				   ICnSTIC1_STSADPOS(cru->sd_stsadpos);
+
+			rzg2l_cru_write(cru, ICnSTIC1, icnstic1);
+			if (cru->info->cru_type == RZG2L_CRU_TYPE) {
+				icnstic2 = ICnSTIC2_STHPOS(cru->sd_sthpos);
+				rzg2l_cru_write(cru, ICnSTIC2, icnstic2);
+			}
+		} else {
+			dev_err(cru->dev, "Invalid STUNIT and STHPOS setting");
+			return -EINVAL;
+		}
+
+	} else {
+		rzg2l_cru_write(cru, info->image_conv,
+				rzg2l_cru_read(cru, info->image_conv) | ICnMC_STITHR);
+	}
+
 	/* Linear Matrix Processing support */
 	if (((src_finfo->pixel_enc == V4L2_PIXEL_ENC_RGB) ||
 	   (src_finfo->pixel_enc == V4L2_PIXEL_ENC_BAYER)) &&
@@ -542,6 +606,47 @@ void rzg2l_cru_stop_image_processing(struct rzg2l_cru_dev *cru)
 
 	/* Cancel the AXI bus stop request */
 	rzg2l_cru_write(cru, AMnAXISTP, 0);
+
+	/* Stop AXI bus for Statistic Data */
+	if (cru->is_statistics) {
+		u32 amnfifopntr,  amnsdfifopntr, amnsdfifopntr_w, amnsdfifopntr_r;
+
+		/* Wait until the FIFO becomes empty */
+		for (retries = 5; retries > 0; retries--) {
+			amnfifopntr = rzg2l_cru_read(cru, AMnFIFOPNTR);
+			amnsdfifopntr = rzg2l_cru_read(cru, AMnSDFIFOPNTR);
+			amnsdfifopntr_w = amnfifopntr & AMnSDFIFOPNTR_SDFIFOWPNTR;
+			amnsdfifopntr_r = (amnfifopntr & AMnSDFIFOPNTR_SDFIFORPNTR) >> 16;
+
+			if (amnsdfifopntr_w == amnsdfifopntr_r)
+				break;
+
+			udelay(10);
+		}
+
+		/* Notify that FIFO is not empty here */
+		if (!retries)
+			dev_err(cru->dev, "Failed to empty FIFO for Statistics\n");
+
+		/* Stop AXI bus */
+		rzg2l_cru_write(cru, AMnSDAXISTP, AMnSDAXISTP_SDAXI_STOP);
+
+		/* Wait until the AXI bus stop */
+		for (retries = 5; retries > 0; retries--) {
+			if (rzg2l_cru_read(cru, AMnSDAXISTPACK) &
+					   AMnSDAXISTPACK_SDAXI_STOP_ACK)
+				break;
+
+			udelay(10);
+		};
+
+		/* Notify that AXI bus can not stop here */
+		if (!retries)
+			dev_err(cru->dev, "Failed to stop AXI bus for Statistics\n");
+
+		/* Cancel the AXI bus stop request */
+		rzg2l_cru_write(cru, AMnSDAXISTP, 0);
+	}
 
 	/* Reset the CRU (AXI-master) */
 	reset_control_assert(cru->aresetn);
@@ -1143,6 +1248,9 @@ static void rzg2l_cru_format_align(struct rzg2l_cru_dev *cru,
 			      &pix->height, 240, info->max_height, 2, 0);
 
 	v4l2_fill_pixfmt(pix, pix->pixelformat, pix->width, pix->height);
+
+	if (cru->is_statistics)
+		pix->sizeimage *= 2;
 
 	dev_dbg(cru->dev, "Format %ux%u bpl: %u size: %u\n",
 		pix->width, pix->height, pix->bytesperline, pix->sizeimage);

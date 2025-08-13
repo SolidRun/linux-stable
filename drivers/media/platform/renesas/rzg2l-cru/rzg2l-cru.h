@@ -61,9 +61,20 @@ enum rzg2l_cru_v4l2_priv_ctrls {
 	V4L2_CID_CRU_LINEAR_MATRIX_BR,
 	V4L2_CID_CRU_LINEAR_MATRIX_BG,
 	V4L2_CID_CRU_LINEAR_MATRIX_BB,
+	V4L2_CID_CRU_STATISTICS,
+	V4L2_CID_CRU_SD_BLKSIZE,
+	V4L2_CID_CRU_SD_STHPOS,
+	V4L2_CID_CRU_SD_STSADPOS,
 };
 
 static const struct v4l2_ctrl_ops rzg2l_cru_ctrl_ops;
+
+static const char * const cru_statistics_blksize_menu[] = {
+	"16x16",
+	"32x32",
+	"64x64",
+	"128x128",
+};
 
 static const struct v4l2_ctrl_config rzg2l_cru_ctrls[] = {
 	{
@@ -206,6 +217,46 @@ static const struct v4l2_ctrl_config rzg2l_cru_ctrls[] = {
 		.step = 1,
 		.def = 0,
 		.is_private = 1,
+	}, {
+		.id = V4L2_CID_CRU_STATISTICS,
+		.type = V4L2_CTRL_TYPE_BOOLEAN,
+		.ops = &rzg2l_cru_ctrl_ops,
+		.name = "Statistics Data Enable/Disable",
+		.max = 1,
+		.min = 0,
+		.step = 1,
+		.def = 0,
+		.is_private = 1,
+	}, {
+		.id = V4L2_CID_CRU_SD_BLKSIZE,
+		.type = V4L2_CTRL_TYPE_MENU,
+		.ops = &rzg2l_cru_ctrl_ops,
+		.name = "Statistics Data Unit Blocksize",
+		.max = 3,
+		.min = 0,
+		.def = 0,
+		.is_private = 1,
+		.qmenu = cru_statistics_blksize_menu,
+	}, {
+		.id = V4L2_CID_CRU_SD_STHPOS,
+		.type = V4L2_CTRL_TYPE_INTEGER,
+		.ops = &rzg2l_cru_ctrl_ops,
+		.name = "Statistics Horizontal Start Position",
+		.max = 376,
+		.min = 0,
+		.step = 1,
+		.def = 0,
+		.is_private = 1,
+	}, {
+		.id = V4L2_CID_CRU_SD_STSADPOS,
+		.type = V4L2_CTRL_TYPE_INTEGER,
+		.ops = &rzg2l_cru_ctrl_ops,
+		.name = "Statistics Input Data Bit Position",
+		.max = 8,
+		.min = 0,
+		.step = 1,
+		.def = 0,
+		.is_private = 1,
 	},
 };
 
@@ -333,6 +384,7 @@ struct rzg2l_cru_dev {
 	struct v4l2_device v4l2_dev;
 	u8 num_buf;
 
+	u8 bpp;
 	u8 svc_channel;
 	dma_addr_t buf_addr[RZG2L_CRU_HW_BUFFER_MAX];
 
@@ -358,8 +410,17 @@ struct rzg2l_cru_dev {
 	unsigned int sequence;
 	enum rzg2l_cru_dma_state state;
 
+	struct v4l2_rect crop;
+	struct v4l2_rect compose;
+	struct v4l2_rect source;
+
 	struct v4l2_pix_format format;
 	u8 frame_skip;
+
+	bool is_statistics;
+	int sd_blksize;
+	int sd_sthpos;
+	int sd_stsadpos;
 
 	bool is_linear_matrix_enable;
 	int linear_matrix_rgb_offset[3];

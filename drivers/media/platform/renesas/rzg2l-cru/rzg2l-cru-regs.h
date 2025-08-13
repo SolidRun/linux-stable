@@ -51,6 +51,31 @@
 
 #define AMnAXISTPACK_AXI_STOP_ACK	BIT(0)
 
+/* Memory Bank Base Address (Lower) Register for CRU Statistics Data */
+#define AMnSDMBxADDRL(base, x)		((base) + (x) * 2)
+
+/* Memory Bank Base Address (Higher) Register for CRU Statistics Data */
+#define AMnSDMBxADDRH(base, x)		((base) + (x) * 2)
+
+/* Memory Bank Enable Register for CRU Image Data */
+#define AMnSDMBVALID_SDMBVALID(x)	GENMASK(x, 0)
+
+/* Memory Bank Status Register for CRU Image Data */
+#define AMnSDMBS_SDMBSTS		0x7
+
+/* AXI Master Transfer Constant Register for CRU Statistics data */
+#define AMnSDAXIATTR_SDAXILEN(x)	(x)
+
+/* AXI Master FIFO Pointer Register for CRU Statistics Data */
+#define AMnSDFIFOPNTR_SDFIFOWPNTR	GENMASK(4, 0)
+#define AMnSDFIFOPNTR_SDFIFORPNTR	GENMASK(20, 16)
+
+/* AXI Master Transfer Stop Register for CRU Image Data */
+#define AMnSDAXISTP_SDAXI_STOP		BIT(0)
+
+/* AXI Master Transfer Stop Status Register for CRU Image Data */
+#define AMnSDAXISTPACK_SDAXI_STOP_ACK	BIT(0)
+
 #define ICnEN_ICEN			BIT(0)
 
 #define ICnSVC_SVC0(x)			(x)
@@ -64,6 +89,7 @@
 #define ICnMC_DEMTHR			BIT(3)
 #define ICnMC_LMXTHR			BIT(4)
 #define ICnMC_CSCTHR			BIT(5)
+#define ICnMC_STITHR			BIT(7)
 #define ICnMC_INF(x)			((x) << 16)
 #define ICnMC_VCSEL(x)			((x) << 22)
 #define ICnMC_INF_MASK			GENMASK(21, 16)
@@ -111,6 +137,14 @@
 #define ICnLMXBC2_BG(x)			(((x) & GENMASK(12, 0)) << 0)
 #define ICnLMXBC2_BB(x)			(((x) & GENMASK(12, 0)) << 16)
 
+/* CRU Statistics Control 1 Register */
+#define ICnSTIC1_STUNIT_MASK		0x3
+#define ICnSTIC1_STUNIT(x)		(x)
+#define ICnSTIC1_STSADPOS(x)		((x) << 16)
+
+/* CRU Statistics Control 2 Register */
+#define ICnSTIC2_STHPOS(x)		(x)
+
 enum rzg2l_cru_common_regs {
 	CRUnCTRL,	/* CRU Control */
 	CRUnIE,		/* CRU Interrupt Enable */
@@ -146,6 +180,28 @@ enum rzg2l_cru_common_regs {
 	AMnAXISTP,	/* AXI Master Transfer Stop for CRU Image Data */
 	AMnAXISTPACK,	/* AXI Master Transfer Stop Status for CRU Image Data */
 	AMnIS,		/* Image Stride Setting Register */
+	AMnSDMB1ADDRL,	/* Memory Bank 1 Base Address Lower Register for CRU Statistics Data */
+	AMnSDMB1ADDRH,	/* Memory Bank 1 Base Address Higher Register for CRU Statistics Data */
+	AMnSDMB2ADDRL,	/* Memory Bank 2 Base Address Lower Register for CRU Statistics Data */
+	AMnSDMB2ADDRH,	/* Memory Bank 2 Base Address Higher Register for CRU Statistics Data */
+	AMnSDMB3ADDRL,	/* Memory Bank 3 Base Address Lower Register for CRU Statistics Data */
+	AMnSDMB3ADDRH,	/* Memory Bank 3 Base Address Higher Register for CRU Statistics Data */
+	AMnSDMB4ADDRL,	/* Memory Bank 4 Base Address Lower Register for CRU Statistics Data */
+	AMnSDMB4ADDRH,	/* Memory Bank 4 Base Address Higher Register for CRU Statistics Data */
+	AMnSDMB5ADDRL,	/* Memory Bank 5 Base Address Lower Register for CRU Statistics Data */
+	AMnSDMB5ADDRH,	/* Memory Bank 5 Base Address Higher Register for CRU Statistics Data */
+	AMnSDMB6ADDRL,	/* Memory Bank 6 Base Address Lower Register for CRU Statistics Data */
+	AMnSDMB6ADDRH,	/* Memory Bank 6 Base Address Higher Register for CRU Statistics Data */
+	AMnSDMB7ADDRL,	/* Memory Bank 7 Base Address Lower Register for CRU Statistics Data */
+	AMnSDMB7ADDRH,	/* Memory Bank 7 Base Address Higher Register for CRU Statistics Data */
+	AMnSDMB8ADDRL,	/* Memory Bank 8 Base Address Lower Register for CRU Statistics Data */
+	AMnSDMB8ADDRH,	/* Memory Bank 8 Base Address Higher Register for CRU Statistics Data */
+	AMnSDMBVALID,	/* Memory Bank Enable Register for CRU Image Data */
+	AMnSDMBS,	/* Memory Bank Status Register for CRU Image Data */
+	AMnSDAXIATTR,	/* AXI Master Transfer Constant Register for CRU Statistics data */
+	AMnSDFIFOPNTR,	/* AXI Master FIFO Pointer Register for CRU Statistics Data */
+	AMnSDAXISTP,	/* AXI Master Transfer Stop Register for CRU Image Data */
+	AMnSDAXISTPACK,	/* AXI Master Transfer Stop Status Register for CRU Image Data */
 	ICnEN,		/* CRU Image Processing Enable */
 	ICnREGC,	/* CRU Image Processing Register Setting Change Control Register */
 	ICnSVCNUM,	/* CRU SVC Number Register */
@@ -158,6 +214,8 @@ enum rzg2l_cru_common_regs {
 	ICnLMXGC2,	/* CRU Linear Matrix G Coefficient 2 Register */
 	ICnLMXBC1,	/* CRU Linear Matrix B Coefficient 1 Register */
 	ICnLMXBC2,	/* CRU Linear Matrix B Coefficient 2 Register */
+	ICnSTIC1,	/* CRU Statistics Control 1 Register */
+	ICnSTIC2,	/* CRU Statistics Control 2 Register */
 	ICnIPMC_C0,	/* CRU Image Converter Main Control 0 */
 	ICnMS,		/* CRU Module Status */
 	ICnDMR,		/* CRU Data Output Mode */
