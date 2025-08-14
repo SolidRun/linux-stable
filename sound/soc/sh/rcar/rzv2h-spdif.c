@@ -972,37 +972,62 @@ static bool rsnd_spdif_pio_interrupt(struct rsnd_mod *mod,
 {
 	struct snd_pcm_runtime *runtime = rsnd_io_to_runtime(io);
 	struct rsnd_spdif *spdif = rsnd_mod_to_spdif(mod);
-	u32 *buf = (u32 *)(runtime->dma_area + spdif->byte_pos);
-	int shift = 0;
+	snd_pcm_format_t fmt = runtime->format;
 	int byte_pos;
 	bool elapsed = false;
+	u32 data;
 
-	if (snd_pcm_format_width(runtime->format) == 24)
-		shift = 8;
-
-	if (snd_pcm_format_width(runtime->format) == 16)
-		shift = 16;
-
-	/*
-	 * 16/24 data can be assesse to data register
-	 * directly as 32bit data
-	 * see rsnd_spdif_init()
-	 */
 	if (rsnd_io_is_play(io)) {
 		do {
-			/* Write data to both channel left, right */
-			rsnd_mod_write(mod, SPDIF_TLCA, (*buf) >> shift);
-			rsnd_mod_write(mod, SPDIF_TRCA, (*buf) >> shift);
+			switch (fmt) {
+			case SNDRV_PCM_FORMAT_S24_LE: {
+				u64 *tx_buf = (u64 *)(runtime->dma_area + spdif->byte_pos);
+
+				data = ((*tx_buf) >> 32 & 0xFFFFFF);
+				rsnd_mod_write(mod, SPDIF_TLCA, data);
+				data = ((*tx_buf) & 0xFFFFFF);
+				rsnd_mod_write(mod, SPDIF_TRCA, data);
+
+				byte_pos = spdif->byte_pos + sizeof(*tx_buf);
+				break;
+			} case SNDRV_PCM_FORMAT_S16_LE: {
+				u32 *tx_buf = (u32 *)(runtime->dma_area + spdif->byte_pos);
+
+				data = ((*tx_buf) >> 16 & 0xFFFF);
+				rsnd_mod_write(mod, SPDIF_TLCA, data);
+				data = ((*tx_buf) & 0xFFFF);
+				rsnd_mod_write(mod, SPDIF_TRCA, data);
+
+				byte_pos = spdif->byte_pos + sizeof(*tx_buf);
+				break;
+			} default:
+				return false;
+			}
 		} while (rsnd_mod_read(mod, SPDIF_STAT) & SPDIF_CBTX_BIT);
 	} else {
 		do {
-			/* Default record from right channel */
-			*buf = (rsnd_mod_read(mod, SPDIF_RLCA) << shift);
-			*buf = (rsnd_mod_read(mod, SPDIF_RRCA) << shift);
+			switch (fmt) {
+			case SNDRV_PCM_FORMAT_S24_LE: {
+				u64 *rx_buf = (u64 *)(runtime->dma_area + spdif->byte_pos);
+
+				*rx_buf = ((u64)(rsnd_mod_read(mod, SPDIF_RLCA) & 0xFFFFFF)
+						 << 32) | rsnd_mod_read(mod, SPDIF_RRCA);
+
+				byte_pos = spdif->byte_pos + sizeof(*rx_buf);
+				break;
+			} case SNDRV_PCM_FORMAT_S16_LE: {
+				u32 *rx_buf = (u32 *)(runtime->dma_area + spdif->byte_pos);
+
+				*rx_buf = ((rsnd_mod_read(mod, SPDIF_RLCA) & 0xFFFF) << 16) |
+					   (rsnd_mod_read(mod, SPDIF_RRCA) & 0xFFFF);
+				byte_pos = spdif->byte_pos + sizeof(*rx_buf);
+				break;
+			} default:
+				return false;
+			}
+
 		} while (rsnd_mod_read(mod, SPDIF_STAT) & SPDIF_CBRX_BIT);
 	}
-
-	byte_pos = spdif->byte_pos + sizeof(*buf);
 
 	if (byte_pos >= spdif->next_period_byte) {
 		int period_pos = byte_pos / spdif->byte_per_period;
