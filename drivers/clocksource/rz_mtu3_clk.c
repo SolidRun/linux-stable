@@ -341,6 +341,7 @@ static int rz_mtu3_clk_setup_channel(struct rz_mtu3_clk_channel_priv *ch,
 				    unsigned int index,
 				    struct rz_mtu3_clk_device *mtu, struct rz_mtu3 *ddata)
 {
+	struct device_node *np = ddata->pdev->dev.of_node;
 	char name[6];
 	int irq;
 	int ret;
@@ -352,6 +353,16 @@ static int rz_mtu3_clk_setup_channel(struct rz_mtu3_clk_channel_priv *ch,
 	if (irq < 0) {
 		/* Skip channels with no declared interrupt. */
 		return 0;
+	}
+
+	/* Setting to select irq for MTU3 on RZ/G3S. */
+	if (of_device_is_compatible(np, "renesas,r9a08g045-mtu3")) {
+		ret = rz_mtu3_irq_sel(ddata, name);
+		if (ret) {
+			dev_err(&mtu->pdev->dev,
+				"Can't select %s irq for MTU3\n", name);
+			return ret;
+		}
 	}
 
 	ret = request_irq(irq, rz_mtu3_clk_interrupt,
