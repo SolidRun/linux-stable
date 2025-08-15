@@ -62,6 +62,7 @@
 #define PIN_CFG_SMT			BIT(16)	/* Schmitt-trigger input control */
 #define PIN_CFG_ELC			BIT(17)
 #define PIN_CFG_IOLH_RZV2H		BIT(18)
+#define PIN_CFG_IO_VMC_XSPI		BIT(19)
 
 #define RZG2L_SINGLE_PIN		BIT_ULL(63)	/* Dedicated pin */
 #define RZG2L_VARIABLE_CFG		BIT_ULL(62)	/* Variable cfg for port pins */
@@ -145,6 +146,7 @@
 #define SD_CH(off, ch)		((off) + (ch) * 4)
 #define ETH_POC(off, ch)	((off) + (ch) * 4)
 #define QSPI			(0x3008)
+#define XSPI_POC		(0x300C)
 #define ETH_MODE		(0x3018)
 #define PFC_OEN			(0x3C40) /* known on RZ/V2H(P) only */
 
@@ -867,6 +869,8 @@ static int rzg2l_caps_to_pwr_reg(const struct rzg2l_register_offsets *regs, u32 
 		return ETH_POC(regs->eth_poc, 1);
 	if (caps & PIN_CFG_IO_VMC_QSPI)
 		return QSPI;
+	if (caps & PIN_CFG_IO_VMC_XSPI)
+		return XSPI_POC;
 
 	return -EINVAL;
 }
@@ -2227,6 +2231,24 @@ static const struct rzg2l_dedicated_configs rzg3s_dedicated_pins[] = {
 						       PIN_CFG_IO_VMC_SD1)) },
 	{ "SD1_DATA3", RZG2L_SINGLE_PIN_PACK(0x13, 3, (PIN_CFG_IOLH_B | PIN_CFG_IEN |
 						       PIN_CFG_IO_VMC_SD1)) },
+	{ "ET0_TXC/TX_CLK", RZG2L_SINGLE_PIN_PACK(0x30, 0, PIN_CFG_IEN) },
+	{ "ET1_TXC/TX_CLK", RZG2L_SINGLE_PIN_PACK(0x34, 0, PIN_CFG_IEN) },
+	{ "I3C_SDA", RZG2L_SINGLE_PIN_PACK(0x9, 0, PIN_CFG_IEN) },
+	{ "I3C_SCL", RZG2L_SINGLE_PIN_PACK(0x9, 1, PIN_CFG_IEN) },
+	{ "XSPI_SPCLK", RZG2L_SINGLE_PIN_PACK(0x4, 0, (PIN_CFG_IOLH_C | PIN_CFG_IO_VMC_XSPI)) },
+	{ "XSPI_RESET#", RZG2L_SINGLE_PIN_PACK(0x4, 1, (PIN_CFG_IOLH_C | PIN_CFG_IO_VMC_XSPI)) },
+	{ "XSPI_WP#", RZG2L_SINGLE_PIN_PACK(0x4, 2, (PIN_CFG_IOLH_C | PIN_CFG_IO_VMC_XSPI)) },
+	{ "XSPI_DS", RZG2L_SINGLE_PIN_PACK(0x4, 3, (PIN_CFG_IOLH_C | PIN_CFG_IO_VMC_XSPI)) },
+	{ "XSPI_CS0#", RZG2L_SINGLE_PIN_PACK(0x4, 4, (PIN_CFG_IOLH_C | PIN_CFG_IO_VMC_XSPI)) },
+	{ "XSPI_CS1#", RZG2L_SINGLE_PIN_PACK(0x4, 5, (PIN_CFG_IOLH_C | PIN_CFG_IO_VMC_XSPI)) },
+	{ "XSPI_IO0", RZG2L_SINGLE_PIN_PACK(0x5, 0, (PIN_CFG_IOLH_C | PIN_CFG_IO_VMC_XSPI)) },
+	{ "XSPI_IO1", RZG2L_SINGLE_PIN_PACK(0x5, 1, (PIN_CFG_IOLH_C | PIN_CFG_IO_VMC_XSPI)) },
+	{ "XSPI_IO2", RZG2L_SINGLE_PIN_PACK(0x5, 2, (PIN_CFG_IOLH_C | PIN_CFG_IO_VMC_XSPI)) },
+	{ "XSPI_IO3", RZG2L_SINGLE_PIN_PACK(0x5, 3, (PIN_CFG_IOLH_C | PIN_CFG_IO_VMC_XSPI)) },
+	{ "XSPI_IO4", RZG2L_SINGLE_PIN_PACK(0x5, 4, (PIN_CFG_IOLH_C | PIN_CFG_IO_VMC_XSPI)) },
+	{ "XSPI_IO5", RZG2L_SINGLE_PIN_PACK(0x5, 5, (PIN_CFG_IOLH_C | PIN_CFG_IO_VMC_XSPI)) },
+	{ "XSPI_IO6", RZG2L_SINGLE_PIN_PACK(0x5, 6, (PIN_CFG_IOLH_C | PIN_CFG_IO_VMC_XSPI)) },
+	{ "XSPI_IO7", RZG2L_SINGLE_PIN_PACK(0x5, 7, (PIN_CFG_IOLH_C | PIN_CFG_IO_VMC_XSPI)) },
 };
 
 static struct rzg2l_dedicated_configs rzv2h_dedicated_pins[] = {
