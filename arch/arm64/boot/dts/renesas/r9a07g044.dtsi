@@ -866,7 +866,7 @@
 		};
 
 		cpg: clock-controller@11010000 {
-			compatible = "renesas,r9a07g044-cpg";
+			compatible = "renesas,r9a07g044-cpg", "syscon";
 			reg = <0 0x11010000 0 0x10000>;
 			clocks = <&extal_clk>;
 			clock-names = "extal";
