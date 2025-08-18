@@ -1028,6 +1028,16 @@
 			#sound-dai-cells = <0>;
 			status = "disabled";
 		};
+
+		tsu: thermal@10059400 {
+			compatible = "renesas,rzg3s-tsu";
+			reg = <0 0x10059400 0 0x400>;
+			clocks = <&cpg CPG_MOD R9A08G045_TSU_PCLK>;
+			resets = <&cpg R9A08G045_TSU_PRESETN>;
+			power-domains = <&cpg>;
+			adc-handle = <&adc>;
+			#thermal-sensor-cells = <1>;
+		};
 	};
 
 	timer {
@@ -1043,5 +1053,35 @@
 		#clock-cells = <0>;
 		/* This value must be overridden by the board. */
 		clock-frequency = <0>;
+	};
+
+	thermal-zones {
+		cpu-thermal {
+			polling-delay-passive = <250>;
+			polling-delay = <1000>;
+			thermal-sensors = <&tsu 0>;
+			sustainable-power = <717>;
+
+			cooling-maps {
+				map0 {
+					trip = <&target>;
+					cooling-device = <&cpu0 0 2>;
+					contribution = <1024>;
+				};
+			};
+
+			trips {
+				sensor_crit: sensor-crit {
+					temperature = <118000>;
+					hysteresis = <1000>;
+					type = "critical";
+				};
+				target: trip-point {
+					temperature = <93000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+			};
+		};
 	};
 };
