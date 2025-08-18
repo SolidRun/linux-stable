@@ -36,6 +36,8 @@
 
 #define RZG2L_DCS_BUF_SIZE	128 /* Maximum DCS buffer size in external memory. */
 
+#define RZG2L_MIPI_DSI_MAX_INPUT		2
+
 #define RZ_MIPI_DSI_FEATURE_16BPP	BIT(0)
 
 struct rzg2l_mipi_dsi;
@@ -58,6 +60,7 @@ struct rzg2l_mipi_dsi_hw_info {
 	unsigned long min_dclk;
 	unsigned long max_dclk;
 	u8 features;
+	u8 vclk_input;
 };
 
 struct rzv2h_dsi_mode_calc {
@@ -79,7 +82,7 @@ struct rzg2l_mipi_dsi {
 	struct drm_bridge bridge;
 	struct drm_bridge *next_bridge;
 
-	struct clk *vclk;
+	struct clk *vclk[RZG2L_MIPI_DSI_MAX_INPUT];
 	struct clk *lpclk;
 
 	enum mipi_dsi_pixel_format format;
@@ -92,6 +95,7 @@ struct rzg2l_mipi_dsi {
 	/* DCS buffer pointers when using external memory. */
 	dma_addr_t dcs_buf_phys;
 	u8 *dcs_buf_virt;
+	u8 vclk_input;
 };
 
 static const struct rzv2h_pll_limits rzv2h_plldsi_div_limits = {
@@ -468,8 +472,8 @@ static int rzg2l_dphy_conf_clks(struct rzg2l_mipi_dsi *dsi, unsigned long mode_f
 	unsigned long vclk_rate;
 	unsigned int bpp;
 
-	clk_set_rate(dsi->vclk, mode_freq * KILO);
-	vclk_rate = clk_get_rate(dsi->vclk);
+	clk_set_rate(dsi->vclk[dsi->vclk_input], mode_freq * KILO);
+	vclk_rate = clk_get_rate(dsi->vclk[dsi->vclk_input]);
 	if (vclk_rate != mode_freq * KILO)
 		dev_dbg(dsi->dev, "Requested vclk rate %lu, actual %lu mismatch\n",
 			mode_freq * KILO, vclk_rate);
@@ -660,6 +664,10 @@ static int rzg2l_mipi_dsi_startup(struct rzg2l_mipi_dsi *dsi,
 	ret = dsi->info->dphy_init(dsi, hsfreq_millihz);
 	if (ret < 0)
 		goto err_phy;
+
+	/* Set VCLK input clock for MIPI DSI */
+	if (dsi->info->vclk_input > 1)
+		rzg2l_mipi_dsi_link_write(dsi, GPO0R, dsi->vclk_input);
 
 	/* Enable Data lanes and Clock lanes */
 	txsetr = TXSETR_DLEN | TXSETR_NUMLANEUSE(dsi->lanes - 1) | TXSETR_CLEN;
@@ -929,6 +937,8 @@ static void rzg2l_mipi_dsi_atomic_pre_enable(struct drm_bridge *bridge,
 	connector = drm_atomic_get_new_connector_for_encoder(state, bridge->encoder);
 	crtc = drm_atomic_get_new_connector_state(state, connector)->crtc;
 	mode = &drm_atomic_get_new_crtc_state(state, crtc)->adjusted_mode;
+
+	dsi->vclk_input = crtc->index;
 
 	ret = rzg2l_mipi_dsi_startup(dsi, mode);
 	if (ret < 0)
@@ -1272,7 +1282,8 @@ static int rzg2l_mipi_dsi_probe(struct platform_device *pdev)
 	unsigned int num_data_lanes;
 	struct rzg2l_mipi_dsi *dsi;
 	u32 txsetr;
-	int ret;
+	int ret, i;
+	char clk_name[9];
 
 	dsi = devm_kzalloc(&pdev->dev, sizeof(*dsi), GFP_KERNEL);
 	if (!dsi)
@@ -1294,9 +1305,12 @@ static int rzg2l_mipi_dsi_probe(struct platform_device *pdev)
 	if (IS_ERR(dsi->mmio))
 		return PTR_ERR(dsi->mmio);
 
-	dsi->vclk = devm_clk_get(dsi->dev, "vclk");
-	if (IS_ERR(dsi->vclk))
-		return PTR_ERR(dsi->vclk);
+	for (i = 0; i < dsi->info->vclk_input; i++) {
+		sprintf(clk_name, "vclk%u", i);
+		dsi->vclk[i] = devm_clk_get(dsi->dev, clk_name);
+		if (IS_ERR(dsi->vclk[i]))
+			return PTR_ERR(dsi->vclk[i]);
+	}
 
 	dsi->lpclk = devm_clk_get_optional(dsi->dev, "lpclk");
 	if (IS_ERR(dsi->lpclk))
@@ -1401,6 +1415,7 @@ static const struct rzg2l_mipi_dsi_hw_info rzv2h_mipi_dsi_info = {
 	.min_dclk = 5440,
 	.max_dclk = 187500,
 	.features = RZ_MIPI_DSI_FEATURE_16BPP,
+	.vclk_input = 1,
 };
 
 static const struct rzg2l_mipi_dsi_hw_info rzg2l_mipi_dsi_info = {
@@ -1410,10 +1425,28 @@ static const struct rzg2l_mipi_dsi_hw_info rzg2l_mipi_dsi_info = {
 	.link_reg_offset = 0x10000,
 	.min_dclk = 5803,
 	.max_dclk = 148500,
+	.vclk_input = 1,
+};
+
+static const struct rzg2l_mipi_dsi_hw_info rzg3e_mipi_dsi_info = {
+	.dphy_init = rzv2h_mipi_dsi_dphy_init,
+	.dphy_startup_late_init = rzv2h_mipi_dsi_dphy_startup_late_init,
+	.dphy_exit = rzv2h_mipi_dsi_dphy_exit,
+	.dphy_mode_clk_check = rzv2h_dphy_mode_clk_check,
+	.dphy_conf_clks = rzv2h_dphy_conf_clks,
+	.cpg_plldsi.limits = rzv2h_plldsi_limits,
+	.cpg_plldsi.table = rzv2h_cpg_div_table,
+	.cpg_plldsi.table_size = ARRAY_SIZE(rzv2h_cpg_div_table),
+	.phy_reg_offset = 0x10000,
+	.link_reg_offset = 0,
+	.min_dclk = 5440,
+	.max_dclk = 187500,
+	.features = RZ_MIPI_DSI_FEATURE_16BPP,
+	.vclk_input = 2,
 };
 
 static const struct of_device_id rzg2l_mipi_dsi_of_table[] = {
-	{ .compatible = "renesas,r9a09g047-mipi-dsi", .data = &rzv2h_mipi_dsi_info, },
+	{ .compatible = "renesas,r9a09g047-mipi-dsi", .data = &rzg3e_mipi_dsi_info, },
 	{ .compatible = "renesas,r9a09g057-mipi-dsi", .data = &rzv2h_mipi_dsi_info, },
 	{ .compatible = "renesas,rzg2l-mipi-dsi", .data = &rzg2l_mipi_dsi_info, },
 	{ /* sentinel */ }
