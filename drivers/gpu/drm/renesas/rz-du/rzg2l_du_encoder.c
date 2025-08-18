@@ -50,9 +50,21 @@ rzg2l_du_encoder_mode_valid(struct drm_encoder *encoder,
 			    const struct drm_display_mode *mode)
 {
 	struct rzg2l_du_encoder *renc = to_rzg2l_encoder(encoder);
+	struct rzg2l_du_device *rcdu = renc->rcdu;
 
-	if (renc->output == RZG2L_DU_OUTPUT_DPAD0 && mode->clock > 83500)
-		return MODE_CLOCK_HIGH;
+	bool interlaced = mode->flags & DRM_MODE_FLAG_INTERLACE;
+
+	/* RZ/G2L DU does not support interlace mode */
+	if (interlaced)
+		return MODE_NO_INTERLACE;
+
+	/* Check dotclock for Parallel Output IF if possible */
+	if (renc->output == RZG2L_DU_OUTPUT_DPAD0) {
+		if (rcdu->info->max_dclk && mode->clock > rcdu->info->max_dclk)
+			return MODE_CLOCK_HIGH;
+		if (rcdu->info->min_dclk && mode->clock < rcdu->info->min_dclk)
+			return MODE_CLOCK_LOW;
+	}
 
 	return MODE_OK;
 }
@@ -101,6 +113,8 @@ int rzg2l_du_encoder_init(struct rzg2l_du_device  *rcdu,
 		return PTR_ERR(renc);
 
 	renc->output = output;
+	renc->rcdu = rcdu;
+
 	drm_encoder_helper_add(&renc->base, &rzg2l_du_encoder_helper_funcs);
 
 	/* Attach the bridge to the encoder. */
