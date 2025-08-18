@@ -28,6 +28,8 @@ struct rzg2l_du_format_info;
 /**
  * struct rzg2l_du_crtc - the CRTC, representing a DU superposition processor
  * @crtc: base DRM CRTC
+ * @mmio_offset: registers offset in the device memory map
+ * @index: crtc index
  * @dev: the DU device
  * @initialized: whether the CRTC has been initialized and clocks enabled
  * @vblank_enable: whether vblank events are enabled on this CRTC
@@ -40,6 +42,10 @@ struct rzg2l_du_format_info;
  */
 struct rzg2l_du_crtc {
 	struct drm_crtc crtc;
+
+	void __iomem *mmio;
+
+	unsigned int index;
 
 	struct rzg2l_du_device *dev;
 	bool initialized;
@@ -82,7 +88,8 @@ static inline struct rzg2l_du_crtc_state *to_rzg2l_crtc_state(struct drm_crtc_st
 	return container_of(s, struct rzg2l_du_crtc_state, state);
 }
 
-int rzg2l_du_crtc_create(struct rzg2l_du_device *rcdu);
+int rzg2l_du_crtc_create(struct rzg2l_du_device *rcdu,
+			 struct rzg2l_du_crtc *rcrtc, unsigned int hwindex);
 
 void rzg2l_du_crtc_finish_page_flip(struct rzg2l_du_crtc *rcrtc);
 

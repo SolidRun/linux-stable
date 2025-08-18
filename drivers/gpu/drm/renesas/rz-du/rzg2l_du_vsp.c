@@ -63,6 +63,11 @@ void rzg2l_du_vsp_disable(struct rzg2l_du_crtc *crtc)
 	vsp1_du_setup_lif(crtc->vsp->vsp, crtc->vsp_pipe, NULL);
 }
 
+void rzg2l_du_vsp_atomic_begin(struct rzg2l_du_crtc *crtc)
+{
+	vsp1_du_atomic_begin(crtc->vsp->vsp, crtc->vsp_pipe);
+}
+
 void rzg2l_du_vsp_atomic_flush(struct rzg2l_du_crtc *crtc)
 {
 	struct vsp1_du_atomic_pipe_config cfg = { { 0, } };
@@ -82,7 +87,7 @@ struct drm_plane *rzg2l_du_vsp_get_drm_plane(struct rzg2l_du_crtc *crtc,
 	drm_for_each_plane(plane, &rcdu->ddev) {
 		struct rzg2l_du_vsp_plane *vsp_plane = to_rzg2l_vsp_plane(plane);
 
-		if (vsp_plane->index == pipe_index)
+		if (vsp_plane->index == pipe_index && crtc->vsp == vsp_plane->vsp)
 			break;
 	}
 

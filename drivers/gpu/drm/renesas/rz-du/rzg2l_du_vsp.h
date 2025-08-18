@@ -59,6 +59,7 @@ int rzg2l_du_vsp_init(struct rzg2l_du_vsp *vsp, struct device_node *np,
 		      unsigned int crtcs);
 void rzg2l_du_vsp_enable(struct rzg2l_du_crtc *crtc);
 void rzg2l_du_vsp_disable(struct rzg2l_du_crtc *crtc);
+void rzg2l_du_vsp_atomic_begin(struct rzg2l_du_crtc *crtc);
 void rzg2l_du_vsp_atomic_flush(struct rzg2l_du_crtc *crtc);
 struct drm_plane *rzg2l_du_vsp_get_drm_plane(struct rzg2l_du_crtc *crtc,
 					     unsigned int pipe_index);
@@ -71,6 +72,7 @@ static inline int rzg2l_du_vsp_init(struct rzg2l_du_vsp *vsp, struct device_node
 
 static inline void rzg2l_du_vsp_enable(struct rzg2l_du_crtc *crtc) { };
 static inline void rzg2l_du_vsp_disable(struct rzg2l_du_crtc *crtc) { };
+static inline void rzg2l_du_vsp_atomic_begin(struct rzg2l_du_crtc *crtc) { };
 static inline void rzg2l_du_vsp_atomic_flush(struct rzg2l_du_crtc *crtc) { };
 static inline struct drm_plane *rzg2l_du_vsp_get_drm_plane(struct rzg2l_du_crtc *crtc,
 							   unsigned int pipe_index)
