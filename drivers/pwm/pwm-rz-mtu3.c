@@ -260,12 +260,75 @@ static void rz_mtu3_pwm_free(struct pwm_chip *chip, struct pwm_device *pwm)
 	mutex_unlock(&rz_mtu3_pwm->lock);
 }
 
+static void rz_mtu3_pwm_enable_output_pins(struct rz_mtu3_pwm_chip *rz_mtu3_pwm,
+					   u32 hwpwm, bool enable)
+{
+	struct rz_mtu3_pwm_channel *priv;
+	u32 ch;
+	u16 toer_reg;
+	u8 tmp, toer_comp_en;
+
+	priv = rz_mtu3_get_channel(rz_mtu3_pwm, hwpwm);
+	ch = priv - rz_mtu3_pwm->channel_data;
+
+	if (priv->mtu->channel_number == RZ_MTU3_CHAN_3 ||
+	    priv->mtu->channel_number == RZ_MTU3_CHAN_4)
+		toer_reg = RZ_MTU3_TOERA;
+	else if (priv->mtu->channel_number == RZ_MTU3_CHAN_6 ||
+		 priv->mtu->channel_number == RZ_MTU3_CHAN_7)
+		toer_reg = RZ_MTU3_TOERB;
+	else
+		return;
+
+	tmp = rz_mtu3_shared_reg_read(priv->mtu, toer_reg);
+
+	if (priv->function == MTU3_PWM_MODE_1) {
+		/*
+		 * Enable/disable pwm mode 1 output pins
+		 * for channel 4, 7 (MTIOC4A/C, MTIOC7A/C)
+		 */
+		if (enable)
+			rz_mtu3_shared_reg_write(priv->mtu, toer_reg,
+				tmp | (priv->map->base_pwm_number == hwpwm ?
+						RZ_MTU3_TOER_MTIOC47A_EN :
+						RZ_MTU3_TOER_MTIOC47C_EN));
+		else
+			rz_mtu3_shared_reg_write(priv->mtu, toer_reg,
+				tmp & (priv->map->base_pwm_number == hwpwm ?
+						~RZ_MTU3_TOER_MTIOC47A_EN :
+						~RZ_MTU3_TOER_MTIOC47C_EN));
+	} else if (priv->function == MTU3_PWM_COMPLEMENTARY) {
+		/*
+		 * Enable/disable pwm complementary output pins
+		 * (MTIOC36B/D and MTIOC47A/C) or
+		 * (MTIOC36B/D and MTIOC47B/D)
+		 */
+		if (priv->comp_pwm_outputs == MTU3_PWM_COMP_OUTPUT_BD_AC)
+			toer_comp_en = (RZ_MTU3_TOER_MTIOC36B_EN
+						| RZ_MTU3_TOER_MTIOC36D_EN
+						| RZ_MTU3_TOER_MTIOC47A_EN
+						| RZ_MTU3_TOER_MTIOC47C_EN);
+		else if (priv->comp_pwm_outputs == MTU3_PWM_COMP_OUTPUT_BD_BD)
+			toer_comp_en = (RZ_MTU3_TOER_MTIOC36B_EN
+						| RZ_MTU3_TOER_MTIOC36D_EN
+						| RZ_MTU3_TOER_MTIOC47B_EN
+						| RZ_MTU3_TOER_MTIOC47D_EN);
+
+		if (enable)
+			rz_mtu3_shared_reg_write(priv->mtu, toer_reg,
+				tmp | toer_comp_en);
+		else
+			rz_mtu3_shared_reg_write(priv->mtu, toer_reg,
+				tmp & ~toer_comp_en);
+	}
+}
+
 static int rz_mtu3_pwm_enable(struct rz_mtu3_pwm_chip *rz_mtu3_pwm,
 			      struct pwm_device *pwm)
 {
 	struct rz_mtu3_pwm_channel *priv;
 	u32 ch;
-	u8 val, val_comp;
+	u8 val;
 	int rc;
 
 	rc = pm_runtime_resume_and_get(rz_mtu3_pwm->chip.dev);
@@ -288,6 +351,9 @@ static int rz_mtu3_pwm_enable(struct rz_mtu3_pwm_chip *rz_mtu3_pwm,
 			rz_mtu3_8bit_ch_write(priv->mtu, RZ_MTU3_TIORL,
 				(rz_mtu3_8bit_ch_read(priv->mtu, RZ_MTU3_TIORL)
 								& RZ_MTU3_TIOR_IOA) | val);
+
+		/* Enable output pins (MTIOC4A/C, MTIOC7A/C) for channel 4, 7 */
+		rz_mtu3_pwm_enable_output_pins(rz_mtu3_pwm, pwm->hwpwm, true);
 	} else if (rz_mtu3_pwm->channel_data[ch].function == MTU3_PWM_COMPLEMENTARY) {
 		rz_mtu3_8bit_ch_write(priv->mtu, RZ_MTU3_TMDR1,
 						RZ_MTU3_TMDR1_MD_COMP_PWMMODE3);
@@ -297,53 +363,9 @@ static int rz_mtu3_pwm_enable(struct rz_mtu3_pwm_chip *rz_mtu3_pwm,
 		rz_mtu3_16bit_ch_write(priv->mtu_comp_pwm, RZ_MTU3_TCNT, 0);
 
 		/* select enable waveform output */
-		if (priv->mtu->channel_number == 3) {
-			if (rz_mtu3_pwm->channel_data[ch].comp_pwm_outputs
-						== MTU3_PWM_COMP_OUTPUT_BD_AC) {
-				val_comp = rz_mtu3_shared_reg_read(priv->mtu,
-								RZ_MTU3_TOERA)
-						| (RZ_MTU3_TOER_MTIOC36B_EN
-						| RZ_MTU3_TOER_MTIOC36D_EN
-						| RZ_MTU3_TOER_MTIOC47A_EN
-						| RZ_MTU3_TOER_MTIOC47C_EN);
-				rz_mtu3_shared_reg_write(priv->mtu,
-						      RZ_MTU3_TOERA, val_comp);
-			} else if (rz_mtu3_pwm->channel_data[ch].comp_pwm_outputs
-						== MTU3_PWM_COMP_OUTPUT_BD_BD) {
-				val_comp = rz_mtu3_shared_reg_read(priv->mtu,
-								RZ_MTU3_TOERA)
-						| (RZ_MTU3_TOER_MTIOC36B_EN
-						| RZ_MTU3_TOER_MTIOC36D_EN
-						| RZ_MTU3_TOER_MTIOC47B_EN
-						| RZ_MTU3_TOER_MTIOC47D_EN);
-				rz_mtu3_shared_reg_write(priv->mtu,
-						RZ_MTU3_TOERA, val_comp);
-			}
-		} else if (priv->mtu->channel_number == 6) {
-			if (rz_mtu3_pwm->channel_data[ch].comp_pwm_outputs
-						== MTU3_PWM_COMP_OUTPUT_BD_AC) {
-				val_comp = rz_mtu3_shared_reg_read(priv->mtu,
-								RZ_MTU3_TOERB)
-						| (RZ_MTU3_TOER_MTIOC36B_EN
-						| RZ_MTU3_TOER_MTIOC36D_EN
-						| RZ_MTU3_TOER_MTIOC47A_EN
-						| RZ_MTU3_TOER_MTIOC47C_EN);
-				rz_mtu3_shared_reg_write(priv->mtu,
-						RZ_MTU3_TOERB, val_comp);
-			} else if (rz_mtu3_pwm->channel_data[ch].comp_pwm_outputs
-						== MTU3_PWM_COMP_OUTPUT_BD_BD) {
-				val_comp = rz_mtu3_shared_reg_read(priv->mtu,
-								RZ_MTU3_TOERB)
-						  | (RZ_MTU3_TOER_MTIOC36B_EN
-						  | RZ_MTU3_TOER_MTIOC36D_EN
-						  | RZ_MTU3_TOER_MTIOC47B_EN
-						  | RZ_MTU3_TOER_MTIOC47D_EN);
-				rz_mtu3_shared_reg_write(priv->mtu,
-						      RZ_MTU3_TOERB, val_comp);
-			}
-		}
+		rz_mtu3_pwm_enable_output_pins(rz_mtu3_pwm, pwm->hwpwm, true);
 
-	/* It is important to start 2 channels of complementary pwm simultaneously */
+		/* It is important to start 2 channels of complementary pwm simultaneously */
 		if (priv->mtu->channel_number == 3) {
 			val = rz_mtu3_shared_reg_read(priv->mtu,
 				      RZ_MTU3_TSTRA) | RZ_MTU3_TSTR_PWM_COMP_EN;
@@ -370,7 +392,7 @@ static void rz_mtu3_pwm_disable(struct rz_mtu3_pwm_chip *rz_mtu3_pwm,
 {
 	struct rz_mtu3_pwm_channel *priv;
 	u32 ch;
-	u8 val, val_tstr;
+	u8 val_tstr;
 
 	priv = rz_mtu3_get_channel(rz_mtu3_pwm, pwm->hwpwm);
 	ch = priv - rz_mtu3_pwm->channel_data;
@@ -383,55 +405,13 @@ static void rz_mtu3_pwm_disable(struct rz_mtu3_pwm_chip *rz_mtu3_pwm,
 		else
 			rz_mtu3_8bit_ch_write(priv->mtu, RZ_MTU3_TIORL,
 					       RZ_MTU3_TIOR_OC_RETAIN);
+
+		/* Disable output pins (MTIOC4A/C, MTIOC7A/C) for channel 4, 7 */
+		rz_mtu3_pwm_enable_output_pins(rz_mtu3_pwm, pwm->hwpwm, false);
 	} else if (rz_mtu3_pwm->channel_data[ch].function ==
 					      MTU3_PWM_COMPLEMENTARY) {
 		/* select disable waveform output */
-		if (priv->mtu->channel_number == 3) {
-			if (rz_mtu3_pwm->channel_data[ch].comp_pwm_outputs
-						== MTU3_PWM_COMP_OUTPUT_BD_AC) {
-				val = rz_mtu3_shared_reg_read(priv->mtu,
-								RZ_MTU3_TOERA)
-						& ~(RZ_MTU3_TOER_MTIOC36B_EN
-						| RZ_MTU3_TOER_MTIOC36D_EN
-						| RZ_MTU3_TOER_MTIOC47A_EN
-						| RZ_MTU3_TOER_MTIOC47C_EN);
-				rz_mtu3_shared_reg_write(priv->mtu,
-							  RZ_MTU3_TOERA, val);
-			} else if (rz_mtu3_pwm->channel_data[ch].comp_pwm_outputs
-						== MTU3_PWM_COMP_OUTPUT_BD_BD) {
-				val = rz_mtu3_shared_reg_read(priv->mtu,
-								RZ_MTU3_TOERA)
-						& ~(RZ_MTU3_TOER_MTIOC36B_EN
-						| RZ_MTU3_TOER_MTIOC36D_EN
-						| RZ_MTU3_TOER_MTIOC47B_EN
-						| RZ_MTU3_TOER_MTIOC47D_EN);
-				rz_mtu3_shared_reg_write(priv->mtu,
-							  RZ_MTU3_TOERA, val);
-			}
-		} else if (priv->mtu->channel_number == 6) {
-			if (rz_mtu3_pwm->channel_data[ch].comp_pwm_outputs
-						== MTU3_PWM_COMP_OUTPUT_BD_AC) {
-				val = rz_mtu3_shared_reg_read(priv->mtu,
-								RZ_MTU3_TOERB)
-						& ~(RZ_MTU3_TOER_MTIOC36B_EN
-						  | RZ_MTU3_TOER_MTIOC36D_EN
-						  | RZ_MTU3_TOER_MTIOC47A_EN
-						  | RZ_MTU3_TOER_MTIOC47C_EN);
-				rz_mtu3_shared_reg_write(priv->mtu,
-							  RZ_MTU3_TOERB, val);
-			} else if (rz_mtu3_pwm->channel_data[ch].comp_pwm_outputs
-						== MTU3_PWM_COMP_OUTPUT_BD_BD) {
-				val = rz_mtu3_shared_reg_read(priv->mtu,
-								RZ_MTU3_TOERB)
-						& ~(RZ_MTU3_TOER_MTIOC36B_EN
-						  | RZ_MTU3_TOER_MTIOC36D_EN
-						  | RZ_MTU3_TOER_MTIOC47B_EN
-						  | RZ_MTU3_TOER_MTIOC47D_EN);
-
-				rz_mtu3_shared_reg_write(priv->mtu,
-							  RZ_MTU3_TOERB, val);
-			}
-		}
+		rz_mtu3_pwm_enable_output_pins(rz_mtu3_pwm, pwm->hwpwm, false);
 
 		rz_mtu3_8bit_ch_write(priv->mtu_comp_pwm, RZ_MTU3_TMDR1,
 						      RZ_MTU3_TMDR1_MD_NORMAL);
