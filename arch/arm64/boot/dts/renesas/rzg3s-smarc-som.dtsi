@@ -222,6 +222,10 @@
 };
 
 &pinctrl {
+	adc_pins: adc {
+		pinmux = <RZG2L_PORT_PINMUX(5, 1, 4)>; /* ADC_TRG */
+	};
+
 #if SW_CONFIG3 == SW_ON
 	eth0-phy-irq-hog {
 		gpio-hog;
@@ -431,6 +435,13 @@
 };
 
 &ostm7 {
+	status = "okay";
+};
+
+&adc {
+	pinctrl-0 = <&adc_pins>;
+	pinctrl-names = "default";
+
 	status = "okay";
 };
 
