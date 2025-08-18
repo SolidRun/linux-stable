@@ -231,6 +231,7 @@ config CLK_RCAR_USB2_CLOCK_SEL
 
 config CLK_RZG2L
 	bool "Renesas RZ/{G2L,G2UL,G3S,V2L} family clock support" if COMPILE_TEST
+	select MFD_SYSCON
 	select RESET_CONTROLLER
 
 config CLK_RENESAS_VBATTB
