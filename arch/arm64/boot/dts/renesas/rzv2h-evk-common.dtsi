@@ -166,6 +166,18 @@
 		compatible = "renesas,vspm_if";
 	};
 
+	gpio-keys {
+		compatible = "gpio-keys";
+
+		nmi {
+			interrupt-parent = <&icu>;
+			interrupts = <0 IRQ_TYPE_EDGE_FALLING>;
+			linux,code = <0>;
+			label = "NMI";
+			wakeup-source;
+		};
+	};
+
 	reg_0p8v: regulator-0p8v {
 		compatible = "regulator-fixed";
 
