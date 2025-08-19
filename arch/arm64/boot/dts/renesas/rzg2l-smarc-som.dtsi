@@ -48,6 +48,17 @@
 		};
 	};
 
+	gpio-keys {
+		compatible = "gpio-keys";
+		nmi {
+			interrupt-parent = <&irqc>;
+			interrupts = <0 IRQ_TYPE_EDGE_FALLING>;
+			linux,code = <0>;
+			label = "NMI";
+			wakeup-source;
+		};
+	};
+
 	reg_1p8v: regulator-1p8v {
 		compatible = "regulator-fixed";
 		regulator-name = "fixed-1.8V";
