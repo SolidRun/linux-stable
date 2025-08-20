@@ -440,10 +440,9 @@
 	};
 };
 
-&i2c2 {
-	pinctrl-0 = <&i2c2_pins>;
+&i3c {
+	pinctrl-0 = <&i3c_pins>;
 	pinctrl-names = "default";
-	clock-frequency = <400000>;
 
 	status = "okay";
 
@@ -452,7 +451,7 @@
 		#sound-dai-cells = <0>;
 		#address-cells = <1>;
 		#size-cells = <0>;
-		reg = <0x1a>;
+		reg = <0x1a 0x0 0x0>;
 
 		clocks = <&rcar_sound>;
 		clock-names = "mclk";
@@ -872,11 +871,6 @@
 			 <RZV2H_PORT_PINMUX(3, 3, 1)>; /* I2C1_SCL */
 	};
 
-	i2c2_pins: i2c2 {
-		pinmux = <RZV2H_PORT_PINMUX(2, 0, 4)>, /* I2C2_SDA */
-			 <RZV2H_PORT_PINMUX(2, 1, 4)>; /* I2C2_SCL */
-	};
-
 	i2c3_pins: i2c3 {
 		pinmux = <RZV2H_PORT_PINMUX(3, 6, 1)>, /* I2C3_SDA */
 			 <RZV2H_PORT_PINMUX(3, 7, 1)>; /* I2C3_SCL */
@@ -1052,6 +1046,11 @@
 #elif (RSCI5_SEL == RSCI_I2C)
 		drive-open-drain = <1>;
 #endif
+	};
+
+	i3c_pins: i3c {
+		pinmux = <RZV2H_PORT_PINMUX(2, 0, 1)>, /* I3C_SDA */
+			 <RZV2H_PORT_PINMUX(2, 1, 1)>; /* I3C_SCL */
 	};
 };
 
