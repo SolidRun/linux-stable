@@ -2430,28 +2430,28 @@ static int rzg2l_gpt_probe(struct platform_device *pdev)
 			poeg_dev_np = of_find_device_by_node(poeg_np);
 			if (poeg_dev_np) {
 				j++;
-				if (strcmp(poeg_np->name, "poega") == 0) {
+				if (!strncasecmp(poeg_np->name, "poega", 5)) {
 					rzg2l_gpt_POEGs[j] = "POEGA";
 					POEG_mode_set_A.poeg_dev = poeg_dev_np;
 					POEG_mode_set[j] = POEG_mode_set_A;
 					rzg2l_gpt_reset_counters[j] = "GTETRGA";
 					reset_counter_mode_set[j] = reset_counter_mode_set_A;
 					dev_info(&pdev->dev, "Can use GTETRGA as POEG, reset_counter\n");
-				} else if (strcmp(poeg_np->name, "poegb") == 0) {
+				} else if (!strncasecmp(poeg_np->name, "poegb", 5)) {
 					rzg2l_gpt_POEGs[j] = "POEGB";
 					POEG_mode_set_B.poeg_dev = poeg_dev_np;
 					POEG_mode_set[j] = POEG_mode_set_B;
 					rzg2l_gpt_reset_counters[j] = "GTETRGB";
 					reset_counter_mode_set[j] = reset_counter_mode_set_B;
 					dev_info(&pdev->dev, "Can use GTETRGB as POEG, reset_counter\n");
-				} else if (strcmp(poeg_np->name, "poegc") == 0) {
+				} else if (!strncasecmp(poeg_np->name, "poegc", 5)) {
 					rzg2l_gpt_POEGs[j] = "POEGC";
 					POEG_mode_set_C.poeg_dev = poeg_dev_np;
 					POEG_mode_set[j] = POEG_mode_set_C;
 					rzg2l_gpt_reset_counters[j] = "GTETRGC";
 					reset_counter_mode_set[j] = reset_counter_mode_set_C;
 					dev_info(&pdev->dev, "Can use GTETRGC as POEG, reset_counter\n");
-				} else if (strcmp(poeg_np->name, "poegd") == 0) {
+				} else if (!strncasecmp(poeg_np->name, "poegd", 5)) {
 					rzg2l_gpt_POEGs[j] = "POEGD";
 					POEG_mode_set_D.poeg_dev = poeg_dev_np;
 					POEG_mode_set[j] = POEG_mode_set_D;
