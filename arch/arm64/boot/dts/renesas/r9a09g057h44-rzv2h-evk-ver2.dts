@@ -9,6 +9,7 @@
 
 /* Switch selection settings */
 #define I2C7_POEG_SEL			0
+#define GPT0_CHANNEL_SEL		BOTH_CHANNEL
 #define SEL_CAN01_HEADER		1
 #define SEL_SCI4_CAN01			0
 #define RSCI5_SEL			RSCI_UART

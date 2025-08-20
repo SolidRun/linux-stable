@@ -7,6 +7,7 @@
 
 #include <dt-bindings/pinctrl/renesas,r9a09g057-pinctrl.h>
 #include <dt-bindings/soc/renesas,rsci.h>
+#include <dt-bindings/soc/renesas,gpt.h>
 #include <dt-bindings/gpio/gpio.h>
 #include "r9a09g057.dtsi"
 
@@ -44,6 +45,11 @@
 /*
  * I2C7 and POEG selection
  * 	1 - POEG		0 - I2C7 (default)
+ *
+ * GPT0_CHANNEL_SEL:
+ *	GPT_CHANNEL_A
+ *	GPT_CHANNEL_B
+ *	BOTH_CHANNEL (default)
  *
  * Jumper setting
  *
@@ -1145,7 +1151,13 @@
 &gpt0_2 {
 	pinctrl-0 = <&gpt0_2_pins>;
 	pinctrl-names = "default";
+#if (GPT0_CHANNEL_SEL == GPT_CHANNEL_A)
+	channel = "channel_A";
+#elif (GPT0_CHANNEL_SEL == GPT_CHANNEL_B)
+	channel = "channel_B";
+#else
 	channel = "both_AB";
+#endif
 #if (I2C7_POEG_SEL)
 	poeg = <&poega0>;
 #endif
