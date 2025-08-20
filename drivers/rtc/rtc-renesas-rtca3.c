@@ -599,7 +599,7 @@ static int rtca3_initial_setup(struct clk *clk, struct rtca3_priv *priv)
 	mask = RTCA3_RCR2_START | RTCA3_RCR2_CNTMD;
 	writeb(0, priv->base + RTCA3_RCR2);
 	ret = readb_poll_timeout(priv->base + RTCA3_RCR2, tmp, !(tmp & mask),
-				 10, RTCA3_DEFAULT_TIMEOUT_US);
+				 10000, RTCA3_START_TIMEOUT_US);
 	if (ret)
 		return ret;
 
