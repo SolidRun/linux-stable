@@ -765,6 +765,7 @@
 			compatible = "renesas,r9a08g045-mtu3",
 				     "renesas,rz-mtu3";
 			reg = <0 0x10001200 0 0xB00>;
+			      <0 0x11050080 0 0x08>;
 			interrupts = <GIC_SPI 132 IRQ_TYPE_EDGE_RISING>,
 				     <GIC_SPI 133 IRQ_TYPE_EDGE_RISING>,
 				     <GIC_SPI 134 IRQ_TYPE_EDGE_RISING>,
