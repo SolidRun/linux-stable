@@ -53,6 +53,14 @@
 /* Select function support POEGD (1: enabled, 0 : disabled) */
 #define POEGD_SUPPORT  1
 
+/*
+ * GPT3_CHANNEL_SEL:
+ *	GPT_CHANNEL_A
+ *	GPT_CHANNEL_B
+ *	BOTH_CHANNEL (default)
+ */
+#define GPT3_CHANNEL_SEL	BOTH_CHANNEL
+
 /* Please set SW_I2S0_I2S1. Default value is 0 */
 #define SW_I2S0_I2S1   0
 

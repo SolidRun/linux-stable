@@ -7,6 +7,7 @@
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/pinctrl/rzg2l-pinctrl.h>
+#include <dt-bindings/soc/renesas,gpt.h>
 
 #define OV5645_PARENT_I2C i2c0
 #include "rz-smarc-cru-csi-ov5645.dtsi"
@@ -229,7 +230,13 @@
 &gpt4 {
 	pinctrl-0 = <&gpt4_pins>;
 	pinctrl-names = "default";
+#if (GPT4_CHANNEL_SEL == GPT_CHANNEL_A)
+	channel = "channel_A";
+#elif (GPT4_CHANNEL_SEL == GPT_CHANNEL_B)
+	channel = "channel_B";
+#else
 	channel = "both_AB";
+#endif
 #if (POEGD_SUPPORT)
 	poeg = <&poega &poegb &poegc &poegd>;
 #endif

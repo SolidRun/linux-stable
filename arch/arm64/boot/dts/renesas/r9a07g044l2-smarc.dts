@@ -30,6 +30,14 @@
 /* Select function support POEGD (1: enabled, 0 : disabled) */
 #define POEGD_SUPPORT  1
 
+/*
+ * GPT4_CHANNEL_SEL:
+ *	GPT_CHANNEL_A
+ *	GPT_CHANNEL_B
+ *	BOTH_CHANNEL (default)
+ */
+#define GPT4_CHANNEL_SEL	BOTH_CHANNEL
+
 #include "r9a07g044l2.dtsi"
 #include "rzg2l-smarc-som.dtsi"
 #include "rzg2l-smarc-pinfunction.dtsi"

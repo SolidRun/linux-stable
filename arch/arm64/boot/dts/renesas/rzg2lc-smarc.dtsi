@@ -7,6 +7,7 @@
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/pinctrl/rzg2l-pinctrl.h>
+#include <dt-bindings/soc/renesas,gpt.h>
 
 #include "rzg2lc-smarc-pinfunction.dtsi"
 #include "rz-smarc-common.dtsi"
@@ -253,7 +254,13 @@
 &gpt3 {
 	pinctrl-0 = <&gpt3_pins>;
 	pinctrl-names = "default";
+#if (GPT3_CHANNEL_SEL == GPT_CHANNEL_A)
+	channel = "channel_A";
+#elif (GPT3_CHANNEL_SEL == GPT_CHANNEL_B)
+	channel = "channel_B";
+#else
 	channel = "both_AB";
+#endif
 #if (POEGD_SUPPORT)
 	poeg = <&poega &poegb &poegc &poegd>;
 #endif
