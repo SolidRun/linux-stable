@@ -33,6 +33,9 @@
 #include <video/mipi_display.h>
 
 #include "rzg2l_mipi_dsi_regs.h"
+#include "../../../../clk/renesas/rzg2l-cpg.h"
+
+int dsi_div_ab;
 
 #define RZG2L_DCS_BUF_SIZE	128 /* Maximum DCS buffer size in external memory. */
 
@@ -1051,6 +1054,9 @@ static int rzg2l_mipi_dsi_host_attach(struct mipi_dsi_host *host,
 	dsi->lanes = device->lanes;
 	dsi->format = device->format;
 	dsi->mode_flags = device->mode_flags;
+
+	/* Calculate the Final Division ratio setting for the MIPI clock */
+	dsi_div_ab = mipi_dsi_pixel_format_to_bpp(dsi->format) / dsi->lanes;
 
 	dsi->next_bridge = devm_drm_of_get_bridge(dsi->dev, dsi->dev->of_node,
 						  1, 0);
