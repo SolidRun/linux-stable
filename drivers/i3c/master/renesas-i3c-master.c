@@ -374,9 +374,9 @@ struct renesas_i3c_i2c_dev_data {
 };
 
 struct i3c_irq_desc {
-	int res_num;
-	irq_handler_t isr;
 	char *name;
+	irq_handler_t isr;
+	char *desc;
 };
 
 /* Helper functions */
@@ -598,7 +598,10 @@ static void renesas_i3c_master_bus_enable(struct i3c_master_controller *m, bool 
 		i3c_reg_set_bit(master->regs, RSTCTL, RSTCTL_INTLRST);
 		i3c_reg_write(master->regs, PRTS, 0);
 		i3c_reg_update_bit(master->regs, RSTCTL, RSTCTL_INTLRST, 0);
-		i3c_reg_set_bit(master->regs, BCTL, BCTL_HJACKCTL | BCTL_INCBA);
+		if (master->pclkrw)
+			i3c_reg_set_bit(master->regs, BCTL, BCTL_HJACKCTL | BCTL_INCBA);
+		else
+			i3c_reg_set_bit(master->regs, BCTL, BCTL_HJACKCTL);
 		i3c_reg_update_bit(master->regs, MSDVAD, MSDVAD_MDYADV, MSDVAD_MDYADV);
 		i3c_reg_write(master->regs, STDBR, master->i3c_STDBR);
 	} else {
@@ -625,10 +628,14 @@ static void renesas_i3c_master_hw_init(struct renesas_i3c_master *master)
 	/* Initialize Queue/Buffer threshold. */
 	i3c_reg_write(master->regs, NQTHCTL, NQTHCTL_IBIDSSZ(6) |
 					     NQTHCTL_CMDQTH(1));
-	i3c_reg_write(master->regs, NTBTHCTL0,  NTBTHCTL0_TXDBTH(1) |
-						NTBTHCTL0_RXDBTH(1) |
-						NTBTHCTL0_TXSTTH(1) |
-						NTBTHCTL0_RXSTTH(1));
+	if (master->pclkrw) {
+		i3c_reg_write(master->regs, NTBTHCTL0,  NTBTHCTL0_TXDBTH(1) |
+							NTBTHCTL0_RXDBTH(1) |
+							NTBTHCTL0_TXSTTH(1) |
+							NTBTHCTL0_RXSTTH(1));
+	}
+	else
+		i3c_reg_write(master->regs, NTBTHCTL0, 0);
 	i3c_reg_write(master->regs, NRQTHCTL, 0);
 
 	/* Enable Status setting. */
@@ -1390,9 +1397,18 @@ static irqreturn_t i3c_rx_isr(int irq, void *data)
 
 	} else {
 		read_bytes = NDBSTLV0_RDBLV(i3c_reg_read(master->regs, NDBSTLV0)) * sizeof(u32);
-		renesas_i3c_master_read_from_rx_fifo(master, cmd->rx_buf, read_bytes);
-
-		cmd->rx_count = read_bytes;
+		if (master->internal_state == I3C_INTERNAL_STATE_MASTER_ENTDAA) {
+			if (read_bytes >= 8) {
+				i3c_reg_set_bit(master->regs, NTIE, NTIE_RSPQFIE);
+				/* Read PID, BCR, DCR data */
+				i3c_reg_read(master->regs, NTDTBP0);
+				i3c_reg_read(master->regs, NTDTBP0);
+				cmd->rx_count++;
+			}
+		} else {
+			renesas_i3c_master_read_from_rx_fifo(master, cmd->rx_buf, read_bytes);
+			cmd->rx_count = read_bytes;
+		}
 	}
 
 	/* Clear the Read Buffer Full status flag. */
@@ -1466,13 +1482,13 @@ static const struct i3c_master_controller_ops renesas_i3c_master_ops = {
 };
 
 static struct i3c_irq_desc i3c_irqs[] = {
-	{ .res_num = 3,  .isr = i3c_resp_isr, .name = "i3c-resp" },
-	{ .res_num = 6,  .isr = i3c_rx_isr, .name = "i3c-rx" },
-	{ .res_num = 7,  .isr = i3c_tx_isr, .name = "i3c-tx" },
-	{ .res_num = 15, .isr = i3c_start_isr, .name = "i3c-start" },
-	{ .res_num = 16, .isr = i3c_stop_isr, .name = "i3c-stop" },
-	{ .res_num = 18, .isr = i3c_tend_isr, .name = "i3c-tend" },
-	{ .res_num = 19, .isr = i3c_tend_isr, .name = "i3c-nack" },
+	{ .name = "resp", .isr = i3c_resp_isr, .desc = "i3c-resp" },
+	{ .name = "rx", .isr = i3c_rx_isr, .desc = "i3c-rx" },
+	{ .name = "tx", .isr = i3c_tx_isr, .desc = "i3c-tx" },
+	{ .name = "st", .isr = i3c_start_isr, .desc = "i3c-start" },
+	{ .name = "sp", .isr = i3c_stop_isr, .desc = "i3c-stop" },
+	{ .name = "tend", .isr = i3c_tend_isr, .desc = "i3c-tend" },
+	{ .name = "nack", .isr = i3c_tend_isr, .desc = "i3c-nack" },
 };
 
 static int renesas_i3c_master_probe(struct platform_device *pdev)
@@ -1488,7 +1504,7 @@ static int renesas_i3c_master_probe(struct platform_device *pdev)
 	if (IS_ERR(master->regs))
 		return PTR_ERR(master->regs);
 
-	master->pclkrw = devm_clk_get(&pdev->dev, "pclkrw");
+	master->pclkrw = devm_clk_get_optional(&pdev->dev, "pclkrw");
 	if (IS_ERR(master->pclkrw))
 		return PTR_ERR(master->pclkrw);
 
@@ -1515,7 +1531,7 @@ static int renesas_i3c_master_probe(struct platform_device *pdev)
 
 	ret = clk_prepare_enable(master->pclk);
 	if (ret)
-		return ret;
+		goto err_disable_pclkrw;
 
 	ret = clk_prepare_enable(master->tclk);
 	if (ret)
@@ -1525,12 +1541,12 @@ static int renesas_i3c_master_probe(struct platform_device *pdev)
 	INIT_LIST_HEAD(&master->xferqueue.list);
 
 	for (i = 0; i < ARRAY_SIZE(i3c_irqs); i++) {
-		irq = platform_get_irq(pdev, i3c_irqs[i].res_num);
+		irq = platform_get_irq_byname(pdev, i3c_irqs[i].name);
 		if (irq < 0)
 			return irq;
 
 		ret = devm_request_irq(&pdev->dev, irq, i3c_irqs[i].isr,
-							0, i3c_irqs[i].name, master);
+							0, i3c_irqs[i].desc, master);
 		if (ret) {
 			dev_err(&pdev->dev, "failed to request irq %s\n", i3c_irqs[i].name);
 			return ret;
@@ -1558,6 +1574,9 @@ err_disable_tclk:
 
 err_disable_pclk:
 	clk_disable_unprepare(master->pclk);
+
+err_disable_pclkrw:
+	clk_disable_unprepare(master->pclkrw);
 
 	return ret;
 }
