@@ -586,11 +586,12 @@ static int rz_mtu3_pwm_config(struct pwm_chip *chip, struct pwm_device *pwm,
 
 		if ((!rz_mtu3_pwm->channel_data[ch].deadtime_ns))
 			deadtime = 1;
-		else
+		else {
 			deadtime = mul_u64_u32_div(rz_mtu3_pwm->
 					channel_data[ch].deadtime_ns,
 					      rz_mtu3_pwm->rate, NSEC_PER_SEC);
-		deadtime = rz_mtu3_pwm_calculate_pv_or_dc(deadtime, prescale);
+			deadtime = rz_mtu3_pwm_calculate_pv_or_dc(deadtime, prescale);
+		}
 	}
 
 	dc = rz_mtu3_pwm_calculate_pv_or_dc(duty_cycles, prescale);
