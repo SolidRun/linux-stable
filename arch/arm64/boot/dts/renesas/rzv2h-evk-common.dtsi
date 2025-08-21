@@ -276,6 +276,28 @@
 		regulator-always-on;
 	};
 
+#if (!SEL_CAN01_HEADER)
+	codec_test0: codec_test0 {
+		compatible = "linux,snd-soc-dummy";
+		#sound-dai-cells = <0>;
+	port {
+		dummy_codec0: endpoint@0 {
+			remote-endpoint = <&spdif0_endpoint>;
+			};
+		};
+	};
+
+	codec_test1: codec_test1 {
+		compatible = "linux,snd-soc-dummy";
+		#sound-dai-cells = <0>;
+	 port {
+		dummy_codec1: endpoint {
+			remote-endpoint = <&spdif1_endpoint>;
+			};
+		};
+	};
+#endif
+
 	gpio_dummy: gpio-dummy {
 		compatible = "gpio-dummy";
 		gpio-controller;
@@ -303,6 +325,10 @@
 
 		dais = <&rsnd_port0     /* DA7211 */
 			&rsnd_port1	/* HDMI0  */
+#if (!SEL_CAN01_HEADER)
+			&spdif_port0
+			&spdif_port1
+#endif
 			>;
 	};
 
@@ -727,11 +753,46 @@
 				playback = <&ssi0>;
 			};
 		};
+#if (!SEL_CAN01_HEADER)
+		spdif_port0: port@2 {
+			reg = <2>;
+			spdif0_endpoint: endpoint {
+				remote-endpoint = <&dummy_codec0>;
+
+				bitclock-master = <&spdif0_endpoint>;
+				frame-master = <&spdif0_endpoint>;
+
+				playback = <&spdif0>;
+				capture  = <&spdif0>;
+			};
+		};
+
+		spdif_port1: port@3 {
+			reg = <3>;
+			spdif1_endpoint: endpoint {
+				remote-endpoint = <&dummy_codec1>;
+
+				bitclock-master = <&spdif1_endpoint>;
+				frame-master = <&spdif1_endpoint>;
+
+				playback = <&spdif2>;
+				capture  = <&spdif2>;
+			};
+		};
+#endif
 	};
 };
 
 &ssi4 {
 	shared-pin;
+};
+
+&spdif0 {
+	pio-transfer;
+};
+
+&spdif2 {
+	pio-transfer;
 };
 
 &mdio0 {
@@ -945,6 +1006,18 @@
 				 <RZV2H_PORT_PINMUX(1, 1, 7)>, /* AUDIO_CLKC */
 				 <RZV2H_PORT_PINMUX(9, 7, 8)>; /* AUDIO_CLKOUT */
 		};
+
+#if (!SEL_CAN01_HEADER)
+		spdif0_pins: spdif0 {
+			pinmux = <RZV2H_PORT_PINMUX(8, 0, 8)>, /* SPDIF0_OUT */
+				 <RZV2H_PORT_PINMUX(8, 1, 8)>; /* SPDIF0_IN */
+		};
+
+		spdif2_pins: spdif2 {
+			pinmux = <RZV2H_PORT_PINMUX(8, 2, 8)>, /* SPDIF2_OUT */
+				 <RZV2H_PORT_PINMUX(8, 3, 8)>; /* SPDIF2_IN */
+		};
+#endif
 	};
 
 	scif_pins: scif {
