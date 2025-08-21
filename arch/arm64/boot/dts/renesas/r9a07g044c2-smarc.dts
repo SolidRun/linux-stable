@@ -61,6 +61,14 @@
  */
 #define GPT3_CHANNEL_SEL	BOTH_CHANNEL
 
+/*
+ * Use to enable POE3 to control Hi-Z state of complementary PWM
+ * signals at MTIOC3B-MTIOC3D.
+ * Note: This macro must be enabled along with macros
+ * PMOD_MTU3 to fully take effect.
+ */
+#define POE3_SUPPORT   0
+
 /* Please set SW_I2S0_I2S1. Default value is 0 */
 #define SW_I2S0_I2S1   0
 
