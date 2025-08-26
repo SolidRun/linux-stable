@@ -23,6 +23,7 @@
 #include <linux/property.h>
 #include <linux/reset.h>
 #include <linux/spi/spi.h>
+#include <linux/spi/rspi.h>
 #include <linux/wait.h>
 
 /* Registers */
@@ -595,8 +596,11 @@ static int rzv2h_rspi_prepare_message(struct spi_controller *ctlr,
 	/* Make sure SPCR.SPE is 0 before amending the configuration */
 	rzv2h_rspi_spe_disable(rspi);
 
-	/* Configure the device to work in "host" mode */
-	conf32 = RSPI_SPCR_MSTR;
+	/* Configure the device to work in "host" or "target" mode */
+	if (!spi_controller_is_target(ctlr))
+		conf32 = RSPI_SPCR_MSTR;
+	else
+		conf32 = 0;
 
 	/* Auto-stop function */
 	conf32 |= RSPI_SPCR_SCKASE;
@@ -610,9 +614,12 @@ static int rzv2h_rspi_prepare_message(struct spi_controller *ctlr,
 	conf32 = FIELD_PREP(RSPI_SPCMD_CPOL, !!(spi->mode & SPI_CPOL));
 	conf32 |= FIELD_PREP(RSPI_SPCMD_CPHA, !!(spi->mode & SPI_CPHA));
 	conf32 |= FIELD_PREP(RSPI_SPCMD_LSBF, !!(spi->mode & SPI_LSB_FIRST));
-	conf32 |= FIELD_PREP(RSPI_SPCMD_SSLKP, 1);
+	if (!spi_controller_is_target(ctlr))
+		conf32 |= FIELD_PREP(RSPI_SPCMD_SSLKP, 1);
+
 	conf32 |= FIELD_PREP(RSPI_SPCMD_SSLA, spi_get_chipselect(spi, 0));
 	writel(conf32, rspi->base + RSPI_SPCMD);
+
 	if (spi->mode & SPI_CS_HIGH)
 		writeb(BIT(spi_get_chipselect(spi, 0)), rspi->base + RSPI_SSLP);
 	else
@@ -639,9 +646,11 @@ static int rzv2h_rspi_prepare_message(struct spi_controller *ctlr,
 	rspi->bytes_per_word = roundup_pow_of_two(BITS_TO_BYTES(bits_per_word));
 	rzv2h_rspi_reg_rmw(rspi, RSPI_SPCMD, RSPI_SPCMD_SPB, bits_per_word - 1);
 
-	rspi->freq = rzv2h_rspi_setup_clock(rspi, speed_hz);
-	if (!rspi->freq)
-		return -EINVAL;
+	if (!spi_controller_is_target(ctlr)) {
+		rspi->freq = rzv2h_rspi_setup_clock(rspi, speed_hz);
+		if (!rspi->freq)
+			return -EINVAL;
+	}
 
 	rzv2h_rspi_spe_enable(rspi);
 
@@ -678,9 +687,18 @@ static int rzv2h_rspi_probe(struct platform_device *pdev)
 	struct clk_bulk_data *clks;
 	struct resource *res;
 	unsigned long tclk_rate;
-	int ret, i;
+	int ret, i, mode;
 
-	controller = devm_spi_alloc_host(dev, sizeof(*rspi));
+	if (device_property_read_bool(dev, "spi-slave"))
+		mode = RSPI_SPI_SLAVE;
+	else
+		mode = RSPI_SPI_MASTER;
+
+	if (mode == RSPI_SPI_MASTER)
+		controller = devm_spi_alloc_host(dev, sizeof(*rspi));
+	else
+		controller = devm_spi_alloc_target(dev, sizeof(*rspi));
+
 	if (!controller)
 		return -ENOMEM;
 
