@@ -167,7 +167,12 @@ static int rzg3s_pcie_child_read_conf(struct rzg3s_pcie_host *host,
 	bus->ops->map_bus(bus, devfn, where);
 
 	/* Set the type of request */
-	writel(RZG3S_PCI_REQISS_TR_TP0_RD, host->axi + RZG3S_PCI_REQISS);
+	if (bus->number == 1)
+		writel(RZG3S_PCI_REQISS_TR_TP0_RD,
+		       host->axi + RZG3S_PCI_REQISS);
+	else
+		writel(RZG3S_PCI_REQISS_TR_TP1_RD,
+		       host->axi + RZG3S_PCI_REQISS);
 
 	/* Issue the request and wait to finish */
 	ret = rzg3s_pcie_child_issue_request(host);
@@ -212,7 +217,12 @@ static int rzg3s_pcie_child_write_conf(struct rzg3s_pcie_host *host,
 	writel(data, host->axi + RZG3S_PCI_REQDATA(2));
 
 	/* Set the type of request */
-	writel(RZG3S_PCI_REQISS_TR_TP0_WR, host->axi + RZG3S_PCI_REQISS);
+	if (bus->number == 1)
+		writel(RZG3S_PCI_REQISS_TR_TP0_WR,
+		       host->axi + RZG3S_PCI_REQISS);
+	else
+		writel(RZG3S_PCI_REQISS_TR_TP1_WR,
+		       host->axi + RZG3S_PCI_REQISS);
 
 	/* Issue the request and wait to finish */
 	ret = rzg3s_pcie_child_issue_request(host);
