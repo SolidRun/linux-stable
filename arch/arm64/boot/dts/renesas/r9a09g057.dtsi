@@ -2010,7 +2010,7 @@
 					<0 0 0 3 &pcie1 0 0 0 2>, /* INT C */
 					<0 0 0 4 &pcie1 0 0 0 3>; /* INT D */
 			device_type = "pci";
-			num-lanes = <4>;
+			num-lanes = <2>;
 			#address-cells = <3>;
 			#size-cells = <2>;
 			power-domains = <&cpg>;
