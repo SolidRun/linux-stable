@@ -125,6 +125,7 @@ struct rzg3s_pcie_host {
 	int intx_irqs[PCI_NUM_INTX];
 	u32 vendor_id;
 	u32 device_id;
+	u32 num_lanes;
 	int channel;
 };
 
@@ -1052,9 +1053,9 @@ static int rzg3s_pcie_resets_prepare(struct rzg3s_pcie_host *host)
 		for (unsigned int i = 0; i < data->num_power_resets; i++)
 			host->power_resets[i].id = data->power_resets[i];
 
-		ret = devm_reset_control_bulk_get_exclusive(host->dev,
-							    data->num_power_resets,
-							    host->power_resets);
+		ret = devm_reset_control_bulk_get_shared(host->dev,
+							 data->num_power_resets,
+							 host->power_resets);
 		if (ret)
 			return ret;
 
@@ -1375,11 +1376,18 @@ static void rzv2h_soc_pcie_pre_init(struct rzg3s_pcie_host *host)
 	struct regmap *sysc = host->sysc;
 
 	/* Set Lane mode */
-	if (host->device_id == 0x003b)
-		regmap_update_bits(sysc, RZV2H_SYS_PCIE_LANE_MODE,
-				   RZV2H_SYS_PCIE_LANE_MODE_MASK,
-				   FIELD_PREP(RZV2H_SYS_PCIE_LANE_MODE_MASK,
-				   RZV2H_LINK_MASTER_4_LANE_MODE));
+	if (host->device_id == 0x003b) {
+		if (host->num_lanes == 4)
+			regmap_update_bits(sysc, RZV2H_SYS_PCIE_LANE_MODE,
+					   RZV2H_SYS_PCIE_LANE_MODE_MASK,
+					   FIELD_PREP(RZV2H_SYS_PCIE_LANE_MODE_MASK,
+					   RZV2H_LINK_MASTER_4_LANE_MODE));
+		else
+			regmap_update_bits(sysc, RZV2H_SYS_PCIE_LANE_MODE,
+					   RZV2H_SYS_PCIE_LANE_MODE_MASK,
+					   FIELD_PREP(RZV2H_SYS_PCIE_LANE_MODE_MASK,
+					   RZV2H_LINK_MASTER_2_LANE_MODE));
+	}
 	/* SYS setting mode port */
 	regmap_update_bits(sysc, RZV2H_SYS_PCIE_MODE_CH(host->channel),
 			   RZV2H_MODE_PORT_SYS_MASK,
@@ -1553,6 +1561,7 @@ static int rzg3s_pcie_probe(struct platform_device *pdev)
 		of_parse_phandle(np, "renesas,sysc", 0);
 	struct rzg3s_pcie_host *host;
 	int ret, channel;
+	u32 num_lanes;
 
 	bridge = devm_pci_alloc_host_bridge(dev, sizeof(*host));
 	if (!bridge)
@@ -1607,6 +1616,14 @@ static int rzg3s_pcie_probe(struct platform_device *pdev)
 			return -EINVAL;
 		}
 	}
+
+	ret = device_property_read_u32(dev, "num-lanes", &num_lanes);
+	if (ret) {
+		dev_info(dev, "num-lanes not set, default to 1\n");
+		num_lanes = 1;
+	}
+	host->num_lanes = num_lanes;
+	dev_info(dev, "Configuring PCIe with %u lane(s)\n", host->num_lanes);
 
 	ret = rzg3s_pcie_resets_prepare(host);
 	if (ret)
