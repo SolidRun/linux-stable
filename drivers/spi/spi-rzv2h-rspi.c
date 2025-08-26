@@ -40,8 +40,10 @@
 
 /* Register SPCR */
 #define RSPI_SPCR_MSTR		BIT(30)
-#define RSPI_SPCR_SPRIE		BIT(17)
+#define RSPI_SPCR_CENDIE	BIT(21)
 #define RSPI_SPCR_SPTIE		BIT(20)
+#define RSPI_SPCR_SPIIE		BIT(18)
+#define RSPI_SPCR_SPRIE		BIT(17)
 #define RSPI_SPCR_SCKASE	BIT(12)
 #define RSPI_SPCR_SPE		BIT(0)
 
@@ -68,6 +70,7 @@
 
 /* Register SPSR */
 #define RSPI_SPSR_SPRF		BIT(15)
+#define RSPI_SPSR_CENDF		BIT(14)
 #define RSPI_SPSR_SPTEF		BIT(13)
 
 /* Register RSPI_SPSRC */
@@ -93,7 +96,7 @@ struct rzv2h_rspi_priv {
 	unsigned int bytes_per_word;
 	u32 freq;
 	u16 status;
-	int rx_irq, tx_irq;
+	int rx_irq, tx_irq, end_irq;
 	phys_addr_t phys;
 
 	unsigned dma_callbacked:1;
@@ -197,6 +200,11 @@ static inline int rspi_wait_for_rx_full(struct rzv2h_rspi_priv *rspi)
 	return rzv2h_rspi_wait_for_interrupt(rspi, RSPI_SPSR_SPRF, RSPI_SPCR_SPRIE);
 }
 
+static inline int rspi_wait_for_communication_end(struct rzv2h_rspi_priv *rspi)
+{
+	return rzv2h_rspi_wait_for_interrupt(rspi, RSPI_SPSR_CENDF, RSPI_SPCR_CENDIE);
+}
+
 static irqreturn_t rzv2h_rx_irq_handler(int irq, void *data)
 {
 	struct rzv2h_rspi_priv *rspi = data;
@@ -219,6 +227,20 @@ static irqreturn_t rzv2h_tx_irq_handler(int irq, void *data)
 	rspi->status = spsr = readw(rspi->base + RSPI_SPSR);
 	if (spsr & RSPI_SPSR_SPTEF) {
 		rspi_disable_irq(rspi, RSPI_SPCR_SPTIE);
+		wake_up(&rspi->wait);
+		return IRQ_HANDLED;
+	}
+	return 0;
+}
+
+static irqreturn_t rzv2h_end_irq_handler(int irq, void *data)
+{
+	struct rzv2h_rspi_priv *rspi = data;
+	u16 spsr;
+
+	rspi->status = spsr = readw(rspi->base + RSPI_SPSR);
+	if (spsr & RSPI_SPSR_CENDF) {
+		rspi_disable_irq(rspi, RSPI_SPCR_CENDIE);
 		wake_up(&rspi->wait);
 		return IRQ_HANDLED;
 	}
@@ -481,36 +503,65 @@ static int rzv2h_rspi_receive(struct rzv2h_rspi_priv *rspi, void *rxbuf,
 	return 0;
 }
 
+static u16 rzv2h_rspi_read_data(const struct rzv2h_rspi_priv *rspi)
+{
+	if (rspi->bytes_per_word == 4)
+		return readl(rspi->base + RSPI_SPDR);
+	else if (rspi->bytes_per_word == 2)
+		return readw(rspi->base + RSPI_SPDR);
+	else
+		return readb(rspi->base + RSPI_SPDR);
+}
+
 static int rzv2h_rspi_pio_transfer(struct rzv2h_rspi_priv *rspi,
 				   const void *txbuf, void *rxbuf,
 				   unsigned int len, u16 error)
 {
 	unsigned int words = len / rspi->bytes_per_word;
-	int ret, count;
+	int ret, count, loop, loop_count, remained_words, words_per_loop;
 
-	for (count = 0; count < words; count++) {
+	if (words % RSPI_FIFO_SIZE)
+		loop = words / RSPI_FIFO_SIZE + 1;
+	else
+		loop = words / RSPI_FIFO_SIZE;
+
+	for (loop_count = 0; loop_count < loop; loop_count++) {
+		remained_words = words - loop_count * RSPI_FIFO_SIZE;
+		words_per_loop = (remained_words > RSPI_FIFO_SIZE) ?
+				  RSPI_FIFO_SIZE : remained_words;
+
 		if (txbuf) {
-			ret = rspi_wait_for_tx_empty(rspi);
-			if (ret < 0) {
-				dev_err(&rspi->controller->dev, "transmit timeout\n");
-				return ret;
+			for (count = 0; count < words_per_loop; count++) {
+				writew(SPSRC_SPTEFC, rspi->base + RSPI_SPSRC);
+				ret = rspi_wait_for_tx_empty(rspi);
+				if (ret < 0) {
+					dev_err(&rspi->controller->dev, "transmit timeout\n");
+					return ret;
+				}
+				rzv2h_rspi_send(rspi, txbuf, count + loop_count * RSPI_FIFO_SIZE);
 			}
-			rzv2h_rspi_send(rspi, txbuf, count);
 		}
-	}
 
-	for (count = 0; count < words; count++) {
 		if (rxbuf) {
-			ret = rspi_wait_for_rx_full(rspi);
-			if (ret < 0) {
-				dev_err(&rspi->controller->dev, "receive timeout %d\n", count);
-				return ret;
-			}
+			ret = rspi_wait_for_communication_end(rspi);
+			for (count = 0; count < words_per_loop; count++) {
+				if (ret < 0) {
+					writew(SPSRC_SPRFC, rspi->base + RSPI_SPSRC);
+					ret = rspi_wait_for_rx_full(rspi);
+					if (ret < 0) {
+						dev_err(&rspi->controller->dev,
+							"receive timeout %d\n", count);
+						return ret;
+					}
+				}
 
-			ret = rzv2h_rspi_receive(rspi, rxbuf, count);
-			if (ret) {
-				error = SPI_TRANS_FAIL_IO;
-				return ret;
+				ret = rzv2h_rspi_receive(rspi, rxbuf,
+							count + loop_count * RSPI_FIFO_SIZE);
+				if (ret) {
+					error = SPI_TRANS_FAIL_IO;
+					return ret;
+				}
+
 			}
 		}
 	}
@@ -518,11 +569,9 @@ static int rzv2h_rspi_pio_transfer(struct rzv2h_rspi_priv *rspi,
 	return 0;
 }
 
-static int rzv2h_rspi_transfer_one(struct spi_controller *controller,
-				  struct spi_device *spi,
+static int rzv2h_rspi_transfer_message(struct rzv2h_rspi_priv *rspi,
 				  struct spi_transfer *transfer)
 {
-	struct rzv2h_rspi_priv *rspi = spi_controller_get_devdata(controller);
 	int ret = 0;
 
 	transfer->effective_speed_hz = rspi->freq;
@@ -539,9 +588,23 @@ static int rzv2h_rspi_transfer_one(struct spi_controller *controller,
 
 	rzv2h_rspi_clear_all_irqs(rspi);
 
-	spi_finalize_current_transfer(controller);
+	spi_finalize_current_transfer(rspi->controller);
 
 	return ret;
+}
+
+static int rzv2h_rspi_transfer_one(struct spi_controller *controller,
+				  struct spi_device *spi,
+				  struct spi_transfer *transfer)
+{
+	struct rzv2h_rspi_priv *rspi = spi_controller_get_devdata(controller);
+	u16 spsr;
+
+	spsr = readw(rspi->base + RSPI_SPSR);
+	if (spsr & RSPI_SPSR_SPRF)
+		rzv2h_rspi_read_data(rspi);   /* dummy read */
+
+	return rzv2h_rspi_transfer_message(rspi, transfer);
 }
 
 static inline u32 rzv2h_rspi_calc_bitrate(unsigned long tclk_rate, u8 spr,
@@ -604,6 +667,9 @@ static int rzv2h_rspi_prepare_message(struct spi_controller *ctlr,
 
 	/* Auto-stop function */
 	conf32 |= RSPI_SPCR_SCKASE;
+
+	/* Prohibit SPII and SPCEND interrupt */
+	conf32 &= ~(RSPI_SPCR_CENDIE | RSPI_SPCR_SPIIE);
 
 	writel(conf32, rspi->base + RSPI_SPCR);
 
@@ -754,7 +820,17 @@ static int rzv2h_rspi_probe(struct platform_device *pdev)
 
 	rspi->tx_irq = ret;
 
-	/* Multi-interrupt mode, only SPRI and SPTI are used */
+	ret = platform_get_irq_byname(pdev, "end");
+	if (ret < 0) {
+		dev_err(dev, "Failed to get END IRQ\n");
+		return ret;
+	}
+
+	rspi->end_irq = ret;
+
+	/* Multi-interrupt mode, only SPRI, SPCEND and SPTI are used */
+	ret = rspi_request_irq(dev, rspi->end_irq, rzv2h_end_irq_handler,
+				"end", rspi);
 	ret = rspi_request_irq(dev, rspi->rx_irq, rzv2h_rx_irq_handler,
 			       "rx", rspi);
 	if (!ret)
@@ -778,6 +854,7 @@ static int rzv2h_rspi_probe(struct platform_device *pdev)
 	controller->prepare_message = rzv2h_rspi_prepare_message;
 	controller->unprepare_message = rzv2h_rspi_unprepare_message;
 	controller->num_chipselect = 4;
+	controller->flags = SPI_CONTROLLER_MUST_RX | SPI_CONTROLLER_MUST_TX;
 	controller->transfer_one = rzv2h_rspi_transfer_one;
 	controller->min_speed_hz = rzv2h_rspi_calc_bitrate(tclk_rate,
 							   RSPI_SPBR_SPR_MAX,
