@@ -46,6 +46,12 @@
 			reusable;
 			reg = <0x0 0x58000000 0x0 0x10000000>;
 		};
+
+		mmp_reserved: linux,multimedia {
+			compatible = "shared-dma-pool";
+			reusable;
+			reg = <0x0 0x68000000 0x0 0x8000000>;
+		};
 	};
 
 	gpio-keys {
