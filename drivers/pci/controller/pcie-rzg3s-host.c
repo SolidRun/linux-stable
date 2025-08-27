@@ -34,6 +34,7 @@
 #include <linux/sizes.h>
 #include <linux/slab.h>
 #include <linux/units.h>
+#include <linux/kthread.h>
 
 #include "../pci.h"
 #include "pcie-rzg3s-regs.h"
@@ -56,7 +57,16 @@ struct rzg3s_pcie_msi {
 	struct mutex map_lock;
 };
 
+enum {
+	RZV2_PCIE_THREAD_IDLE,
+	RZV2_PCIE_THREAD_RESET
+};
+
 struct rzg3s_pcie_host;
+static int	pcie_thread_status;
+static int	pcie_receiver_detection;
+static struct	task_struct *pcie_kthread_tsk;
+static struct	rzg3s_pcie_host *tmp_host;
 
 enum rz_pcie_type {
 	RZG3S_PCIE,
@@ -349,6 +359,120 @@ static struct pci_ops rzg3s_pcie_root_ops = {
 	.map_bus	= rzg3s_pcie_root_map_bus,
 };
 
+static void rzv2h_pcie_reset_assert(void)
+{
+	rzg3s_pcie_update_bits(tmp_host->axi, RZV2H_PCI_RESET_REG,
+			       RZV2H_RESET_DETECT, 0);
+}
+
+static void rzv2h_pcie_reset_deassert(void)
+{
+	rzg3s_pcie_update_bits(tmp_host->axi, RZV2H_PCI_RESET_REG,
+			       RZV2H_RESET_DETECT, RZV2H_RESET_DETECT);
+}
+
+static void rzv2h_pcie_dl_wait_status(void)
+{
+	u32 val, reg;
+	int ret;
+
+	ret = readl_poll_timeout(tmp_host->axi + RZG3S_PCI_PCSTAT1, val,
+				 !(val & RZG3S_PCI_PCSTAT1_DL_DOWN_STS),
+				 PCIE_LINK_WAIT_DL_MS * MILLI,
+				 PCIE_LINK_WAIT_DL_MS *
+				 PCIE_LINK_WAIT_DL_MAX_RETRIES * MILLI);
+	if (!ret) {
+		reg = readl(tmp_host->axi + RZG3S_PCI_PCSTAT2);
+		dev_info(tmp_host->dev, "PCIe reset and link status [0x%x]\n", reg);
+	} else
+		dev_err(tmp_host->dev, "PCIe reset and link down\n");
+}
+
+static int pcie_kthread(void *arg)
+{
+	u8 state_rx_detect;
+	u8 ltssm_state_detect = 0x3;
+	unsigned long reg;
+	unsigned long tmp_cnt = 0;
+
+	while (!kthread_should_stop()) {
+		if (pcie_thread_status == RZV2_PCIE_THREAD_RESET) {
+			dev_info(tmp_host->dev, "PCIe link down\n");
+
+			msleep(1000);
+			reg = readl(tmp_host->axi + RZG3S_PCI_PCSTAT1);
+			if (FIELD_GET(RZG3S_PCI_PCSTAT1_LTSSM_STATE, reg) ==
+			    ltssm_state_detect) {
+				reg = readl(tmp_host->axi + RZG3S_PCI_PCSTAT2);
+				state_rx_detect = FIELD_GET(RZG3S_PCI_PCSTAT2_STATE_RX_DETECT,
+							    reg);
+
+				if (state_rx_detect == pcie_receiver_detection) {
+					tmp_cnt++;
+					if (tmp_cnt >= 3) {
+						rzv2h_pcie_reset_assert();
+						msleep(1);
+						rzv2h_pcie_reset_deassert();
+
+						tmp_cnt = 0;
+						pcie_thread_status = RZV2_PCIE_THREAD_IDLE;
+						pcie_receiver_detection = 0x00;
+
+						rzv2h_pcie_dl_wait_status();
+					}
+				} else {
+					pcie_thread_status = RZV2_PCIE_THREAD_IDLE;
+					pcie_receiver_detection = 0x00;
+				}
+			}
+		} else
+			msleep(20);
+	}
+	return 0;
+}
+
+static void rzv2h_pcie_enable_dl_updown(struct rzg3s_pcie_host *host)
+{
+	pcie_thread_status = RZV2_PCIE_THREAD_IDLE;
+	pcie_receiver_detection = 0x00;
+
+	pcie_kthread_tsk = kthread_run(pcie_kthread, NULL, "pcie kthread");
+	if (IS_ERR(pcie_kthread_tsk))
+		pr_err("pcie kthread run failed\n");
+	else
+		pr_info("pcie kthread pid:%d\n", pcie_kthread_tsk->pid);
+
+	/* enable DL_UpDown interrupts */
+	rzg3s_pcie_update_bits(host->axi, RZG3S_PCI_PEIE0,
+			       RZG3S_PCI_PEIE0_DL_UPDOWN,
+			       RZG3S_PCI_PEIE0_DL_UPDOWN);
+}
+
+static void rzv2h_pcie_dl_updown(struct rzg3s_pcie_host *host)
+{
+	u32 reg;
+
+	reg = readl(host->axi + RZG3S_PCI_PEIS0);
+	/* clear the interrupt */
+	rzg3s_pcie_update_bits(host->axi, RZG3S_PCI_PEIS0,
+			       RZG3S_PCI_PEIS0_DL_UPDOWN,
+			       RZG3S_PCI_PEIS0_DL_UPDOWN);
+
+	if (reg & RZG3S_PCI_PEIS0_DL_UPDOWN) {
+		/* DL_UpDown interrupt */
+		tmp_host = host;
+
+		reg = readl(host->axi + RZG3S_PCI_PCSTAT1);
+		if (reg & RZG3S_PCI_PCSTAT1_DL_DOWN_STS) {
+			/* DL_Down_Status */
+			reg = readl(host->axi + RZG3S_PCI_PCSTAT2);
+			pcie_receiver_detection = FIELD_GET(RZG3S_PCI_PCSTAT2_STATE_RX_DETECT,
+							    reg);
+			pcie_thread_status = RZV2_PCIE_THREAD_RESET;
+		}
+	}
+}
+
 static void rzg3s_pcie_intx_irq_handler(struct irq_desc *desc)
 {
 	struct rzg3s_pcie_host *host = irq_desc_get_handler_data(desc);
@@ -369,6 +493,8 @@ static irqreturn_t rzg3s_pcie_msi_irq(int irq, void *data)
 	struct rzg3s_pcie_msi *msi = &host->msi;
 	unsigned long bit;
 	u32 status;
+
+	rzv2h_pcie_dl_updown(host);
 
 	status = readl(host->axi + RZG3S_PCI_PINTRCVIS);
 	if (!(status & RZG3S_PCI_PINTRCVIS_MSI))
@@ -1157,6 +1283,7 @@ static int rzg3s_pcie_host_init(struct rzg3s_pcie_host *host, bool probe)
 	return ret;
 }
 
+
 static void rzg3s_pcie_set_inbound_window(struct rzg3s_pcie_host *host,
 					  u64 cpu_addr, u64 pci_addr, u64 size,
 					  int id)
@@ -1674,6 +1801,8 @@ static int rzg3s_pcie_probe(struct platform_device *pdev)
 				    rzg3s_pcie_msi_enable, true);
 	if (ret)
 		return ret;
+
+	rzv2h_pcie_enable_dl_updown(host);
 
 	msleep(PCIE_RESET_CONFIG_WAIT_MS);
 
