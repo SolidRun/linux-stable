@@ -261,6 +261,8 @@ static void renesas_poe3_setup(struct renesas_poe3 *poe3, bool device_file_creat
 	unsigned int poecr1_val, poecr2_val, poecr4_val, poecr5_val, val;
 	u32 tmp, num, ch;
 	int i, ret;
+	bool poe0_pin_in_use = false;
+	bool poe4_pin_in_use = false;
 
 	if (!of_get_property(np, "poe3_pins_mode", &tmp))
 		goto poe3_assign;
@@ -278,11 +280,13 @@ static void renesas_poe3_setup(struct renesas_poe3 *poe3, bool device_file_creat
 				val = renesas_poe3_read(poe3, ICSR1);
 				val = (val | (ICSR_PIE | tmp)) & 0x0FFF;
 				renesas_poe3_write(poe3, ICSR1, val);
+				poe0_pin_in_use = true;
 				break;
 			case 4:
 				val = renesas_poe3_read(poe3, ICSR2);
 				val = (val | (ICSR_PIE | tmp)) & 0x0FFF;
 				renesas_poe3_write(poe3, ICSR2, val);
+				poe4_pin_in_use = true;
 				break;
 			case 8:
 				val = renesas_poe3_read(poe3, ICSR3);
@@ -323,11 +327,18 @@ poe3_assign:
 				    (tmp < 4))
 					poecr1_val |= (POECR1_MTU0AZE << tmp);
 				else if (!strcmp(child->name, "mtu3_ch34") &&
-					(tmp < 3))
+					(tmp < 3)) {
 					poecr2_val |= (POECR2_MTU3BDZE >> tmp);
-				else if (!strcmp(child->name, "mtu3_ch67") &&
-					(tmp < 3))
+					val = renesas_poe3_read(poe3, ICSR1);
+					if (!poe0_pin_in_use && (val & ICSR_POEF))
+						renesas_poe3_write(poe3, ICSR1, val & ~ICSR_POEF);
+				} else if (!strcmp(child->name, "mtu3_ch67") &&
+					(tmp < 3)) {
 					poecr2_val |= (POECR2_MTU6BDZE >>  tmp);
+					val = renesas_poe3_read(poe3, ICSR2);
+					if (!poe4_pin_in_use && (val & ICSR_POEF))
+						renesas_poe3_write(poe3, ICSR2, val & ~ICSR_POEF);
+				}
 			}
 
 			of_get_property(child, "addition_poe3_inputs", &tmp);
