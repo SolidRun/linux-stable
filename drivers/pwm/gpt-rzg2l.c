@@ -405,6 +405,8 @@ struct rzg2l_gpt_chip {
 	u32 GTINTAD_val;
 };
 
+static void gpt_set_operation_mode(struct rzg2l_gpt_chip *pc);
+
 #if IS_BUILTIN(CONFIG_POEG_RZG2L)
 extern void rzg2l_poeg_clear_bit_export(struct platform_device *poeg_dev,
 				u32 data, unsigned int offset);
@@ -629,10 +631,19 @@ static int rzg2l_gpt_config(struct pwm_chip *chip, struct pwm_device *pwm,
 	}
 
 	/* Set duty cycle */
-	rzg2l_gpt_write(pc, dc, channel_set[pc->channel].duty.offset);
+	if (pc->gpt_operation == NORMAL_OUTPUT) {
+		if (!pc->chip.pwms[0].state.enabled)
+			rzg2l_gpt_write(pc, dc, channel_set[pc->channel].duty.offset);
+		if (pc->channel == 0)
+			rzg2l_gpt_write(pc, dc, GTCCRC);
+		else
+			rzg2l_gpt_write(pc, dc, GTCCRE);
+	}
 
 	/* Set initial value for counter */
 	rzg2l_gpt_write(pc, 0, GTCNT); // reset counter value
+
+	gpt_set_operation_mode(pc);
 
 	return 0;
 }
@@ -646,7 +657,6 @@ static int rzg2l_gpt_enable(struct pwm_chip *chip, struct pwm_device *pwm)
 	rzg2l_gpt_write_mask(pc,
 	channel_set[CHANNEL_A].phase.polar[pc->channel_polar[CHANNEL_A]],
 	channel_set[CHANNEL_A].phase.mask, GTIOR);
-
 	/* Enable GTIOCB pin output */
 	rzg2l_gpt_write_mask(pc,
 	channel_set[CHANNEL_B].phase.polar[pc->channel_polar[CHANNEL_B]],
@@ -1180,7 +1190,8 @@ static irqreturn_t gpt_gtciv_interrupt(int irq, void *data)
 
 		tmp = rzg2l_gpt_read(pc, GTBER);
 
-		if (tmp & GTCCRB_BUFFER_SINGLE) {
+		if ((tmp & GTCCRB_BUFFER_SINGLE) &&
+				(pc->gpt_operation == SINGLE_BUFFER_OUTPUT)) {
 			rzg2l_gpt_write(pc,
 				pc->bufferB[pc->buffer_mode_count_B],
 				GTCCRE);
@@ -1196,7 +1207,8 @@ static irqreturn_t gpt_gtciv_interrupt(int irq, void *data)
 				pc->buffer_mode_count_B = 3;
 		}
 
-		if (tmp & GTCCRA_BUFFER_SINGLE) {
+		if ((tmp & GTCCRA_BUFFER_SINGLE) &&
+				(pc->gpt_operation == SINGLE_BUFFER_OUTPUT)) {
 			rzg2l_gpt_write(pc,
 				pc->bufferA[pc->buffer_mode_count_A],
 				GTCCRC);
@@ -1430,7 +1442,13 @@ static ssize_t buffA0_store(struct device *dev, struct device_attribute *attr,
 	pc->bufferA[0] = rzg2l_time_to_tick_number(pc, val, prescale);
 
 	/*Set compare match value in GTCCRA*/
-	rzg2l_gpt_write(pc, pc->bufferA[0], GTCCRA);
+	if (pc->gpt_operation == NORMAL_OUTPUT &&
+			pc->chip.pwms[0].state.enabled)
+		rzg2l_gpt_write(pc, pc->bufferA[0], GTCCRC);
+	else {
+		rzg2l_gpt_write(pc, pc->bufferA[0], GTCCRA);
+		rzg2l_gpt_write(pc, pc->bufferA[0], GTCCRC);
+	}
 
 	mutex_unlock(&pc->mutex);
 
@@ -1499,7 +1517,13 @@ static ssize_t buffB0_store(struct device *dev, struct device_attribute *attr,
 	pc->bufferB[0] = rzg2l_time_to_tick_number(pc, val, prescale);
 
 	/*Set compare match value in GTCCRB*/
-	rzg2l_gpt_write(pc, pc->bufferB[0], GTCCRB);
+	if (pc->gpt_operation == NORMAL_OUTPUT &&
+			pc->chip.pwms[0].state.enabled)
+		rzg2l_gpt_write(pc, pc->bufferB[0], GTCCRE);
+	else {
+		rzg2l_gpt_write(pc, pc->bufferB[0], GTCCRB);
+		rzg2l_gpt_write(pc, pc->bufferB[0], GTCCRE);
+	}
 
 	mutex_unlock(&pc->mutex);
 
@@ -2091,14 +2115,11 @@ static void gpt_set_operation_mode(struct rzg2l_gpt_chip *pc)
 	const struct rz_gpt_data_cfg *dreg = pc->cfg;
 
 	switch (pc->gpt_operation) {
-	case NORMAL_OUTPUT:
-		/* Set no buffer operation */
-		rzg2l_gpt_write_mask(pc, 0, GTCCRA_BUFFER_MASK, GTBER);
-		rzg2l_gpt_write_mask(pc, 0, GTCCRB_BUFFER_MASK, GTBER);
-		break;
 	case SINGLE_BUFFER_OUTPUT:
 		pc->buffer_mode_count_A = 2;
 		pc->buffer_mode_count_B = 2;
+		fallthrough;
+	case NORMAL_OUTPUT:
 		/*Set buffer operation with CCRA in GTBER*/
 		rzg2l_gpt_write_mask(pc, GTCCRA_BUFFER_SINGLE,
 					GTCCRA_BUFFER_MASK, GTBER);
