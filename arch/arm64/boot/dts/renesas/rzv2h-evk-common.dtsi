@@ -51,6 +51,9 @@
  *	GPT_CHANNEL_B
  *	BOTH_CHANNEL (default)
  *
+ * I2C2 or I3C selection:
+ *     0: I2C2 (default)       1: I3C
+ *
  * Jumper setting
  *
  * Please change the jumper setting in board devicetree corresponding to below Macros:
@@ -440,9 +443,16 @@
 	};
 };
 
+#if (!I2C2_I3C_SEL)
+&i2c2 {
+       pinctrl-0 = <&i2c2_pins>;
+       pinctrl-names = "default";
+       clock-frequency = <400000>;
+#else
 &i3c {
 	pinctrl-0 = <&i3c_pins>;
 	pinctrl-names = "default";
+#endif
 
 	status = "okay";
 
@@ -451,7 +461,11 @@
 		#sound-dai-cells = <0>;
 		#address-cells = <1>;
 		#size-cells = <0>;
+#if (!I2C2_I3C_SEL)
+		reg = <0x1a>;
+#else
 		reg = <0x1a 0x0 0x0>;
+#endif
 
 		clocks = <&rcar_sound>;
 		clock-names = "mclk";
@@ -871,6 +885,13 @@
 			 <RZV2H_PORT_PINMUX(3, 3, 1)>; /* I2C1_SCL */
 	};
 
+#if (!I2C2_I3C_SEL)
+	i2c2_pins: i2c2 {
+		pinmux = <RZV2H_PORT_PINMUX(2, 0, 4)>, /* I2C2_SDA */
+			 <RZV2H_PORT_PINMUX(2, 1, 4)>; /* I2C2_SCL */
+	};
+#endif
+
 	i2c3_pins: i2c3 {
 		pinmux = <RZV2H_PORT_PINMUX(3, 6, 1)>, /* I2C3_SDA */
 			 <RZV2H_PORT_PINMUX(3, 7, 1)>; /* I2C3_SCL */
@@ -1048,10 +1069,12 @@
 #endif
 	};
 
+#if (I2C2_I3C_SEL)
 	i3c_pins: i3c {
 		pinmux = <RZV2H_PORT_PINMUX(2, 0, 1)>, /* I3C_SDA */
 			 <RZV2H_PORT_PINMUX(2, 1, 1)>; /* I3C_SCL */
 	};
+#endif
 };
 
 &audio_clka {
