@@ -3045,6 +3045,77 @@
 			power-domains = <&cpg>;
 		};
 
+		pdm0: pdm@11040000 {
+			compatible = "renesas,rz-pdm";
+			reg = <0 0x11040000 0 0x400>;
+			interrupts = <GIC_SPI 236 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 237 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 238 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 232 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 233 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 234 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 235 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "int_pdm_err0", "int_pdm_err1", "int_pdm_err2",
+					  "int_pdm_dat0", "int_pdm_dat1", "int_pdm_dat2",
+					  "int_pdm_sdet";
+			clocks = <&cpg CPG_MOD 0x101>,
+				 <&cpg CPG_MOD 0x102>,
+				 <&cpg CPG_MOD 0x103>;
+			clock-names = "pdm_pclk", "pdm_pclk_sfr", "pdm_cclk";
+			resets = <&cpg 242>,
+				 <&cpg 243>;
+			reset-names = "pclk", "cclk";
+			power-domains = <&cpg>;
+			#sound-dai-cells = <0>;
+			status = "disabled";
+
+			channel0 {
+				status = "disabled";
+			};
+			channel1 {
+				status = "disabled";
+			};
+			channel2 {
+				status = "disabled";
+			};
+
+		};
+
+		pdm1: pdm@11050000 {
+			compatible = "renesas,rz-pdm";
+			reg = <0 0x11050000 0 0x400>;
+			interrupts = <GIC_SPI 243 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 244 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 245 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 239 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 240 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 241 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 242 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "int_pdm_err0", "int_pdm_err1", "int_pdm_err2",
+					  "int_pdm_dat0", "int_pdm_dat1", "int_pdm_dat2",
+					  "int_pdm_sdet";
+			clocks = <&cpg CPG_MOD 0x104>,
+				 <&cpg CPG_MOD 0x105>,
+				 <&cpg CPG_MOD 0x106>;
+			clock-names = "pdm_pclk", "pdm_pclk_sfr", "pdm_cclk";
+			resets = <&cpg 244>,
+				 <&cpg 245>;
+			reset-names = "pclk", "cclk";
+			power-domains = <&cpg>;
+			#sound-dai-cells = <0>;
+			status = "disabled";
+
+			channel0 {
+				status = "disabled";
+			};
+			channel1 {
+				status = "disabled";
+			};
+			channel2 {
+				status = "disabled";
+			};
+		};
+
 		rcar_sound: sound@13c00000 {
 			/*
 			 * #sound-dai-cells is required
