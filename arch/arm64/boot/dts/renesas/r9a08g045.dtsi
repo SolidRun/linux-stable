@@ -765,7 +765,6 @@
 			compatible = "renesas,r9a08g045-mtu3",
 				     "renesas,rz-mtu3";
 			reg = <0 0x10001200 0 0xB00>;
-			      <0 0x11050080 0 0x08>;
 			interrupts = <GIC_SPI 132 IRQ_TYPE_EDGE_RISING>,
 				     <GIC_SPI 133 IRQ_TYPE_EDGE_RISING>,
 				     <GIC_SPI 134 IRQ_TYPE_EDGE_RISING>,
@@ -824,6 +823,7 @@
 					  "tciv7",
 					  "tgia8", "tgib8", "tgic8", "tgid8",
 					  "tciv8";
+			interrupt-select = <&irqc>;
 			clocks = <&cpg CPG_MOD R9A08G045_MTU_X_MCK_MTU3>;
 			clock-names = "fck";
 			power-domains = <&cpg>;

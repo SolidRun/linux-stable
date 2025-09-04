@@ -11,16 +11,19 @@
 #include <linux/irq.h>
 #include <linux/mfd/core.h>
 #include <linux/mfd/rz-mtu3.h>
+#include <linux/mfd/syscon.h>
 #include <linux/of_platform.h>
 #include <linux/reset.h>
 #include <linux/spinlock.h>
 #include <linux/of.h>
+#include <linux/of_platform.h>
+#include <linux/regmap.h>
 
 #include "rz-mtu3.h"
 
 struct rz_mtu3_priv {
 	void __iomem *mmio;
-	void __iomem *irq_sel_base;
+	struct regmap *irq_sel_regmap;
 	struct reset_control *rstc;
 	spinlock_t lock;
 };
@@ -95,22 +98,31 @@ static int rz_mtu3_get_irq_index(struct rz_mtu3 *mtu, char *irq_name)
 int rz_mtu3_irq_sel(struct rz_mtu3 *mtu, char *irq_name)
 {
 	struct rz_mtu3_priv *priv = mtu->priv_data;
-	int irq_sel_val, irq_index;
+	int irq_index;
+	unsigned int offset;
+
+	if (!priv->irq_sel_regmap) {
+		dev_err(&mtu->pdev->dev,
+			"Failed to select IRQ %s, regmap not initialized\n",
+			irq_name);
+		return -ENODEV;
+	}
 
 	irq_index = rz_mtu3_get_irq_index(mtu, irq_name);
 	if (irq_index < 0)
 		return irq_index;
 
 	/* The first 32 interrupts are belong to INTPMSEL0. */
-	if (irq_index < 32) {
-		irq_sel_val = ioread32(priv->irq_sel_base + INTPMSEL0);
-		iowrite32(irq_sel_val | (1 << irq_index),
-					priv->irq_sel_base + INTPMSEL0);
-	} else {
-		irq_sel_val = ioread32(priv->irq_sel_base + INTPMSEL1);
-		iowrite32(irq_sel_val | (1 << (irq_index - 32)),
-					priv->irq_sel_base + INTPMSEL1);
+	if (irq_index < 32)
+		offset = INTPMSEL0;
+	else {
+		offset = INTPMSEL1;
+		irq_index -= 32;
 	}
+
+	regmap_update_bits(priv->irq_sel_regmap, offset,
+			   BIT(irq_index), BIT(irq_index));
+
 	return 0;
 }
 EXPORT_SYMBOL_GPL(rz_mtu3_irq_sel);
@@ -380,6 +392,7 @@ static int rz_mtu3_probe(struct platform_device *pdev)
 	struct rz_mtu3_priv *priv;
 	struct rz_mtu3 *ddata;
 	struct device_node *np = pdev->dev.of_node;
+	struct device_node *irqc_node;
 	unsigned int i;
 	int ret;
 
@@ -399,11 +412,17 @@ static int rz_mtu3_probe(struct platform_device *pdev)
 		return PTR_ERR(priv->mmio);
 
 	if (of_device_is_compatible(np, "renesas,r9a08g045-mtu3")) {
-		priv->irq_sel_base = devm_platform_ioremap_resource(pdev, 1);
-		if (IS_ERR(priv->irq_sel_base))
-			return PTR_ERR(priv->irq_sel_base);
-	} else
-		priv->irq_sel_base = NULL;
+		irqc_node = of_parse_phandle(pdev->dev.of_node,
+					     "interrupt-select", 0);
+		if (irqc_node != NULL) {
+			priv->irq_sel_regmap = device_node_to_regmap(irqc_node);
+			of_node_put(irqc_node);
+			if (IS_ERR(priv->irq_sel_regmap)) {
+				dev_err(&pdev->dev, "failed to get regmap from IRQC\n");
+				return PTR_ERR(priv->irq_sel_regmap);
+			}
+		}
+	}
 
 	priv->rstc = devm_reset_control_get_exclusive(&pdev->dev, NULL);
 	if (IS_ERR(priv->rstc))
