@@ -51,7 +51,7 @@ config SND_SOC_RZ
 	help
 	  This option enables RZ/G2L SSIF-2 sound support.
 
-config SND_SOC_RZ_SPDIF
+config SND_SOC_RZG3S_SPDIF
 	tristate "RZ/G3S series SPDIF support"
 	depends on ARCH_RZG2L || COMPILE_TEST
 	help

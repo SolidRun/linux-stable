@@ -28,5 +28,5 @@ snd-soc-rz-ssi-objs		:= rz-ssi.o
 obj-$(CONFIG_SND_SOC_RZ)	+= snd-soc-rz-ssi.o
 
 # RZ/G3S
-snd-soc-rz-spdif-objs          := rz-spdif.o
-obj-$(CONFIG_SND_SOC_RZ_SPDIF) += snd-soc-rz-spdif.o
+snd-soc-rzg3s-spdif-objs          := rzg3s-spdif.o
+obj-$(CONFIG_SND_SOC_RZG3S_SPDIF) += snd-soc-rzg3s-spdif.o
