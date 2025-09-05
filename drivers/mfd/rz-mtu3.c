@@ -424,15 +424,17 @@ static int rz_mtu3_probe(struct platform_device *pdev)
 		}
 	}
 
-	priv->rstc = devm_reset_control_get_exclusive(&pdev->dev, NULL);
-	if (IS_ERR(priv->rstc))
+	priv->rstc = devm_reset_control_get_shared(&pdev->dev, NULL);
+	if (IS_ERR(priv->rstc)) {
+		dev_err(&pdev->dev, "cannot get reset control\n");
 		return PTR_ERR(priv->rstc);
+	}
+	ddata->rstc = priv->rstc;
 
 	ddata->clk = devm_clk_get(&pdev->dev, NULL);
 	if (IS_ERR(ddata->clk))
 		return PTR_ERR(ddata->clk);
 
-	reset_control_deassert(priv->rstc);
 	spin_lock_init(&priv->lock);
 	platform_set_drvdata(pdev, ddata);
 
@@ -464,14 +466,10 @@ static int rz_mtu3_probe(struct platform_device *pdev)
 	ret = mfd_add_devices(&pdev->dev, 0, rz_mtu3_devs,
 			      ARRAY_SIZE(rz_mtu3_devs), NULL, 0, NULL);
 	if (ret < 0)
-		goto err_assert;
+		return ret;
 
 	return devm_add_action_or_reset(&pdev->dev, rz_mtu3_reset_assert,
 					&pdev->dev);
-
-err_assert:
-	reset_control_assert(priv->rstc);
-	return ret;
 }
 
 static const struct of_device_id rz_mtu3_of_match[] = {

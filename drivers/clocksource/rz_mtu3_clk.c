@@ -272,21 +272,32 @@ static void rz_mtu3_clk_clocksource_disable(struct clocksource *cs)
 static void rz_mtu3_clk_clocksource_suspend(struct clocksource *cs)
 {
 	struct rz_mtu3_clk_channel_priv *ch = cs_to_sh_mtu(cs);
+	struct device *dev = &ch->mtu->pdev->dev;
+	struct reset_control *rstc = ch->mtu->rstc;
 
-	if (!ch->cs_enabled)
-		return;
-	rz_mtu3_clk_stop(ch, FLAG_CLOCKSOURCE);
-	dev_pm_genpd_suspend(&ch->mtu->pdev->dev);
+	if (ch->cs_enabled)
+		rz_mtu3_clk_stop(ch, FLAG_CLOCKSOURCE);
+	dev_pm_genpd_suspend(dev);
+	reset_control_assert(rstc);
 }
 
 static void rz_mtu3_clk_clocksource_resume(struct clocksource *cs)
 {
 	struct rz_mtu3_clk_channel_priv *ch = cs_to_sh_mtu(cs);
+	struct device *dev = &ch->mtu->pdev->dev;
+	struct reset_control *rstc = ch->mtu->rstc;
+	int ret;
 
-	if (!ch->cs_enabled)
+	ret = reset_control_deassert(rstc);
+	if (ret) {
+		dev_err(dev, "failed to deassert reset control\n");
+		reset_control_assert(rstc);
 		return;
-	dev_pm_genpd_resume(&ch->mtu->pdev->dev);
-	rz_mtu3_clk_start(ch, FLAG_CLOCKSOURCE);
+	}
+
+	dev_pm_genpd_resume(dev);
+	if (ch->cs_enabled)
+		rz_mtu3_clk_start(ch, FLAG_CLOCKSOURCE);
 }
 
 static void rz_mtu3_clk_register_clockevent(struct rz_mtu3_clk_channel_priv *ch,
@@ -420,12 +431,16 @@ static int rz_mtu3_clk_setup(struct rz_mtu3_clk_device *mtu,
 	mtu->pdev = pdev;
 	raw_spin_lock_init(&mtu->lock);
 
+	/* Get hold of reset control */
+	mtu->rstc = ddata->rstc;
+	ret = reset_control_deassert(mtu->rstc);
+	if (ret) {
+		dev_err(&mtu->pdev->dev, "cannot deassert reset control\n");
+		goto err_rstc_assert;
+	}
+
 	/* Get hold of clock. */
 	mtu->clk = ddata->clk;
-	if (IS_ERR(mtu->clk)) {
-		dev_err(&mtu->pdev->dev, "cannot get clock\n");
-		return PTR_ERR(mtu->clk);
-	}
 
 	ret = clk_prepare(mtu->clk);
 	if (ret < 0)
@@ -473,6 +488,8 @@ err_unmap:
 	clk_unprepare(mtu->clk);
 err_clk_put:
 	clk_put(mtu->clk);
+err_rstc_assert:
+	reset_control_assert(mtu->rstc);
 	return ret;
 }
 

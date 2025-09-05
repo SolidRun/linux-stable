@@ -207,6 +207,7 @@ struct rz_mtu3 {
 	struct platform_device *pdev;
 
 	void *priv_data;
+	struct reset_control *rstc;
 };
 
 static inline bool rz_mtu3_request_channel(struct rz_mtu3_channel *ch)
