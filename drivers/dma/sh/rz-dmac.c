@@ -75,6 +75,7 @@ struct rz_dmac_chan {
 	u32 chcfg;
 	u32 chctrl;
 	int mid_rid;
+	int dmac_ack;
 
 	struct list_head ld_free;
 	struct list_head ld_queue;
@@ -166,6 +167,7 @@ struct rz_dmac {
 
 #define MID_RID_MASK			GENMASK(9, 0)
 #define CHCFG_MASK			GENMASK(15, 10)
+#define DMAC_ACK_MASK			GENMASK(22, 16)
 #define CHCFG_DS_INVALID		0xFF
 #define DCTRL_LVINT			BIT(1)
 #define DCTRL_PR			BIT(0)
@@ -342,6 +344,9 @@ static void rz_dmac_prepare_desc_for_memcpy(struct rz_dmac_chan *channel)
 		rzv2h_icu_register_dma_req(dmac->icu.pdev, dmac->icu.dmac_index,
 					   channel->index,
 					   RZV2H_ICU_DMAC_REQ_NO_DEFAULT);
+		rzv2h_icu_register_dma_ack(dmac->icu.pdev, dmac->icu.dmac_index,
+					   channel->dmac_ack,
+					   RZV2H_ICU_DMAC_ACK_NO_DEFAULT);
 	} else {
 		rz_dmac_set_dmars_register(dmac, channel->index, 0);
 	}
@@ -398,6 +403,8 @@ static void rz_dmac_prepare_descs_for_slave_sg(struct rz_dmac_chan *channel)
 	if (dmac->has_icu) {
 		rzv2h_icu_register_dma_req(dmac->icu.pdev, dmac->icu.dmac_index,
 					   channel->index, channel->mid_rid);
+		rzv2h_icu_register_dma_ack(dmac->icu.pdev, dmac->icu.dmac_index,
+					   channel->dmac_ack, channel->index);
 	} else {
 		rz_dmac_set_dmars_register(dmac, channel->index, channel->mid_rid);
 	}
@@ -480,7 +487,11 @@ static void rz_dmac_free_chan_resources(struct dma_chan *chan)
 
 	if (channel->mid_rid >= 0) {
 		clear_bit(channel->mid_rid, dmac->modules);
-		channel->mid_rid = -EINVAL;
+		if (dmac->has_icu) {
+			channel->mid_rid = RZV2H_ICU_DMAC_REQ_NO_DEFAULT;
+			channel->dmac_ack = RZV2H_ICU_DMAC_ACK_NO_DEFAULT;
+		} else
+			channel->mid_rid = -EINVAL;
 	}
 
 	spin_unlock_irqrestore(&channel->vc.lock, flags);
@@ -684,6 +695,9 @@ static void rz_dmac_device_synchronize(struct dma_chan *chan)
 		rzv2h_icu_register_dma_req(dmac->icu.pdev, dmac->icu.dmac_index,
 					   channel->index,
 					   RZV2H_ICU_DMAC_REQ_NO_DEFAULT);
+		rzv2h_icu_register_dma_ack(dmac->icu.pdev, dmac->icu.dmac_index,
+					   channel->dmac_ack,
+					   RZV2H_ICU_DMAC_ACK_NO_DEFAULT);
 	} else {
 		rz_dmac_set_dmars_register(dmac, channel->index, 0);
 	}
@@ -862,6 +876,9 @@ static int rz_dmac_device_pause(struct dma_chan *chan)
 		rzv2h_icu_register_dma_req(dmac->icu.pdev, dmac->icu.dmac_index,
 					   channel->index,
 					   RZV2H_ICU_DMAC_REQ_NO_DEFAULT);
+		rzv2h_icu_register_dma_ack(dmac->icu.pdev, dmac->icu.dmac_index,
+					   channel->dmac_ack,
+					   RZV2H_ICU_DMAC_ACK_NO_DEFAULT);
 	} else {
 		rz_dmac_set_dmars_register(dmac, channel->index, 0);
 	}
@@ -947,6 +964,9 @@ static bool rz_dmac_chan_filter(struct dma_chan *chan, void *arg)
 	struct of_phandle_args *dma_spec = arg;
 	u32 ch_cfg;
 
+	if (dmac->has_icu)
+		channel->dmac_ack = (dma_spec->args[0] & DMAC_ACK_MASK) >> 16;
+
 	channel->mid_rid = dma_spec->args[0] & MID_RID_MASK;
 	ch_cfg = (dma_spec->args[0] & CHCFG_MASK) >> 10;
 	channel->chcfg = CHCFG_FILL_TM(ch_cfg) | CHCFG_FILL_AM(ch_cfg) |
@@ -970,7 +990,6 @@ static struct dma_chan *rz_dmac_of_xlate(struct of_phandle_args *dma_spec,
 	return __dma_request_channel(&mask, rz_dmac_chan_filter, dma_spec,
 				     ofdma->of_node);
 }
-
 static int rz_dmac_init(struct rz_dmac *dmac)
 {
 	int i;
@@ -1034,7 +1053,11 @@ static int rz_dmac_chan_probe(struct rz_dmac *dmac,
 	int ret;
 
 	channel->index = index;
-	channel->mid_rid = -EINVAL;
+	if (dmac->has_icu) {
+		channel->mid_rid = RZV2H_ICU_DMAC_REQ_NO_DEFAULT;
+		channel->dmac_ack = RZV2H_ICU_DMAC_ACK_NO_DEFAULT;
+	} else
+		channel->mid_rid = -EINVAL;
 
 	/* Request the channel interrupt. */
 	sprintf(pdev_irqname, "ch%u", index);
