@@ -2051,6 +2051,42 @@
 			status = "disabled";
 		};
 
+		pcie0_ep: pcie-ep@13400000 {
+			compatible = "renesas,rzv2h-pcie-ep";
+			reg = <0x0 0x13400000 0x0 0x10000>,
+			      <0x0 0x30000000 0x0 0x04000000>,
+			      <0x0 0x34000000 0x0 0x04000000>;
+			reg-names = "apb-base", "memory0", "memory1";
+			interrupts = <GIC_SPI 791 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 0xc4>,
+				 <&cpg CPG_MOD 0xc5>;
+			power-domains = <&cpg>;
+			vendor-id = <0x1912>;
+			device-id = <0x003a>;
+			resets = <&cpg 0xb2>;
+			pcie,channel = <0>;
+			renesas,pcie-sys = <&sys>;
+			status = "disabled";
+		};
+
+		pcie1_ep: pcie-ep@13410000 {
+			compatible = "renesas,rzv2h-pcie-ep";
+			reg = <0x0 0x13410000 0x0 0x10000>,
+			      <0x0 0x38000000 0x0 0x04000000>,
+			      <0x0 0x3c000000 0x0 0x04000000>;
+			reg-names = "apb-base", "memory0", "memory1";
+			interrupts = <GIC_SPI 819 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 0xc4>,
+				 <&cpg CPG_MOD 0xc5>;
+			power-domains = <&cpg>;
+			vendor-id = <0x1912>;
+			device-id = <0x003a>;
+			resets = <&cpg 0xb2>;
+			pcie,channel = <1>;
+			renesas,pcie-sys = <&sys>;
+			status = "disabled";
+		};
+
 		cmtw0: timer@11C01800 {
 			compatible = "renesas,rzv2h-cmtw";
 			reg = <0 0x11C01800 0 0x1000>;
