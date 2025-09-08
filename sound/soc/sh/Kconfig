@@ -63,6 +63,18 @@ config SND_SOC_RZG3S_SPDIF
 	help
 	  This option enables RZ/G3S SPDIF sound support.
 
+config SND_SOC_RZ_PDM
+	tristate "Renesas RZ PDM support"
+	help
+	  This option enables Renesas RZ pulse density modulation sound interface
+	  a.k.a PDM support on RZ MPUs.
+	  The PDM interface allows direct connection of digital MEMS microphones,
+	  converting 1-bit PDM data into 16-20 bits PCM audio.
+          Enabling this option will allow the use of the PDM driver for
+	  supported SoCs, providing audio capture functionality.
+          Select this option if your platform includes a PDM interface
+	  and requires audio input from PDM microphones.
+
 ##
 ## Boards
 ##
