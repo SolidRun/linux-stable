@@ -105,12 +105,18 @@ struct rzv2h_hw_info {
 
 /* DMAC */
 #define ICU_DMAC_DkRQ_SEL_MASK			GENMASK(9, 0)
+#define ICU_DMAC_DkACK_SEL_MASK			GENMASK(6, 0)
 
 #define ICU_DMAC_DMAREQ_SHIFT(up)		((up) * 16)
 #define ICU_DMAC_DMAREQ_MASK(up)		(ICU_DMAC_DkRQ_SEL_MASK \
 						 << ICU_DMAC_DMAREQ_SHIFT(up))
 #define ICU_DMAC_PREP_DMAREQ(sel, up)		(FIELD_PREP(ICU_DMAC_DkRQ_SEL_MASK, (sel)) \
 						 << ICU_DMAC_DMAREQ_SHIFT(up))
+
+#define ICU_DMAC_DACK_SEL_SHIFT(field_no)	((field_no) * 8)
+#define ICU_DMAC_DACK_SEL_MASK(field_no)	(ICU_DMAC_DkACK_SEL_MASK \
+						<< ICU_DMAC_DACK_SEL_SHIFT(field_no))
+#define ICU_DMAC_PREP_DACK_SEL(sel, field_no)	((sel) << ICU_DMAC_DACK_SEL_SHIFT(field_no))
 
 /**
  * struct rzv2h_icu_priv - Interrupt Control Unit controller private data structure.
@@ -146,6 +152,29 @@ void rzv2h_icu_register_dma_req(struct platform_device *icu_dev, u8 dmac_index, 
 	writel(icu_dmksely, priv->base + ICU_DMkSELy(dmac_index, y));
 }
 EXPORT_SYMBOL_GPL(rzv2h_icu_register_dma_req);
+
+void rzv2h_icu_register_dma_ack (struct platform_device *icu_dev, u8 dmac_index,
+					u8 ack_no, u8 dmac_channel)
+{
+	struct rzv2h_icu_priv *priv = platform_get_drvdata(icu_dev);
+	u32 icu_dmackselk, dmaack, dmaack_mask;
+	u8 k, field_no, sel;
+
+	k  = ack_no / 4;
+	field_no = ack_no % 4;
+
+	sel = dmac_channel + (16 * dmac_index);
+
+	dmaack_mask = ICU_DMAC_DACK_SEL_MASK(field_no);
+	dmaack = ICU_DMAC_PREP_DACK_SEL(sel, field_no);
+
+	guard(raw_spinlock_irqsave)(&priv->lock);
+
+	icu_dmackselk = readl(priv->base + ICU_DMACKSELk(k));
+	icu_dmackselk = (icu_dmackselk & ~dmaack_mask) | dmaack;
+	writel(icu_dmackselk, priv->base + ICU_DMACKSELk(k));
+}
+EXPORT_SYMBOL_GPL(rzv2h_icu_register_dma_ack);
 
 static inline struct rzv2h_icu_priv *irq_data_to_priv(struct irq_data *data)
 {
