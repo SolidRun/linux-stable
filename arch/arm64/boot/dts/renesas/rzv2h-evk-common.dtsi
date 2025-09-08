@@ -68,6 +68,9 @@
  *	RSCI_SPI (not support for RSCI5)
  * RSPI2_RSCI9_SEL:
  *	1 - RSCI9		0 - RSPI2 (default)
+ * SEL_PCIE_MODE:
+ * 	0: Root Complex mode (default)
+ *	1: Endpoint mode
  */
 
 / {
@@ -1409,8 +1412,14 @@
 	status = "okay";
 };
 
+#if (!SEL_PCIE_MODE)
 &pcie0 {
 	/* First 128MB is reserved for secure area. */
 	dma-ranges = <0x42000000 0 0x48000000 0 0x48000000 0x3 0xF8000000>;
 	status = "okay";
 };
+#else
+&pcie0_ep {
+	status = "okay";
+};
+#endif

@@ -16,6 +16,7 @@
 #define RSPI2_RSCI9_SEL			0
 #define RSCI9_SEL			RSCI_UART
 #define I2C2_I3C_SEL			0
+#define SEL_PCIE_MODE			0
 
 #if (RSCI9_SEL != RSCI_UART && RSCI9_SEL != RSCI_I2C && RSCI9_SEL != RSCI_SPI)
 #error "Cannot set mode for RSCI9"
