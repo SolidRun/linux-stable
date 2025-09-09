@@ -1127,6 +1127,9 @@ static int renesas_i3c_master_i2c_xfers(struct i2c_dev_desc *dev,
 
 	renesas_i3c_master_enqueue_xfer(master, xfer);
 
+	/* Clear Interrupt enable registers */
+	i3c_reg_write(master->regs, NTIE, 0);
+
 	for (i = 0, start_bit = CNDCTL_STCND; i < i2c_nxfers; i++) {
 		cmd->i2c_bytes_left = I2C_INIT_MSG;
 		cmd->i2c_buf = i2c_xfers[i].buf;
@@ -1134,7 +1137,6 @@ static int renesas_i3c_master_i2c_xfers(struct i2c_dev_desc *dev,
 		cmd->i2c_is_last = (i == i2c_nxfers - 1);
 		i3c_reg_set_bit(master->regs, BIE, BIE_NACKDIE);
 		i3c_reg_set_bit(master->regs, NTIE, NTIE_TDBEIE0);
-		i3c_reg_set_bit(master->regs, BIE, BIE_STCNDDIE);
 
 		/* Issue Start condition */
 		i3c_reg_set_bit(master->regs, CNDCTL, start_bit);
@@ -1204,11 +1206,22 @@ static irqreturn_t i3c_tx_isr(int irq, void *data)
 		if (!cmd->i2c_bytes_left)
 			return IRQ_NONE;
 
-		if (cmd->i2c_bytes_left != I2C_INIT_MSG) {
+		if (cmd->i2c_bytes_left == I2C_INIT_MSG) {
+			if (cmd->msg->flags & I2C_M_RD) {
+				/* On read, switch over to receive interrupt */
+				i3c_reg_clear_bit(master->regs, NTIE,
+						  NTIE_TDBEIE0);
+				i3c_reg_set_bit(master->regs, NTIE,
+						NTIE_RDBFIE0);
+			} else
+				/* On write, initialize length */
+				cmd->i2c_bytes_left = cmd->msg->len;
+
+			val = i2c_8bit_addr_from_msg(cmd->msg);
+		} else {
 			val = *cmd->i2c_buf;
 			cmd->i2c_buf++;
 			cmd->i2c_bytes_left--;
-			i3c_reg_write(master->regs, NTDTBP0, val);
 		}
 
 		if (cmd->i2c_bytes_left == 0) {
@@ -1216,8 +1229,7 @@ static irqreturn_t i3c_tx_isr(int irq, void *data)
 			i3c_reg_set_bit(master->regs, BIE, BIE_TENDIE);
 		}
 
-		/* Clear the Transmit Buffer Empty status flag. */
-		i3c_reg_clear_bit(master->regs, NTST, NTST_TDBEF0);
+		i3c_reg_write(master->regs, NTDTBP0, val);
 	} else
 		renesas_i3c_master_write_to_tx_fifo(master, cmd->tx_buf,
 							cmd->len);
@@ -1347,9 +1359,6 @@ static irqreturn_t i3c_tend_isr(int irq, void *data)
 		}
 	}
 
-	/* Clear the Transmit Buffer Empty status flag. */
-	i3c_reg_clear_bit(master->regs, BST, BST_TENDF);
-
 	return IRQ_HANDLED;
 }
 
@@ -1411,9 +1420,6 @@ static irqreturn_t i3c_rx_isr(int irq, void *data)
 		}
 	}
 
-	/* Clear the Read Buffer Full status flag. */
-	i3c_reg_clear_bit(master->regs, NTST, NTST_RDBFF0);
-
 	return IRQ_HANDLED;
 }
 
@@ -1431,37 +1437,6 @@ static irqreturn_t i3c_stop_isr(int irq, void *data)
 
 	xfer->ret = 0;
 	complete(&xfer->comp);
-
-	return IRQ_HANDLED;
-}
-
-static irqreturn_t i3c_start_isr(int irq, void *data)
-{
-	struct renesas_i3c_master *master = data;
-	struct renesas_i3c_xfer *xfer = master->xferqueue.cur;
-	struct renesas_i3c_cmd *cmd = xfer->cmds;
-	u8 val;
-
-	if (xfer->is_i2c_xfer) {
-		if (!cmd->i2c_bytes_left)
-			return IRQ_NONE;
-
-		if (cmd->i2c_bytes_left == I2C_INIT_MSG) {
-			if (cmd->msg->flags & I2C_M_RD) {
-				/* On read, switch over to receive interrupt */
-				i3c_reg_clear_bit(master->regs, NTIE, NTIE_TDBEIE0);
-				i3c_reg_set_bit(master->regs, NTIE, NTIE_RDBFIE0);
-			} else
-				/* On write, initialize length */
-				cmd->i2c_bytes_left = cmd->msg->len;
-
-			val = i2c_8bit_addr_from_msg(cmd->msg);
-			i3c_reg_write(master->regs, NTDTBP0, val);
-		}
-	}
-
-	i3c_reg_clear_bit(master->regs, BIE, BIE_STCNDDIE);
-	i3c_reg_clear_bit(master->regs, BST, BST_STCNDDF);
 
 	return IRQ_HANDLED;
 }
@@ -1485,7 +1460,6 @@ static struct i3c_irq_desc i3c_irqs[] = {
 	{ .name = "resp", .isr = i3c_resp_isr, .desc = "i3c-resp" },
 	{ .name = "rx", .isr = i3c_rx_isr, .desc = "i3c-rx" },
 	{ .name = "tx", .isr = i3c_tx_isr, .desc = "i3c-tx" },
-	{ .name = "st", .isr = i3c_start_isr, .desc = "i3c-start" },
 	{ .name = "sp", .isr = i3c_stop_isr, .desc = "i3c-stop" },
 	{ .name = "tend", .isr = i3c_tend_isr, .desc = "i3c-tend" },
 	{ .name = "nack", .isr = i3c_tend_isr, .desc = "i3c-nack" },
