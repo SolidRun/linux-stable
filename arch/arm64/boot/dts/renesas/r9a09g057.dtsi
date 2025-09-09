@@ -3478,6 +3478,13 @@
 	};
 
 	thermal-zones {
+		emergency {
+			polling-delay = <1000>;
+			on-temperature = <110000>;
+			off-temperature = <95000>;
+			target_cpus = <&cpu1 &cpu2 &cpu3>;
+			status = "disabled";
+		};
 		cpu-thermal0 {
 			polling-delay = <1000>;
 			polling-delay-passive = <250>;
