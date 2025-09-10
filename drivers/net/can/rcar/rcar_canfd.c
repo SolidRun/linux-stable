@@ -86,7 +86,8 @@
 ({\
 	typeof(gpriv) (_gpriv) = (gpriv); \
 	((x) & ((FIELD_PREP(RCANFD_GERFL_EEF, (_gpriv)->channels_mask)) | \
-		RCANFD_GERFL_MES | ((_gpriv)->fdmode ? RCANFD_GERFL_CMPOF : 0))); \
+		RCANFD_GERFL_MES | (((_gpriv)->mode != ONLY_CLASSICAL_CAN_MODE) ? \
+				    RCANFD_GERFL_CMPOF : 0))); \
 })
 
 /* AFL Rx rules registers */
@@ -479,6 +480,12 @@ struct rcar_canfd_channel {
 	spinlock_t tx_lock;			/* To protect tx path */
 };
 
+enum rcar_canfd_mode {
+	ONLY_CANFD_MODE = 0,
+	ONLY_CLASSICAL_CAN_MODE,
+	DUAL_MODE,
+};
+
 /* Global priv data */
 struct rcar_canfd_global {
 	struct rcar_canfd_channel *ch[RCANFD_NUM_CHANNELS];
@@ -490,7 +497,7 @@ struct rcar_canfd_global {
 	struct clk *clk_ram;
 	unsigned long channels_mask;	/* Enabled channels mask */
 	bool extclk;			/* CANFD or Ext clock */
-	bool fdmode;			/* CAN FD or Classical CAN only mode */
+	enum rcar_canfd_mode mode;	/* Only-FD or Only-Classical or Dualmode */
 	struct device *dev;
 	struct reset_control *rstc1;
 	struct reset_control *rstc2;
@@ -797,22 +804,19 @@ static void rcar_canfd_set_rnc(struct rcar_canfd_global *gpriv, unsigned int ch,
 	rcar_canfd_set_bit(gpriv->base, RCANFD_GAFLCFG(w), rnc);
 }
 
-static void rcar_canfd_set_mode(struct rcar_canfd_global *gpriv)
+static void rcar_canfd_set_mode(struct rcar_canfd_global *gpriv, u32 ch)
 {
 	if (gpriv->info->ch_interface_mode) {
-		u32 ch, val = gpriv->fdmode ? RCANFD_GEN4_FDCFG_FDOE
-					    : RCANFD_GEN4_FDCFG_CLOE;
+		u32 val;
 
-		for_each_set_bit(ch, &gpriv->channels_mask,
-				 gpriv->info->max_channels)
-			rcar_canfd_set_bit_reg(&gpriv->fcbase[ch].cfdcfg, val);
-	} else {
-		if (gpriv->fdmode)
-			rcar_canfd_set_bit(gpriv->base, RCANFD_GRMCFG,
-					   RCANFD_GRMCFG_RCMC);
+		if (gpriv->mode == ONLY_CANFD_MODE)
+			val = RCANFD_GEN4_FDCFG_FDOE;
+		else if (gpriv->mode == ONLY_CLASSICAL_CAN_MODE)
+			val = RCANFD_GEN4_FDCFG_CLOE;
 		else
-			rcar_canfd_clear_bit(gpriv->base, RCANFD_GRMCFG,
-					     RCANFD_GRMCFG_RCMC);
+			val = 0;
+
+		rcar_canfd_set_bit_reg(&gpriv->fcbase[ch].cfdcfg, val);
 	}
 }
 
@@ -855,9 +859,15 @@ static int rcar_canfd_reset_controller(struct rcar_canfd_global *gpriv)
 	/* Reset Global error flags */
 	rcar_canfd_write(gpriv->base, RCANFD_GERFL, 0x0);
 
-	/* Set the controller into appropriate mode */
-	if (gpriv->info->classical_can)
-		rcar_canfd_set_mode(gpriv);
+	/* Set mode for controller */
+	if (!gpriv->info->ch_interface_mode) {
+		if (gpriv->mode != ONLY_CLASSICAL_CAN_MODE)
+			rcar_canfd_set_bit(gpriv->base, RCANFD_GRMCFG,
+					   RCANFD_GRMCFG_RCMC);
+		else
+			rcar_canfd_clear_bit(gpriv->base, RCANFD_GRMCFG,
+					     RCANFD_GRMCFG_RCMC);
+	}
 
 	/* Transition all Channels to reset mode */
 	for_each_set_bit(ch, &gpriv->channels_mask, gpriv->info->max_channels) {
@@ -876,6 +886,9 @@ static int rcar_canfd_reset_controller(struct rcar_canfd_global *gpriv)
 			dev_dbg(dev, "channel %u reset failed\n", ch);
 			goto fail_pm_put;
 		}
+		/* Set the controller into appropriate mode */
+		if (gpriv->info->classical_can)
+			rcar_canfd_set_mode(gpriv, ch);
 	}
 
 fail_pm_put:
@@ -892,7 +905,7 @@ static void rcar_canfd_configure_controller(struct rcar_canfd_global *gpriv)
 	/* ECC Error flag Enable */
 	cfg = RCANFD_GCFG_EEFE;
 
-	if (gpriv->fdmode)
+	if (gpriv->mode != ONLY_CLASSICAL_CAN_MODE)
 		/* Truncate payload to configured message size RFPLS */
 		cfg |= RCANFD_GCFG_CMPOC;
 
@@ -929,7 +942,7 @@ static void rcar_canfd_configure_afl_rules(struct rcar_canfd_global *gpriv,
 	rcar_canfd_set_rnc(gpriv, ch, num_rules);
 	if (gpriv->info->shared_can_regs)
 		offset = RCANFD_GEN4_GAFL_OFFSET;
-	else if (gpriv->fdmode)
+	else if (gpriv->mode != ONLY_CLASSICAL_CAN_MODE)
 		offset = RCANFD_F_GAFL_OFFSET;
 	else
 		offset = RCANFD_C_GAFL_OFFSET;
@@ -959,7 +972,7 @@ static void rcar_canfd_configure_rx(struct rcar_canfd_global *gpriv, u32 ch)
 	u32 ridx = ch + RCANFD_RFFIFO_IDX;
 
 	rfdc = 2;		/* b010 - 8 messages Rx FIFO depth */
-	if (gpriv->fdmode)
+	if (gpriv->mode != ONLY_CLASSICAL_CAN_MODE)
 		rfpls = 7;	/* b111 - Max 64 bytes payload */
 	else
 		rfpls = 0;	/* b000 - Max 8 bytes payload */
@@ -983,7 +996,7 @@ static void rcar_canfd_configure_tx(struct rcar_canfd_global *gpriv, u32 ch)
 	cftml = 0;		/* 0th buffer */
 	cfm = 1;		/* b01 - Transmit mode */
 	cfdc = 2;		/* b010 - 8 messages Tx FIFO depth */
-	if (gpriv->fdmode)
+	if (gpriv->mode != ONLY_CLASSICAL_CAN_MODE)
 		cfpls = 7;	/* b111 - Max 64 bytes payload */
 	else
 		cfpls = 0;	/* b000 - Max 8 bytes payload */
@@ -993,7 +1006,7 @@ static void rcar_canfd_configure_tx(struct rcar_canfd_global *gpriv, u32 ch)
 		RCANFD_CFCC_CFPLS(cfpls) | RCANFD_CFCC_CFTXIE);
 	rcar_canfd_write(gpriv->base, RCANFD_CFCC(gpriv, ch, RCANFD_CFFIFO_IDX), cfg);
 
-	if (gpriv->fdmode)
+	if (gpriv->mode != ONLY_CLASSICAL_CAN_MODE)
 		/* Clear FD mode specific control/status register */
 		rcar_canfd_write(gpriv->base,
 				 RCANFD_F_CFFDCSTS(gpriv, ch, RCANFD_CFFIFO_IDX), 0);
@@ -1008,7 +1021,7 @@ static void rcar_canfd_enable_global_interrupts(struct rcar_canfd_global *gpriv)
 
 	/* Global interrupts setup */
 	ctr = RCANFD_GCTR_MEIE;
-	if (gpriv->fdmode)
+	if (gpriv->mode != ONLY_CLASSICAL_CAN_MODE)
 		ctr |= RCANFD_GCTR_CFMPOFIE;
 
 	rcar_canfd_set_bit(gpriv->base, RCANFD_GCTR, ctr);
@@ -1090,7 +1103,7 @@ static void rcar_canfd_global_error(struct net_device *ndev)
 					 sts & ~RCANFD_RFSTS_RFMLT);
 		}
 	}
-	if (gpriv->fdmode && gerfl & RCANFD_GERFL_CMPOF) {
+	if ((gpriv->mode != ONLY_CLASSICAL_CAN_MODE) && gerfl & RCANFD_GERFL_CMPOF) {
 		/* Message Lost flag will be set for respective channel
 		 * when this condition happens with counters and flags
 		 * already updated.
@@ -1949,7 +1962,7 @@ static int rcar_canfd_channel_probe(struct rcar_canfd_global *gpriv, u32 ch,
 		}
 	}
 
-	if (gpriv->fdmode) {
+	if (gpriv->mode != ONLY_CLASSICAL_CAN_MODE) {
 		priv->can.bittiming_const = gpriv->info->nom_bittiming;
 		priv->can.fd.data_bittiming_const = gpriv->info->data_bittiming;
 		priv->can.fd.tdc_const = gpriv->info->tdc_const;
@@ -2061,7 +2074,8 @@ static int rcar_canfd_probe(struct platform_device *pdev)
 	unsigned long channels_mask = 0;
 	int err, ch_irq, g_irq;
 	int g_err_irq, g_recc_irq;
-	bool fdmode = true;			/* CAN FD only mode - default */
+	enum rcar_canfd_mode mode = ONLY_CANFD_MODE;	/* CAN FD only mode - default */
+	char *mode_name[3] = {"fd", "classical", "dual"};
 	char name[9] = "channelX";
 	struct clk *clk_ram;
 	int i;
@@ -2069,7 +2083,15 @@ static int rcar_canfd_probe(struct platform_device *pdev)
 	info = of_device_get_match_data(dev);
 
 	if (of_property_read_bool(dev->of_node, "renesas,no-can-fd"))
-		fdmode = false;			/* Classical CAN only mode */
+		mode = ONLY_CLASSICAL_CAN_MODE;		/* Classical CAN only mode */
+	if (of_property_read_bool(dev->of_node, "renesas,can-fd-dualmode")) {
+		if (mode == ONLY_CLASSICAL_CAN_MODE) {
+			mode = ONLY_CANFD_MODE;
+			dev_warn(dev, "Do not set 2 operation modes in devicetree.\n");
+		} else {
+			mode = DUAL_MODE;		/* CAN-FD dual mode */
+		}
+	}
 
 	for (i = 0; i < info->max_channels; ++i) {
 		name[7] = '0' + i;
@@ -2118,7 +2140,7 @@ static int rcar_canfd_probe(struct platform_device *pdev)
 	gpriv->pdev = pdev;
 	gpriv->dev = dev;
 	gpriv->channels_mask = channels_mask;
-	gpriv->fdmode = fdmode;
+	gpriv->mode = mode;
 	gpriv->info = info;
 
 	gpriv->rstc1 = devm_reset_control_get_optional_exclusive(dev, "rstp_n");
@@ -2245,7 +2267,7 @@ static int rcar_canfd_probe(struct platform_device *pdev)
 
 	dev_info(dev, "global operational state (%s clk, %s mode)\n",
 		 gpriv->extclk ? "ext" : "canfd",
-		 gpriv->fdmode ? "fd" : "classical");
+		 mode_name[gpriv->mode]);
 
 	return 0;
 

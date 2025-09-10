@@ -62,9 +62,16 @@ properties:
   renesas,no-can-fd:
     $ref: /schemas/types.yaml#/definitions/flag
     description:
-      The controller can operate in either CAN FD only mode (default) or
-      Classical CAN only mode.  The mode is global to both the channels.
-      Specify this property to put the controller in Classical CAN only mode.
+      The controller can operate in up to 3 modes (CAN FD only mode (default) or
+      Classical CAN only mode or CAN FD dual mode).  The mode is global to all
+      the channels. Specify this property to put the controller in Classical
+      CAN only mode.
+
+  renesas,can-fd-dualmode:
+    $ref: /schemas/types.yaml#/definitions/flag
+    description:
+      The controller can operate in CAN FD dual mode (CAN FD and Classical CAN frame)
+      when this property is added to the device tree.
 
   assigned-clocks:
     description:
