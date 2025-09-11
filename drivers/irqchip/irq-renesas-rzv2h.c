@@ -270,6 +270,7 @@ static int rzv2h_nmi_set_type(struct irq_data *d, unsigned int type)
 	}
 
 	writel_relaxed(sense, priv->base + ICU_NITSR);
+	writel_relaxed(ICU_NSCLR_NCLR, priv->base + ICU_NITSR);
 
 	return 0;
 }
