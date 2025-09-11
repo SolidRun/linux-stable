@@ -790,14 +790,6 @@
 	shared-pin;
 };
 
-&spdif0 {
-	pio-transfer;
-};
-
-&spdif2 {
-	pio-transfer;
-};
-
 &mdio0 {
 	phy0: ethernet-phy@0 {
 		compatible = "ethernet-phy-id0022.1640", "ethernet-phy-ieee802.3-c22";
