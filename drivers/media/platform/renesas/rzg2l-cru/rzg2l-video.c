@@ -417,6 +417,10 @@ static int rzg2l_cru_initialize_image_conv(struct rzg2l_cru_dev *cru,
 
 	icnmc = rzg2l_cru_read(cru, info->image_conv);
 	if (!(icnmc & ICnMC_DEMTHR)) {
+		if (cru->info->cru_type == RZV2H_CRU_TYPE) {
+			dev_err(cru->dev, "Only support Demosaicing for RZ/G2L Series\n");
+			return -ENOEXEC;
+		}
 		icnmc &= ~ICnMC_RAWSTTYP_MASK;
 
 		switch (cru->code) {

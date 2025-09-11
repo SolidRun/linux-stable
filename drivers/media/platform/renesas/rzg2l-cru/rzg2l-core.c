@@ -407,8 +407,8 @@ static int rzg2l_cru_probe(struct platform_device *pdev)
 	ctrl->flags &= ~V4L2_CTRL_FLAG_READ_ONLY;
 
 	for (i = 0; i < num_ctrls; i++) {
-		if ((cru->info->cru_type == RZV2H_CRU_TYPE) && (cru->id > 1) &&
-		    (rzg2l_cru_ctrls[i].id >= V4L2_CID_CRU_STATISTICS) &&
+		if ((cru->info->cru_type == RZV2H_CRU_TYPE) &&
+		    (rzg2l_cru_ctrls[i].id >= V4L2_CID_CRU_LINEAR_MATRIX) &&
 		    (rzg2l_cru_ctrls[i].id <= V4L2_CID_CRU_SD_STSADPOS))
 			continue;
 		v4l2_ctrl_new_custom(&cru->ctrl_handler,
