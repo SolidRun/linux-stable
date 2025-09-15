@@ -20,6 +20,7 @@
 #include <linux/pm_runtime.h>
 #include <linux/reset.h>
 #include <linux/spinlock.h>
+#include <linux/syscore_ops.h>
 
 /* DT "interrupts" indexes */
 #define ICU_IRQ_START				1
@@ -39,6 +40,7 @@
 #define ICU_TSCLR				0x24
 #define ICU_TITSR(k)				(0x28 + (k) * 4)
 #define ICU_TSSR(k)				(0x30 + (k) * 4)
+#define ICU_IPTSR				0x60
 #define ICU_DMkSELy(k, y)			(0x420 + (k) * 0x20 + (y) * 4)
 #define ICU_DMACKSELk(k)			(0x500 + (k) * 4)
 
@@ -175,6 +177,15 @@ void rzv2h_icu_register_dma_ack (struct platform_device *icu_dev, u8 dmac_index,
 	writel(icu_dmackselk, priv->base + ICU_DMACKSELk(k));
 }
 EXPORT_SYMBOL_GPL(rzv2h_icu_register_dma_ack);
+
+static struct rzv2h_irqc_reg_cache {
+	void __iomem	*base;
+	u32		nitsr;
+	u32		iitsr;
+	u32		iptsr;
+	u32		titsr[2];
+	u32		tssr[16];
+} *rzv2h_irqc_reg_cache_data;
 
 static inline struct rzv2h_icu_priv *irq_data_to_priv(struct irq_data *data)
 {
@@ -442,6 +453,48 @@ static int rzv2h_icu_set_type(struct irq_data *d, unsigned int type)
 	return irq_chip_set_type_parent(d, IRQ_TYPE_LEVEL_HIGH);
 }
 
+static int rzv2h_irqc_irq_suspend(void)
+{
+	void __iomem *base = rzv2h_irqc_reg_cache_data->base;
+
+	rzv2h_irqc_reg_cache_data->nitsr = readl_relaxed(base + ICU_NITSR);
+	rzv2h_irqc_reg_cache_data->iitsr = readl_relaxed(base + ICU_IITSR);
+	rzv2h_irqc_reg_cache_data->iptsr = readl_relaxed(base + ICU_IPTSR);
+
+	for (u8 i = 0; i < 2; i++)
+		rzv2h_irqc_reg_cache_data->titsr[i] = readl_relaxed(base + ICU_TITSR(i));
+
+	for (u8 i = 0; i < 16; i++)
+		rzv2h_irqc_reg_cache_data->tssr[i] = readl_relaxed(base + ICU_TSSR(i));
+
+	return 0;
+}
+
+static void rzv2h_irqc_irq_resume(void)
+{
+	void __iomem *base = rzv2h_irqc_reg_cache_data->base;
+
+	/*
+	 * Restore only interrupt type. TSSRx will be restored at the
+	 * request of pin controller to avoid spurious interrupts due
+	 * to invalid PIN states.
+	 */
+	for (u8 i = 0; i < 2; i++)
+		writel_relaxed(rzv2h_irqc_reg_cache_data->titsr[i], base + ICU_TITSR(i));
+
+	for (u8 i = 0; i < 16; i++)
+		writel_relaxed(rzv2h_irqc_reg_cache_data->tssr[i], base + ICU_TSSR(i));
+
+	writel_relaxed(rzv2h_irqc_reg_cache_data->nitsr, base + ICU_NITSR);
+	writel_relaxed(rzv2h_irqc_reg_cache_data->iitsr, base + ICU_IITSR);
+	writel_relaxed(rzv2h_irqc_reg_cache_data->iptsr, base + ICU_IPTSR);
+}
+
+static struct syscore_ops rzv2h_irqc_syscore_ops = {
+	.suspend	= rzv2h_irqc_irq_suspend,
+	.resume		= rzv2h_irqc_irq_resume,
+};
+
 static const struct irq_chip rzv2h_icu_chip = {
 	.name			= "rzv2h-icu",
 	.irq_eoi		= rzv2h_icu_eoi,
@@ -559,6 +612,10 @@ static int rzv2h_icu_init_common(struct device_node *node, struct device_node *p
 	if (IS_ERR(rzv2h_icu_data->base))
 		return PTR_ERR(rzv2h_icu_data->base);
 
+	rzv2h_irqc_reg_cache_data = devm_kzalloc(&pdev->dev,
+					sizeof(*rzv2h_irqc_reg_cache_data), GFP_KERNEL);
+	rzv2h_irqc_reg_cache_data->base = rzv2h_icu_data->base;
+
 	ret = rzv2h_icu_parse_interrupts(rzv2h_icu_data, node);
 	if (ret) {
 		dev_err(&pdev->dev, "cannot parse interrupts: %d\n", ret);
@@ -594,6 +651,7 @@ static int rzv2h_icu_init_common(struct device_node *node, struct device_node *p
 	}
 
 	rzv2h_icu_data->info = hw_info;
+	register_syscore_ops(&rzv2h_irqc_syscore_ops);
 
 	/*
 	 * coccicheck complains about a missing put_device call before returning, but it's a false
