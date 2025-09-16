@@ -92,6 +92,7 @@ struct rzv2h_rspi_priv {
 	struct spi_controller *controller;
 	void __iomem *base;
 	struct clk *tclk;
+	struct clk_bulk_data *clks;
 	wait_queue_head_t wait;
 	unsigned int bytes_per_word;
 	u32 freq;
@@ -754,7 +755,6 @@ static int rzv2h_rspi_probe(struct platform_device *pdev)
 	struct spi_controller *controller;
 	struct device *dev = &pdev->dev;
 	struct rzv2h_rspi_priv *rspi;
-	struct clk_bulk_data *clks;
 	struct resource *res;
 	unsigned long tclk_rate;
 	int ret, i, mode;
@@ -783,13 +783,13 @@ static int rzv2h_rspi_probe(struct platform_device *pdev)
 
 	rspi->phys = res->start;
 
-	ret = devm_clk_bulk_get_all_enabled(dev, &clks);
+	ret = devm_clk_bulk_get_all_enabled(dev, &(rspi->clks));
 	if (ret != RSPI_CLK_NUM)
 		return dev_err_probe(dev, ret >= 0 ? -EINVAL : ret,
 				     "cannot get clocks\n");
 	for (i = 0; i < RSPI_CLK_NUM; i++) {
-		if (!strcmp(clks[i].id, "tclk")) {
-			rspi->tclk = clks[i].clk;
+		if (!strcmp(rspi->clks[i].id, "tclk")) {
+			rspi->tclk = rspi->clks[i].clk;
 			break;
 		}
 	}
@@ -907,11 +907,54 @@ static const struct of_device_id rzv2h_rspi_match[] = {
 };
 MODULE_DEVICE_TABLE(of, rzv2h_rspi_match);
 
+static int rzv2h_rspi_suspend(struct device *dev)
+{
+	struct rzv2h_rspi_priv *rspi = dev_get_drvdata(dev);
+	int ret;
+
+	ret = spi_controller_suspend(rspi->controller);
+	if (ret)
+		return ret;
+
+	reset_control_bulk_assert(RSPI_RESET_NUM, rspi->resets);
+	clk_bulk_disable_unprepare(RSPI_CLK_NUM, rspi->clks);
+
+	return 0;
+}
+
+static int rzv2h_rspi_resume(struct device *dev)
+{
+	struct rzv2h_rspi_priv *rspi = dev_get_drvdata(dev);
+	int ret;
+
+	ret = reset_control_bulk_reset(RSPI_RESET_NUM, rspi->resets);
+	if (ret)
+		return ret;
+
+	ret = clk_bulk_prepare_enable(RSPI_CLK_NUM, rspi->clks);
+	if (ret) {
+		reset_control_bulk_assert(RSPI_RESET_NUM, rspi->resets);
+		return ret;
+	}
+
+	ret = spi_controller_resume(rspi->controller);
+	if (ret) {
+		clk_bulk_disable_unprepare(RSPI_CLK_NUM, rspi->clks);
+		reset_control_bulk_assert(RSPI_RESET_NUM, rspi->resets);
+		return ret;
+	}
+
+	return 0;
+}
+
+static DEFINE_SIMPLE_DEV_PM_OPS(rzv2h_rspi_pm_ops, rzv2h_rspi_suspend, rzv2h_rspi_resume);
+
 static struct platform_driver rzv2h_rspi_drv = {
 	.probe = rzv2h_rspi_probe,
 	.remove = rzv2h_rspi_remove,
 	.driver = {
 		.name = "rzv2h_rspi",
+		.pm	= pm_sleep_ptr(&rzv2h_rspi_pm_ops),
 		.of_match_table = rzv2h_rspi_match,
 	},
 };
