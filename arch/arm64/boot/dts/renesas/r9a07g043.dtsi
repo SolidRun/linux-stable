@@ -627,6 +627,13 @@
 				 <&cpg R9A07G043_GPIO_SPARE_RESETN>;
 		};
 
+		edac: edac@11410000 {
+			compatible = "renesas,r9a07g043-edac";
+			reg = <0 0x11410000 0 0x10000>;
+			interrupts = <SOC_PERIPHERAL_IRQ(40) IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "ecc_irq";
+		};
+
 		dmac: dma-controller@11820000 {
 			compatible = "renesas,r9a07g043-dmac",
 				     "renesas,rz-dmac";
