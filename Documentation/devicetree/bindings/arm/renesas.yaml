@@ -512,6 +512,17 @@ properties:
               - renesas,r9a09g057h44 # RZ/V2HP with Mali-G31 + Mali-C55 support
           - const: renesas,r9a09g057
 
+      - description: RZ/V2N(P) (R9A09G056)
+        items:
+          - enum:
+              - renesas,r9a09g056n44-dev        # Dev EVK
+              - renesas,r9a09g056n44-evk        # EVK
+          - enum:
+              - renesas,r9a09g056n41 # RZ/V2N
+              - renesas,r9a09g056n42 # RZ/V2N with Mali-G31 support
+              - renesas,r9a09g056n44 # RZ/V2NP with Mali-G31 + Mali-C55 support
+          - const: renesas,r9a09g056
+
 additionalProperties: true
 
 ...
