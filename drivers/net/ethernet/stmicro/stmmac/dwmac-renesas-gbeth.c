@@ -43,6 +43,7 @@ struct renesas_gbeth {
 	const struct gbeth_hw_info *info;
 	phy_interface_t phy_mode;
 	int id;
+	bool suspend;
 };
 
 static const char *const renesas_gbeth_clks[] = {
@@ -51,6 +52,7 @@ static const char *const renesas_gbeth_clks[] = {
 
 static int renesas_gbeth_init(struct platform_device *pdev, void *priv)
 {
+	struct net_device *ndev = platform_get_drvdata(pdev);
 	struct plat_stmmacenet_data *plat_dat;
 	struct renesas_gbeth *gbeth = priv;
 	int ret;
@@ -91,6 +93,12 @@ static int renesas_gbeth_init(struct platform_device *pdev, void *priv)
 	if (ret)
 		reset_control_assert(gbeth->rstc);
 
+	if (gbeth->suspend) {
+		gbeth->suspend = false;
+		if (ndev->phydev)
+			phy_init_hw(ndev->phydev);
+	}
+
 	return ret;
 }
 
@@ -99,6 +107,8 @@ static void renesas_gbeth_exit(struct platform_device *pdev, void *priv)
 	struct plat_stmmacenet_data *plat_dat;
 	struct renesas_gbeth *gbeth = priv;
 	int ret;
+
+	gbeth->suspend = true;
 
 	plat_dat = gbeth->plat_dat;
 
@@ -177,6 +187,7 @@ static int renesas_gbeth_probe(struct platform_device *pdev)
 
 	gbeth->dev = dev;
 	gbeth->info = info;
+	gbeth->suspend = false;
 	gbeth->plat_dat = plat_dat;
 	plat_dat->bsp_priv = gbeth;
 	plat_dat->set_clk_tx_rate = stmmac_set_clk_tx_rate;
@@ -210,6 +221,7 @@ static struct platform_driver renesas_gbeth_driver = {
 	.probe  = renesas_gbeth_probe,
 	.driver = {
 		.name		= "renesas-gbeth",
+		.pm		= &stmmac_pltfr_pm_ops,
 		.of_match_table	= renesas_gbeth_match,
 	},
 };
