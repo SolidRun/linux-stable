@@ -92,6 +92,90 @@
 #define RZG3S_PCI_MSIRM(id)			(0x608 + (id) * 0x10)
 #define RZG3S_PCI_MSIRS(id)			(0x60c + (id) * 0x10)
 
+/* DMAC registers */
+#define RZG3S_PCI_INTTABLE			0x140
+#define RZG3S_PCI_DMACTRL			0x800
+#define RZG3S_PCI_DMACTRL_D_PMRS_256		0x1
+
+#define RZG3S_PCI_DMAINTE			0x808
+#define RZG3S_PCI_DMAINTE_CH_END_EN(id)		BIT(0 + id * 4)
+#define RZG3S_PCI_DMAINTE_CH_QUE_EMP_EN(id)	BIT(2 + id * 4)
+#define RZG3S_PCI_DMAINTE_CH_ERR_EN(id)		BIT(3 + id * 4)
+#define RZG3S_PCI_DMAINTE_CH_ALL(id)		(RZG3S_PCI_DMAINTE_CH_END_EN(id) | \
+						RZG3S_PCI_DMAINTE_CH_QUE_EMP_EN(id) | \
+						RZG3S_PCI_DMAINTE_CH_ERR_EN(id))
+
+#define RZG3S_PCI_DMAINTS			0x80c
+#define RZG3S_PCI_DMAINTS_CH_END(id)		BIT(0 + id * 4)
+#define RZG3S_PCI_DMAINTS_CH_QUE_EMP(id)	BIT(2 + id * 4)
+#define RZG3S_PCI_DMAINTS_CH_ERR(id)		BIT(3 + id * 4)
+#define RZG3S_PCI_DMAINTS_CH_ALL(id)		(RZG3S_PCI_DMAINTS_CH_END(id) | \
+						RZG3S_PCI_DMAINTS_CH_QUE_EMP(id) | \
+						RZG3S_PCI_DMAINTS_CH_ERR(id))
+
+#define RZG3S_PCI_DMACHCTL(id)			(0x900 + (id) * 0x80)
+#define RZG3S_PCI_DMACHCTL_RDMA_EN		BIT(0)
+#define RZG3S_PCI_DMACHCTL_QUE_EN		BIT(1)
+#define RZG3S_PCI_DMACHCTL_QUE_CLR		BIT(8)
+
+#define RZG3S_PCI_DESSAL(id)			(0x908 + (id) * 0x80)
+#define RZG3S_PCI_DESSAU(id)			(0x90C + (id) * 0x80)
+
+#define RZG3S_PCI_QUEE(id)			(0x910 + (id) * 0x80)
+#define RZG3S_PCI_QUEE_QUE_ENTRY_LS		BIT(24)
+#define RZG3S_PCI_QUEE_QUE_ENTRY_EI		BIT(25)
+#define RZG3S_PCI_QUEE_QUE_REGISTRACTION	(BIT(31) | BIT(30) | BIT(29) | BIT(28) | BIT(27) | BIT(26))
+#define RZG3S_PCI_QUEE_QUE_INTERRUPT_OFF	RZG3S_PCI_QUEE_QUE_REGISTRACTION
+#define RZG3S_PCI_QUEE_QUE_INTERRUPT_ON		(RZG3S_PCI_QUEE_QUE_REGISTRACTION | RZG3S_PCI_QUEE_QUE_ENTRY_LS | \
+						RZG3S_PCI_QUEE_QUE_ENTRY_EI)
+
+#define RZG3S_PCI_DMADPCTL(id)			(0x920 + (id) * 0x80)
+#define RZG3S_PCI_DMATRCTL(id)			(0x924 + (id) * 0x80)
+#define RZG3S_PCI_DMASIZE(id)			(0x928 + (id) * 0x80)
+#define RZG3S_PCI_DMASLA(id)			(0x930 + (id) * 0x80)
+#define RZG3S_PCI_DMASUA(id)			(0x934 + (id) * 0x80)
+#define RZG3S_PCI_DMADLA(id)			(0x938 + (id) * 0x80)
+#define RZG3S_PCI_DMADUA(id)			(0x93c + (id) * 0x80)
+#define RZG3S_PCI_DMADLLP(id)			(0x940 + (id) * 0x80)
+#define RZG3S_PCI_DMADULP(id)			(0x944 + (id) * 0x80)
+
+#define RZG3S_PCI_DMARESTSIZ(id)		(0x950 + (id) * 0x80)
+#define RZG3S_PCI_AXIREQAL(id)			(0x960 + (id) * 0x80)
+#define RZG3S_PCI_AXIREQAU(id)			(0x964 + (id) * 0x80)
+#define RZG3S_PCI_PCIREQAL(id)			(0x968 + (id) * 0x80)
+#define RZG3S_PCI_PCIREQAU(id)			(0x96c + (id) * 0x80)
+#define RZG3S_PCI_QUESTA(id)			(0x970 + (id) * 0x80)
+#define RZG3S_PCI_DMACESTA(id)			(0x978 + (id) * 0x80)
+
+/* Descriptor's param 0 */
+#define RZG3S_PCI_DMA_DSCFM			BIT(28)
+#define RZG3S_PCI_DMA_WBD			BIT(26)
+#define RZG3S_PCI_DMA_LE			BIT(25)
+#define RZG3S_PCI_DMA_LV			BIT(24)
+#define RZG3S_PCI_DMA_D				BIT(23)
+
+/* Descriptor's param 1 */
+#define RZG3S_PCI_DMA_CCH_L(x)			((x & 0xf) << 20)
+#define RZG3S_PCI_DMA_CCH_L_DEFAULT		0
+
+#define RZG3S_PCI_DMA_CCH_D(x)			((x & 0xf) << 16)
+#define RZG3S_PCI_DMA_CCH_D_PCIE_TO_AXI		1
+#define RZG3S_PCI_DMA_CCH_D_AXI_TO_PCIE		0
+
+#define RZG3S_PCI_DMA_TC(x)			((x & 0x7) << 12)
+#define RZG3S_PCI_DMA_TC_DEFAULT		0
+
+#define RZG3S_PCI_DMA_ATB(x)			((x & 0x3) << 8)
+#define RZG3S_PCI_DMA_ATB_DEFAULT		0
+
+#define RZG3S_PCI_DMA_FUNC(x)			((x & 0x4) << 4)
+#define RZG3S_PCI_DMA_FUNC_0			0
+#define RZG3S_PCI_DMA_FUNC_1			1
+
+#define RZG3S_PCI_DMA_DIR(x)			(x & BIT(0))
+#define RZG3S_PCI_DMA_DIR_AXI_TO_PCIE		1
+#define RZG3S_PCI_DMA_DIR_PCIE_TO_AXI		0
+
 #define RZG3S_PCI_AWBASEL(id)			(0x1000 + (id) * 0x20)
 #define RZG3S_PCI_AWBASEL_WIN_ENA		BIT(0)
 
@@ -152,6 +236,9 @@
 
 /* Timeouts experimentally determined. */
 #define RZG3S_REQ_ISSUE_TIMEOUT_US		2500
+
+/* Maximum number of DMA channels */
+#define RZG3S_PCI_DMA_MAX_CHANNEL		8
 
 /* Only in RZ/V2H */
 #define PCIE_MAX_CHANNEL			2
@@ -289,4 +376,28 @@
 #define LINK_MASTER_4_LANE_MODE			0x100	/* 4 lane * 1 mode */
 #define LINK_MASTER_2_LANE_MODE			0x300	/* 2 lane * 2 mode */
 
-#endif
+struct rzg3s_pcie_dmac;
+struct rz_pcie {
+	struct device *dev;
+	void __iomem *base;
+	struct rzg3s_pcie_dmac *dmac;
+};
+
+#if IS_REACHABLE(CONFIG_PCIE_RENESAS_RZG3S_DMA)
+int rzg3s_pcie_dma_probe(struct rz_pcie *pcie);
+void rzg3s_pcie_dma_remove(struct rz_pcie *pcie);
+#else
+static inline int rzg3s_pcie_dma_probe(struct rz_pcie *pcie)
+{
+	return -ENODEV;
+}
+static inline void rzg3s_pcie_dma_remove(struct rz_pcie *pcie)
+{
+	return;
+}
+#endif /* CONFIG_PCIE_RENESAS_RZG3S_DMA */
+
+void rzg3s_pcie_update_bits(void __iomem *base, u32 offset, u32 mask,
+                                   u32 val);
+
+#endif /* _PCIE_RZG3S_H */

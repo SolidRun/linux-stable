@@ -220,6 +220,12 @@ config PCIE_RZ_EP
 	help
 	  Say Y here if you want PCIe endpoint controller support on RZ Series SoCs.
 
+config PCIE_RENESAS_RZG3S_DMA
+	bool "Renesas RZ/G3S PCIe internal DMA"
+	depends on PCIE_RENESAS_RZG3S_HOST
+	help
+		Say Y here if you want PCIe DMA support on RZ/G3S SoC.
+
 config PCIE_ROCKCHIP
 	bool
 	depends on PCI

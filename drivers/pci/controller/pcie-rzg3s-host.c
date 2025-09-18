@@ -141,7 +141,7 @@ struct rzg3s_pcie_host {
 
 #define rzg3s_msi_to_host(_msi)	container_of(_msi, struct rzg3s_pcie_host, msi)
 
-static void rzg3s_pcie_update_bits(void __iomem *base, u32 offset, u32 mask,
+void rzg3s_pcie_update_bits(void __iomem *base, u32 offset, u32 mask,
 				   u32 val)
 {
 	u32 tmp;

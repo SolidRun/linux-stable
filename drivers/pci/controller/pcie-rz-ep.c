@@ -26,11 +26,6 @@
 
 /* Structure representing the PCIe interface */
 
-struct rz_pcie {
-	struct device		*dev;
-	void __iomem		*base;
-};
-
 struct rz_pcie_endpoint {
 	struct rz_pcie			pcie;
 	phys_addr_t			*ob_mapped_addr;
