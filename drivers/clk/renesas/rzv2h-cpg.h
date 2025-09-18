@@ -38,6 +38,7 @@ struct pll {
 
 #define PLLCA55		PLL_PACK(0x60, 1, 0)
 #define PLLGPU		PLL_PACK(0x120, 1, 0)
+#define PLLDRP		PLL_PACK(0x140, 1, 0)
 
 /**
  * struct ddiv - Structure for dynamic switching divider
@@ -123,6 +124,7 @@ struct fixed_mod_conf {
 #define CPG_SSEL1		(0x304)
 #define CPG_CDDIV0		(0x400)
 #define CPG_CDDIV1		(0x404)
+#define CPG_CDDIV2		(0x408)
 #define CPG_CDDIV3		(0x40C)
 #define CPG_CDDIV4		(0x410)
 #define CPG_CSDIV0		(0x500)
@@ -134,6 +136,7 @@ struct fixed_mod_conf {
 #define CDDIV1_DIVCTL1	DDIV_PACK(CPG_CDDIV1, 4, 2, 5)
 #define CDDIV1_DIVCTL2	DDIV_PACK(CPG_CDDIV1, 8, 2, 6)
 #define CDDIV1_DIVCTL3	DDIV_PACK(CPG_CDDIV1, 12, 2, 7)
+#define CDDIV2_DIVCTL2	DDIV_PACK(CPG_CDDIV2, 4, 3, 10)
 #define CDDIV3_DIVCTL0	DDIV_PACK(CPG_CDDIV3, 0, 3, 12)
 #define CDDIV3_DIVCTL1	DDIV_PACK(CPG_CDDIV3, 4, 3, 13)
 #define CDDIV3_DIVCTL2	DDIV_PACK(CPG_CDDIV3, 8, 3, 14)
