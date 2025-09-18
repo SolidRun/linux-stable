@@ -333,6 +333,7 @@ struct rzg2l_pinctrl_reg_cache {
 	u32	*pfc;
 	u32	*iolh[2];
 	u32	*ien[2];
+	u32	*isel[2];
 	u32	*pupd[2];
 	u8	sd_ch[2];
 	u8	eth_poc[2];
@@ -2747,6 +2748,11 @@ static int rzg2l_pinctrl_reg_cache_alloc(struct rzg2l_pinctrl *pctrl)
 		if (!cache->pupd[i])
 			return -ENOMEM;
 
+		cache->isel[i] = devm_kcalloc(pctrl->dev, nports, sizeof(*cache->isel[i]),
+					      GFP_KERNEL);
+		if (!cache->isel[i])
+			return -ENOMEM;
+
 		/* Allocate dedicated cache. */
 		dedicated_cache->iolh[i] = devm_kcalloc(pctrl->dev, n_dedicated_pins,
 							sizeof(*dedicated_cache->iolh[i]),
@@ -3032,6 +3038,10 @@ static void rzg2l_pinctrl_pm_setup_regs(struct rzg2l_pinctrl *pctrl, bool suspen
 
 		RZG2L_PCTRL_REG_ACCESS16(suspend, pctrl->base + PM(off), cache->pm[port]);
 		RZG2L_PCTRL_REG_ACCESS8(suspend, pctrl->base + P(off), cache->p[port]);
+		RZG2L_PCTRL_REG_ACCESS32(suspend, pctrl->base + ISEL(off), cache->isel[0][port]);
+		if (pincnt >= 4)
+			RZG2L_PCTRL_REG_ACCESS32(suspend, pctrl->base + ISEL(off) + 4,
+						 cache->isel[1][port]);
 
 		if (has_ien) {
 			RZG2L_PCTRL_REG_ACCESS32(suspend, pctrl->base + IEN(off),
