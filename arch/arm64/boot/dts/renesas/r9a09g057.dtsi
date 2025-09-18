@@ -2155,6 +2155,8 @@
 			clock-names = "pclk", "pclk_sfr", "tclk";
 			resets = <&cpg 0x7b>, <&cpg 0x7c>;
 			reset-names = "presetn", "tresetn";
+			dmas = <&dmac1 0x7F448D>, <&dmac1 0x7F448C>;
+			dma-names = "tx", "rx";
 			power-domains = <&cpg>;
 			#address-cells = <1>;
 			#size-cells = <0>;
@@ -2176,6 +2178,8 @@
 			clock-names = "pclk", "pclk_sfr", "tclk";
 			resets = <&cpg 0x7d>, <&cpg 0x7e>;
 			reset-names = "presetn", "tresetn";
+			dmas = <&dmac1 0x7F448F>, <&dmac1 0x7F448E>;
+			dma-names = "tx", "rx";
 			power-domains = <&cpg>;
 			#address-cells = <1>;
 			#size-cells = <0>;
@@ -2197,7 +2201,7 @@
 			clock-names = "pclk", "pclk_sfr", "tclk";
 			resets = <&cpg 0x7f>, <&cpg 0x80>;
 			reset-names = "presetn", "tresetn";
-			dmas = <&dmac1 0x4491>, <&dmac1 0x4490>;
+			dmas = <&dmac1 0x7F4491>, <&dmac1 0x7F4490>;
 			dma-names = "tx", "rx";
 			power-domains = <&cpg>;
 			#address-cells = <1>;
