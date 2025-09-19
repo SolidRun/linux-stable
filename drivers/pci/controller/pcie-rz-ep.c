@@ -593,6 +593,12 @@ static const struct of_device_id rz_pcie_ep_of_match[] = {
 	{}, /* sentinel */
 };
 
+static void rz_pcie_dma_remove_action(void *data)
+{
+	struct rz_pcie *pcie = data;
+	rzg3s_pcie_dma_remove(pcie);
+}
+
 static int rz_pcie_ep_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
@@ -702,6 +708,17 @@ static int rz_pcie_ep_probe(struct platform_device *pdev)
 		dev_err(dev, "failed to initialize the epc memory space\n");
 		goto err_pm_put;
 	}
+
+	err = rzg3s_pcie_dma_probe(pcie);
+	if (err && err != -ENODEV) {
+		dev_err(dev, "Couldn't register DMA for PCIe\n");
+		return err;
+	}
+
+	err = devm_add_action_or_reset(dev, rz_pcie_dma_remove_action, pcie);
+	if (err)
+		return err;
+
 
 	return 0;
 
