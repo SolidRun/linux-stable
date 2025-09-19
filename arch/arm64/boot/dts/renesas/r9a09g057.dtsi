@@ -2057,7 +2057,9 @@
 			      <0x0 0x30000000 0x0 0x04000000>,
 			      <0x0 0x34000000 0x0 0x04000000>;
 			reg-names = "apb-base", "memory0", "memory1";
-			interrupts = <GIC_SPI 791 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 791 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 804 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "all", "dma";
 			clocks = <&cpg CPG_MOD 0xc4>,
 				 <&cpg CPG_MOD 0xc5>;
 			power-domains = <&cpg>;
@@ -2075,7 +2077,9 @@
 			      <0x0 0x38000000 0x0 0x04000000>,
 			      <0x0 0x3c000000 0x0 0x04000000>;
 			reg-names = "apb-base", "memory0", "memory1";
-			interrupts = <GIC_SPI 819 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 819 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 827 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "all", "dma";
 			clocks = <&cpg CPG_MOD 0xc4>,
 				 <&cpg CPG_MOD 0xc5>;
 			power-domains = <&cpg>;
