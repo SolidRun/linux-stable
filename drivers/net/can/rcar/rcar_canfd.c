@@ -2288,8 +2288,8 @@ fail_mode:
 	rcar_canfd_disable_global_interrupts(gpriv);
 fail_clk:
 	pm_runtime_disable(&pdev->dev);
-	reset_control_assert(gpriv->rstc1);
 	reset_control_assert(gpriv->rstc2);
+	reset_control_assert(gpriv->rstc1);
 fail_dev:
 	return err;
 }
@@ -2310,8 +2310,8 @@ static int rcar_canfd_remove(struct platform_device *pdev)
 	/* Enter global sleep mode */
 	rcar_canfd_set_bit(gpriv->base, RCANFD_GCTR, RCANFD_GCTR_GSLPR);
 	pm_runtime_disable(&pdev->dev);
-	reset_control_assert(gpriv->rstc1);
 	reset_control_assert(gpriv->rstc2);
+	reset_control_assert(gpriv->rstc1);
 
 	return 0;
 }
