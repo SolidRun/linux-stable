@@ -158,6 +158,8 @@ dtb-$(CONFIG_ARCH_MXC) += imx8mp-hummingboard-iiot-rs485-a.dtbo
 dtb-$(CONFIG_ARCH_MXC) += imx8mp-hummingboard-iiot-rs485-b.dtbo
 dtb-$(CONFIG_ARCH_MXC) += imx8mp-hummingboard-pulse-basler.dtbo
 dtb-$(CONFIG_ARCH_MXC) += imx8mp-sr-som-basler.dtbo
+DTC_FLAGS_imx8mp-holosis := -@
+dtb-$(CONFIG_ARCH_MXC) += imx8mp-holosis.dtb
 
 imx8mp-evk-revb4-dtbs := imx8mp-evk.dtb imx8mp-evk-revb4.dtbo
 imx8mp-evk-revb4-rm67191-dtbs := imx8mp-evk-rm67191.dtb imx8mp-evk-revb4.dtbo
