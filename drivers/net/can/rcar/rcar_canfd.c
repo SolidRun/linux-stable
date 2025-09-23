@@ -477,7 +477,7 @@ struct rcar_canfd_global {
 	struct platform_device *pdev;	/* Respective platform device */
 	struct clk *clkp;		/* Peripheral clock */
 	struct clk *can_clk;		/* fCAN clock */
-	struct clk *clk_ram;
+	struct clk *clk_ram;		/* Clock RAM */
 	unsigned long channels_mask;	/* Enabled channels mask */
 	bool extclk;			/* CANFD or Ext clock */
 	enum rcar_canfd_mode mode;	/* Only-FD or Only-Classical or Dualmode */
@@ -2087,7 +2087,6 @@ static int rcar_canfd_probe(struct platform_device *pdev)
 	enum rcar_canfd_mode mode = ONLY_CANFD_MODE;	/* CAN FD only mode - default */
 	char *mode_name[3] = {"fd", "classical", "dual"};
 	char name[9] = "channelX";
-	struct clk *clk_ram;
 	int i;
 
 	info = of_device_get_match_data(dev);
@@ -2186,10 +2185,10 @@ static int rcar_canfd_probe(struct platform_device *pdev)
 		gpriv->extclk = gpriv->info->external_clk;
 	}
 
-	clk_ram = devm_clk_get_optional(dev, "ram_clk");
-	if (IS_ERR(clk_ram))
-		return dev_err_probe(dev, PTR_ERR(clk_ram),
-				     "cannot get enabled ram clock\n");
+	gpriv->clk_ram = devm_clk_get_optional(dev, "ram_clk");
+	if (IS_ERR(gpriv->clk_ram))
+		return dev_err_probe(dev, PTR_ERR(gpriv->clk_ram),
+				     "cannot get ram clock\n");
 
 	addr = devm_platform_ioremap_resource(pdev, 0);
 	if (IS_ERR(addr)) {
@@ -2198,7 +2197,6 @@ static int rcar_canfd_probe(struct platform_device *pdev)
 	}
 	gpriv->base = addr;
 	gpriv->fcbase = addr + gpriv->info->regs->coffset;
-	gpriv->clk_ram = clk_ram;
 
 	/* Request IRQ that's common for both channels */
 	if (info->shared_global_irqs) {
