@@ -809,13 +809,6 @@ static int rcar_canfd_reset_controller(struct rcar_canfd_global *gpriv)
 	u32 sts, ch;
 	int err = 0;
 
-	err = pm_runtime_resume_and_get(dev);
-	if (err) {
-		dev_err(dev, "failed to resume pd, error %d\n",
-			err);
-		return err;
-	}
-
 	/* Check RAMINIT flag as CAN RAM initialization takes place
 	 * after the MCU reset
 	 */
@@ -823,7 +816,7 @@ static int rcar_canfd_reset_controller(struct rcar_canfd_global *gpriv)
 				 !(sts & RCANFD_GSTS_GRAMINIT), 2, 500000);
 	if (err) {
 		dev_dbg(dev, "global raminit failed\n");
-		goto fail_pm_put;
+		return err;
 	}
 
 	/* Transition to Global Reset mode */
@@ -836,7 +829,7 @@ static int rcar_canfd_reset_controller(struct rcar_canfd_global *gpriv)
 				 (sts & RCANFD_GSTS_GRSTSTS), 2, 500000);
 	if (err) {
 		dev_dbg(dev, "global reset failed\n");
-		goto fail_pm_put;
+		return err;
 	}
 
 	/* Reset Global error flags */
@@ -867,16 +860,14 @@ static int rcar_canfd_reset_controller(struct rcar_canfd_global *gpriv)
 					 2, 500000);
 		if (err) {
 			dev_dbg(dev, "channel %u reset failed\n", ch);
-			goto fail_pm_put;
+			return err;
 		}
 		/* Set the controller into appropriate mode */
 		if (gpriv->info->classical_can)
 			rcar_canfd_set_mode(gpriv, ch);
 	}
 
-fail_pm_put:
-	pm_runtime_put(dev);
-	return err;
+	return 0;
 }
 
 static void rcar_canfd_configure_controller(struct rcar_canfd_global *gpriv)
@@ -2043,16 +2034,10 @@ static int rcar_canfd_global_init(struct rcar_canfd_global *gpriv)
 		goto fail_reset1;
 	}
 
-	err = pm_runtime_resume_and_get(gpriv->dev);
-	if (err) {
-		dev_err(gpriv->dev, "failed to resume pd %pe\n", ERR_PTR(err));
-		goto fail_reset2;
-	}
-
 	err = rcar_canfd_reset_controller(gpriv);
 	if (err) {
 		dev_err(gpriv->dev, "reset controller failed: %pe\n", ERR_PTR(err));
-		goto fail_clk;
+		goto fail_reset2;
 	}
 
 	/* Controller in Global reset & Channel reset mode */
@@ -2086,18 +2071,15 @@ static int rcar_canfd_global_init(struct rcar_canfd_global *gpriv)
 		goto fail_mode;
 	}
 
-	pm_runtime_put(gpriv->dev);
-
 	return 0;
 
 fail_mode:
 	rcar_canfd_disable_global_interrupts(gpriv);
-fail_clk:
-	pm_runtime_put(gpriv->dev);
 fail_reset2:
 	reset_control_assert(gpriv->rstc2);
 fail_reset1:
 	reset_control_assert(gpriv->rstc1);
+	pm_runtime_put(gpriv->dev);
 	return err;
 }
 
@@ -2285,6 +2267,12 @@ static int rcar_canfd_probe(struct platform_device *pdev)
 
 	pm_runtime_enable(&pdev->dev);
 
+	err = pm_runtime_resume_and_get(gpriv->dev);
+	if (err) {
+		dev_err(gpriv->dev, "failed to resume pd %pe\n", ERR_PTR(err));
+		goto fail_dev;
+	}
+
 	err = rcar_canfd_global_init(gpriv);
 	if (err) {
 		dev_err(&pdev->dev, "controller global init failed\n");
@@ -2298,6 +2286,8 @@ static int rcar_canfd_probe(struct platform_device *pdev)
 			goto fail_channel;
 	}
 
+	pm_runtime_put(gpriv->dev);
+
 	dev_info(dev, "global operational state (%s clk, %s mode)\n",
 		 gpriv->extclk ? "ext" : "canfd",
 		 mode_name[gpriv->mode]);
@@ -2309,6 +2299,7 @@ fail_channel:
 		rcar_canfd_channel_remove(gpriv, ch);
 fail_mode:
 	rcar_canfd_global_deinit(gpriv, false);
+	pm_runtime_put(gpriv->dev);
 	pm_runtime_disable(&pdev->dev);
 fail_dev:
 	return err;
@@ -2318,13 +2309,21 @@ static int rcar_canfd_remove(struct platform_device *pdev)
 {
 	struct rcar_canfd_global *gpriv = platform_get_drvdata(pdev);
 	u32 ch;
+	int err;
 
 	for_each_set_bit(ch, &gpriv->channels_mask, gpriv->info->max_channels) {
 		rcar_canfd_disable_channel_interrupts(gpriv->ch[ch]);
 		rcar_canfd_channel_remove(gpriv, ch);
 	}
 
-	rcar_canfd_global_deinit(gpriv, true);
+	err = pm_runtime_resume_and_get(gpriv->dev);
+	if (!err) {
+		rcar_canfd_global_deinit(gpriv, true);
+		pm_runtime_put(gpriv->dev);
+	}
+	else
+		dev_err(gpriv->dev, "failed to resume pd %pe\n", ERR_PTR(err));
+
 	pm_runtime_disable(gpriv->dev);
 	return 0;
 }
@@ -2332,6 +2331,7 @@ static int rcar_canfd_remove(struct platform_device *pdev)
 static int rcar_canfd_suspend(struct device *dev)
 {
 	struct rcar_canfd_global *gpriv = dev_get_drvdata(dev);
+	int err;
 	u32 ch;
 
 	for_each_set_bit(ch, &gpriv->channels_mask, gpriv->info->max_channels) {
@@ -2341,14 +2341,27 @@ static int rcar_canfd_suspend(struct device *dev)
 		if (!netif_running(ndev))
 			continue;
 
-		netif_stop_queue(ndev);
-		rcar_canfd_stop(ndev);
 		netif_device_detach(ndev);
-		pm_runtime_put(dev);
+
+		err = rcar_canfd_close(ndev);
+		if (err) {
+			netdev_err(ndev, "rcar_canfd_close() failed %pe\n",
+				   ERR_PTR(err));
+			return err;
+		}
+
+		priv->can.state = CAN_STATE_SLEEPING;
 	}
 
-	reset_control_assert(gpriv->rstc1);
-	reset_control_assert(gpriv->rstc2);
+	err = pm_runtime_resume_and_get(gpriv->dev);
+	if (err) {
+		dev_err(gpriv->dev, "failed to resume pd %pe\n", ERR_PTR(err));
+		return err;
+	}
+
+	/* TODO Skip if wake-up (which is not yet supported) is enabled */
+	rcar_canfd_global_deinit(gpriv, false);
+	pm_runtime_put(gpriv->dev);
 
 	return 0;
 }
@@ -2359,27 +2372,19 @@ static int rcar_canfd_resume(struct device *dev)
 	int err;
 	u32 ch;
 
-	err = reset_control_deassert(gpriv->rstc1);
-	if (err)
-		goto fail_dev;
-
-	err = reset_control_deassert(gpriv->rstc2);
+	err = pm_runtime_resume_and_get(gpriv->dev);
 	if (err) {
-		reset_control_assert(gpriv->rstc1);
+		dev_err(gpriv->dev, "failed to resume pd %pe\n", ERR_PTR(err));
 		goto fail_dev;
 	}
 
-	err = rcar_canfd_reset_controller(gpriv);
+	err = rcar_canfd_global_init(gpriv);
 	if (err) {
-		dev_err(dev, "reset controller failed\n");
-		goto fail_clk;
-	}
-
-	err = rcar_canfd_controller_init(gpriv);
-	if (err) {
-		dev_err(dev, "controller init failed\n");
+		dev_err(dev, "rcar_canfd_global_init() failed %pe\n", ERR_PTR(err));
 		goto fail_mode;
 	}
+
+	pm_runtime_put(gpriv->dev);
 
 	for_each_set_bit(ch, &gpriv->channels_mask, gpriv->info->max_channels) {
 		struct rcar_canfd_channel *priv = gpriv->ch[ch];
@@ -2388,31 +2393,21 @@ static int rcar_canfd_resume(struct device *dev)
 		if (!netif_running(ndev))
 			continue;
 
-		netif_device_attach(ndev);
-
-		err = pm_runtime_resume_and_get(dev);
+		err = rcar_canfd_open(ndev);
 		if (err) {
-			dev_err(dev, "failed to resume pd, error %d\n",
-				err);
+			netdev_err(ndev, "rcar_canfd_open() failed %pe\n",
+				   ERR_PTR(err));
 			goto fail_dev;
 		}
 
-		err = rcar_canfd_start(ndev);
-		if (err) {
-			netif_device_detach(ndev);
-			return err;
-		}
-		netif_start_queue(ndev);
+		netif_device_attach(ndev);
 	}
 
 	return 0;
 
 fail_mode:
-	rcar_canfd_disable_global_interrupts(gpriv);
-fail_clk:
+	rcar_canfd_global_deinit(gpriv, false);
 	pm_runtime_put(gpriv->dev);
-	reset_control_assert(gpriv->rstc1);
-	reset_control_assert(gpriv->rstc2);
 fail_dev:
 	return err;
 }
