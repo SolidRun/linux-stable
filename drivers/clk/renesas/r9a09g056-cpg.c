@@ -597,6 +597,8 @@ static const struct rzv2h_mod_clk r9a09g056_mod_clks[] __initconst = {
 						BUS_MSTOP(2, GENMASK(1, 0))),
 	DEF_MOD("scu_0_clkx2",			CLK_PLLCLN_DIV4, 15, 7, 7, 23,
 						BUS_MSTOP(2, GENMASK(1, 0))),
+	DEF_MOD("dmacpp_clk",			CLK_PLLCLN_DIV8, 15, 8, 7, 24,
+						BUS_MSTOP(2, BIT(5))),
 	DEF_MOD("adg_0_clks1",			CLK_PLLCLN_DIV8, 15, 9, 7, 25,
 						BUS_MSTOP(2, BIT(2))),
 	DEF_MOD("adg_0_clk_195m",		CLK_PLLCLN_DIV8, 15, 10, 7, 26,
@@ -789,6 +791,7 @@ static const struct rzv2h_reset r9a09g056_resets[] __initconst = {
 	DEF_RST(14, 10, 6, 27),		/* SSIF_0_SYNC_RESET_SSI8 */
 	DEF_RST(14, 11, 6, 28),		/* SSIF_0_SYNC_RESET_SSI9 */
 	DEF_RST(14, 12, 6, 29),		/* SCU_0_RESET_SRU */
+	DEF_RST(14, 13, 6, 30),		/* DMACPP_ARST */
 	DEF_RST(14, 14, 6, 31),		/* ADG_0_RST_RESET_ADG */
 	DEF_RST(14, 15, 7, 0),		/* SPDIF_0_RST */
 	DEF_RST(15, 0, 7, 1),		/* SPDIF_1_RST */
