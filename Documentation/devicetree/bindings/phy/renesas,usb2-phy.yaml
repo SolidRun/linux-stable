@@ -37,6 +37,12 @@ properties:
               - renesas,usb2-phy-r9a07g054 # RZ/V2L
           - const: renesas,rzg2l-usb2-phy
 
+      - items:
+          - enum:
+              - renesas,usb2-phy-r9a09g057 # RZ/V2H
+              - renesas,usb2-phy-r9a09g056 # RZ/V2N
+          - const: renesas,rzv2h-usb2-phy
+
   reg:
     maxItems: 1
 
