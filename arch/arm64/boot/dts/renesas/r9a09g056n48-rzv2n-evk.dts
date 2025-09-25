@@ -43,14 +43,14 @@
  * RSCI mode selection settings, Macro RSCIx_SEL:
  * Requirement: CAN_SPDIF_SCI_SEL = SCI_SEL for channel 4 and 5
  * Requirement: RSPI2_RSCI9_SEL = 1 for channel 9
- *	- RSCI_UART - select UART function (default for channel 0, 4, 5, 9).
- *	- RSCI_I2C  - select I2C function.
+ *	- RSCI_UART - select UART function (default for channel 0, 4, 9).
+ *	- RSCI_I2C  - select I2C function (default for channel 5).
  *	- RSCI_SPI  - select SPI function.
  * UART RTS/CTS function is not support for channels 4 and 5.
  */
 #define RSCI0_SEL		RSCI_UART
 #define RSCI4_SEL		RSCI_UART
-#define RSCI5_SEL		RSCI_UART
+#define RSCI5_SEL		RSCI_I2C
 #define RSCI9_SEL		RSCI_UART
 
 /dts-v1/;
@@ -104,6 +104,18 @@
 		i2c6 = &i2c6;
 		i2c7 = &i2c7;
 		i2c8 = &i2c8;
+#if (RSCI0_SEL == RSCI_I2C)
+		i2c9 = &rsci_i2c0;
+#endif
+#if (CAN_SPDIF_SCI_SEL == SCI_SEL && RSCI4_SEL == RSCI_I2C)
+		i2c10 = &rsci_i2c4;
+#endif
+#if (CAN_SPDIF_SCI_SEL == SCI_SEL && RSCI5_SEL == RSCI_I2C)
+		i2c11 = &rsci_i2c5;
+#endif
+#if (RSPI2_RSCI9_SEL && RSCI9_SEL == RSCI_I2C)
+		i2c12 = &rsci_i2c9;
+#endif
 		mmc0 = &sdhi0;
 		mmc1 = &sdhi1;
 		serial0 = &scif;
@@ -844,21 +856,35 @@
 			 <RZV2N_PORT_PINMUX(5, 3, 2)>; /* SCI0_SS_CTS_RTS */
 		bias-pull-up;
 	};
-#endif
-
-#if (CAN_SPDIF_SCI_SEL == SCI_SEL && RSCI4_SEL == RSCI_UART)
-	sci4_pins: sci4 {
-		pinmux = <RZV2N_PORT_PINMUX(8, 4, 6)>, /* SCI4_TXD_MOSI_SDA */
-			 <RZV2N_PORT_PINMUX(8, 5, 6)>; /* SCI4_RXD_MISO_SCL */
-		bias-pull-up;
+#elif (RSCI0_SEL == RSCI_I2C)
+	rsci_i2c0_pins: rsci_i2c0 {
+		pinmux = <RZV2N_PORT_PINMUX(5, 0, 1)>, /* SCI0_TXD_MOSI_SDA */
+			 <RZV2N_PORT_PINMUX(5, 1, 1)>; /* SCI0_RXD_MISO_SCL */
+		drive-open-drain = <1>;
 	};
 #endif
 
-#if (CAN_SPDIF_SCI_SEL == SCI_SEL && RSCI5_SEL == RSCI_UART)
+#if (CAN_SPDIF_SCI_SEL == SCI_SEL)
+	sci4_pins: sci4 {
+		pinmux = <RZV2N_PORT_PINMUX(8, 4, 6)>, /* SCI4_TXD_MOSI_SDA */
+			 <RZV2N_PORT_PINMUX(8, 5, 6)>; /* SCI4_RXD_MISO_SCL */
+#if (RSCI4_SEL == RSCI_I2C)
+		drive-open-drain = <1>;
+#elif (RSCI4_SEL == RSCI_UART)
+		bias-pull-up;
+#endif
+	};
+#endif
+
+#if (CAN_SPDIF_SCI_SEL == SCI_SEL)
 	sci5_pins: sci5 {
 		pinmux = <RZV2N_PORT_PINMUX(8, 6, 6)>, /* SCI5_TXD_MOSI_SDA */
 			 <RZV2N_PORT_PINMUX(8, 7, 6)>; /* SCI5_RXD_MISO_SCL */
+#if (RSCI5_SEL == RSCI_I2C)
+		drive-open-drain = <1>;
+#elif (RSCI5_SEL == RSCI_UART)
 		bias-pull-up;
+#endif
 	};
 #endif
 
@@ -870,6 +896,12 @@
 			 <RZV2N_PORT_PINMUX(A, 6, 2)>, /* SCI9_CTS */
 			 <RZV2N_PORT_PINMUX(A, 7, 2)>; /* SCI9_SS_CTS_RTS */
 		bias-pull-up;
+	};
+#elif (RSCI9_SEL == RSCI_I2C)
+	rsci_i2c9_pins: rsci_i2c9 {
+		pinmux = <RZV2N_PORT_PINMUX(B, 4, 2)>, /* SCI9_TXD_MOSI_SDA */
+			 <RZV2N_PORT_PINMUX(B, 3, 2)>; /* SCI9_RXD_MISO_SCL */
+		drive-open-drain = <1>;
 	};
 #endif
 #endif
@@ -1239,23 +1271,43 @@
 	uart-has-rtscts;
 	status = "okay";
 };
+#elif (RSCI0_SEL == RSCI_I2C)
+&rsci_i2c0 {
+	pinctrl-0 = <&rsci_i2c0_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+};
 #endif
 
-#if (CAN_SPDIF_SCI_SEL == SCI_SEL && RSCI4_SEL == RSCI_UART)
+#if (CAN_SPDIF_SCI_SEL == SCI_SEL)
+#if (RSCI4_SEL == RSCI_UART)
 &sci4 {
+	pinctrl-0 = <&sci4_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+#elif (RSCI4_SEL == RSCI_I2C)
+&rsci_i2c4 {
 	pinctrl-0 = <&sci4_pins>;
 	pinctrl-names = "default";
 	status = "okay";
 };
 #endif
 
-#if (CAN_SPDIF_SCI_SEL == SCI_SEL && RSCI5_SEL == RSCI_UART)
+#if (RSCI5_SEL == RSCI_UART)
 &sci5 {
 	pinctrl-0 = <&sci5_pins>;
 	pinctrl-names = "default";
 	status = "okay";
 };
+#elif (RSCI5_SEL == RSCI_I2C)
+&rsci_i2c5 {
+	pinctrl-0 = <&sci5_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+};
 #endif
+#endif /* CAN_SPDIF_SCI_SEL == SCI_SEL */
 
 #if (RSPI2_RSCI9_SEL)
 #if (RSCI9_SEL == RSCI_UART)
@@ -1265,5 +1317,11 @@
 	uart-has-rtscts;
 	status = "okay";
 };
+#elif (RSCI9_SEL == RSCI_I2C)
+&rsci_i2c9 {
+	pinctrl-0 = <&rsci_i2c9_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+};
 #endif
-#endif
+#endif /* RSPI2_RSCI9_SEL */
