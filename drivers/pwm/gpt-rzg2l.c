@@ -392,6 +392,7 @@ struct rzg2l_gpt_chip {
 	unsigned int overflow_count, buffer_mode_count_A, buffer_mode_count_B;
 	unsigned long bufferA[3];
 	unsigned long bufferB[3];
+	unsigned int buff_temp[6];
 	enum pwm_polarity channel_polar[NR_CHANNEL];
 	unsigned int period_ns;
 	int channel;
@@ -2650,6 +2651,12 @@ static int rzg2l_gpt_suspend(struct device *dev)
 	if (!test_bit(PWMF_REQUESTED, &pwm->flags))
 		return reset_control_assert(rzg2l_gpt->rstc);
 
+	rzg2l_gpt->buff_temp[0] = rzg2l_gpt_read(rzg2l_gpt, GTCCRA);
+	rzg2l_gpt->buff_temp[1] = rzg2l_gpt_read(rzg2l_gpt, GTCCRB);
+	rzg2l_gpt->buff_temp[2] = rzg2l_gpt_read(rzg2l_gpt, GTCCRC);
+	rzg2l_gpt->buff_temp[3] = rzg2l_gpt_read(rzg2l_gpt, GTCCRD);
+	rzg2l_gpt->buff_temp[4] = rzg2l_gpt_read(rzg2l_gpt, GTCCRE);
+	rzg2l_gpt->buff_temp[5] = rzg2l_gpt_read(rzg2l_gpt, GTCCRF);
 	rzg2l_gpt->GTIOR_val = rzg2l_gpt_read(rzg2l_gpt, GTIOR);
 	rzg2l_gpt->GTINTAD_val = rzg2l_gpt_read(rzg2l_gpt, GTINTAD);
 	reset_control_assert(rzg2l_gpt->rstc);
@@ -2675,12 +2682,12 @@ static int rzg2l_gpt_resume(struct device *dev)
 		rzg2l_gpt_enable(pwm->chip, pwm);
 
 	/* Restore buffer value. */
-	rzg2l_gpt_write(rzg2l_gpt, rzg2l_gpt->bufferA[0], GTCCRA);
-	rzg2l_gpt_write(rzg2l_gpt, rzg2l_gpt->bufferB[0], GTCCRB);
-	rzg2l_gpt_write(rzg2l_gpt, rzg2l_gpt->bufferA[1], GTCCRC);
-	rzg2l_gpt_write(rzg2l_gpt, rzg2l_gpt->bufferB[1], GTCCRE);
-	rzg2l_gpt_write(rzg2l_gpt, rzg2l_gpt->bufferA[2], GTCCRD);
-	rzg2l_gpt_write(rzg2l_gpt, rzg2l_gpt->bufferB[2], GTCCRF);
+	rzg2l_gpt_write(rzg2l_gpt, rzg2l_gpt->buff_temp[0], GTCCRA);
+	rzg2l_gpt_write(rzg2l_gpt, rzg2l_gpt->buff_temp[1], GTCCRB);
+	rzg2l_gpt_write(rzg2l_gpt, rzg2l_gpt->buff_temp[2], GTCCRC);
+	rzg2l_gpt_write(rzg2l_gpt, rzg2l_gpt->buff_temp[3], GTCCRD);
+	rzg2l_gpt_write(rzg2l_gpt, rzg2l_gpt->buff_temp[4], GTCCRE);
+	rzg2l_gpt_write(rzg2l_gpt, rzg2l_gpt->buff_temp[5], GTCCRF);
 	rzg2l_gpt_write(rzg2l_gpt, rzg2l_gpt->deadtime_first, GTDVU);
 	rzg2l_gpt_write(rzg2l_gpt, rzg2l_gpt->deadtime_second, GTDVD);
 	rzg2l_gpt_write(rzg2l_gpt, rzg2l_gpt->GTIOR_val, GTIOR);
