@@ -112,6 +112,43 @@
 		states = <3300000 0>, <1800000 1>;
 	};
 
+	clk_ext_camera: clk_ext_camera {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <24000000>;
+	};
+
+	ov5645_vdddo_1v8: 1p8v {
+		compatible = "regulator-fixed";
+		regulator-name = "camera_vdddo";
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		regulator-always-on;
+	};
+
+	ov5645_vdda_2v8: 2p8v {
+		compatible = "regulator-fixed";
+		regulator-name = "camera_vdda";
+		regulator-min-microvolt = <2800000>;
+		regulator-max-microvolt = <2800000>;
+		regulator-always-on;
+	};
+
+	ov5645_vddd_1v5: 1p5v {
+		compatible = "regulator-fixed";
+		regulator-name = "camera_vddd";
+		regulator-min-microvolt = <1500000>;
+		regulator-max-microvolt = <1500000>;
+		regulator-always-on;
+	};
+
+	gpio_dummy: gpio-dummy {
+		compatible = "gpio-dummy";
+		gpio-controller;
+		#gpio-cells = <2>;
+		ngpios = <2>;
+	};
+
 	/* 32.768kHz crystal */
 	x6: x6-clock {
 		compatible = "fixed-clock";
@@ -425,6 +462,24 @@
 		};
 	};
 #endif
+
+	i2c0_pins: i2c0 {
+		pinmux = <RZV2N_PORT_PINMUX(3, 0, 1)>, /* I2C0_SDA */
+			 <RZV2N_PORT_PINMUX(3, 1, 1)>; /* I2C0_SCL */
+	};
+
+	i2c1_pins: i2c1 {
+		pinmux = <RZV2N_PORT_PINMUX(3, 2, 1)>, /* I2C1_SDA */
+			 <RZV2N_PORT_PINMUX(3, 3, 1)>; /* I2C1_SCL */
+	};
+
+	/* cam0_pwr_en is used by Google Coral Camera from CSI20 and CSI21 */
+	cam0_pwr_en {
+		gpio-hog;
+		gpios = <RZV2N_GPIO(B, 2) GPIO_ACTIVE_HIGH>;
+		output-high;
+		line-name = "cam0_pwr_en";
+	};
 };
 
 &qextal_clk {
@@ -533,6 +588,101 @@
 			partition@2000000 {
 				label = "user";
 				reg = <0x2000000 0x2000000>;
+			};
+		};
+	};
+};
+
+&i2c0 {
+	pinctrl-0 = <&i2c0_pins>;
+	pinctrl-names = "default";
+
+	status = "okay";
+
+	ov5645_csi20: ov5645_csi20@3c {
+		compatible = "ovti,ov5645";
+		reg = <0x3c>;
+		clock-names = "xclk";
+		clocks = <&clk_ext_camera>;
+		clock-frequency = <24000000>;
+		vdddo-supply = <&ov5645_vdddo_1v8>;
+		vdda-supply = <&ov5645_vdda_2v8>;
+		vddd-supply = <&ov5645_vddd_1v5>;
+		/* Set dummy enable gpio */
+		enable-gpios = <&gpio_dummy 0 GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&pinctrl RZV2N_GPIO(6, 4) GPIO_ACTIVE_LOW>;
+
+		port {
+			ov5645_to_csi20: endpoint {
+				clock-lanes = <0>;
+				data-lanes = <1 2>;
+				remote-endpoint = <&csi20_in>;
+			};
+		};
+	};
+};
+
+&i2c1 {
+	pinctrl-0 = <&i2c1_pins>;
+	pinctrl-names = "default";
+
+	status = "okay";
+
+	ov5645_csi21: ov5645_csi21@3c {
+		compatible = "ovti,ov5645";
+		reg = <0x3c>;
+		clock-names = "xclk";
+		clocks = <&clk_ext_camera>;
+		clock-frequency = <24000000>;
+		vdddo-supply = <&ov5645_vdddo_1v8>;
+		vdda-supply = <&ov5645_vdda_2v8>;
+		vddd-supply = <&ov5645_vddd_1v5>;
+		/* Set dummy enable gpio */
+		enable-gpios = <&gpio_dummy 1 GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&pinctrl RZV2N_GPIO(6, 5) GPIO_ACTIVE_LOW>;
+
+		port {
+			ov5645_to_csi21: endpoint {
+				clock-lanes = <0>;
+				data-lanes = <1 2>;
+				remote-endpoint = <&csi21_in>;
+			};
+		};
+	};
+};
+
+
+&cru0 {
+	status = "okay";
+};
+
+&csi20 {
+	status = "okay";
+
+	ports {
+		port {
+			csi20_in: endpoint {
+				clock-lanes = <0>;
+				data-lanes = <1 2>;
+				remote-endpoint = <&ov5645_to_csi20>;
+			};
+		};
+	};
+};
+
+&cru1 {
+	status = "okay";
+};
+
+&csi21 {
+	status = "okay";
+
+	ports {
+		port {
+			csi21_in: endpoint {
+				clock-lanes = <0>;
+				data-lanes = <1 2>;
+				remote-endpoint = <&ov5645_to_csi21>;
 			};
 		};
 	};
