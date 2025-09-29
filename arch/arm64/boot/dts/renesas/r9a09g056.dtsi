@@ -919,6 +919,118 @@
 				};
 			};
 		};
+
+		cru0: vide0@16000000 {
+			compatible = "renesas,r9a09g056-cru", "renesas,rzv2n-cru";
+			reg = <0 0x16000000 0 0x400>;
+			clocks = <&cpg CPG_MOD 0xd3>,
+				 <&cpg CPG_MOD 0xd4>,
+				 <&cpg CPG_MOD 0xd2>;
+			clock-names = "video", "pclk", "aclk";
+			interrupts = <GIC_SPI 838 IRQ_TYPE_LEVEL_HIGH>;
+			resets = <&cpg 0xc5>,
+				 <&cpg 0xc6>;
+			reset-names = "presetn", "aresetn";
+			power-domains = <&cpg>;
+			channel,id = <0>;
+			status = "disabled";
+
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				port@1 {
+					reg = <1>;
+					cru0_to_csi20: endpoint {
+						remote-endpoint =
+							<&csi20_to_cru0>;
+					};
+				};
+			};
+		};
+
+		cru1: video1@16010000 {
+			compatible = "renesas,r9a09g056-cru", "renesas,rzv2n-cru";
+			reg = <0 0x16010000 0 0x400>;
+			clocks = <&cpg CPG_MOD 0xd6>,
+				 <&cpg CPG_MOD 0xd7>,
+				 <&cpg CPG_MOD 0xd5>;
+			clock-names = "video", "pclk", "aclk";
+			interrupts = <GIC_SPI 844 IRQ_TYPE_LEVEL_HIGH>;
+			resets = <&cpg 0xc8>,
+				 <&cpg 0xc9>;
+			reset-names = "presetn", "aresetn";
+			power-domains = <&cpg>;
+			channel,id = <1>;
+			status = "disabled";
+
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				port@1 {
+					reg = <1>;
+					cru1_to_csi21: endpoint {
+						remote-endpoint =
+							<&csi21_to_cru1>;
+					};
+				};
+			};
+		};
+
+		csi20: csi20@16000400 {
+			compatible = "renesas,r9a09g057-csi2", "renesas,rzv2n-csi2";
+			reg = <0 0x16000400 0 0xc00>;
+			interrupts = <GIC_SPI 837 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 0xd3>,
+				 <&cpg CPG_MOD 0xde>;
+			clock-names = "video", "system";
+			resets = <&cpg 0xc5>,
+				 <&cpg 0xc7>;
+			reset-names = "presetn", "cmn-rstb";
+			status = "disabled";
+
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				port@1 {
+					reg = <1>;
+
+					csi20_to_cru0: endpoint {
+						remote-endpoint =
+							<&cru0_to_csi20>;
+					};
+				};
+			};
+		};
+
+		csi21: csi21@16010400 {
+			compatible = "renesas,r9a09g057-csi2", "renesas,rzv2n-csi2";
+			reg = <0 0x16010400 0 0xc00>;
+			interrupts = <GIC_SPI 843 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cpg CPG_MOD 0xd6>,
+				 <&cpg CPG_MOD 0xdf>;
+			clock-names = "video", "system";
+			resets = <&cpg 0xc8>,
+				 <&cpg 0xca>;
+			reset-names = "presetn", "cmn-rstb";
+			status = "disabled";
+
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				port@1 {
+					reg = <1>;
+
+					csi21_to_cru1: endpoint {
+						remote-endpoint =
+							<&cru1_to_csi21>;
+					};
+				};
+			};
+		};
 	};
 
 	stmmac_axi_setup: stmmac-axi-config {
