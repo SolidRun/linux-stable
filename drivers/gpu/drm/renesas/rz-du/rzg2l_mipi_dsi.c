@@ -1453,6 +1453,7 @@ static const struct rzg2l_mipi_dsi_hw_info rzg3e_mipi_dsi_info = {
 
 static const struct of_device_id rzg2l_mipi_dsi_of_table[] = {
 	{ .compatible = "renesas,r9a09g047-mipi-dsi", .data = &rzg3e_mipi_dsi_info, },
+	{ .compatible = "renesas,r9a09g056-mipi-dsi", .data = &rzv2h_mipi_dsi_info, },
 	{ .compatible = "renesas,r9a09g057-mipi-dsi", .data = &rzv2h_mipi_dsi_info, },
 	{ .compatible = "renesas,rzg2l-mipi-dsi", .data = &rzg2l_mipi_dsi_info, },
 	{ /* sentinel */ }
