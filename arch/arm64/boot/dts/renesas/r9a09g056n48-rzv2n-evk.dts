@@ -422,6 +422,13 @@
 };
 
 &pinctrl {
+	rspi2_pins: rspi2 {
+		pinmux = <RZV2N_PORT_PINMUX(B, 3, 5)>, /* MISO */
+			 <RZV2N_PORT_PINMUX(B, 4, 5)>, /* MOSI */
+			 <RZV2N_PORT_PINMUX(A, 7, 5)>, /* SSL */
+			 <RZV2N_PORT_PINMUX(B, 5, 5)>; /* RSPCK */
+	};
+
 	eth0_pins: eth0 {
 		pins = "ET0_TXC_TXCLK";
 		output-enable;
@@ -686,6 +693,13 @@
 };
 
 &wdt1 {
+	status = "okay";
+};
+
+&rspi2 {
+	pinctrl-0 = <&rspi2_pins>;
+	pinctrl-names = "default";
+
 	status = "okay";
 };
 
