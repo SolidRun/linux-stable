@@ -562,6 +562,7 @@ static const struct rz_cmtw_info rzv2h_cmtw_info = {
 
 static const struct of_device_id rz_cmtw_of_table[] __maybe_unused = {
 	{ .compatible = "renesas,rzv2h-cmtw", .data = &rzv2h_cmtw_info },
+	{ .compatible = "renesas,rzv2n-cmtw", .data = &rzv2h_cmtw_info },
 	{ .compatible = "renesas,rzg3e-cmtw", .data = &rzv2h_cmtw_info },
 	{ }
 };
