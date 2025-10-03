@@ -276,6 +276,27 @@ enum rzg2l_cru_dma_state {
 	RZG2L_CRU_DMA_STOPPING,
 };
 
+/**
+ * struct rzg2l_cru_parallel - Parallel video input endpoint descriptor
+ * @asd:        sub-device descriptor for async framework
+ * @subdev:     subdevice matched using async framework
+ * @mbus_type:  media bus type
+ * @mbus_flags: media bus configuration flags
+ * @source_pad: source pad of remote subdevice
+ * @sink_pad:   sink pad of remote subdevice
+ *
+ */
+struct rzg2l_cru_parallel {
+	struct v4l2_async_subdev asd;
+	struct v4l2_subdev *subdev;
+
+	enum v4l2_mbus_type mbus_type;
+	unsigned int mbus_flags;
+
+	unsigned int source_pad;
+	unsigned int sink_pad;
+};
+
 struct rzg2l_cru_csi {
 	struct v4l2_async_subdev *asd;
 	struct v4l2_subdev *subdev;
@@ -351,10 +372,13 @@ struct rzg2l_cru_info {
  * @ctrl_handler:	V4L2 control handler associated with CRU
  *
  * @ip:			Image processing subdev info
+ * @parallel:		parallel input subdevice descriptor
  * @csi:		CSI info
  * @mdev:		media device
  * @mdev_lock:		protects the count, notifier and csi members
  * @pad:		media pad for the video device entity
+ *
+ * @is_csi:		flag to mark the CRU as using a CSI-2 subdevice
  *
  * @lock:		protects @queue
  * @queue:		vb2 buffers queue
@@ -393,11 +417,14 @@ struct rzg2l_cru_dev {
 
 	struct v4l2_ctrl_handler ctrl_handler;
 
+	struct rzg2l_cru_parallel *parallel;
 	struct rzg2l_cru_ip ip;
 	struct rzg2l_cru_csi csi;
 	struct media_device mdev;
 	struct mutex mdev_lock;
 	struct media_pad pad;
+
+	bool is_csi;
 
 	struct mutex lock;
 	struct vb2_queue queue;

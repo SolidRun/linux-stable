@@ -35,6 +35,168 @@ static const struct media_device_ops rzg2l_cru_media_ops = {
 };
 
 /* -----------------------------------------------------------------------------
+ * Parallel async notifier
+ */
+
+static int
+rzg2l_cru_parallel_notify_complete(struct v4l2_async_notifier *notifier)
+{
+	struct rzg2l_cru_dev *cru = notifier_to_cru(notifier);
+	struct media_entity *source;
+	struct media_entity *sink;
+	int ret;
+
+	ret = rzg2l_cru_ip_subdev_register(cru);
+	if (ret)
+		return ret;
+
+	ret = v4l2_device_register_subdev_nodes(&cru->v4l2_dev);
+	if (ret) {
+		dev_err(cru->dev, "Failed to register subdev nodes\n");
+		return ret;
+	}
+
+	ret = rzg2l_cru_video_register(cru);
+	if (ret)
+		return ret;
+
+	/*
+	 * Create media device link between PARALLEL <-> CRU IP
+	 */
+	source = &cru->parallel->subdev->entity;
+	sink = &cru->ip.subdev.entity;
+	ret = media_create_pad_link(source, 0, sink, 0,
+				    MEDIA_LNK_FL_ENABLED |
+				    MEDIA_LNK_FL_IMMUTABLE);
+	if (ret) {
+		dev_err(cru->dev, "Error creating link from %s to %s\n",
+			source->name, sink->name);
+		return ret;
+	}
+	cru->ip.remote = cru->parallel->subdev;
+
+	/* Create media device link between CRU IP <-> CRU OUTPUT */
+	source = &cru->ip.subdev.entity;
+	sink = &cru->vdev.entity;
+	ret = media_create_pad_link(source, 1, sink, 0,
+				    MEDIA_LNK_FL_ENABLED |
+				    MEDIA_LNK_FL_IMMUTABLE);
+	if (ret) {
+		dev_err(cru->dev, "Error creating link from %s to %s\n",
+			source->name, sink->name);
+		return ret;
+	}
+
+	return ret;
+}
+
+static void
+rzg2l_cru_parallel_notify_unbind(struct v4l2_async_notifier *notifier,
+				 struct v4l2_subdev *subdev,
+				 struct v4l2_async_subdev *asd)
+{
+	struct rzg2l_cru_dev *cru = notifier_to_cru(notifier);
+	struct v4l2_async_subdev *asd_subdev = &cru->parallel->asd;
+
+	rzg2l_cru_ip_subdev_unregister(cru);
+
+	mutex_lock(&cru->lock);
+
+	if (asd_subdev == asd) {
+		cru->parallel->subdev = NULL;
+		dev_dbg(cru->dev, "Unbind Parallel %s\n", subdev->name);
+	}
+
+	mutex_unlock(&cru->lock);
+}
+
+static int rzg2l_cru_parallel_notify_bound(struct v4l2_async_notifier *notifier,
+					   struct v4l2_subdev *subdev,
+					   struct v4l2_async_subdev *asd)
+{
+	struct rzg2l_cru_dev *cru = notifier_to_cru(notifier);
+	struct v4l2_async_subdev *asd_subdev = &cru->parallel->asd;
+
+	mutex_lock(&cru->lock);
+	if (asd_subdev == asd) {
+		cru->parallel->subdev = subdev;
+		dev_dbg(cru->dev, "Bound Parallel %s\n", subdev->name);
+	}
+	mutex_unlock(&cru->lock);
+
+	return 0;
+}
+
+static const struct v4l2_async_notifier_operations
+rzg2l_cru_parallel_notify_ops = {
+	.bound = rzg2l_cru_parallel_notify_bound,
+	.unbind = rzg2l_cru_parallel_notify_unbind,
+	.complete = rzg2l_cru_parallel_notify_complete,
+};
+
+static int rzg2l_cru_parallel_parse_v4l2(struct device *dev,
+					 struct v4l2_fwnode_endpoint *vep,
+					 struct v4l2_async_subdev *asd)
+{
+	struct rzg2l_cru_dev *cru = dev_get_drvdata(dev);
+	struct rzg2l_cru_parallel *rvpe =
+			container_of(asd, struct rzg2l_cru_parallel, asd);
+
+	if (vep->base.port || vep->base.id)
+		return -ENOTCONN;
+
+	cru->parallel = rvpe;
+	cru->parallel->mbus_type = vep->bus_type;
+
+	switch (cru->parallel->mbus_type) {
+	case V4L2_MBUS_PARALLEL:
+		dev_dbg(cru->dev, "Found PARALLEL media bus\n");
+		cru->parallel->mbus_flags = vep->bus.parallel.flags;
+		break;
+	case V4L2_MBUS_BT656:
+		dev_dbg(cru->dev, "Found BT656 media bus\n");
+		cru->parallel->mbus_flags = 0;
+		break;
+	default:
+		dev_err(cru->dev, "Unknown media bus type\n");
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+static int rzg2l_cru_parallel_init(struct rzg2l_cru_dev *cru)
+{
+	int ret;
+
+	v4l2_async_nf_init(&cru->notifier);
+	ret = v4l2_async_nf_parse_fwnode_endpoints(
+				cru->dev, &cru->notifier,
+				sizeof(struct rzg2l_cru_parallel),
+				rzg2l_cru_parallel_parse_v4l2);
+	if (ret)
+		return ret;
+
+	/* If using mc, it's fine not to have any input registered. */
+	if (!cru->parallel)
+		return 0;
+
+	dev_dbg(cru->dev, "Found parallel subdevice %pOF\n",
+		to_of_node(cru->parallel->asd.match.fwnode));
+
+	cru->notifier.ops = &rzg2l_cru_parallel_notify_ops;
+	ret = v4l2_async_nf_register(&cru->v4l2_dev, &cru->notifier);
+	if (ret < 0) {
+		dev_err(cru->dev, "Notifier registration failed\n");
+		v4l2_async_nf_cleanup(&cru->notifier);
+		return ret;
+	}
+
+	return 0;
+}
+
+
+/* -----------------------------------------------------------------------------
  * Group async notifier
  */
 
@@ -264,10 +426,12 @@ static int rzg2l_cru_mc_parse_of_graph(struct rzg2l_cru_dev *cru)
 	if (ret)
 		return ret;
 
-	cru->notifier.ops = &rzg2l_cru_async_ops;
-
 	if (list_empty(&cru->notifier.asd_list))
 		return 0;
+
+	cru->is_csi = true;
+
+	cru->notifier.ops = &rzg2l_cru_async_ops;
 
 	ret = v4l2_async_nf_register(&cru->v4l2_dev, &cru->notifier);
 	if (ret < 0) {
@@ -392,6 +556,7 @@ static int rzg2l_cru_probe(struct platform_device *pdev)
 	if (ret)
 		goto error_dma_unregister;
 
+	cru->is_csi = false;
 	ret = rzg2l_cru_media_init(cru);
 	if (ret)
 		goto error_dma_unregister;
@@ -425,6 +590,12 @@ static int rzg2l_cru_probe(struct platform_device *pdev)
 	}
 
 	cru->v4l2_dev.ctrl_handler = &cru->ctrl_handler;
+
+	if (!cru->is_csi) {
+		ret = rzg2l_cru_parallel_init(cru);
+		if (ret)
+			goto free_ctrl;
+	}
 
 	return 0;
 
@@ -619,6 +790,7 @@ static const u16 rzg2l_cru_regs[] = {
 	[ICnLMXBC2] = 0x23C,
 	[ICnSTIC1] = 0x240,
 	[ICnSTIC2] = 0x244,
+	[ICnPIFC] = 0x250,
 	[ICnMS] = 0x254,
 	[ICnDMR] = 0x26c,
 };
