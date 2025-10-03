@@ -2361,6 +2361,7 @@ int uart_suspend_port(struct uart_driver *drv, struct uart_port *uport)
 			uport->ops->stop_rx(uport);
 			spin_unlock_irq(&uport->lock);
 		}
+		device_set_awake_path(uport->dev);
 		goto unlock;
 	}
 
