@@ -532,7 +532,6 @@ static int rzv2h_rspi_pio_transfer(struct rzv2h_rspi_priv *rspi,
 
 		if (txbuf) {
 			for (count = 0; count < words_per_loop; count++) {
-				writew(SPSRC_SPTEFC, rspi->base + RSPI_SPSRC);
 				ret = rspi_wait_for_tx_empty(rspi);
 				if (ret < 0) {
 					dev_err(&rspi->controller->dev, "transmit timeout\n");
@@ -546,7 +545,6 @@ static int rzv2h_rspi_pio_transfer(struct rzv2h_rspi_priv *rspi,
 			ret = rspi_wait_for_communication_end(rspi);
 			for (count = 0; count < words_per_loop; count++) {
 				if (ret < 0) {
-					writew(SPSRC_SPRFC, rspi->base + RSPI_SPSRC);
 					ret = rspi_wait_for_rx_full(rspi);
 					if (ret < 0) {
 						dev_err(&rspi->controller->dev,
