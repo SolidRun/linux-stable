@@ -521,6 +521,16 @@ static inline int rspi_wait_for_rx_full(struct rspi_data *rspi)
 	return rspi_wait_for_interrupt(rspi, SPSR_SPRF, SPCR_SPRIE);
 }
 
+static inline int rspi_wait_for_tend(struct rspi_data *rspi)
+{
+	u8 tend;
+
+	return readb_poll_timeout(rspi->addr + RSPI_SPSR,
+					tend,
+					tend & SPSR_TEND,
+					10, 100);
+}
+
 static void rspi_data_out_8(struct rspi_data *rspi, const void *tx, int count)
 {
 	const u8 *buf_8 = tx;
@@ -563,13 +573,14 @@ static void rspi_data_in_32(struct rspi_data *rspi, void *rx, int count)
 	buf_32[count] = rspi_read32(rspi, RSPI_SPDR);
 }
 
+
 static int rspi_pio_transfer(struct rspi_data *rspi, const void *tx, void *rx,
 			     unsigned int n)
 {
 	int words = n / (rspi->bits_per_word / 8);
 	void (*tx_fifo)(struct rspi_data *rspi, const void *tx, int count);
 	void (*rx_fifo)(struct rspi_data *rspi, void *rx, int count);
-	int ret, count;
+	int ret, count, loop, loop_count, remained_words, words_per_loop;
 
 	switch (rspi->bits_per_word) {
 	case 8:
@@ -587,27 +598,48 @@ static int rspi_pio_transfer(struct rspi_data *rspi, const void *tx, void *rx,
 	default:
 		return -EINVAL;
 	}
-	for (count = 0; count < words; count++) {
+
+	if (words % rspi->ops->fifo_size)
+		loop = words / rspi->ops->fifo_size + 1;
+	else
+		loop = words / rspi->ops->fifo_size;
+
+	for (loop_count = 0; loop_count < loop; loop_count++) {
+		remained_words = words - loop_count * rspi->ops->fifo_size;
+		words_per_loop = (remained_words > rspi->ops->fifo_size) ?
+					rspi->ops->fifo_size : remained_words;
+
 		if (tx) {
-			ret = rspi_wait_for_tx_empty(rspi);
-			if (ret < 0) {
-				dev_err(&rspi->ctlr->dev, "transmit timeout\n");
-				return ret;
+			ret = rspi_wait_for_tend(rspi);
+			if (ret) {
+			        dev_err(&rspi->ctlr->dev, "TEND timeout at loop %d\n", loop);
+			        return ret;
 			}
-			tx_fifo(rspi, tx, count);
+
+			for (count = 0; count < words_per_loop; count++) {
+				ret = rspi_wait_for_tx_empty(rspi);
+				if (ret < 0) {
+					dev_err(&rspi->ctlr->dev, "transmit timeout\n");
+					return ret;
+				}
+
+				tx_fifo(rspi, tx, count + loop_count * rspi->ops->fifo_size);
+			}
+		}
+
+		if (rx) {
+			for (count = 0; count < words_per_loop; count++) {
+				ret = rspi_wait_for_rx_full(rspi);
+				if (ret < 0) {
+					dev_err(&rspi->ctlr->dev, "receive timeout %d\n", count);
+					return ret;
+				}
+
+				rx_fifo(rspi, rx, count + loop_count * rspi->ops->fifo_size);
+			}
 		}
 	}
 
-	for (count = 0; count < words; count++) {
-		if (rx) {
-			ret = rspi_wait_for_rx_full(rspi);
-			if (ret < 0) {
-				dev_err(&rspi->ctlr->dev, "receive timeout %d\n", count);
-				return ret;
-			}
-			rx_fifo(rspi, rx, count);
-		}
-	}
 	return 0;
 }
 
