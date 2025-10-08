@@ -1391,6 +1391,8 @@
 			power-domains = <&cpg>;
 			resets = <&cpg 0x81>, <&cpg 0x82>;
 			reset-names = "presetn", "tresetn";
+			dmas = <&dmac1 0x7f4493>, <&dmac1 0x7f4492>;
+			dma-names = "tx", "rx";
 			num-cs = <1>;
 			#address-cells = <1>;
 			#size-cells = <0>;
@@ -1411,6 +1413,8 @@
 			power-domains = <&cpg>;
 			resets = <&cpg 0x83>, <&cpg 0x84>;
 			reset-names = "presetn", "tresetn";
+			dmas = <&dmac1 0x7f4496>, <&dmac1 0x7f4495>;
+			dma-names = "tx", "rx";
 			num-cs = <1>;
 			#address-cells = <1>;
 			#size-cells = <0>;
@@ -1431,6 +1435,8 @@
 			power-domains = <&cpg>;
 			resets = <&cpg 0x85>, <&cpg 0x86>;
 			reset-names = "presetn", "tresetn";
+			dmas = <&dmac1 0x7f4499>, <&dmac1 0x7f4498>;
+			dma-names = "tx", "rx";
 			num-cs = <1>;
 			#address-cells = <1>;
 			#size-cells = <0>;
@@ -1451,6 +1457,8 @@
 			power-domains = <&cpg>;
 			resets = <&cpg 0x87>, <&cpg 0x88>;
 			reset-names = "presetn", "tresetn";
+			dmas = <&dmac1 0x7f449c>, <&dmac1 0x7f449b>;
+			dma-names = "tx", "rx";
 			num-cs = <1>;
 			#address-cells = <1>;
 			#size-cells = <0>;
@@ -1471,6 +1479,8 @@
 			power-domains = <&cpg>;
 			resets = <&cpg 0x89>, <&cpg 0x8a>;
 			reset-names = "presetn", "tresetn";
+			dmas = <&dmac1 0x7f449f>, <&dmac1 0x7f449e>;
+			dma-names = "tx", "rx";
 			num-cs = <1>;
 			#address-cells = <1>;
 			#size-cells = <0>;
@@ -1491,6 +1501,8 @@
 			power-domains = <&cpg>;
 			resets = <&cpg 0x8b>, <&cpg 0x8c>;
 			reset-names = "presetn", "tresetn";
+			dmas = <&dmac1 0x7f44a2>, <&dmac1 0x7f44a1>;
+			dma-names = "tx", "rx";
 			num-cs = <1>;
 			#address-cells = <1>;
 			#size-cells = <0>;
@@ -1511,6 +1523,8 @@
 			power-domains = <&cpg>;
 			resets = <&cpg 0x8d>, <&cpg 0x8e>;
 			reset-names = "presetn", "tresetn";
+			dmas = <&dmac1 0x7f44a5>, <&dmac1 0x7f44a4>;
+			dma-names = "tx", "rx";
 			num-cs = <1>;
 			#address-cells = <1>;
 			#size-cells = <0>;
@@ -1531,6 +1545,8 @@
 			power-domains = <&cpg>;
 			resets = <&cpg 0x8f>, <&cpg 0x90>;
 			reset-names = "presetn", "tresetn";
+			dmas = <&dmac1 0x7f44a8>, <&dmac1 0x7f44a7>;
+			dma-names = "tx", "rx";
 			num-cs = <1>;
 			#address-cells = <1>;
 			#size-cells = <0>;
@@ -1551,6 +1567,8 @@
 			power-domains = <&cpg>;
 			resets = <&cpg 0x91>, <&cpg 0x92>;
 			reset-names = "presetn", "tresetn";
+			dmas = <&dmac1 0x7f44ab>, <&dmac1 0x7f44aa>;
+			dma-names = "tx", "rx";
 			num-cs = <1>;
 			#address-cells = <1>;
 			#size-cells = <0>;
@@ -1571,6 +1589,8 @@
 			power-domains = <&cpg>;
 			resets = <&cpg 0x93>, <&cpg 0x94>;
 			reset-names = "presetn", "tresetn";
+			dmas = <&dmac1 0x7f44ae>, <&dmac1 0x7f44ad>;
+			dma-names = "tx", "rx";
 			num-cs = <1>;
 			#address-cells = <1>;
 			#size-cells = <0>;
