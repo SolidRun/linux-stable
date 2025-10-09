@@ -168,6 +168,18 @@
 		#clock-cells = <0>;
 		clock-frequency = <32768>;
 	};
+
+	gpio-keys {
+		compatible = "gpio-keys";
+
+		nmi {
+			interrupt-parent = <&icu>;
+			interrupts = <0 IRQ_TYPE_EDGE_FALLING>;
+			linux,code = <0>;
+			label = "NMI";
+			wakeup-source;
+		};
+	};
 };
 
 &audio_extal_clk {
