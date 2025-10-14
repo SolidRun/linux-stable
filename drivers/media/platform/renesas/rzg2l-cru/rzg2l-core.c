@@ -597,6 +597,13 @@ static int rzg2l_cru_probe(struct platform_device *pdev)
 			goto free_ctrl;
 	}
 
+	cru->work_queue =  create_singlethread_workqueue(dev_name(cru->dev));
+	if (!cru->work_queue) {
+		ret = -ENOMEM;
+		goto error_dma_unregister;
+	}
+	INIT_DELAYED_WORK(&cru->rzg2l_cru_resume, rzg2l_cru_resume_start_streaming);
+
 	return 0;
 
 free_ctrl:
@@ -809,6 +816,51 @@ static const struct rzg2l_cru_info rzg2l_cru_info = {
 	.max_cru_channels = 1,
 };
 
+static int rzg2l_cru_suspend(struct device *dev)
+{
+	struct rzg2l_cru_dev *cru = dev_get_drvdata(dev);
+
+	if ((cru->state == RZG2L_CRU_DMA_STOPPED) ||
+	   (cru->state == RZG2L_CRU_DMA_STOPPING))
+		return 0;
+
+	rzg2l_cru_suspend_stop_streaming(cru);
+	if (!(reset_control_status(cru->presetn)))
+		reset_control_assert(cru->presetn);
+	reset_control_assert(cru->aresetn);
+
+	clk_disable_unprepare(cru->vclk);
+	pm_runtime_put_sync(dev);
+
+	return 0;
+
+}
+
+static int rzg2l_cru_resume(struct device *dev)
+{
+	struct rzg2l_cru_dev *cru = dev_get_drvdata(dev);
+
+	if ((cru->state == RZG2L_CRU_DMA_STOPPED) ||
+	   (cru->state == RZG2L_CRU_DMA_STOPPING))
+		return 0;
+
+	reset_control_deassert(cru->aresetn);
+	if (reset_control_status(cru->presetn) > 0)
+		reset_control_deassert(cru->presetn);
+
+	pm_runtime_resume_and_get(dev);
+	clk_prepare_enable(cru->vclk);
+
+	queue_delayed_work_on(0, cru->work_queue, &cru->rzg2l_cru_resume,
+				msecs_to_jiffies(CONNECTION_TIME));
+	return 0;
+
+}
+
+static const struct dev_pm_ops rzg2l_cru_pm_ops = {
+	SET_SYSTEM_SLEEP_PM_OPS(rzg2l_cru_suspend, rzg2l_cru_resume)
+};
+
 static const struct of_device_id rzg2l_cru_of_id_table[] = {
 	{
 		.compatible = "renesas,r9a09g047-cru",
@@ -830,6 +882,7 @@ static struct platform_driver rzg2l_cru_driver = {
 	.driver = {
 		.name = "rzg2l-cru",
 		.of_match_table = rzg2l_cru_of_id_table,
+		.pm = &rzg2l_cru_pm_ops,
 	},
 	.probe = rzg2l_cru_probe,
 	.remove = rzg2l_cru_remove,

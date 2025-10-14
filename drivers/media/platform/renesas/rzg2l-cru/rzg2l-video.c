@@ -40,6 +40,7 @@ struct rzg2l_cru_buffer {
 };
 
 static int prev_slot[RZG2L_CRU_MAX];
+static void rzg2l_cru_initialize_axi(struct rzg2l_cru_dev *cru);
 
 #define to_buf_list(vb2_buffer) \
 	(&container_of(vb2_buffer, struct rzg2l_cru_buffer, vb)->list)
@@ -208,6 +209,18 @@ static void rzg2l_cru_buffer_queue(struct vb2_buffer *vb)
 	struct vb2_v4l2_buffer *vbuf = to_vb2_v4l2_buffer(vb);
 	struct rzg2l_cru_dev *cru = vb2_get_drv_priv(vb->vb2_queue);
 	unsigned long flags;
+
+	if (cru->suspend) {
+		if (!wait_event_timeout(cru->setup_wait,
+					!cru->suspend,
+					msecs_to_jiffies(SETUP_WAIT_TIME))) {
+			dev_warn(cru->dev, "set up timeout\n");
+			return_unused_buffers(cru, VB2_BUF_STATE_ERROR);
+		}
+
+		rzg2l_cru_initialize_axi(cru);
+		cru->suspend = false;
+	}
 
 	spin_lock_irqsave(&cru->qlock, flags);
 
@@ -863,9 +876,11 @@ static int rzg2l_cru_set_stream(struct rzg2l_cru_dev *cru, int on)
 	if (!on) {
 		int stream_off_ret = 0;
 
-		ret = v4l2_subdev_call(sd, video, s_stream, 0);
-		if (ret)
-			stream_off_ret = ret;
+		if (!cru->suspend) {
+			ret = v4l2_subdev_call(sd, video, s_stream, 0);
+			if (ret)
+				stream_off_ret = ret;
+		}
 
 		ret = v4l2_subdev_call(sd, video, post_streamoff);
 		if (ret == -ENOIOCTLCMD)
@@ -1155,6 +1170,7 @@ static int rzg2l_cru_start_streaming_vq(struct vb2_queue *vq, unsigned int count
 {
 	struct rzg2l_cru_dev *cru = vb2_get_drv_priv(vq);
 	int ret;
+	int i;
 
 	ret = pm_runtime_resume_and_get(cru->dev);
 	if (ret)
@@ -1187,6 +1203,9 @@ static int rzg2l_cru_start_streaming_vq(struct vb2_queue *vq, unsigned int count
 		ret = -ENOMEM;
 		goto assert_presetn;
 	}
+
+	for (i = 0; i < RZG2L_CRU_HW_BUFFER_MAX; i++)
+		cru->queue_buf[i] = NULL;
 
 	cru->sequence = 0;
 
@@ -1240,6 +1259,65 @@ static void rzg2l_cru_stop_streaming_vq(struct vb2_queue *vq)
 	pm_runtime_put_sync(cru->dev);
 }
 
+void rzg2l_cru_resume_start_streaming(struct work_struct *work)
+{
+	struct delayed_work *dwork = to_delayed_work(work);
+	struct rzg2l_cru_dev *cru =
+			container_of(dwork, struct rzg2l_cru_dev, rzg2l_cru_resume);
+	unsigned long flags;
+	int ret;
+
+	ret = rzg2l_cru_set_stream(cru, 1);
+	if (ret) {
+		dev_warn(cru->dev, "Warning at streaming when resuming.\n");
+		return_unused_buffers(cru, VB2_BUF_STATE_ERROR);
+	}
+
+	spin_lock_irqsave(&cru->qlock, flags);
+	cru->sequence = 0;
+	spin_unlock_irqrestore(&cru->qlock, flags);
+
+	cru->suspend = false;
+	rzg2l_cru_write(cru, AMnFIFO, 1);
+	wake_up(&cru->setup_wait);
+}
+
+void rzg2l_cru_suspend_stop_streaming(struct rzg2l_cru_dev *cru)
+{
+	int retries = 0;
+	unsigned long flags;
+
+	spin_lock_irqsave(&cru->qlock, flags);
+
+	/* Disable and clear the interrupt */
+	cru->info->disable_interrupts(cru);
+
+	/* Stop the operation of image conversion */
+	rzg2l_cru_write(cru, ICnEN, 0);
+
+	/* Stop AXI bus */
+	rzg2l_cru_write(cru, AMnAXISTP, AMnAXISTP_AXI_STOP);
+
+	/* Wait until the AXI bus stop */
+	for (retries = 5; retries > 0; retries--) {
+		if (rzg2l_cru_read(cru, AMnAXISTPACK) &
+						AMnAXISTPACK_AXI_STOP_ACK)
+			break;
+
+		usleep_range(10, 20);
+	};
+	/* Cancel the AXI bus stop request */
+	rzg2l_cru_write(cru, AMnAXISTP, 0);
+
+	spin_unlock_irqrestore(&cru->qlock, flags);
+
+	/* Release all active buffers */
+	return_unused_buffers(cru, VB2_BUF_STATE_ERROR);
+
+	cru->suspend = true;
+	rzg2l_cru_set_stream(cru, 0);
+}
+
 static const struct vb2_ops rzg2l_cru_qops = {
 	.queue_setup		= rzg2l_cru_queue_setup,
 	.buf_prepare		= rzg2l_cru_buffer_prepare,
@@ -1275,6 +1353,8 @@ int rzg2l_cru_dma_register(struct rzg2l_cru_dev *cru)
 	spin_lock_init(&cru->qlock);
 
 	cru->state = RZG2L_CRU_DMA_STOPPED;
+	cru->suspend = false;
+	init_waitqueue_head(&cru->setup_wait);
 
 	for (i = 0; i < RZG2L_CRU_HW_BUFFER_MAX; i++)
 		cru->queue_buf[i] = NULL;

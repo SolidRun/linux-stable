@@ -17,6 +17,9 @@
 #include <media/v4l2-device.h>
 #include <media/videobuf2-v4l2.h>
 
+#define CONNECTION_TIME 2000
+#define SETUP_WAIT_TIME 3000
+
 /* Number of HW buffers */
 #define RZG2L_CRU_HW_BUFFER_MAX		8
 #define RZG2L_CRU_HW_BUFFER_DEFAULT	3
@@ -456,6 +459,10 @@ struct rzg2l_cru_dev {
 	int linear_matrix_b[3]; /* BR, BG, BB */
 
 	int id;
+	struct workqueue_struct *work_queue;
+	struct delayed_work rzg2l_cru_resume;
+	wait_queue_head_t setup_wait;
+	bool suspend;
 };
 
 int rzg2l_cru_start_image_processing(struct rzg2l_cru_dev *cru);
@@ -480,6 +487,9 @@ const struct rzg2l_cru_ip_format *rzg2l_cru_ip_format_to_fmt(u32 format);
 const struct rzg2l_cru_ip_format *rzg2l_cru_ip_index_to_fmt(u32 index);
 bool rzg2l_cru_ip_fmt_supports_mbus_code(const struct rzg2l_cru_ip_format *fmt,
 					 unsigned int code);
+
+void rzg2l_cru_resume_start_streaming(struct work_struct *work);
+void rzg2l_cru_suspend_stop_streaming(struct rzg2l_cru_dev *cru);
 
 void rzg2l_cru_enable_interrupts(struct rzg2l_cru_dev *cru);
 void rzg2l_cru_disable_interrupts(struct rzg2l_cru_dev *cru);
