@@ -2883,12 +2883,14 @@ static void brcmf_sdio_bus_stop(struct device *dev)
 	if (bus->watchdog_tsk) {
 		send_sig(SIGTERM, bus->watchdog_tsk, 1);
 		kthread_stop(bus->watchdog_tsk);
+		put_task_struct(bus->watchdog_tsk);
 		bus->watchdog_tsk = NULL;
 	}
 
 	if (bus->thr_rxf_ctl.p_task) {
 		send_sig(SIGTERM, bus->thr_rxf_ctl.p_task, 1);
 		kthread_stop(bus->thr_rxf_ctl.p_task);
+		put_task_struct(bus->thr_rxf_ctl.p_task);
 		bus->thr_rxf_ctl.p_task = NULL;
 	}
 
@@ -5726,6 +5728,8 @@ struct brcmf_sdio *brcmf_sdio_probe(struct brcmf_sdio_dev *sdiodev)
 		if (IS_ERR(bus->thr_rxf_ctl.p_task)) {
 			brcmf_err("brcmf_sdio_rxf_thread failed to start\n");
 			bus->thr_rxf_ctl.p_task = NULL;
+		} else {
+			get_task_struct(bus->thr_rxf_ctl.p_task);
 		}
 	}
 
@@ -5739,6 +5743,8 @@ struct brcmf_sdio *brcmf_sdio_probe(struct brcmf_sdio_dev *sdiodev)
 	if (IS_ERR(bus->watchdog_tsk)) {
 		pr_warn("brcmf_watchdog thread failed to start\n");
 		bus->watchdog_tsk = NULL;
+	} else {
+		get_task_struct(bus->watchdog_tsk);
 	}
 	/* Initialize DPC thread */
 	bus->dpc_triggered = false;
@@ -5810,12 +5816,14 @@ void brcmf_sdio_remove(struct brcmf_sdio *bus)
 		if (bus->watchdog_tsk) {
 			send_sig(SIGTERM, bus->watchdog_tsk, 1);
 			kthread_stop(bus->watchdog_tsk);
+			put_task_struct(bus->watchdog_tsk);
 			bus->watchdog_tsk = NULL;
 		}
 
 		if (bus->thr_rxf_ctl.p_task) {
 			send_sig(SIGTERM, bus->thr_rxf_ctl.p_task, 1);
 			kthread_stop(bus->thr_rxf_ctl.p_task);
+			put_task_struct(bus->thr_rxf_ctl.p_task);
 			bus->thr_rxf_ctl.p_task = NULL;
 		}
 
