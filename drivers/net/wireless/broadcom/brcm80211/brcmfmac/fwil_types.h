@@ -12,6 +12,9 @@
 
 #define BRCMF_FIL_ACTION_FRAME_SIZE	1800
 
+#define BRCMF_AF_PARAM_V2_FW_MAJOR 13
+#define BRCMF_AF_PARAM_V2_FW_MINOR 2
+
 /* ARP Offload feature flags for arp_ol iovar */
 #define BRCMF_ARP_OL_AGENT		0x00000001
 #define BRCMF_ARP_OL_SNOOP		0x00000002
@@ -63,6 +66,8 @@
 #define BRCMF_SCANTYPE_PASSIVE		1
 
 #define BRCMF_WSEC_MAX_PSK_LEN		32
+#define BRCMF_WSEC_PMK_LEN_SUITEB_192   48
+#define BRCMF_WSEC_MAX_PMK_LEN		64	/* SUITE-B-192's PMK is 48 bytes */
 #define	BRCMF_WSEC_PASSPHRASE		BIT(0)
 
 #define BRCMF_WSEC_MAX_SAE_PASSWORD_LEN 128
@@ -143,6 +148,25 @@
 #define BRCMF_WOWL_MAXPATTERNS		16
 #define BRCMF_WOWL_MAXPATTERNSIZE	128
 
+/* IPV4 address length */
+#define BRCMF_IPV4_ADDR_LEN             4
+/* IPV6 address length */
+#define BRCMF_IPV6_ADDR_LEN             16
+
+enum {
+	BRCMF_UNICAST_FILTER_NUM = 0,
+	BRCMF_BROADCAST_FILTER_NUM,
+	BRCMF_MULTICAST4_FILTER_NUM,
+	BRCMF_MULTICAST6_FILTER_NUM,
+	BRCMF_MDNS_FILTER_NUM,
+	BRCMF_ARP_FILTER_NUM,
+	BRCMF_BROADCAST_ARP_FILTER_NUM,
+	MAX_PKT_FILTER_COUNT
+};
+
+#define MAX_PKTFILTER_PATTERN_SIZE		16
+#define MAX_PKTFILTER_PATTERN_FILL_SIZE	(MAX_PKTFILTER_PATTERN_SIZE * 2)
+
 #define BRCMF_COUNTRY_BUF_SZ		4
 #define BRCMF_ANT_MAX			4
 
@@ -174,9 +198,10 @@
 
 #define BRCMF_HE_CAP_MCS_MAP_NSS_MAX	8
 
-#define BRCMF_PMKSA_VER_2		2
-#define BRCMF_PMKSA_VER_3		3
-#define BRCMF_PMKSA_NO_EXPIRY		0xffffffff
+#define BRCMF_EXTAUTH_START	1
+#define BRCMF_EXTAUTH_ABORT	2
+#define BRCMF_EXTAUTH_FAIL	3
+#define BRCMF_EXTAUTH_SUCCESS	4
 
 /* MAX_CHUNK_LEN is the maximum length for data passing to firmware in each
  * ioctl. It is relatively small because firmware has small maximum size input
@@ -192,6 +217,47 @@
 #define DL_END				0x0004
 
 #define DL_TYPE_CLM			2
+
+#define MAX_RSSI_LEVELS			8
+#define WL_RSSI_EVENT_BRCM_VERSION      0
+#define WL_RSSI_EVENT_IFX_VERSION       1
+
+/* Offloads profile configuration version */
+#define BRCMF_OL_CFG_VER_1		1
+
+extern unsigned int brcmf_offload_prof;
+extern unsigned int brcmf_offload_feat;
+
+/* Packet types to be offloaded to firmware for processing */
+enum brcmf_ol_feats {
+	BRCMF_OL_ARP = BIT(0),
+	BRCMF_OL_ND = BIT(1),
+	BRCMF_OL_BDO = BIT(2),
+	BRCMF_OL_ICMP = BIT(3),
+	BRCMF_OL_TKO = BIT(4),
+	BRCMF_OL_DLTRO = BIT(5),
+	BRCMF_OL_PNO = BIT(6),
+	BRCMF_OL_KEEPALIVE = BIT(7),
+	BRCMF_OL_GTKOE = BIT(8),
+	BRCMF_OL_WOWLPF	= BIT(9)
+};
+
+enum brcmf_ol_cfg_id {
+	BRCMF_OL_CFG_ID_PROF = 1,		/* Offload Profile Update */
+	BRCMF_OL_CFG_ID_INET_V4,		/* ADD/DEL IPv4 Address */
+	BRCMF_OL_CFG_ID_INET_V6,		/* ADD/DEL IPv6 Address */
+	BRCMF_OL_CFG_ID_ACTIVATE,		/* Activate/Deactivate Offload */
+	/*  Add new type before this line */
+	BRCMF_OL_CFG_ID_MAX			/* Max Offload Config ID */
+};
+
+enum brcmf_ol_prof_type {
+	BRCMF_OL_PROF_TYPE_LOW_PWR = 1,		/* Low Power Profile */
+	BRCMF_OL_PROF_TYPE_MID_PWR = 2,		/* Mid Power Profile */
+	BRCMF_OL_PROF_TYPE_HIGH_PWR = 3,	/* High Power Profile */
+	/*  Add new type before this line */
+	BRCMF_OL_PROF_TYPE_MAX			/* Max Offload Profile */
+};
 
 /* join preference types for join_pref iovar */
 enum brcmf_join_pref_types {
@@ -238,6 +304,17 @@ struct brcmf_fil_af_params_le {
 	__le32					dwell_time;
 	u8					bssid[ETH_ALEN];
 	u8					pad[2];
+	struct brcmf_fil_action_frame_le	action_frame;
+};
+
+struct brcmf_fil_af_params_v2_le {
+	__le16					version;
+	__le16					length;
+	__le32					channel;
+	__le32					dwell_time;
+	u8					bssid[ETH_ALEN];
+	u8					band;
+	u8					pad[1];
 	struct brcmf_fil_action_frame_le	action_frame;
 };
 
@@ -288,7 +365,7 @@ struct brcmf_pkt_filter_pattern_le {
 	 * Variable length mask and pattern data. mask starts at offset 0.
 	 * Pattern immediately follows mask.
 	 */
-	u8 mask_and_pattern[1];
+	u8 mask_and_pattern[MAX_PKTFILTER_PATTERN_FILL_SIZE];
 };
 
 /* IOVAR "pkt_filter_add" parameter. Used to install packet filters. */
@@ -356,12 +433,6 @@ struct brcm_rateset_le {
 
 struct brcmf_ssid_le {
 	__le32 SSID_len;
-	unsigned char SSID[IEEE80211_MAX_SSID_LEN];
-};
-
-/* Alternate SSID structure used in some places... */
-struct brcmf_ssid8_le {
-	u8 SSID_len;
 	unsigned char SSID[IEEE80211_MAX_SSID_LEN];
 };
 
@@ -584,7 +655,7 @@ struct brcmf_wsec_key_le {
 struct brcmf_wsec_pmk_le {
 	__le16  key_len;
 	__le16  flags;
-	u8 key[BRCMF_WSEC_MAX_SAE_PASSWORD_LEN];
+	u8 key[BRCMF_WSEC_MAX_PMK_LEN];
 };
 
 /**
@@ -596,6 +667,47 @@ struct brcmf_wsec_pmk_le {
 struct brcmf_wsec_sae_pwd_le {
 	__le16 key_len;
 	u8 key[BRCMF_WSEC_MAX_SAE_PASSWORD_LEN];
+};
+
+/**
+ * struct brcmf_auth_req_status_le - external auth request and status update
+ *
+ * @flags: flags for external auth status
+ * @peer_mac: peer MAC address
+ * @ssid_len: length of ssid
+ * @ssid: ssid characters
+ */
+struct brcmf_auth_req_status_le {
+	__le16 flags;
+	u8 peer_mac[ETH_ALEN];
+	__le32 ssid_len;
+	u8 ssid[IEEE80211_MAX_SSID_LEN];
+	u8 pmkid[WLAN_PMKID_LEN];
+};
+
+/**
+ * struct brcmf_mf_params_le - management frame parameters for mgmt_frame iovar
+ *
+ * @version: version of the iovar
+ * @dwell_time: dwell duration in ms
+ * @len: length of frame data
+ * @frame_control: frame control
+ * @channel: channel
+ * @da: peer MAC address
+ * @bssid: BSS network identifier
+ * @packet_id: packet identifier
+ * @data: frame data
+ */
+struct brcmf_mf_params_le {
+	__le32 version;
+	__le32 dwell_time;
+	__le16 len;
+	__le16 frame_control;
+	__le16 channel;
+	u8 da[ETH_ALEN];
+	u8 bssid[ETH_ALEN];
+	__le32 packet_id;
+	u8 data[1];
 };
 
 /* Used to get specific STA parameters */
@@ -896,51 +1008,6 @@ struct brcmf_pmksa {
 };
 
 /**
- * struct brcmf_pmksa_v2 - PMK Security Association
- *
- * @length: Length of the structure.
- * @bssid: The AP's BSSID.
- * @pmkid: The PMK ID.
- * @pmk: PMK material for FILS key derivation.
- * @pmk_len: Length of PMK data.
- * @ssid: The AP's SSID.
- * @fils_cache_id: FILS cache identifier
- */
-struct brcmf_pmksa_v2 {
-	__le16 length;
-	u8 bssid[ETH_ALEN];
-	u8 pmkid[WLAN_PMKID_LEN];
-	u8 pmk[WLAN_PMK_LEN_SUITE_B_192];
-	__le16 pmk_len;
-	struct brcmf_ssid8_le ssid;
-	u16 fils_cache_id;
-};
-
-/**
- * struct brcmf_pmksa_v3 - PMK Security Association
- *
- * @bssid: The AP's BSSID.
- * @pmkid: The PMK ID.
- * @pmkid_len: The length of the PMK ID.
- * @pmk: PMK material for FILS key derivation.
- * @pmk_len: Length of PMK data.
- * @fils_cache_id: FILS cache identifier
- * @ssid: The AP's SSID.
- * @time_left: Remaining time until expiry. 0 = expired, ~0 = no expiry.
- */
-struct brcmf_pmksa_v3 {
-	u8 bssid[ETH_ALEN];
-	u8 pmkid[WLAN_PMKID_LEN];
-	u8 pmkid_len;
-	u8 pmk[WLAN_PMK_LEN_SUITE_B_192];
-	u8 pmk_len;
-	__le16 fils_cache_id;
-	u8 pad;
-	struct brcmf_ssid8_le ssid;
-	__le32 time_left;
-};
-
-/**
  * struct brcmf_pmk_list_le - List of pmksa's.
  *
  * @npmk: Number of pmksa's.
@@ -949,34 +1016,6 @@ struct brcmf_pmksa_v3 {
 struct brcmf_pmk_list_le {
 	__le32 npmk;
 	struct brcmf_pmksa pmk[BRCMF_MAXPMKID];
-};
-
-/**
- * struct brcmf_pmk_list_v2_le - List of pmksa's.
- *
- * @version: Request version.
- * @length: Length of this structure.
- * @pmk: PMK SA information.
- */
-struct brcmf_pmk_list_v2_le {
-	__le16 version;
-	__le16 length;
-	struct brcmf_pmksa_v2 pmk[BRCMF_MAXPMKID];
-};
-
-/**
- * struct brcmf_pmk_op_v3_le - Operation on PMKSA list.
- *
- * @version: Request version.
- * @length: Length of this structure.
- * @pmk: PMK SA information.
- */
-struct brcmf_pmk_op_v3_le {
-	__le16 version;
-	__le16 length;
-	__le16 count;
-	__le16 pad;
-	struct brcmf_pmksa_v3 pmk[BRCMF_MAXPMKID];
 };
 
 /**
@@ -1235,5 +1274,61 @@ struct brcmf_mkeep_alive_pkt_le {
 	u8   keep_alive_id;
 	u8   data[];
 } __packed;
+
+/* BRCM_E_RSSI event data */
+struct wl_event_data_rssi {
+	s32 rssi;
+	s32 snr;
+	s32 noise;
+};
+
+/** RSSI event notification configuration. */
+struct wl_rssi_event {
+	u32 rate_limit_msec;
+	u8 num_rssi_levels;
+	s8 rssi_levels[MAX_RSSI_LEVELS];
+	u8 version;
+	s8 pad[2];
+};
+
+struct ipv4_addr {
+	u8 addr[BRCMF_IPV4_ADDR_LEN];
+};
+
+struct ipv6_addr {
+	u8 addr[BRCMF_IPV6_ADDR_LEN];
+};
+
+/* Offload profile configuration */
+struct brcmf_ol_cfg_v1 {
+	u16 ver;					/* version of this structure */
+	u16 len;					/* length of structure in bytes */
+	enum brcmf_ol_cfg_id id;			/* Offload Config ID */
+
+	union {
+		struct {
+			enum brcmf_ol_prof_type type;	/* offload profile type */
+			bool reset;			/* Remove profile configuration */
+			u8 pad[3];
+		} ol_profile;
+		struct {
+			struct ipv4_addr host_ipv4;
+			bool del;			/* 1:del 0:add host ipv4 address */
+			u8 pad[3];
+		} ol_inet_v4;
+		struct {
+			struct ipv6_addr host_ipv6;
+			u8 type;			/* 0:unicast 1:anycast */
+			bool del;			/* 1:del 0:add host ipv6 address */
+			u8 pad[2];
+		} ol_inet_v6;
+		struct {
+			bool enable;			/* enable/disable offload feature */
+			u8 pad[3];
+		} ol_activate;
+	} u;
+
+	u32 offload_skip;				/* Bitmap of offload to be skipped */
+};
 
 #endif /* FWIL_TYPES_H_ */
