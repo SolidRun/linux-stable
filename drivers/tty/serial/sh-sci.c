@@ -3653,9 +3653,12 @@ static __maybe_unused int sci_suspend(struct device *dev)
 	if (sport) {
 		uart_suspend_port(&sci_uart_driver, &sport->port);
 
-		if (!console_suspend_enabled && uart_console(&sport->port))
+		if (!console_suspend_enabled && uart_console(&sport->port)) {
 			sci_console_save(sport);
-		else
+
+			/* Setting Receive FIFO Data Trigger to 1 for wakeup early */
+			scif_set_rtrg(&sport->port, 1);
+		} else
 			return reset_control_assert(sport->rstc);
 	}
 
