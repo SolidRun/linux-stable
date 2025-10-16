@@ -26,6 +26,7 @@ struct rsnd_dmaen {
 	struct dma_chan		*chan;
 	dma_cookie_t		cookie;
 	unsigned int		dma_len;
+	bool			is_running;
 };
 
 struct rsnd_dmapp {
@@ -70,6 +71,16 @@ static struct rsnd_mod mem = {
  */
 static void rsnd_dmaen_complete(void *data);
 
+static bool is_spdif_format_16bits(struct rsnd_dai_stream *io)
+{
+	struct rsnd_mod *spdif = rsnd_io_to_mod_spdif(io);
+	struct snd_pcm_runtime *runtime = io->substream->runtime;
+
+	if (spdif && runtime->sample_bits == 16)
+		return true;
+	return false;
+}
+
 static int rsnd_dmaen_transfer(struct rsnd_mod *mod,
 				struct rsnd_dai_stream *io)
 {
@@ -84,6 +95,9 @@ static int rsnd_dmaen_transfer(struct rsnd_mod *mod,
 	u32 dma_paddr, dma_size;
 	int amount;
 
+	if (!dmaen->is_running)
+		return 0;
+
 	runtime = substream->runtime;
 
 	dir = rsnd_io_is_play(io) ? DMA_MEM_TO_DEV : DMA_DEV_TO_MEM;
@@ -91,11 +105,40 @@ static int rsnd_dmaen_transfer(struct rsnd_mod *mod,
 	/* Always transfer 1 period */
 	amount = runtime->period_size;
 
-	/* DMA physical address and size */
-	dma_paddr = runtime->dma_addr + frames_to_bytes(runtime,
-							io->dma_buffer_pos);
-	dma_size = frames_to_bytes(runtime, amount);
-	desc = dmaengine_prep_slave_single(dmaen->chan, dma_paddr, dma_size,
+	/*
+	 * As mentioned in the HW manual, SPDIF registers are longword registers
+
+	 * and must be accessed using 32-bit operations. DMA transfers audio
+	 * by sending channel 1 first, then channel 2.
+	 *
+	 * However, with the S16_LE format, ALSA sends 32 bits per frame
+	 * (16 bits per channel). Therefore, when using 16-bit audio formats,
+	 * we must pad each 16-bit channel sample to 32 bits as the HW requirement.
+	 */
+	if (is_spdif_format_16bits(io)) {
+		if (rsnd_io_is_play(io)) {
+			/* For TX: Padding from 16-bit to 32-bit */
+			const u16 *src = (const u16 *)(runtime->dma_area +
+					 frames_to_bytes(runtime, io->dma_buffer_pos));
+			u32 *dst = io->dma_pad_buf_tx;
+
+			for (size_t i = 0; i < amount * 2; i++)
+				dst[i] = (u32)src[i];
+
+			dma_paddr = io->dma_pad_addr_tx;
+		} else
+			/* For RX: write directly to RX pad buffer */
+			dma_paddr = io->dma_pad_addr_rx;
+
+		dma_size = amount * 2 * sizeof(u32);
+	} else {
+		dma_paddr = runtime->dma_addr + frames_to_bytes(runtime, io->dma_buffer_pos);
+		dma_size = frames_to_bytes(runtime, amount);
+	}
+
+	desc = dmaengine_prep_slave_single(dmaen->chan,
+					   dma_paddr,
+					   dma_size,
 					   dir,
 					   DMA_PREP_INTERRUPT | DMA_CTRL_ACK);
 	if (!desc) {
@@ -131,9 +174,23 @@ static void __rsnd_dmaen_complete(struct rsnd_mod *mod,
 	if (rsnd_io_is_working(io)) {
 		struct rsnd_priv *priv = rsnd_io_to_priv(io);
 
-		rsnd_dai_period_elapsed(io);
-		if (rsnd_is_rzv2h(priv))
+		if (rsnd_is_rzv2h(priv)) {
+			if (!rsnd_io_is_play(io) && is_spdif_format_16bits(io)) {
+				struct snd_pcm_runtime *runtime = io->substream->runtime;
+
+				/* For RX: Unpad from 32-bit to 16-bit */
+				const u32 *src = io->dma_pad_buf_rx;
+				u16 *dst = (u16 *)(runtime->dma_area +
+				frames_to_bytes(runtime, io->dma_buffer_pos));
+
+				for (size_t i = 0; i < runtime->period_size * 2; i++)
+					dst[i] = (u16)(src[i] & 0xFFFF);
+			}
+
+			rsnd_dai_period_elapsed(io);
 			rsnd_dmaen_transfer(mod, io);
+		} else
+			rsnd_dai_period_elapsed(io);
 	}
 }
 
@@ -168,6 +225,8 @@ static int rsnd_dmaen_stop(struct rsnd_mod *mod,
 	if (dmaen->chan)
 		dmaengine_terminate_async(dmaen->chan);
 
+	dmaen->is_running = false;
+
 	return 0;
 }
 
@@ -177,6 +236,7 @@ static int rsnd_dmaen_cleanup(struct rsnd_mod *mod,
 {
 	struct rsnd_dma *dma = rsnd_mod_to_dma(mod);
 	struct rsnd_dmaen *dmaen = rsnd_dma_to_dmaen(dma);
+	struct device *dev = rsnd_priv_to_dev(priv);
 
 	/*
 	 * DMAEngine release uses mutex lock.
@@ -184,8 +244,25 @@ static int rsnd_dmaen_cleanup(struct rsnd_mod *mod,
 	 * Let's call it under prepare
 	 */
 	if (dmaen->chan) {
-		if (rsnd_is_rzv2h(priv))
+		if (rsnd_is_rzv2h(priv)) {
 			dmaengine_terminate_all(dmaen->chan);
+
+			/* Free padding buffer after use */
+			if (is_spdif_format_16bits(io)) {
+				if (io->dma_pad_buf_tx) {
+					dma_free_coherent(dev,
+							  io->dma_buf_size,
+							  io->dma_pad_buf_tx, io->dma_pad_addr_tx);
+					io->dma_pad_buf_tx = NULL;
+				}
+				if (io->dma_pad_buf_rx) {
+					dma_free_coherent(dev,
+							  io->dma_buf_size,
+							  io->dma_pad_buf_rx, io->dma_pad_addr_rx);
+					io->dma_pad_buf_rx = NULL;
+				}
+			}
+		}
 
 		dma_release_channel(dmaen->chan);
 	}
@@ -220,6 +297,34 @@ static int rsnd_dmaen_prepare(struct rsnd_mod *mod,
 		return -EIO;
 	}
 
+	if (rsnd_is_rzv2h(priv)) {
+		struct snd_pcm_runtime *runtime = rsnd_io_to_runtime(io);
+
+		/*
+		 * Allocate a DMA buffer used specifically for S16_LE format in DMA transfer mode.
+		 * This buffer provides the required padding when converting 16-bit samples
+		 * to the 32-bit data width expected by the SPDIF hardware.
+		 */
+		if (is_spdif_format_16bits(io)) {
+			io->dma_buf_size = runtime->period_size * 2 * sizeof(u32);
+
+			if (rsnd_io_is_play(io)) {
+				io->dma_pad_buf_tx = dma_alloc_coherent(dev,
+									io->dma_buf_size,
+									&io->dma_pad_addr_tx,
+									GFP_KERNEL);
+				if (!io->dma_pad_buf_tx)
+					return -ENOMEM;
+			} else {
+				io->dma_pad_buf_rx = dma_alloc_coherent(dev,
+									io->dma_buf_size,
+									&io->dma_pad_addr_rx,
+									GFP_KERNEL);
+				if (!io->dma_pad_buf_rx)
+					return -ENOMEM;
+			}
+		}
+	}
 	return 0;
 }
 
@@ -237,6 +342,7 @@ static int rsnd_dmaen_start(struct rsnd_mod *mod,
 	int is_play = rsnd_io_is_play(io);
 	int ret, i;
 
+	dmaen->is_running = true;
 	/*
 	 * in case of monaural data writing or reading through Audio-DMAC
 	 * data is always in Left Justified format, so both src and dst

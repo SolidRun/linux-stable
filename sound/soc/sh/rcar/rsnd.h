@@ -538,6 +538,12 @@ struct rsnd_dai_stream {
 	u32 parent_ssi_status;
 	u32 flags;
 	u32 dma_buffer_pos;
+
+	u32 *dma_pad_buf_tx;
+	dma_addr_t dma_pad_addr_tx;
+	u32 *dma_pad_buf_rx;
+	dma_addr_t dma_pad_addr_rx;
+	size_t dma_buf_size;
 };
 
 /* flags */
