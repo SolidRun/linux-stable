@@ -54,6 +54,14 @@
 #define RSCI5_SEL		RSCI_I2C
 #define RSCI9_SEL		RSCI_SPI
 
+/*
+ * GPT0_CHANNEL_SEL:
+ *     GPT_CHANNEL_A
+ *     GPT_CHANNEL_B
+ *     BOTH_CHANNEL (default)
+ */
+#define GPT0_CHANNEL_SEL       BOTH_CHANNEL
+
 /dts-v1/;
 
 #include <dt-bindings/gpio/gpio.h>
@@ -726,6 +734,15 @@
 		};
 	};
 
+	gpt0_2_pins: gpt0_2 {
+		pinmux = <RZV2N_PORT_PINMUX(7, 2, 9)>, /* GTIOC0_2A - Pmod_6A - GPIO8 */
+			 <RZV2N_PORT_PINMUX(7, 3, 9)>; /* GTIOC0_2B - Pmod_3A - GPIO8 */
+	};
+
+	poegc0_pins: poegc0 {
+		pinmux = <RZV2N_PORT_PINMUX(2, 0, 9)>; /* POEGC0 - Pmod_6A - GPIO4 */
+	};
+
 	usb20_pins: usb20 {
 		ovc {
 			pinmux =  <RZV2N_PORT_PINMUX(9, 6, 14)>; /* OVC */
@@ -1035,6 +1052,26 @@
 	status = "okay";
 };
 #endif
+
+&poegc0 {
+	pinctrl-0 = <&poegc0_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&gpt0_2 {
+	pinctrl-0 = <&gpt0_2_pins>;
+	pinctrl-names = "default";
+#if (GPT0_CHANNEL_SEL == GPT_CHANNEL_A)
+	channel = "channel_A";
+#elif (GPT0_CHANNEL_SEL == GPT_CHANNEL_B)
+	channel = "channel_B";
+#else
+	channel = "both_AB";
+#endif
+	poeg = <&poegc0>;
+	status = "okay";
+};
 
 &xspi {
 	pinctrl-0 = <&xspi_pins>;
