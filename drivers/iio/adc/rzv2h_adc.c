@@ -365,6 +365,48 @@ static const struct of_device_id rzv2h_adc_match[] = {
 };
 MODULE_DEVICE_TABLE(of, rzv2h_adc_match);
 
+static int rzv2h_adc_suspend(struct device *dev)
+{
+	struct iio_dev *indio_dev = dev_get_drvdata(dev);
+	struct rzv2h_adc *adc = iio_priv(indio_dev);
+	int ret;
+
+	ret = pm_runtime_force_suspend(dev);
+	if (ret)
+		return ret;
+
+	ret = reset_control_assert(adc->adrstn);
+	if (ret)
+		goto rpm_restore;
+
+	return 0;
+
+rpm_restore:
+	pm_runtime_force_resume(dev);
+	return ret;
+}
+
+static int rzv2h_adc_resume(struct device *dev)
+{
+	struct iio_dev *indio_dev = dev_get_drvdata(dev);
+	struct rzv2h_adc *adc = iio_priv(indio_dev);
+	int ret;
+
+	ret = reset_control_deassert(adc->adrstn);
+	if (ret)
+		return ret;
+
+	ret = pm_runtime_force_resume(dev);
+	if (ret)
+		goto reset_restore;
+
+	return 0;
+
+reset_restore:
+	reset_control_assert(adc->adrstn);
+	return ret;
+}
+
 static int __maybe_unused rzv2h_adc_pm_runtime_suspend(struct device *dev)
 {
 	struct iio_dev *indio_dev = dev_get_drvdata(dev);
@@ -396,6 +438,7 @@ static int __maybe_unused rzv2h_adc_pm_runtime_resume(struct device *dev)
 }
 
 static const struct dev_pm_ops rzv2h_adc_pm_ops = {
+	SET_SYSTEM_SLEEP_PM_OPS(rzv2h_adc_suspend, rzv2h_adc_resume)
 	SET_RUNTIME_PM_OPS(rzv2h_adc_pm_runtime_suspend,
 			   rzv2h_adc_pm_runtime_resume,
 			   NULL)
