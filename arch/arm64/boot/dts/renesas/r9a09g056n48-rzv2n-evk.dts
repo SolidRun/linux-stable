@@ -221,6 +221,7 @@
 };
 
 &ehci0 {
+	memory-region = <&global_cma>;
 	dr_mode = "otg";
 	status = "okay";
 };
@@ -385,6 +386,7 @@
 };
 
 &ohci0 {
+	memory-region = <&global_cma>;
 	dr_mode = "otg";
 	status = "okay";
 };
