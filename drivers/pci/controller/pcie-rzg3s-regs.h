@@ -339,6 +339,9 @@
 #define PCIE_CFG_BASE_SIZE_0405_EP_F0		0U
 #define PCI_EP_BSIZE00_0006_ADR			0xD4
 #define PCIE_CFG_BASE_SIZE_0006_EP_F0		0U
+#define PCI_EP_LEQCTL_F0			0x1BC
+#define PCI_EP_CFG_OFFSET_MAX			PCI_EP_LEQCTL_F0
+#define PCI_EP_CFG_REG_NUM			((PCI_EP_CFG_OFFSET_MAX / 4) + 1)
 
 /* MSI Endpoint register */
 #define PCI_EP_MSICAP(x)			(0xE0 + ((x) * 0x4))
