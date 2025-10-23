@@ -52,6 +52,23 @@ void xhci_rzv2h_start(struct usb_hcd *hcd)
 
 int xhci_rzv2h_resume(struct usb_hcd *hcd)
 {
+	struct xhci_hcd *xhci = hcd_to_xhci(hcd);
+
+	return reset_control_deassert(xhci->reset);
+}
+
+int xhci_rzv2h_post_resume(struct usb_hcd *hcd)
+{
 	xhci_rzv2h_start(hcd);
+
+	return 0;
+}
+
+int xhci_rzv2h_suspend(struct usb_hcd *hcd)
+{
+	struct xhci_hcd *xhci = hcd_to_xhci(hcd);
+
+	reset_control_assert(xhci->reset);
+
 	return 0;
 }

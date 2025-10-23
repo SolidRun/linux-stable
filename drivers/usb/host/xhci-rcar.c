@@ -12,6 +12,7 @@
 #include <linux/of.h>
 #include <linux/of_device.h>
 #include <linux/usb/phy.h>
+#include <linux/reset.h>
 #include <linux/sys_soc.h>
 
 #include "xhci.h"
@@ -265,10 +266,12 @@ static const struct xhci_plat_priv xhci_plat_renesas_rzv2m = {
 };
 
 static const struct xhci_plat_priv xhci_plat_renesas_rzv2h = {
-	.quirks = XHCI_NO_64BIT_SUPPORT | XHCI_TRUST_TX_LENGTH,
+	.quirks = XHCI_NO_64BIT_SUPPORT | XHCI_TRUST_TX_LENGTH |
+		  XHCI_RESET_ON_RESUME | XHCI_SUSPEND_RESUME_CLKS,
 	.plat_start = xhci_rzv2h_start,
+	.suspend_quirk = xhci_rzv2h_suspend,
 	.resume_quirk = xhci_rzv2h_resume,
-
+	.post_resume_quirk = xhci_rzv2h_post_resume,
 };
 
 static const struct of_device_id usb_xhci_of_match[] = {
