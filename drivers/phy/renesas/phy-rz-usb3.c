@@ -41,6 +41,7 @@
 struct rz_usb3 {
 	void __iomem *base;
 	struct reset_control *rstc;
+	bool skip_reinit;
 };
 
 static int __maybe_unused usb3test_phy_read(void __iomem *usbtest, u16 phy_adrs)
@@ -154,7 +155,7 @@ static int __maybe_unused usb3test_phy_write_mon(void __iomem *usbtest, u16 phy_
 	return 0;
 }
 
-void usb2test_phy_init(void __iomem *usbtest)
+static void usb2test_phy_init(void __iomem *usbtest)
 {
 	writel(0x00000303, usbtest + USB2TEST_UTMICTRL2);
 	writel(0x0000020E, usbtest + USB2TEST_RESET);
@@ -176,7 +177,7 @@ void usb2test_phy_init(void __iomem *usbtest)
 	writel(0x00000101, usbtest + USB2TEST_OTGR);
 }
 
-void usb3test_phy_init(void __iomem *usbtest)
+static void usb3test_phy_init(void __iomem *usbtest)
 {
 	writel(USB3TEST_CREGCTRL_PARA_SEL, usbtest + USB3TEST_CREGCTRL);
 	writel(0x00000303, usbtest +  USB3TEST_RSTCTRL);
@@ -200,12 +201,18 @@ void usb3test_phy_init(void __iomem *usbtest)
 	writel(0x00000000, usbtest +  USB3TEST_RSTCTRL);
 }
 
+static void rz_phy_usb3_init_helper(void __iomem *usbtest)
+{
+	usb2test_phy_init(usbtest);
+	usb3test_phy_init(usbtest);
+}
+
 static int rz_phy_usb3_init(struct phy *p)
 {
 	struct rz_usb3 *r = phy_get_drvdata(p);
 
-	usb2test_phy_init(r->base);
-	usb3test_phy_init(r->base);
+	if (!r->skip_reinit)
+		rz_phy_usb3_init_helper(r->base);
 
 	return 0;
 }
@@ -294,10 +301,49 @@ static int rz_phy_usb3_remove(struct platform_device *pdev)
 	return 0;
 };
 
+static int rcar_gen3_phy_usb3_suspend(struct device *dev)
+{
+	struct rz_usb3 *r = dev_get_drvdata(dev);
+
+	pm_runtime_put(dev);
+	reset_control_assert(r->rstc);
+	r->skip_reinit = false;
+
+	return 0;
+}
+
+static int rcar_gen3_phy_usb3_resume(struct device *dev)
+{
+	struct rz_usb3 *r = dev_get_drvdata(dev);
+	int ret;
+
+	ret = reset_control_deassert(r->rstc);
+	if (ret)
+		return ret;
+
+	ret = pm_runtime_resume_and_get(dev);
+	if (ret)
+		goto reset_assert;
+
+	rz_phy_usb3_init_helper(r->base);
+	r->skip_reinit = true;
+
+	return 0;
+
+reset_assert:
+	reset_control_assert(r->rstc);
+	return ret;
+}
+
+static const struct dev_pm_ops rcar_gen3_phy_usb3_pm_ops = {
+	NOIRQ_SYSTEM_SLEEP_PM_OPS(rcar_gen3_phy_usb3_suspend, rcar_gen3_phy_usb3_resume)
+};
+
 static struct platform_driver rz_phy_usb3_driver = {
 	.driver = {
 		.name = "phy_rz_usb3",
 		.of_match_table = rz_phy_usb3_match_table,
+		.pm     = pm_sleep_ptr(&rcar_gen3_phy_usb3_pm_ops),
 	},
 	.probe	= rz_phy_usb3_probe,
 	.remove = rz_phy_usb3_remove,
