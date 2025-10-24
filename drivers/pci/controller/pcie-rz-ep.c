@@ -53,6 +53,7 @@ struct rz_pci_saved_regs {
 struct rz_pcie_endpoint {
 	struct rz_pcie			pcie;
 	struct rz_pci_saved_regs	*saved_regs;
+	struct pci_epc			*epc;
 	phys_addr_t			*ob_mapped_addr;
 	struct pci_epc_mem_window	*ob_window;
 	u8				max_functions;
@@ -65,6 +66,7 @@ struct rz_pcie_endpoint {
 	struct regmap			*syscon;
 	u32				vendor_id;
 	u32				device_id;
+	bool				link_up;
 };
 
 /* Static Function */
@@ -202,6 +204,14 @@ static int PCIE_EP_IRQ_Initialize(struct rz_pcie *pcie)
 	return 0;
 }
 
+static void rz_pcie_ep_enable_dl_updown(struct rz_pcie *pcie)
+{
+	/* enable DL_UpDown interrupts */
+	rzg3s_pcie_update_bits(pcie->base, RZG3S_PCI_PEIE0,
+			       RZG3S_PCI_PEIE0_DL_UPDOWN,
+			       RZG3S_PCI_PEIE0_DL_UPDOWN);
+}
+
 static int rz_pcie_hw_init_ep(struct rz_pcie *pcie, int channel)
 {
 	struct rz_pcie_endpoint *ep = container_of(pcie, struct rz_pcie_endpoint, pcie);
@@ -239,6 +249,9 @@ static int rz_pcie_hw_init_ep(struct rz_pcie *pcie, int channel)
 	rz_pci_write_reg(pcie, RZV2H_RESET_ALL_ASSERT,  RZV2H_PCI_RESET_REG);	/* Set PCI_RC 310h */
 
 	rz_pci_write_reg(pcie, 0x3ff2,  MODE_SET_1_REG);		/* Set PCI_RC 318h */
+
+	/* Enable DL up/down interrupt */
+	rz_pcie_ep_enable_dl_updown(pcie);
 
 	return 0;
 }
@@ -584,7 +597,7 @@ static int rz_pcie_ep_raise_irq(struct pci_epc *epc, u8 func_no, u8 vfunc_no,
 }
 
 static const struct pci_epc_features rz_pcie_epc_features = {
-	.linkup_notifier = false,
+	.linkup_notifier = true,
 	.msi_capable = true,
 	.msix_capable = false,
 	/* use 64-bit BARs so mark BAR[1,3,5] as reserved */
@@ -599,6 +612,38 @@ static const struct pci_epc_features *rz_pcie_ep_get_features(struct pci_epc *ep
 								u8 func_no, u8 vfunc_no)
 {
 	return &rz_pcie_epc_features;
+}
+
+static irqreturn_t rz_pcie_ep_dl_updown_irq_thread(int irq, void *data)
+{
+	struct rz_pcie_endpoint *ep = data;
+	struct rz_pcie *pcie = &ep->pcie;
+	u32 reg;
+
+	reg = rz_pci_read_reg(pcie, RZG3S_PCI_PEIS0);
+	/* clear the interrupt */
+	rzg3s_pcie_update_bits(pcie->base, RZG3S_PCI_PEIS0,
+			       RZG3S_PCI_PEIS0_DL_UPDOWN,
+			       RZG3S_PCI_PEIS0_DL_UPDOWN);
+
+	if (reg & RZG3S_PCI_PEIS0_DL_UPDOWN) {
+
+                reg = rz_pci_read_reg(pcie, RZG3S_PCI_PCSTAT1);
+		if (reg & RZG3S_PCI_PCSTAT1_DL_DOWN_STS) {
+			/* Link down detected */
+			dev_dbg(pcie->dev, "Link down detected\n");
+			ep->link_up = false;
+		} else {
+			/* Link up detected */
+			dev_dbg(pcie->dev, "Link up detected\n");
+			/* Notify the function */
+			if (!ep->link_up)
+				pci_epc_linkup(ep->epc);
+			ep->link_up = true;
+		}
+	}
+
+	return IRQ_HANDLED;
 }
 
 static const struct pci_epc_ops rz_pcie_epc_ops = {
@@ -632,7 +677,8 @@ static int rz_pcie_ep_probe(struct platform_device *pdev)
 	struct device_node *np = dev->of_node;
 	struct rz_pcie *pcie;
 	struct pci_epc *epc;
-	int err, channel;
+	const char *devname;
+	int irq, err, channel;
 
 	dma_set_mask_and_coherent(dev, DMA_BIT_MASK(32));
 
@@ -716,6 +762,7 @@ static int rz_pcie_ep_probe(struct platform_device *pdev)
 
 	epc->max_functions = ep->max_functions;
 	epc_set_drvdata(epc, ep);
+	ep->epc = epc;
 
 	ep->rst = devm_reset_control_get_shared(dev, NULL);
 	if (IS_ERR(ep->rst)) {
@@ -750,6 +797,16 @@ static int rz_pcie_ep_probe(struct platform_device *pdev)
 	if (err)
 		return err;
 
+	irq = platform_get_irq_byname(pdev, "pcie_evt");
+	if (irq < 0)
+		goto err_pm_put;
+
+	devname = devm_kasprintf(dev, GFP_KERNEL, "%s-evt", dev_name(dev));;
+	err = devm_request_threaded_irq(dev, irq, NULL,
+					rz_pcie_ep_dl_updown_irq_thread,
+					IRQF_ONESHOT, devname, ep);
+        if (err)
+                goto err_pm_put;
 
 	return 0;
 
