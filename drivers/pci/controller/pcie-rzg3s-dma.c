@@ -13,6 +13,10 @@
 #include "../../../drivers/dma/virt-dma.h"
 #include "../../../drivers/dma/dmaengine.h"
 
+#ifdef CONFIG_DEBUG_FS
+#include <linux/debugfs.h>
+#endif
+
 #include "pcie-rzg3s-regs.h"
 
 struct rzg3s_pcie_dma_chan;
@@ -64,6 +68,9 @@ struct rzg3s_pcie_dma_chan {
 	int index;
 	struct rzg3s_pcie_dma_desc *desc;
 	enum rzg3s_pcie_dma_status status;
+#ifdef CONFIG_DEBUG_FS
+	struct debugfs_regset32 regset;
+#endif
 };
 
 struct rzg3s_pcie_dmac {
@@ -74,6 +81,70 @@ struct rzg3s_pcie_dmac {
 	unsigned int n_channels;
 	struct rzg3s_pcie_dma_chan *channels;
 };
+
+#ifdef CONFIG_DEBUG_FS
+
+#define RZG3S_PCIE_DMA_DBGFS_REG(_name, _off)	\
+{						\
+	.name = _name,				\
+	.offset = _off,				\
+}
+
+#define RZG3S_PCIE_DMA_DBGFS_NREGS	7
+
+#define RZG3S_PCIE_DMA_DBGFS_REG32(chan) \
+{										\
+	RZG3S_PCIE_DMA_DBGFS_REG("DMARESTSIZ", RZG3S_PCI_DMARESTSIZ(chan)),	\
+	RZG3S_PCIE_DMA_DBGFS_REG("AXIREQAL", RZG3S_PCI_AXIREQAL(chan)),		\
+	RZG3S_PCIE_DMA_DBGFS_REG("AXIREQAU", RZG3S_PCI_AXIREQAU(chan)),		\
+	RZG3S_PCIE_DMA_DBGFS_REG("PCIREQAL", RZG3S_PCI_PCIREQAL(chan)),		\
+	RZG3S_PCIE_DMA_DBGFS_REG("PCIREQAU", RZG3S_PCI_PCIREQAU(chan)),		\
+	RZG3S_PCIE_DMA_DBGFS_REG("QUESTA", RZG3S_PCI_QUESTA(chan)),		\
+	RZG3S_PCIE_DMA_DBGFS_REG("DMACESTA", RZG3S_PCI_DMACESTA(chan)),		\
+}										\
+
+static const struct debugfs_reg32 rzg3s_pcie_dma_dbgfs_regs[][RZG3S_PCIE_DMA_DBGFS_NREGS] = {
+	RZG3S_PCIE_DMA_DBGFS_REG32(0),
+	RZG3S_PCIE_DMA_DBGFS_REG32(1),
+	RZG3S_PCIE_DMA_DBGFS_REG32(2),
+	RZG3S_PCIE_DMA_DBGFS_REG32(3),
+	RZG3S_PCIE_DMA_DBGFS_REG32(4),
+	RZG3S_PCIE_DMA_DBGFS_REG32(5),
+	RZG3S_PCIE_DMA_DBGFS_REG32(6),
+	RZG3S_PCIE_DMA_DBGFS_REG32(7),
+};
+
+static void rzg3s_pcie_dma_debugfs_init(struct rzg3s_pcie_dmac *dmac)
+{
+	struct rzg3s_pcie_dma_chan *chan;
+	char name[32];
+
+	for (int i = 0; i < dmac->n_channels; i++) {
+		chan = &dmac->channels[i];
+		chan->regset.regs = rzg3s_pcie_dma_dbgfs_regs[i];
+		chan->regset.nregs = RZG3S_PCIE_DMA_DBGFS_NREGS;
+		chan->regset.base = dmac->base;
+
+		snprintf(name, 32, "chan%d", i);
+		/* Read-only */
+		debugfs_create_regset32(name, 0444, dmac->engine.dbg_dev_root, &chan->regset);
+	}
+}
+
+static void rzg3s_pcie_dma_debugfs_remove(struct rzg3s_pcie_dmac *dmac)
+{
+	debugfs_remove_recursive(dmac->engine.dbg_dev_root);
+}
+
+#else
+static inline void rzg3s_pcie_dma_debugfs_init(struct rzg3s_pcie_dmac *dmac)
+{
+}
+
+static inline void rzg3s_pcie_dma_debugfs_remove(struct rzg3s_pcie_dmac *dmac)
+{
+}
+#endif /* CONFIG_DEBUG_FS */
 
 static inline struct rzg3s_pcie_dma_chan *to_rzg3s_pcie_dma_chan(struct dma_chan *c)
 {
@@ -582,6 +653,8 @@ int rzg3s_pcie_dma_probe(struct rz_pcie *pci)
 	if (ret < 0)
 		goto err;
 
+	rzg3s_pcie_dma_debugfs_init(dmac);
+
 	dev_info(dev, "DMA available\n");
 	return 0;
 err:
@@ -593,6 +666,8 @@ void rzg3s_pcie_dma_remove(struct rz_pcie *pci)
 {
 	struct rzg3s_pcie_dmac *dmac = pci->dmac;
 	int i;
+
+	rzg3s_pcie_dma_debugfs_remove(dmac);
 
 	dma_async_device_unregister(&dmac->engine);
 
