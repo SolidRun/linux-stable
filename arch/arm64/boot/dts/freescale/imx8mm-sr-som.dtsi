@@ -3,6 +3,8 @@
  * Copyright 2025 Josua Mayer <josua@solid-run.com>
  */
 
+#include <dt-bindings/phy/phy-imx8-pcie.h>
+
 #include "imx8mm.dtsi"
 
 / {
@@ -335,6 +337,8 @@
 };
 
 &pcie_phy {
+	fsl,clkreq-unsupported;
+	fsl,refclk-pad-mode = <IMX8_PCIE_REFCLK_PAD_OUTPUT>;
 	status = "okay";
 };
 
