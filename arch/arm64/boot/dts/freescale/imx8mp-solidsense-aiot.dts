@@ -128,19 +128,7 @@
 	status = "disabled";
 };
 
-&i2c2 {
-	clock-frequency = <100000>;
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_i2c2>;
-	status = "okay";
-};
-
 &i2c3 {
-	clock-frequency = <100000>;
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_i2c3>;
-	status = "okay";
-
 	rtc: rtc@69 {
 		compatible = "abracon,ab1805";
 		reg = <0x69>;
@@ -351,20 +339,6 @@
 	pinctrl_hog: hoggrp {
 			fsl,pins = <
 			>;
-	};
-
-	pinctrl_i2c2: i2c2grp {
-		fsl,pins = <
-			MX8MP_IOMUXC_I2C2_SCL__I2C2_SCL			0x40000084
-			MX8MP_IOMUXC_I2C2_SDA__I2C2_SDA			0x40000084
-		>;
-	};
-
-	pinctrl_i2c3: i2c3grp {
-		fsl,pins = <
-			MX8MP_IOMUXC_I2C3_SCL__I2C3_SCL			0x400001c3
-			MX8MP_IOMUXC_I2C3_SDA__I2C3_SDA			0x400001c3
-		>;
 	};
 
 	pinctrl_pdm: pdmgrp {
