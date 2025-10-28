@@ -359,8 +359,6 @@ static int rz_mtu3_pwm_enable(struct rz_mtu3_pwm_chip *rz_mtu3_pwm,
 	} else if (rz_mtu3_pwm->channel_data[ch].function == MTU3_PWM_COMPLEMENTARY) {
 		rz_mtu3_8bit_ch_write(priv->mtu, RZ_MTU3_TMDR1,
 						RZ_MTU3_TMDR1_MD_COMP_PWMMODE3);
-		rz_mtu3_8bit_ch_write(priv->mtu_comp_pwm, RZ_MTU3_TMDR1,
-						RZ_MTU3_TMDR1_MD_COMP_PWMMODE3);
 		rz_mtu3_16bit_ch_write(priv->mtu, RZ_MTU3_TCNT, 0);
 		rz_mtu3_16bit_ch_write(priv->mtu_comp_pwm, RZ_MTU3_TCNT, 0);
 
@@ -415,7 +413,8 @@ static void rz_mtu3_pwm_disable(struct rz_mtu3_pwm_chip *rz_mtu3_pwm,
 		/* select disable waveform output */
 		rz_mtu3_pwm_enable_output_pins(rz_mtu3_pwm, pwm->hwpwm, false);
 
-		rz_mtu3_8bit_ch_write(priv->mtu_comp_pwm, RZ_MTU3_TMDR1,
+		/* Re-set TMDR registers of mtu (MTU3/6) to normal mode */
+		rz_mtu3_8bit_ch_write(priv->mtu, RZ_MTU3_TMDR1,
 						      RZ_MTU3_TMDR1_MD_NORMAL);
 		/* It is important to stop 2 channels of complementary pwm simultaneously */
 		if (priv->mtu->channel_number == 3) {
@@ -662,8 +661,6 @@ static int rz_mtu3_pwm_config(struct pwm_chip *chip, struct pwm_device *pwm,
 						      MTU3_PWM_COMPLEMENTARY) {
 		rz_mtu3_8bit_ch_write(priv->mtu, RZ_MTU3_TMDR1,
 						      RZ_MTU3_TMDR1_MD_NORMAL);
-		rz_mtu3_8bit_ch_write(priv->mtu_comp_pwm, RZ_MTU3_TMDR1,
-						      RZ_MTU3_TMDR1_MD_NORMAL);
 
 		if (priv->mtu->channel_number == 3) {
 			val_tder = rz_mtu3_shared_reg_read(priv->mtu,
@@ -700,8 +697,6 @@ static int rz_mtu3_pwm_config(struct pwm_chip *chip, struct pwm_device *pwm,
 		}
 
 		rz_mtu3_8bit_ch_write(priv->mtu, RZ_MTU3_TMDR1,
-					       RZ_MTU3_TMDR1_MD_COMP_PWMMODE3);
-		rz_mtu3_8bit_ch_write(priv->mtu_comp_pwm, RZ_MTU3_TMDR1,
 					       RZ_MTU3_TMDR1_MD_COMP_PWMMODE3);
 	}
 
