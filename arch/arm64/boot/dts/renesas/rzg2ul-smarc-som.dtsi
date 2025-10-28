@@ -302,12 +302,12 @@
 
 			partition@0 {
 				label = "bl2";
-				reg = <0x00000000 0x0001d000>;
+				reg = <0x00000000 0x00020000>;
 			};
 
-			partition@1d000 { /* fip is at offset 0x200 */
+			partition@20000 { /* fip is at offset 0x20000 */
 				label = "fip";
-				reg = <0x0001d000 0x7e3000>;
+				reg = <0x00020000 0x007E0000>;
 			};
 
 			partition@800000 {
