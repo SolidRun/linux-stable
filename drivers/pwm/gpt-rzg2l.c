@@ -16,6 +16,8 @@
 #include <linux/of.h>
 #include <linux/platform_device.h>
 #include <linux/pm_runtime.h>
+#include <linux/interrupt.h>
+#include <linux/of_irq.h>
 #include <linux/pwm.h>
 #include <linux/slab.h>
 #include <linux/reset.h>
@@ -25,6 +27,7 @@
 #include <linux/of_address.h>
 #include <linux/bitfield.h>
 #include <linux/iio/iio.h>
+#include <linux/irqchip/irq-renesas-rzv2h.h>
 
 #define GTPR_MAX_VALUE	0xFFFFFFFF
 #define GTSTR		0x0004
@@ -2425,7 +2428,8 @@ static int rzg2l_gpt_probe(struct platform_device *pdev)
 	struct device_node *poeg_np;
 	struct platform_device *poeg_dev_np;
 	struct iio_dev *indio_dev;
-	int ret, irq = 0, i, j;
+	struct device_node *np = pdev->dev.of_node;
+	int ret, index, irq = 0, i, j;
 	const char *read_string;
 
 	indio_dev = devm_iio_device_alloc(&pdev->dev, sizeof(*rzg2l_gpt));
@@ -2542,20 +2546,29 @@ static int rzg2l_gpt_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-
 	if (rzg2l_gpt->cfg->has_ovf_irq) {
 		irq = platform_get_irq_byname(pdev, "gtciv");
 		if (irq < 0) {
 			dev_err(&pdev->dev, "Failed to obtain IRQ\n");
 			return irq;
 		}
+	} else {
+		index = of_property_match_string(np, "interrupt-names", "gtciv");
+		if (index < 0)
+			return dev_err_probe(&pdev->dev, index, "interrupt name not found\n");
 
-		ret = devm_request_irq(&pdev->dev, irq, gpt_gtciv_interrupt, 0,
-					dev_name(&pdev->dev), rzg2l_gpt);
-		if (ret < 0) {
-			dev_err(&pdev->dev, "Failed to request IRQ\n");
-			return ret;
+		irq = rzv2h_icu_gpt_irq_mapping(np, index);
+		if (irq < 0) {
+			dev_err(&pdev->dev, "Failed to obtain IRQ\n");
+			return irq;
 		}
+	}
+
+	ret = devm_request_irq(&pdev->dev, irq, gpt_gtciv_interrupt, 0,
+				dev_name(&pdev->dev), rzg2l_gpt);
+	if (ret < 0) {
+		dev_err(&pdev->dev, "Failed to request IRQ\n");
+		return ret;
 	}
 
 	ret = of_property_read_string(pdev->dev.of_node, "channel",
