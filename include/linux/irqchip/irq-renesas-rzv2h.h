@@ -18,6 +18,7 @@ void rzv2h_icu_register_dma_req(struct platform_device *icu_dev, u8 dmac_index, 
 				u16 req_no);
 void rzv2h_icu_register_dma_ack(struct platform_device *icu_dev, u8 dmac_index, u8 ack_no,
 				u8 dmac_channel);
+int rzv2h_icu_gpt_irq_mapping(struct device_node *np, int irq_index);
 #else
 static inline void rzv2h_icu_register_dma_req(struct platform_device *icu_dev, u8 dmac_index,
 					      u8 dmac_channel, u16 req_no) { }

@@ -21,6 +21,7 @@
 #include <linux/reset.h>
 #include <linux/spinlock.h>
 #include <linux/syscore_ops.h>
+#include <linux/interrupt.h>
 
 /* DT "interrupts" indexes */
 #define ICU_IRQ_START				1
@@ -91,6 +92,15 @@
 #define ICU_RZG3E_TSSEL_MAX_VAL			0x8c
 #define ICU_RZV2H_TSSEL_MAX_VAL			0x55
 
+#define GPT_CLR_OFFSET				2
+#define GPT_OVF_MASK(ch)			((ch) ? GENMASK(17, 10) : GENMASK(25, 18))
+#define GPT_CLR_MASK(ch)			((ch) ? GENMASK(15, 8) : GENMASK(23, 16))
+#define GPT_CLR_ERINT_MASK(ch)			((ch) ? GENMASK(17, 10) : GENMASK(25, 18))
+
+#define ERROR_INTSTAT_OFFSET(x)			(0x338 + 0x4 * (x))
+#define ERROR_INTCLR_OFFSET(x)			(0x348 + 0x4 * (x))
+#define ERROR_ERINTMSK_OFFSET(x)		(0x358 + 0x4 * (x))
+
 /**
  * struct rzv2h_hw_info - Interrupt Control Unit controller hardware info structure.
  * @tssel_lut:		TINT lookup table
@@ -131,6 +141,7 @@ struct rzv2h_icu_priv {
 	void __iomem			*base;
 	struct irq_fwspec		fwspec[ICU_NUM_IRQ];
 	raw_spinlock_t			lock;
+	struct irq_domain		*icu_domain;
 	const struct rzv2h_hw_info	*info;
 };
 
@@ -550,7 +561,16 @@ static int rzv2h_icu_alloc(struct irq_domain *domain, unsigned int virq, unsigne
 	return irq_domain_alloc_irqs_parent(domain, virq, nr_irqs, &priv->fwspec[hwirq]);
 }
 
+static int rzv2h_icu_map(struct irq_domain *d, unsigned int irq, irq_hw_number_t hwirq)
+{
+	irq_set_chip_data(irq, d->host_data);
+	irq_set_chip_and_handler(irq, &dummy_irq_chip, handle_simple_irq);
+
+	return 0;
+}
+
 static const struct irq_domain_ops rzv2h_icu_domain_ops = {
+	.map		= rzv2h_icu_map,
 	.alloc		= rzv2h_icu_alloc,
 	.free		= irq_domain_free_irqs_common,
 	.translate	= irq_domain_translate_twocell,
@@ -578,6 +598,61 @@ static void rzv2h_icu_put_device(void *data)
 	put_device(data);
 }
 
+static irqreturn_t gpt_irq_handler(int irq, void *dev_id)
+{
+	struct rzv2h_icu_priv *priv = dev_id;
+	unsigned int hw_irq, virq;
+	int irq_flag;
+	int ret = IRQ_NONE;
+
+	guard(raw_spinlock_irqsave)(&priv->lock);
+
+	for (int ch = 0; ch <= 1; ch++) {
+		irq_flag = readl(priv->base +
+			(ch == 0 ? ERROR_INTSTAT_OFFSET(1) : ERROR_INTSTAT_OFFSET(2)));
+
+		hw_irq = __ffs(irq_flag & GPT_OVF_MASK(ch));
+		if (!hw_irq)
+			continue;
+
+		virq = irq_find_mapping(priv->icu_domain, hw_irq);
+		if (virq)
+			generic_handle_irq(virq);
+
+		/* Clear only the bit corresponding to hw_irq in GPT_CLR_MASK */
+		writel(BIT(hw_irq - GPT_CLR_OFFSET) & GPT_CLR_MASK(ch), priv->base +
+			(ch == 0 ? ERROR_INTCLR_OFFSET(1) : ERROR_INTCLR_OFFSET(2)));
+
+		ret = IRQ_HANDLED;
+	}
+
+	return ret;
+}
+
+int rzv2h_icu_gpt_irq_mapping(struct device_node *node, int irq_index)
+{
+	struct platform_device *pdev;
+	struct of_phandle_args args;
+	struct irq_domain *icu_domain;
+	int ret;
+
+	pdev = of_find_device_by_node(node);
+	if (!pdev)
+		return -ENODEV;
+
+	ret = of_irq_parse_one(node, irq_index, &args);
+	if (ret)
+		return dev_err_probe(&pdev->dev, ret, "Failed to parse IRQ\n");
+
+	icu_domain = irq_find_host(args.np);
+	if (!icu_domain) {
+		dev_err(&pdev->dev, "No IRQ domain found for ICU\n");
+		return -ENODEV;
+	}
+
+	return irq_create_mapping(icu_domain, args.args[0]);
+}
+
 static int rzv2h_icu_init_common(struct device_node *node, struct device_node *parent,
 				 const struct rzv2h_hw_info *hw_info)
 {
@@ -585,7 +660,7 @@ static int rzv2h_icu_init_common(struct device_node *node, struct device_node *p
 	struct rzv2h_icu_priv *rzv2h_icu_data;
 	struct platform_device *pdev;
 	struct reset_control *resetn;
-	int ret;
+	int gpt_irq, ret;
 
 	pdev = of_find_device_by_node(node);
 	if (!pdev)
@@ -650,8 +725,33 @@ static int rzv2h_icu_init_common(struct device_node *node, struct device_node *p
 		goto pm_put;
 	}
 
+	rzv2h_icu_data->icu_domain = irq_domain;
+
 	rzv2h_icu_data->info = hw_info;
 	register_syscore_ops(&rzv2h_irqc_syscore_ops);
+
+	gpt_irq = platform_get_irq_byname(pdev, "icu-error-ca55");
+	if (gpt_irq < 0) {
+		dev_err(&pdev->dev, "Failed to get error IRQ by name\n");
+		return gpt_irq;
+	}
+
+	ret = devm_request_irq(&pdev->dev, gpt_irq, gpt_irq_handler,
+					IRQF_SHARED, dev_name(&pdev->dev), rzv2h_icu_data);
+	if (ret < 0) {
+		dev_err(&pdev->dev, "failed to request IRQ\n");
+		return -ENOENT;
+	}
+
+	/* mask gpt overflow interrupt. */
+	for (u8 ch = 0; ch <= 1; ch++) {
+		int err_flag = readl(rzv2h_icu_data->base +
+			((!ch) ? ERROR_ERINTMSK_OFFSET(1) : ERROR_ERINTMSK_OFFSET(2)));
+
+		writel(~GPT_CLR_ERINT_MASK(ch) & err_flag,
+			rzv2h_icu_data->base +
+			((!ch) ? ERROR_ERINTMSK_OFFSET(1) : ERROR_ERINTMSK_OFFSET(2)));
+	}
 
 	/*
 	 * coccicheck complains about a missing put_device call before returning, but it's a false
