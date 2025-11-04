@@ -14,6 +14,17 @@
  */
 #define eMMC_SD_SEL    0
 
+/* Select among CAN/SPDIF/SCI pins
+ * CAN_SPDIF_SCI_SEL value:
+ *	0: CAN		is selected (default)
+ *	1: SPDIF	is selected
+ *	2: SCI		is selected
+ */
+#define CAN_SPDIF_SCI_SEL	0
+#define CAN_SEL			0
+#define SPDIF_SEL		1
+#define SCI_SEL			2
+
 /dts-v1/;
 
 #include <dt-bindings/gpio/gpio.h>
@@ -229,12 +240,39 @@
 		};
 	};
 
+#if (CAN_SPDIF_SCI_SEL == SPDIF_SEL)
+	codec_test0: codec_test0 {
+		compatible = "linux,snd-soc-dummy";
+		#sound-dai-cells = <0>;
+		port {
+			dummy_codec0: endpoint {
+				remote-endpoint = <&spdif0_endpoint>;
+			};
+		};
+	};
+
+	codec_test2: codec_test2 {
+		compatible = "linux,snd-soc-dummy";
+		#sound-dai-cells = <0>;
+		 port {
+			dummy_codec2: endpoint {
+				remote-endpoint = <&spdif2_endpoint>;
+			};
+		};
+	};
+#endif
+
 	sound_card: sound {
 		compatible = "audio-graph-card";
 
 		label = "rsnd_rzv2n";
 
-		dais = <&rsnd_port0     /* DA7212 */
+		dais = <
+			&rsnd_port0     /* DA7212 */
+#if (CAN_SPDIF_SCI_SEL == SPDIF_SEL)
+			&spdif_port0
+			&spdif_port2
+#endif
 			>;
 	};
 };
@@ -568,6 +606,7 @@
 		line-name = "sd1_pwr_en";
 	};
 
+#if (CAN_SPDIF_SCI_SEL == CAN_SEL)
 	can0_pins: can0 {
 		pinmux = <RZV2N_PORT_PINMUX(8, 0, 5)>, /* TX */
 			 <RZV2N_PORT_PINMUX(8, 1, 5)>; /* RX */
@@ -577,6 +616,7 @@
 		pinmux = <RZV2N_PORT_PINMUX(8, 2, 5)>, /* TX */
 			 <RZV2N_PORT_PINMUX(8, 3, 5)>; /* RX */
 	};
+#endif
 
 	can2_pins: can2 {
 		pinmux = <RZV2N_PORT_PINMUX(8, 4, 5)>, /* TX */
@@ -706,6 +746,17 @@
 				 <RZV2N_PORT_PINMUX(1, 1, 7)>, /* AUDIO_CLKC */
 				 <RZV2N_PORT_PINMUX(9, 7, 8)>; /* AUDIO_CLKOUT */
 		};
+#if (CAN_SPDIF_SCI_SEL == SPDIF_SEL)
+		spdif0_pins: spdif0 {
+			pinmux = <RZV2N_PORT_PINMUX(8, 0, 8)>, /* SPDIF0_OUT */
+				 <RZV2N_PORT_PINMUX(8, 1, 8)>; /* SPDIF0_IN */
+		};
+
+		spdif2_pins: spdif2 {
+			pinmux = <RZV2N_PORT_PINMUX(8, 2, 8)>, /* SPDIF2_OUT */
+				 <RZV2N_PORT_PINMUX(8, 3, 8)>; /* SPDIF2_IN */
+		};
+#endif
 	};
 };
 
@@ -774,10 +825,16 @@
 };
 
 &canfd {
+#if (CAN_SPDIF_SCI_SEL == CAN_SEL)
 	pinctrl-0 = <&can0_pins &can1_pins &can2_pins &can3_pins>;
+#else
+	pinctrl-0 = <&can2_pins &can3_pins>;
+#endif
 	pinctrl-names = "default";
 	status = "okay";
 
+
+#if (CAN_SPDIF_SCI_SEL == CAN_SEL)
 	channel0 {
 		status = "okay";
 	};
@@ -785,6 +842,7 @@
 	channel1 {
 		status = "okay";
 	};
+#endif
 
 	channel2 {
 		status = "okay";
@@ -1013,5 +1071,33 @@
 				capture = <&ssi4>, <&src1>, <&dvc1>;
 			};
 		};
+
+#if (CAN_SPDIF_SCI_SEL == SPDIF_SEL)
+		spdif_port0: port@2 {
+			reg = <2>;
+			spdif0_endpoint: endpoint {
+				remote-endpoint = <&dummy_codec0>;
+
+				bitclock-master = <&spdif0_endpoint>;
+				frame-master = <&spdif0_endpoint>;
+
+				playback = <&spdif0>;
+				capture  = <&spdif0>;
+			};
+		};
+
+		spdif_port2: port@3 {
+			reg = <3>;
+			spdif2_endpoint: endpoint {
+				remote-endpoint = <&dummy_codec2>;
+
+				bitclock-master = <&spdif2_endpoint>;
+				frame-master = <&spdif2_endpoint>;
+
+				playback = <&spdif2>;
+				capture  = <&spdif2>;
+			};
+		};
+#endif
 	};
 };
