@@ -2100,6 +2100,24 @@
 					dma-names = "tx", "rx";
 				};
 			};
+
+			rcar_sound,spdif {
+				spdif0: spdif-0 {
+					interrupts = <GIC_SPI 899 IRQ_TYPE_LEVEL_HIGH>;
+					dmas = <&dmac1 0x011D9A>, <&dmac2 0x001D99>;
+					dma-names = "tx", "rx";
+				};
+				spdif1: spdif-1 {
+					interrupts = <GIC_SPI 900 IRQ_TYPE_LEVEL_HIGH>;
+					dmas = <&dmac1 0x031D9C>, <&dmac2 0x021D9B>;
+					dma-names = "tx", "rx";
+				};
+				spdif2: spdif-2 {
+					interrupts = <GIC_SPI 901 IRQ_TYPE_LEVEL_HIGH>;
+					dmas = <&dmac1 0x051D9E>, <&dmac2 0x041D9D>;
+					dma-names = "tx", "rx";
+				};
+			};
 		};
 	};
 
