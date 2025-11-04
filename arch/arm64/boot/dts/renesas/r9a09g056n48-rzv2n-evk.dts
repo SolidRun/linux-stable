@@ -19,6 +19,37 @@
 #include <dt-bindings/gpio/gpio.h>
 #include "r9a09g056.dtsi"
 
+/*
+ * SSI-DA7212
+ *
+ * These commands are required when Playback/Capture
+ *
+ *	amixer -q cset name='Aux Switch' on
+ *	amixer -q cset name='Mixin Left Aux Left Switch' on
+ *	amixer -q cset name='Mixin Right Aux Right Switch' on
+ *	amixer -q cset name='ADC Switch' on
+ *	amixer -q cset name='Mixout Right Mixin Right Switch' off
+ *	amixer -q cset name='Mixout Left Mixin Left Switch' off
+ *	amixer -q cset name='Headphone Volume' 70%
+ *	amixer -q cset name='Headphone Switch' on
+ *	amixer -q cset name='Mixout Left DAC Left Switch' on
+ *	amixer -q cset name='Mixout Right DAC Right Switch' on
+ *	amixer -q cset name='DAC Left Source MUX' 'DAI Input Left'
+ *	amixer -q cset name='DAC Right Source MUX' 'DAI Input Right'
+ *	amixer -q sset 'Mic 1 Amp Source MUX' 'MIC_P'
+ *	amixer -q sset 'Mic 2 Amp Source MUX' 'MIC_P'
+ *	amixer -q sset 'Mixin Left Mic 1' on
+ *	amixer -q sset 'Mixin Right Mic 2' on
+ *	amixer -q sset 'Mic 1' 90% on
+ *	amixer -q sset 'Mic 2' 90% on
+ *	amixer -q sset 'Lineout' 80% on
+ *	amixer -q set "Headphone" 100% on
+ *
+ * When Capture/Playback, use this command to amplify sound
+ *	amixer set 'DVC In',0 10%
+ *	amixer set 'DVC Out',0 20%
+ */
+
 / {
 	model = "Renesas RZ/V2N EVK Board based on r9a09g056n48";
 	compatible = "renesas,rzv2n-evk", "renesas,r9a09g056n48", "renesas,r9a09g056";
@@ -197,9 +228,26 @@
 			};
 		};
 	};
+
+	sound_card: sound {
+		compatible = "audio-graph-card";
+
+		label = "rsnd_rzv2n";
+
+		dais = <&rsnd_port0     /* DA7212 */
+			>;
+	};
 };
 
-&audio_extal_clk {
+&audio_clka {
+	clock-frequency = <22579200>;
+};
+
+&audio_clkb {
+	clock-frequency = <24576000>;
+};
+
+&audio_clkc {
 	clock-frequency = <22579200>;
 };
 
@@ -271,6 +319,34 @@
 	pinctrl-names = "default";
 	clock-frequency = <400000>;
 	status = "okay";
+
+	da7212: codec@1a {
+		compatible = "dlg,da7212";
+		#sound-dai-cells = <0>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <0x1a>;
+
+		clocks = <&rcar_sound>;
+		clock-names = "mclk";
+
+		dlg,micbias1-lvl = <2500>;
+		dlg,micbias2-lvl = <2500>;
+		dlg,dmic-data-sel = "lrise_rfall";
+		dlg,dmic-samplephase = "between_clkedge";
+		dlg,dmic-clkrate = <3000000>;
+
+		VDDA-supply = <&reg_1p8v>;
+		VDDSP-supply = <&reg_3p3v>;
+		VDDMIC-supply = <&reg_3p3v>;
+		VDDIO-supply = <&reg_1p8v>;
+
+		port {
+			da7212_endpoint: endpoint {
+				remote-endpoint = <&rsnd_endpoint0>;
+			};
+		};
+	};
 };
 
 &i2c3 {
@@ -616,6 +692,21 @@
 		output-high;
 		line-name = "cam0_pwr_en";
 	};
+
+	sound_pins: sound {
+		ssi34_pins: ssi34 {
+			pinmux = <RZV2N_PORT_PINMUX(1, 2, 7)>, /* SSI3_SCK */
+				 <RZV2N_PORT_PINMUX(1, 3, 7)>, /* SSI3_WS */
+				 <RZV2N_PORT_PINMUX(0, 4, 7)>, /* SSI3_SDATA */
+				 <RZV2N_PORT_PINMUX(1, 5, 7)>; /* SSI4_SDATA */
+		};
+
+		sound_clk_pins: sound_clk {
+			pinmux = <RZV2N_PORT_PINMUX(1, 0, 7)>, /* AUDIO_CLKB */
+				 <RZV2N_PORT_PINMUX(1, 1, 7)>, /* AUDIO_CLKC */
+				 <RZV2N_PORT_PINMUX(9, 7, 8)>; /* AUDIO_CLKOUT */
+		};
+	};
 };
 
 &qextal_clk {
@@ -890,4 +981,37 @@
 	pinctrl-names = "default";
 	memory-region = <&global_cma>;
 	status = "okay";
+};
+
+&rcar_sound {
+	pinctrl-0 = <&sound_pins>;
+	pinctrl-names = "default";
+
+	status = "okay";
+
+	/* audio_clkout */
+	#clock-cells = <0>;
+	clock-frequency = <11289600>;
+
+	/* Multi DAI */
+	#sound-dai-cells = <1>;
+
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		rsnd_port0: port@0 {
+			reg = <0>;
+			rsnd_endpoint0: endpoint {
+				remote-endpoint = <&da7212_endpoint>;
+
+				dai-format = "i2s";
+				bitclock-master = <&rsnd_endpoint0>;
+				frame-master = <&rsnd_endpoint0>;
+				mclk-fs = <256>;
+
+				playback = <&ssi3>, <&src0>, <&dvc0>;
+				capture = <&ssi4>, <&src1>, <&dvc1>;
+			};
+		};
+	};
 };
