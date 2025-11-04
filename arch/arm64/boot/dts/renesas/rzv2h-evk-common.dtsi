@@ -526,6 +526,8 @@
 
 	adv7535: hdmi@3d {
 		compatible = "adi,adv7535";
+		pinctrl-0 = <&hdmi_int_pins>;
+		pinctrl-names = "default";
 		reg = <0x3d>;
 
 		clocks = <&osc1>;
@@ -536,6 +538,9 @@
 		a2vdd-supply = <&reg_1p8v>;
 		v3p3-supply = <&reg_3p3v>;
 		v1p2-supply = <&reg_1p8v>;
+
+		interrupt-parent = <&icu>;
+		interrupts = <2 IRQ_TYPE_EDGE_FALLING>;
 
 		adi,dsi-lanes = <4>;
 
@@ -929,6 +934,10 @@
 	eth1_pins: eth1 {
 		pins = "ET1_TXC_TXCLK";
 		output-enable;
+	};
+
+	hdmi_int_pins: hdmi_int {
+		pinmux = <RZV2H_PORT_PINMUX(7, 1, 13)>; /* IRQ1-HDMI_INT# */
 	};
 
 	i2c0_pins: i2c0 {
