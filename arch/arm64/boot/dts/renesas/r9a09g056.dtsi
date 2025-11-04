@@ -3265,6 +3265,26 @@
 			renesas,sysc = <&sys>;
 			status = "disabled";
 		};
+
+		pcie0_ep: pcie-ep@13400000 {
+			compatible = "renesas,rzv2n-pcie-ep";
+			reg = <0x0 0x13400000 0x0 0x10000>,
+			      <0x0 0x30000000 0x0 0x04000000>,
+			      <0x0 0x34000000 0x0 0x04000000>;
+			reg-names = "apb-base", "memory0", "memory1";
+			interrupts = <GIC_SPI 791 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 804 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "all", "dma";
+			clocks = <&cpg CPG_MOD 0xc4>,
+				 <&cpg CPG_MOD 0xc5>;
+			power-domains = <&cpg>;
+			vendor-id = <0x1912>;
+			device-id = <0x003a>;
+			resets = <&cpg 0xb2>;
+			pcie,channel = <0>;
+			renesas,pcie-sys = <&sys>;
+			status = "disabled";
+		};
 	};
 
 	thermal-zones {
