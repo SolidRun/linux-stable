@@ -1,0 +1,73 @@
+#if 1
+// SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+/*
+ * Device Tree Source for the RZ/G2LC Solidrun SOM
+ *
+ * Copyright 2023 SolidRun Ltd.
+ * Copyright 2025 Josua Mayer <josua@solid-run.com>
+ */
+
+/*
+ * SolidRun BSP from 2023-2025 used generic
+ * "rzg2lc-hummingboard.dtb" in u-boot, for any board.
+ *
+ * This is now an alias for HummingBoard Ripple.
+ */
+#include "rzg2lc-hummingboard-ripple.dts"
+
+#else
+// SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+/*
+* Device Tree Source for the RZ/G2LC Solidrun Hummingboard
+*
+* Copyright (C) 2023 SolidRun Ltd.
+*/
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/pinctrl/rzg2l-pinctrl.h>
+
+/dts-v1/;
+#include "rzg2lc-sr-som.dtsi"
+#include "rz-hummingboard-common.dtsi"
+
+/ {
+  model = "Solidrun RZ/G2LC HummingBoard-Ripple";
+  compatible = "renesas,rzg2lc-sr-som", "renesas,r9a07g044c2", "renesas,r9a07g044";
+};
+
+&adv7535 {
+	pd-gpios = <&pinctrl RZG2L_GPIO(40, 2) GPIO_ACTIVE_LOW>; // ADV_PD / DSI_EN J9-34 / P40_2
+	interrupts = <RZG2L_GPIO(42, 2) IRQ_TYPE_EDGE_FALLING>;// DSI_TS_nINT J5001-43 P42_2
+};
+
+&pinctrl {
+	/delete-node/ gpio-lte_reset;
+	/delete-node/ gpio-m2_reset;
+
+	gpio-lte_on {
+		gpio-hog;
+		gpios = <RZG2L_GPIO(19, 1) GPIO_ACTIVE_HIGH>;
+		output-high;
+		line-name = "gpio_lte_on";
+	};
+};
+
+
+&scif1 {
+	pinctrl-0 = <&scif1_pins>;
+	pinctrl-names = "default";
+
+	//uart-has-rtscts;
+	status = "okay";
+};
+
+&usb0_vbus_otg {
+	gpio = <&pinctrl RZG2L_GPIO(4, 0) GPIO_ACTIVE_HIGH>;
+	gpio-open-drain;
+};
+
+&usb1_vbus {
+	gpio = <&pinctrl RZG2L_GPIO(5, 0) GPIO_ACTIVE_HIGH>;
+	gpio-open-drain;
+};
+#endif
