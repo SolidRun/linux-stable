@@ -1480,3 +1480,9 @@
 };
 #endif
 #endif /* RSPI2_RSCI9_SEL */
+
+&pcie0 {
+	/* First 128MB is reserved for secure area. */
+	dma-ranges = <0x42000000 0 0x48000000 0 0x48000000 0x1 0xF8000000>;
+	status = "okay";
+};
