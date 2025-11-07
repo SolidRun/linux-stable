@@ -178,6 +178,8 @@ static int raa215300_i2c_probe(struct i2c_client *client)
 			i = of_property_match_string(np, "reg-names", "rtc");
 			if (i >= 0)
 				of_property_read_u32_index(np, "reg", i, &addr);
+
+			info.of_node = np;
 		}
 
 		info.addr = addr;
