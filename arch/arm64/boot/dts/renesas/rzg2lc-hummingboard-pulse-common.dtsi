@@ -50,13 +50,26 @@
 		regulator-always-on;
 	};
 
-	regulator-mpcie-3-3 {
+	vmpcie: regulator-mpcie-3-3 {
 		/* supplies mpcie and m2 connectors */
 		compatible = "regulator-fixed";
 		regulator-name = "vmpcie";
+		/*
+		 * G2LC SoM v1.2 moved this IO from J7-28 (CON4-12)
+		 * to J7-18 (this regulator).
+		 * There are no known users of CON4-12 and thus no need
+		 * to differentiate here between SoM v1.1 and v1.2.
+		 */
+		gpio = <&pinctrl RZG2L_GPIO(39, 2) GPIO_ACTIVE_HIGH>;
+		enable-active-high;
 		regulator-min-microvolt = <3300000>;
 		regulator-max-microvolt = <3300000>;
-		regulator-always-on;
+		regulator-boot-on;
+	};
+
+	pwr-mpcie {
+		compatible = "regulator-output";
+		vout-supply = <&vmpcie>;
 	};
 };
 
