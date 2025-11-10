@@ -577,10 +577,6 @@
 	status = "okay";
 };
 
-&ostm0 {
-	status = "okay";
-};
-
 &ostm1 {
 	status = "okay";
 };
