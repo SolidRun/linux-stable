@@ -14,6 +14,14 @@
  */
 #define eMMC_SD_SEL    0
 
+/*
+ * Enable Rootcomplex or Endpoint mode for PCIe.
+ * PCIE_MODE_SEL:
+ * - Rootcomplex mode   0 (default)
+ * - Endpoint mode      1
+ */
+#define PCIE_MODE_SEL  0
+
 /* Select among CAN/SPDIF/SCI pins
  * CAN_SPDIF_SCI_SEL value:
  *	0: CAN		is selected (default)
@@ -1481,8 +1489,14 @@
 #endif
 #endif /* RSPI2_RSCI9_SEL */
 
+#if (!PCIE_MODE_SEL)
 &pcie0 {
 	/* First 128MB is reserved for secure area. */
 	dma-ranges = <0x42000000 0 0x48000000 0 0x48000000 0x1 0xF8000000>;
 	status = "okay";
 };
+#else
+&pcie0_ep {
+	status = "okay";
+};
+#endif
