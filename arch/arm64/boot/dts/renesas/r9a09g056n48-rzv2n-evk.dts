@@ -26,12 +26,16 @@
 #define SCI_SEL			2
 
 /*
- * Enable I2C2 or I3C on pins 20, 21.
- * I2C2_I3C_SEL:
- * - I2C2	0 (default)
- * - I3C	1
+ * Enable I2C2, I3C or POEG on pins 20, 21.
+ * I2C2_I3C_POEG_SEL:
+ * - POEG	0
+ * - I2C2	1 (default)
+ * - I3C	2
  */
-#define I2C2_I3C_SEL	0
+#define POEG_SEL		0
+#define I2C2_SEL		1
+#define I3C_SEL			2
+#define I2C2_I3C_POEG_SEL	I2C2_SEL
 
 /*
  * RSPI2_RSCI9_SEL:
@@ -330,7 +334,10 @@
 
 		label = "rsnd_rzv2n";
 
-		dais = <&rsnd_port0     /* DA7212 */
+		dais = <
+#if (I2C2_I3C_POEG_SEL == I2C2_SEL || I2C2_I3C_POEG_SEL == I3C_SEL)
+			&rsnd_port0     /* DA7212 */
+#endif
 			&rsnd_port1	/* HDMI0  */
 #if (CAN_SPDIF_SCI_SEL == SPDIF_SEL)
 			&spdif_port0
@@ -415,7 +422,8 @@
 	status = "okay";
 };
 
-#if (!I2C2_I3C_SEL)
+#if (I2C2_I3C_POEG_SEL == I2C2_SEL || I2C2_I3C_POEG_SEL == I3C_SEL)
+#if (I2C2_I3C_POEG_SEL == I2C2_SEL)
 &i2c2 {
 	pinctrl-0 = <&i2c2_pins>;
 	pinctrl-names = "default";
@@ -432,12 +440,11 @@
 		#sound-dai-cells = <0>;
 		#address-cells = <1>;
 		#size-cells = <0>;
-#if (!I2C2_I3C_SEL)
+#if (I2C2_I3C_POEG_SEL == I2C2_SEL)
 		reg = <0x1a>;
 #else
 		reg = <0x1a 0x0 0x0>;
 #endif
-
 		clocks = <&rcar_sound>;
 		clock-names = "mclk";
 
@@ -459,6 +466,7 @@
 		};
 	};
 };
+#endif /* (I2C2_I3C_POEG_SEL == I2C2_SEL || I2C2_I3C_POEG_SEL == I3C_SEL) */
 
 &i2c3 {
 	pinctrl-0 = <&i2c3_pins>;
@@ -643,10 +651,19 @@
 			 <RZV2N_PORT_PINMUX(3, 3, 1)>; /* I2C1_SCL */
 	};
 
-#if (!I2C2_I3C_SEL)
+#if (I2C2_I3C_POEG_SEL == I2C2_SEL)
 	i2c2_pins: i2c2 {
 		pinmux = <RZV2N_PORT_PINMUX(2, 0, 4)>, /* I2C2_SDA */
 			 <RZV2N_PORT_PINMUX(2, 1, 4)>; /* I2C2_SCL */
+	};
+#elif (I2C2_I3C_POEG_SEL == I3C_SEL)
+	i3c_pins: i3c {
+		pinmux = <RZV2N_PORT_PINMUX(2, 0, 1)>, /* I3C_SDA */
+			 <RZV2N_PORT_PINMUX(2, 1, 1)>; /* I3C_SCL */
+	};
+#elif (I2C2_I3C_POEG_SEL == POEG_SEL)
+	poegc0_pins: poegc0 {
+		pinmux = <RZV2N_PORT_PINMUX(2, 0, 9)>; /* POEGC0 - Pmod_6A - GPIO4 */
 	};
 #endif
 
@@ -673,13 +690,6 @@
 		pinmux = <RZV2N_PORT_PINMUX(0, 6, 1)>, /* I2C8_SDA */
 			 <RZV2N_PORT_PINMUX(0, 7, 1)>; /* I2C8_SCL */
 	};
-
-#if (I2C2_I3C_SEL)
-	i3c_pins: i3c {
-		pinmux = <RZV2N_PORT_PINMUX(2, 0, 1)>, /* I3C_SDA */
-			 <RZV2N_PORT_PINMUX(2, 1, 1)>; /* I3C_SCL */
-	};
-#endif
 
 	scif_pins: scif {
 		pins = "SCIF_TXD", "SCIF_RXD";
@@ -737,10 +747,6 @@
 	gpt0_2_pins: gpt0_2 {
 		pinmux = <RZV2N_PORT_PINMUX(7, 2, 9)>, /* GTIOC0_2A - Pmod_6A - GPIO8 */
 			 <RZV2N_PORT_PINMUX(7, 3, 9)>; /* GTIOC0_2B - Pmod_3A - GPIO8 */
-	};
-
-	poegc0_pins: poegc0 {
-		pinmux = <RZV2N_PORT_PINMUX(2, 0, 9)>; /* POEGC0 - Pmod_6A - GPIO4 */
 	};
 
 	usb20_pins: usb20 {
@@ -1053,11 +1059,13 @@
 };
 #endif
 
+#if (I2C2_I3C_POEG_SEL == POEG_SEL)
 &poegc0 {
 	pinctrl-0 = <&poegc0_pins>;
 	pinctrl-names = "default";
 	status = "okay";
 };
+#endif
 
 &gpt0_2 {
 	pinctrl-0 = <&gpt0_2_pins>;
@@ -1069,7 +1077,9 @@
 #else
 	channel = "both_AB";
 #endif
+#if (I2C2_I3C_POEG_SEL == POEG_SEL)
 	poeg = <&poegc0>;
+#endif
 	status = "okay";
 };
 
@@ -1266,6 +1276,8 @@
 	ports {
 		#address-cells = <1>;
 		#size-cells = <0>;
+
+#if (I2C2_I3C_POEG_SEL == I2C2_SEL || I2C2_I3C_POEG_SEL == I3C_SEL)
 		rsnd_port0: port@0 {
 			reg = <0>;
 			rsnd_endpoint0: endpoint {
@@ -1280,6 +1292,7 @@
 				capture = <&ssi4>, <&src1>, <&dvc1>;
 			};
 		};
+#endif
 
 		rsnd_port1: port@1 {
 			reg = <1>;
