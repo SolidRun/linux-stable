@@ -1102,6 +1102,7 @@ static int renesas_i3c_master_i2c_xfers(struct i2c_dev_desc *dev,
 	struct renesas_i3c_cmd *cmd;
 	int ret, i;
 	u32 start_bit;
+	u8 val;
 
 	if (!i2c_nxfers)
 		return 0;
@@ -1143,8 +1144,24 @@ static int renesas_i3c_master_i2c_xfers(struct i2c_dev_desc *dev,
 
 		i3c_reg_set_bit(master->regs, NTSTE, NTSTE_TDBEE0);
 
-		if (!wait_for_completion_timeout(&xfer->comp, XFER_TIMEOUT))
-			return -ETIMEDOUT;
+		ret = read_poll_timeout(i3c_reg_read, val, !(val & start_bit),
+					10, 1000, true, master->regs, CNDCTL);
+
+		if (!ret) {
+			/* On read, switch over to receive interrupt */
+			if (cmd->msg->flags & I2C_M_RD)
+				i3c_reg_set_bit(master->regs, NTIE,
+						NTIE_RDBFIE0);
+			val = i2c_8bit_addr_from_msg(cmd->msg);
+			i3c_reg_write(master->regs, NTDTBP0, val);
+		}
+
+		if (!wait_for_completion_timeout(&xfer->comp, XFER_TIMEOUT)) {
+			i3c_reg_clear_bit(master->regs, BIE, BIE_NACKDIE);
+			i3c_reg_clear_bit(master->regs, NTIE, NTIE_TDBEIE0);
+			i3c_reg_clear_bit(master->regs, NTSTE, NTSTE_TDBEE0);
+			cmd->err = -ETIMEDOUT;
+		}
 
 		if (cmd->err)
 			break;
@@ -1205,31 +1222,25 @@ static irqreturn_t i3c_tx_isr(int irq, void *data)
 	if (xfer->is_i2c_xfer) {
 		if (!cmd->i2c_bytes_left)
 			return IRQ_NONE;
-
 		if (cmd->i2c_bytes_left == I2C_INIT_MSG) {
-			if (cmd->msg->flags & I2C_M_RD) {
-				/* On read, switch over to receive interrupt */
+			if (cmd->msg->flags & I2C_M_RD)
+				/* On read, disable transmit interrupt */
 				i3c_reg_clear_bit(master->regs, NTIE,
 						  NTIE_TDBEIE0);
-				i3c_reg_set_bit(master->regs, NTIE,
-						NTIE_RDBFIE0);
-			} else
+			else
 				/* On write, initialize length */
 				cmd->i2c_bytes_left = cmd->msg->len;
-
-			val = i2c_8bit_addr_from_msg(cmd->msg);
 		} else {
 			val = *cmd->i2c_buf;
 			cmd->i2c_buf++;
 			cmd->i2c_bytes_left--;
+			i3c_reg_write(master->regs, NTDTBP0, val);
 		}
 
 		if (cmd->i2c_bytes_left == 0) {
 			i3c_reg_clear_bit(master->regs, NTIE, NTIE_TDBEIE0);
 			i3c_reg_set_bit(master->regs, BIE, BIE_TENDIE);
 		}
-
-		i3c_reg_write(master->regs, NTDTBP0, val);
 	} else
 		renesas_i3c_master_write_to_tx_fifo(master, cmd->tx_buf,
 							cmd->len);
