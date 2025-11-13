@@ -2018,7 +2018,7 @@ static int __maybe_unused rsnd_suspend(struct device *dev)
 	struct rsnd_priv *priv = dev_get_drvdata(dev);
 	int i;
 
-	for (i = priv->count_clk_dma; i >= 0; i--)
+	for (i = 0; i < priv->count_clk_dma; i++)
 		clk_disable_unprepare(priv->clk_dma[i]);
 
 	rsnd_adg_clk_disable(priv);
@@ -2026,10 +2026,9 @@ static int __maybe_unused rsnd_suspend(struct device *dev)
 	clk_disable_unprepare(priv->clk_scux2);
 	clk_disable_unprepare(priv->clk_scu);
 
-	for (i = priv->count_clk_rstc; i >= 0; i--) {
+	for (i = 0; i < priv->count_clk_rstc; i++)
 		if (priv->rstc[i])
 			reset_control_assert(priv->rstc[i]);
-	}
 
 	return 0;
 }
