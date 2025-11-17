@@ -83,6 +83,21 @@ dtb-$(CONFIG_ARCH_R9A07G043) += r9a07g043u11-smarc.dtb
 dtb-$(CONFIG_ARCH_R9A07G044) += r9a07g044c2-smarc.dtb
 dtb-$(CONFIG_ARCH_R9A07G044) += r9a07g044l2-smarc.dtb
 
+# dtb-$(CONFIG_ARCH_R9A07G044) += r9a07g044l2-hummingboard-mate.dtb
+dtb-$(CONFIG_ARCH_R9A07G044) += rzg2l-hummingboard-mate.dtb
+DTC_FLAGS_rzg2l-hummingboard-mate := -@
+# dtb-$(CONFIG_ARCH_R9A07G044) += r9a07g044l2-hummingboard-pulse.dtb
+dtb-$(CONFIG_ARCH_R9A07G044) += rzg2l-hummingboard-pulse.dtb
+DTC_FLAGS_rzg2l-hummingboard-pulse := -@
+# dtb-$(CONFIG_ARCH_R9A07G044) += r9a07g044l2-hummingboard-pro.dtb
+dtb-$(CONFIG_ARCH_R9A07G044) += rzg2l-hummingboard-pro.dtb
+DTC_FLAGS_rzg2l-hummingboard-pro := -@
+# dtb-$(CONFIG_ARCH_R9A07G044) += r9a07g044l2-hummingboard-ripple.dtb
+dtb-$(CONFIG_ARCH_R9A07G044) += rzg2l-hummingboard-ripple.dtb
+DTC_FLAGS_rzg2l-hummingboard-ripple := -@
+dtb-$(CONFIG_ARCH_R9A07G044) += rzg2l-solidrun-mmc-overlay.dtbo
+dtb-$(CONFIG_ARCH_R9A07G044) += rzg2l-solidrun-sd-overlay.dtbo
+
 dtb-$(CONFIG_ARCH_R9A07G044) += rzg2lc-hummingboard-pulse-leds.dtbo
 # dtb-$(CONFIG_ARCH_R9A07G044) += r9a07g044c2-hummingboard-ripple.dtb
 dtb-$(CONFIG_ARCH_R9A07G044) += rzg2lc-hummingboard-ripple.dtb
