@@ -1,0 +1,57 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright 2025 Josua Mayer <josua@solid-run.com>
+ */
+
+/dts-v1/;
+
+#include <dt-bindings/phy/phy-imx8-pcie.h>
+
+#include "r9a07g044l2.dtsi"
+#include "rzg2l-sr-som.dtsi"
+#include "rzg2l-hummingboard-pulse-codec.dtsi"
+#include "rzg2l-hummingboard-pulse-common.dtsi"
+#include "rzg2l-hummingboard-pulse-m2con.dtsi"
+#include "rzg2l-hummingboard-pulse-micro-hdmi.dtsi"
+
+/ {
+	model = "SolidRun RZ/G2L HummingBoard Pro";
+	compatible = "solidrun,rzg2l-hummingboard-pro", "solidrun,rzg2l-sr-som", "renesas,r9a07g044l2", "renesas,r9a07g044";
+
+	aliases {
+		ethernet0 = &eth1;
+		ethernet1 = &eth0;
+	};
+};
+
+&pinctrl {
+	pinctrl-names = "default";
+	pinctrl-0 = <&mikro_int_pins>, <&mikro_rst_pins>;
+};
+
+&phy0 {
+	leds {
+		led@0 {
+			/* colour is changed from HB Pulse to Pro. */
+			color = <LED_COLOR_ID_GREEN>;
+		};
+
+		/* HB Pro has single led only. */
+		/delete-node/ led@1;
+	};
+};
+
+&phy1 {
+	leds {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		/* MxL86110 LED0 pin */
+		led@0 {
+			reg = <0>;
+			color = <LED_COLOR_ID_GREEN>;
+			function = LED_FUNCTION_LAN;
+			default-state = "keep";
+		};
+	};
+};

@@ -1,0 +1,29 @@
+// SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+/*
+ * Copyright 2025 Josua Mayer <josua@solid-run.com>
+ */
+
+/dts-v1/;
+
+#include "r9a07g044l2.dtsi"
+#include "rzg2l-sr-som.dtsi"
+#include "rzg2l-hummingboard-pulse-common.dtsi"
+
+/ {
+	model = "SolidRun RZ/G2L HummingBoard Mate";
+	compatible = "solidrun,rzg2l-hummingboard-mate", "solidrun,rzg2l-sr-som", "renesas,r9a07g044l2", "renesas,r9a07g044";
+
+	aliases {
+		/delete-property/ ethernet1;
+	};
+};
+
+&eth1 {
+	/* this board does not use second phy / ethernet on SoM */
+	status = "disabled";
+};
+
+&pinctrl {
+	pinctrl-names = "default";
+	pinctrl-0 = <&mikro_int_pins>, <&mikro_rst_pins>;
+};
