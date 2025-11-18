@@ -47,4 +47,8 @@
 
 &scif2 {
 	status = "disabled";
+
+	bluetooth {
+		status = "disabled";
+	};
 };

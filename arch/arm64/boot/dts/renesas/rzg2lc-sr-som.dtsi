@@ -151,7 +151,10 @@
 	pinctrl-0 = <&eth0_pins>;
 	pinctrl-names = "default";
 	phy-handle = <&phy0>;
-	/* ravb driver sets internal delays 1.8ns rx, 2.0ns tx */
+	/*
+	 * ravb driver does not configure mac internal delays for RZ/G2L(C),
+	 * instead delays are added by the MxL86110 phy driver.
+	 */
 	phy-mode = "rgmii-id";
 	status = "okay";
 
@@ -353,11 +356,21 @@
 	status = "okay";
 
 	bluetooth {
-		max-speed = <460800>;
+		/*
+		 * The BT is based on BCM4343A2. Murata 1MW variant seems to
+		 * require driving RTS on open.
+		 * Use compatible bcm43438 to accomplish this.
+		 */
 		compatible = "brcm,bcm43438-bt";
-		shutdown-gpios = <&pinctrl RZG2L_GPIO(23, 1) GPIO_ACTIVE_HIGH>;
 		clocks = <&clk_pmic_32k>;
 		clock-names = "lpo";
+		shutdown-gpios = <&pinctrl RZG2L_GPIO(23, 1) GPIO_ACTIVE_HIGH>;
+		/*
+		 * With P1 clock at 100MHz, RZ/G2L CPG can only generate few
+		 * standard rates with low error rate. The best high-speed
+		 * rate is 921600.
+		 */
+		max-speed = <921600>;
 	};
 };
 
