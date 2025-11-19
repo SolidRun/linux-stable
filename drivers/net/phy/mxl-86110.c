@@ -190,30 +190,6 @@ static int __mxl86110_modify_extended_reg(struct phy_device *phydev,
 }
 
 /**
- * mxl86110_write_extended_reg() - Write to a PHY's extended register
- * @phydev: pointer to the PHY device structure
- * @regnum: register number to write
- * @val: value to write to @regnum
- *
- * This function writes to an extended register of the PHY using the
- * MaxLinear two-step access method (reg 0x1E/0x1F). It handles acquiring
- * and releasing the MDIO bus lock internally.
- *
- * Return: 0 or negative error code
- */
-static int mxl86110_write_extended_reg(struct phy_device *phydev,
-				       u16 regnum, u16 val)
-{
-	int ret;
-
-	phy_lock_mdio_bus(phydev);
-	ret = __mxl86110_write_extended_reg(phydev, regnum, val);
-	phy_unlock_mdio_bus(phydev);
-
-	return ret;
-}
-
-/**
  * mxl86110_read_extended_reg() - Read a PHY's extended register
  * @phydev: pointer to the PHY device structure
  * @regnum: extended register number to read
@@ -330,101 +306,6 @@ static int mxl86110_set_wol(struct phy_device *phydev,
 out:
 	phy_unlock_mdio_bus(phydev);
 	return ret;
-}
-
-static const unsigned long supported_trgs = (BIT(TRIGGER_NETDEV_LINK_10) |
-					     BIT(TRIGGER_NETDEV_LINK_100) |
-					     BIT(TRIGGER_NETDEV_LINK_1000) |
-					     BIT(TRIGGER_NETDEV_HALF_DUPLEX) |
-					     BIT(TRIGGER_NETDEV_FULL_DUPLEX) |
-					     BIT(TRIGGER_NETDEV_TX) |
-					     BIT(TRIGGER_NETDEV_RX));
-
-static int mxl86110_led_hw_is_supported(struct phy_device *phydev, u8 index,
-					unsigned long rules)
-{
-	if (index >= MXL86110_MAX_LEDS)
-		return -EINVAL;
-
-	/* All combinations of the supported triggers are allowed */
-	if (rules & ~supported_trgs)
-		return -EOPNOTSUPP;
-
-	return 0;
-}
-
-static int mxl86110_led_hw_control_get(struct phy_device *phydev, u8 index,
-				       unsigned long *rules)
-{
-	int val;
-
-	if (index >= MXL86110_MAX_LEDS)
-		return -EINVAL;
-
-	val = mxl86110_read_extended_reg(phydev,
-					 MXL86110_LED0_CFG_REG + index);
-	if (val < 0)
-		return val;
-
-	if (val & MXL86110_LEDX_CFG_LINK_UP_TX_ACT_ON)
-		*rules |= BIT(TRIGGER_NETDEV_TX);
-
-	if (val & MXL86110_LEDX_CFG_LINK_UP_RX_ACT_ON)
-		*rules |= BIT(TRIGGER_NETDEV_RX);
-
-	if (val & MXL86110_LEDX_CFG_LINK_UP_HALF_DUPLEX_ON)
-		*rules |= BIT(TRIGGER_NETDEV_HALF_DUPLEX);
-
-	if (val & MXL86110_LEDX_CFG_LINK_UP_FULL_DUPLEX_ON)
-		*rules |= BIT(TRIGGER_NETDEV_FULL_DUPLEX);
-
-	if (val & MXL86110_LEDX_CFG_LINK_UP_10MB_ON)
-		*rules |= BIT(TRIGGER_NETDEV_LINK_10);
-
-	if (val & MXL86110_LEDX_CFG_LINK_UP_100MB_ON)
-		*rules |= BIT(TRIGGER_NETDEV_LINK_100);
-
-	if (val & MXL86110_LEDX_CFG_LINK_UP_1GB_ON)
-		*rules |= BIT(TRIGGER_NETDEV_LINK_1000);
-
-	return 0;
-}
-
-static int mxl86110_led_hw_control_set(struct phy_device *phydev, u8 index,
-				       unsigned long rules)
-{
-	u16 val = 0;
-
-	if (index >= MXL86110_MAX_LEDS)
-		return -EINVAL;
-
-	if (rules & BIT(TRIGGER_NETDEV_LINK_10))
-		val |= MXL86110_LEDX_CFG_LINK_UP_10MB_ON;
-
-	if (rules & BIT(TRIGGER_NETDEV_LINK_100))
-		val |= MXL86110_LEDX_CFG_LINK_UP_100MB_ON;
-
-	if (rules & BIT(TRIGGER_NETDEV_LINK_1000))
-		val |= MXL86110_LEDX_CFG_LINK_UP_1GB_ON;
-
-	if (rules & BIT(TRIGGER_NETDEV_TX))
-		val |= MXL86110_LEDX_CFG_LINK_UP_TX_ACT_ON;
-
-	if (rules & BIT(TRIGGER_NETDEV_RX))
-		val |= MXL86110_LEDX_CFG_LINK_UP_RX_ACT_ON;
-
-	if (rules & BIT(TRIGGER_NETDEV_HALF_DUPLEX))
-		val |= MXL86110_LEDX_CFG_LINK_UP_HALF_DUPLEX_ON;
-
-	if (rules & BIT(TRIGGER_NETDEV_FULL_DUPLEX))
-		val |= MXL86110_LEDX_CFG_LINK_UP_FULL_DUPLEX_ON;
-
-	if (rules & BIT(TRIGGER_NETDEV_TX) ||
-	    rules & BIT(TRIGGER_NETDEV_RX))
-		val |= MXL86110_LEDX_CFG_BLINK;
-
-	return mxl86110_write_extended_reg(phydev,
-					  MXL86110_LED0_CFG_REG + index, val);
 }
 
 /**
@@ -596,9 +477,6 @@ static struct phy_driver mxl_phy_drvs[] = {
 		.config_init		= mxl86110_config_init,
 		.get_wol		= mxl86110_get_wol,
 		.set_wol		= mxl86110_set_wol,
-		.led_hw_is_supported	= mxl86110_led_hw_is_supported,
-		.led_hw_control_get     = mxl86110_led_hw_control_get,
-		.led_hw_control_set     = mxl86110_led_hw_control_set,
 	},
 };
 
