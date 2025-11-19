@@ -46,7 +46,7 @@ properties:
   dmas:
     minItems: 1
     maxItems: 3
-    description:
+    description: |
       The first cell represents a phandle to dmac.
       The second cell specifies DMAC REQ values of the PDM channel
       configuration connected to ICU parameters.
@@ -91,37 +91,37 @@ examples:
     #include <dt-bindings/interrupt-controller/arm-gic.h>
     #include <dt-bindings/clock/r9a08g046-cpg.h>
 
-	pdm: pdm@1005a000 {
-		compatible = "renesas,rz-pdm";
-		reg = <0 0x1005a000 0 0x400>;
-		interrupts = <GIC_SPI 476 IRQ_TYPE_LEVEL_HIGH>,
-			     <GIC_SPI 477 IRQ_TYPE_LEVEL_HIGH>,
-			     <GIC_SPI 478 IRQ_TYPE_LEVEL_HIGH>,
-			     <GIC_SPI 479 IRQ_TYPE_LEVEL_HIGH>,
-			     <GIC_SPI 480 IRQ_TYPE_LEVEL_HIGH>,
-			     <GIC_SPI 481 IRQ_TYPE_LEVEL_HIGH>,
-			     <GIC_SPI 482 IRQ_TYPE_LEVEL_HIGH>;
-		interrupt-names = "int_pdm_err0", "int_pdm_err1", "int_pdm_err2",
-				  "int_pdm_dat0", "int_pdm_dat1", "int_pdm_dat2",
-				  "int_pdm_sdet";
-		clocks = <&cpg CPG_MOD R9A08G046_PDM_PCLK>,
-			 <&cpg CPG_MOD R9A08G046_PDM_CCLK>;
-		clock-names = "pdm_pclk", "pdm_cclk";
-		resets = <&cpg R9A08G046_PDM_PRESETN>;
-		reset-names = "pclk";
-		dmas = <&dmac1 0x7F2CC2>, <&dmac1 0x7F2CC3>, <&dmac1 0x7F2CC4>;
-		dma-names = "rx0", "rx1", "rx2";
-		power-domains = <&cpg>;
-		#sound-dai-cells = <0>;
-		status = "disabled";
+    	pdm: pdm@1005a000 {
+    		compatible = "renesas,rz-pdm";
+    		reg = <0 0x1005a000 0 0x400>;
+    		interrupts = <GIC_SPI 476 IRQ_TYPE_LEVEL_HIGH>,
+    			     <GIC_SPI 477 IRQ_TYPE_LEVEL_HIGH>,
+    			     <GIC_SPI 478 IRQ_TYPE_LEVEL_HIGH>,
+    			     <GIC_SPI 479 IRQ_TYPE_LEVEL_HIGH>,
+    			     <GIC_SPI 480 IRQ_TYPE_LEVEL_HIGH>,
+    			     <GIC_SPI 481 IRQ_TYPE_LEVEL_HIGH>,
+    			     <GIC_SPI 482 IRQ_TYPE_LEVEL_HIGH>;
+    		interrupt-names = "int_pdm_err0", "int_pdm_err1", "int_pdm_err2",
+    				  "int_pdm_dat0", "int_pdm_dat1", "int_pdm_dat2",
+    				  "int_pdm_sdet";
+    		clocks = <&cpg CPG_MOD R9A08G046_PDM_PCLK>,
+    			 <&cpg CPG_MOD R9A08G046_PDM_CCLK>;
+    		clock-names = "pdm_pclk", "pdm_cclk";
+    		resets = <&cpg R9A08G046_PDM_PRESETN>;
+    		reset-names = "pclk";
+    		dmas = <&dmac1 0x7F2CC2>, <&dmac1 0x7F2CC3>, <&dmac1 0x7F2CC4>;
+    		dma-names = "rx0", "rx1", "rx2";
+    		power-domains = <&cpg>;
+    		#sound-dai-cells = <0>;
+    		status = "disabled";
 
-		channel0 {
-			status = "disabled";
-		};
-		channel1 {
-			status = "disabled";
-		};
-		channel2 {
-			status = "disabled";
-		};
-	};
+    		channel0 {
+    			status = "disabled";
+    		};
+    		channel1 {
+    			status = "disabled";
+    		};
+    		channel2 {
+    			status = "disabled";
+    		};
+    	};
