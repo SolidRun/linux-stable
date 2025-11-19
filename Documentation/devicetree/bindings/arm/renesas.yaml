@@ -451,6 +451,18 @@ properties:
               - renesas,r9a07g044l2 # Dual Cortex-A55 RZ/G2L
           - const: renesas,r9a07g044
 
+      - description: SolidRun RZ/G2L SoM based boards
+        items:
+          - enum:
+              - solidrun,rzg2lc-hummingboard-iiot   # SolidRun RZ/G2L SoM on HummingBoard IIoT
+              - solidrun,rzg2lc-hummingboard-mate   # SolidRun RZ/G2L SoM on HummingBoard Mate
+              - solidrun,rzg2lc-hummingboard-pro    # SolidRun RZ/G2L SoM on HummingBoard Pro
+              - solidrun,rzg2lc-hummingboard-pulse  # SolidRun RZ/G2L SoM on HummingBoard Pulse
+              - solidrun,rzg2lc-hummingboard-ripple # SolidRun RZ/G2L SoM on HummingBoard Ripple
+          - const: solidrun,rzg2l-sr-som           # SolidRun RZ/G2L System on Module
+          - const: renesas,r9a07g044l2              # Dual Cortex-A55 RZ/G2L
+          - const: renesas,r9a07g044
+
       - description: SolidRun RZ/G2LC SoM based boards
         items:
           - enum:
