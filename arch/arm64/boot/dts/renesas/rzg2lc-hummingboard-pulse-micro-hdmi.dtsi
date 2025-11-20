@@ -3,79 +3,11 @@
  * Copyright 2025 Josua Mayer <josua@solid-run.com>
  */
 
-/ {
-	hdmi-connector {
-		compatible = "hdmi-connector";
-		label = "hdmi";
-		type = "d";
-
-		port {
-			hdmi_connector_in: endpoint {
-				remote-endpoint = <&adv7535_out>;
-			};
-		};
-	};
-
-	vmipi: regulator-mipi-1-8 {
-		compatible = "regulator-fixed";
-		regulator-name = "vmipi";
-		regulator-min-microvolt = <1800000>;
-		regulator-max-microvolt = <1800000>;
-		vin-supply = <&reg_pmic_buck4>;
-		regulator-always-on;
-	};
-};
-
-&dsi {
-	status = "okay";
-
-	ports {
-		port@1 {
-			mipi_dsi_out: endpoint {
-				data-lanes = <1 2 3 4>;
-				remote-endpoint = <&adv7535_from_dsim>;
-			};
-		};
-	};
-};
-
-&du {
-	status = "okay";
-};
+#include "rzg2l-hummingboard-pulse-micro-hdmi.dtsi"
 
 &i2c0 {
 	hdmi@3d {
-		compatible = "adi,adv7535";
-		reg = <0x3d>, <0x3f>, <0x3c>, <0x38>;
-		reg-names = "main", "edid", "cec", "packet";
-		adi,dsi-lanes = <4>;
-		avdd-supply = <&vmipi>;
-		dvdd-supply = <&vmipi>;
-		pvdd-supply = <&vmipi>;
-		a2vdd-supply = <&vmipi>;
-		v3p3-supply = <&reg_pmic_buck4>;
 		pd-gpios = <&pinctrl RZG2L_GPIO(40, 2) GPIO_ACTIVE_LOW>;
 		interrupts-extended = <&pinctrl RZG2L_GPIO(42, 2) IRQ_TYPE_EDGE_FALLING>;
-
-		ports {
-			#address-cells = <1>;
-			#size-cells = <0>;
-
-			port@0 {
-				reg = <0>;
-
-				adv7535_from_dsim: endpoint {
-					remote-endpoint = <&mipi_dsi_out>;
-				};
-			};
-
-			port@1 {
-				reg = <1>;
-
-				adv7535_out: endpoint {
-					remote-endpoint = <&hdmi_connector_in>;
-				};
-			};
-		};
 	};
 };
