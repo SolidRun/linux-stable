@@ -27,9 +27,6 @@
 };
 
 &pinctrl {
-	pinctrl-names = "default";
-	pinctrl-0 = <&mikro_int_pins>, <&mikro_rst_pins>;
-
 	/* RZ/G2L(C) has no PCI, keep the on-board pci nic in reset. */
 	pcie-rst-hog {
 		gpio-hog;

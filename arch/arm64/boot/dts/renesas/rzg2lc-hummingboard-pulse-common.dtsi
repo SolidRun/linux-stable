@@ -120,6 +120,9 @@
 };
 
 &pinctrl {
+	pinctrl-names = "default";
+	pinctrl-0 = <&mikro_int_pins>, <&mikro_rst_pins>;
+
 	mpcie-reset-hog {
 		gpio-hog;
 		gpios = <RZG2L_GPIO(19, 1) GPIO_ACTIVE_LOW>;

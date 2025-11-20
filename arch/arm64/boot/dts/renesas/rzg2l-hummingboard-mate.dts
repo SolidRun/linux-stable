@@ -22,8 +22,3 @@
 	/* this board does not use second phy / ethernet on SoM */
 	status = "disabled";
 };
-
-&pinctrl {
-	pinctrl-names = "default";
-	pinctrl-0 = <&mikro_int_pins>, <&mikro_rst_pins>;
-};
