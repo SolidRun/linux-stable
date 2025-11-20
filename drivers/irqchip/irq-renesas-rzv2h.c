@@ -96,6 +96,9 @@
 #define GPT_OVF_MASK(ch)			((ch) ? GENMASK(17, 10) : GENMASK(25, 18))
 #define GPT_CLR_MASK(ch)			((ch) ? GENMASK(15, 8) : GENMASK(23, 16))
 #define GPT_CLR_ERINT_MASK(ch)			((ch) ? GENMASK(17, 10) : GENMASK(25, 18))
+#define GPT0_ERINTMSK_DEI_MASK			GENMASK(9, 2)
+#define GPT1_2_ERINTMSK_DEI_MASK		GENMASK(31, 26)
+#define GPT1_3_ERINTMSK_DEI_MASK		GENMASK(1, 0)
 
 #define ERROR_INTSTAT_OFFSET(x)			(0x338 + 0x4 * (x))
 #define ERROR_INTCLR_OFFSET(x)			(0x348 + 0x4 * (x))
@@ -611,9 +614,11 @@ static irqreturn_t gpt_irq_handler(int irq, void *dev_id)
 		irq_flag = readl(priv->base +
 			(ch == 0 ? ERROR_INTSTAT_OFFSET(1) : ERROR_INTSTAT_OFFSET(2)));
 
-		hw_irq = __ffs(irq_flag & GPT_OVF_MASK(ch));
-		if (!hw_irq)
+		irq_flag &= GPT_OVF_MASK(ch);
+		if (!irq_flag)
 			continue;
+
+		hw_irq = __ffs(irq_flag);
 
 		virq = irq_find_mapping(priv->icu_domain, hw_irq);
 		if (virq)
@@ -748,9 +753,21 @@ static int rzv2h_icu_init_common(struct device_node *node, struct device_node *p
 		int err_flag = readl(rzv2h_icu_data->base +
 			((!ch) ? ERROR_ERINTMSK_OFFSET(1) : ERROR_ERINTMSK_OFFSET(2)));
 
+		/* Unmask gpt overflow interrupt. */
 		writel(~GPT_CLR_ERINT_MASK(ch) & err_flag,
 			rzv2h_icu_data->base +
 			((!ch) ? ERROR_ERINTMSK_OFFSET(1) : ERROR_ERINTMSK_OFFSET(2)));
+
+		/* Mask gpt deadtime interrupt. */
+		err_flag = readl(rzv2h_icu_data->base + ERROR_ERINTMSK_OFFSET(2));
+		if (ch) {
+			writel(GPT1_2_ERINTMSK_DEI_MASK | err_flag,
+				 rzv2h_icu_data->base + ERROR_ERINTMSK_OFFSET(2));
+			writel(GPT1_3_ERINTMSK_DEI_MASK,
+				 rzv2h_icu_data->base + ERROR_ERINTMSK_OFFSET(3));
+		} else
+			writel(GPT0_ERINTMSK_DEI_MASK | err_flag,
+				 rzv2h_icu_data->base + ERROR_ERINTMSK_OFFSET(2));
 	}
 
 	/*
