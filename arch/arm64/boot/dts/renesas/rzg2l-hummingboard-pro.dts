@@ -17,11 +17,6 @@
 / {
 	model = "SolidRun RZ/G2L HummingBoard Pro";
 	compatible = "solidrun,rzg2l-hummingboard-pro", "solidrun,rzg2l-sr-som", "renesas,r9a07g044l2", "renesas,r9a07g044";
-
-	aliases {
-		ethernet0 = &eth1;
-		ethernet1 = &eth0;
-	};
 };
 
 &phy0 {
