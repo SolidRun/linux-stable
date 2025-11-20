@@ -24,11 +24,6 @@
 	};
 };
 
-&pinctrl {
-	pinctrl-names = "default";
-	pinctrl-0 = <&mikro_int_pins>, <&mikro_rst_pins>;
-};
-
 &phy0 {
 	leds {
 		led@0 {

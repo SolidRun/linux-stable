@@ -34,3 +34,12 @@
 		shutdown-gpios = <&pinctrl RZG2L_GPIO(14, 0) GPIO_ACTIVE_HIGH>;
 	};
 };
+
+&pinctrl {
+	m2-reset-hog {
+		gpio-hog;
+		gpios = <RZG2L_GPIO(19, 0) GPIO_ACTIVE_LOW>;
+		output-low;
+		line-name = "m2-reset";
+	};
+};
