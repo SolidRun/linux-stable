@@ -1395,6 +1395,10 @@
 	};
 };
 
+&ssi4 {
+	shared-pin;
+};
+
 #if (RSCI0_SEL == RSCI_UART)
 &sci0 {
 	pinctrl-0 = <&sci0_pins>;
