@@ -1512,8 +1512,8 @@ static void rzv2h_soc_pcie_pre_init(struct rzg3s_pcie_host *host)
 {
 	struct regmap *sysc = host->sysc;
 
-	/* Set Lane mode */
 	if (host->device_id == 0x003b) {
+		/* Set Lane mode */
 		if (host->num_lanes == 4)
 			regmap_update_bits(sysc, RZV2H_SYS_PCIE_LANE_MODE,
 					   RZV2H_SYS_PCIE_LANE_MODE_MASK,
@@ -1524,6 +1524,11 @@ static void rzv2h_soc_pcie_pre_init(struct rzg3s_pcie_host *host)
 					   RZV2H_SYS_PCIE_LANE_MODE_MASK,
 					   FIELD_PREP(RZV2H_SYS_PCIE_LANE_MODE_MASK,
 					   RZV2H_LINK_MASTER_2_LANE_MODE));
+
+		/* Enable Autonomous Equalization (Gen3 Feature) */
+		rzg3s_pcie_update_bits(host->axi, RZG3S_PCI_PCCTRL1,
+				       RZG3S_PCI_PCCTRL1_MODE_EQ_AUTO,
+				       RZG3S_PCI_PCCTRL1_MODE_EQ_AUTO);
 	}
 	/* SYS setting mode port */
 	regmap_update_bits(sysc, RZV2H_SYS_PCIE_MODE_CH(host->channel),
