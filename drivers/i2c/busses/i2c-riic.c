@@ -905,6 +905,7 @@ static int riic_i2c_probe(struct platform_device *pdev)
 	struct riic_dev *riic;
 	struct i2c_adapter *adap;
 	int i, ret;
+	int irq_flag = IS_ENABLED(CONFIG_PREEMPT_RT) ? IRQF_NO_THREAD : 0;
 
 	riic = devm_kzalloc(dev, sizeof(*riic), GFP_KERNEL);
 	if (!riic)
@@ -940,7 +941,7 @@ static int riic_i2c_probe(struct platform_device *pdev)
 			return irq;
 
 		ret = devm_request_irq(dev, irq, riic_irqs[i].isr,
-				       0, riic_irqs[i].name, riic);
+				       irq_flag, riic_irqs[i].name, riic);
 		if (ret)
 			return dev_err_probe(dev, ret, "failed to request irq %s\n",
 					     riic_irqs[i].name);
