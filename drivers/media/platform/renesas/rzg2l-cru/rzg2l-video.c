@@ -809,7 +809,7 @@ void rzg2l_cru_enable_interrupts(struct rzg2l_cru_dev *cru)
 void rzg2l_cru_disable_interrupts(struct rzg2l_cru_dev *cru)
 {
 	rzg2l_cru_write(cru, CRUnIE, 0);
-	rzg2l_cru_write(cru, CRUnINTS, 0x001f000f);
+	rzg2l_cru_write(cru, CRUnINTS, 0x001f0f0f);
 }
 
 int rzg2l_cru_start_image_processing(struct rzg2l_cru_dev *cru)
