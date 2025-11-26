@@ -448,22 +448,17 @@
 
 			partition@0 {
 				label = "bl2";
-				reg = <0x00000000 0x0001D200>;
-				read-only;
+				reg = <0x00000000 0x00060000>;
 			};
-			partition@1D200 {
+
+			partition@60000 {
 				label = "fip";
-				reg = <0x0001D200 0x001C2E00>;
-				read-only;
+				reg = <0x00060000 0x007a0000>;
 			};
-			partition@1E0000 {
-				label = "env";
-				reg = <0x001E0000 0x00020000>;
-				read-only;
-			};
-			partition@200000 {
-				label = "test-area";
-				reg = <0x00200000 0x00E00000>;
+
+			partition@800000 {
+				label = "user";
+				reg = <0x800000 0x800000>;
 			};
 		};
 	};
