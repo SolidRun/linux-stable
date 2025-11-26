@@ -385,7 +385,6 @@ static void rzg2l_cru_initialize_axi(struct rzg2l_cru_dev *cru)
 {
 	const struct rzg2l_cru_info *info = cru->info;
 	unsigned int slot;
-	u32 amnaxiattr;
 
 	/*
 	 * Set image data memory banks.
@@ -409,11 +408,6 @@ static void rzg2l_cru_initialize_axi(struct rzg2l_cru_dev *cru)
 		amnis = rzg2l_cru_read(cru, AMnIS) & ~AMnIS_IS_MASK;
 		rzg2l_cru_write(cru, AMnIS, amnis | AMnIS_IS(stride));
 	}
-
-	/* Set AXI burst max length to recommended setting */
-	amnaxiattr = rzg2l_cru_read(cru, AMnAXIATTR) & ~AMnAXIATTR_AXILEN_MASK;
-	amnaxiattr |= AMnAXIATTR_AXILEN;
-	rzg2l_cru_write(cru, AMnAXIATTR, amnaxiattr);
 }
 
 void rzg3e_cru_csi2_setup(struct rzg2l_cru_dev *cru,
