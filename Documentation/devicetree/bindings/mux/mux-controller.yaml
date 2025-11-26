@@ -64,18 +64,12 @@ description: |
 
 select:
   anyOf:
-    - properties:
-        $nodename:
-          pattern: '^mux-controller'
     - required:
         - '#mux-control-cells'
     - required:
         - '#mux-state-cells'
 
 properties:
-  $nodename:
-    pattern: '^mux-controller(@.*|-[0-9a-f]+)?$'
-
   '#mux-control-cells':
     enum: [ 0, 1 ]
 
