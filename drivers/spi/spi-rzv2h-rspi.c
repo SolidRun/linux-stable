@@ -276,6 +276,13 @@ static int rspi_dma_transfer(struct rzv2h_rspi_priv *rspi, struct sg_table *tx,
 	u32 irq_mask = 0;
 	dma_cookie_t cookie;
 	int ret;
+	unsigned long timeout;
+
+	/* Low SPI speed need more time to complete transfer */
+	if (rspi->freq <= 100000)
+		timeout = 5 * HZ;
+	else
+		timeout = HZ;
 
 	/* First prepare and submit the DMA request(s), as this may fail */
 	if (rx) {
@@ -341,7 +348,7 @@ static int rspi_dma_transfer(struct rzv2h_rspi_priv *rspi, struct sg_table *tx,
 		writew(SPSRC_SPTEFC | SPSRC_SPRFC, rspi->base + RSPI_SPSRC);
 	}
 	ret = wait_event_interruptible_timeout(rspi->wait,
-					rspi->dma_callbacked, HZ);
+					rspi->dma_callbacked, timeout);
 	if (ret > 0 && rspi->dma_callbacked) {
 		ret = 0;
 		if (tx)
