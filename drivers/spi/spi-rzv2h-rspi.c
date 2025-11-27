@@ -514,10 +514,11 @@ static u16 rzv2h_rspi_read_data(const struct rzv2h_rspi_priv *rspi)
 }
 
 static int rzv2h_rspi_pio_transfer(struct rzv2h_rspi_priv *rspi,
-				   const void *txbuf, void *rxbuf,
-				   unsigned int len, u16 error)
+				   struct spi_transfer *transfer)
 {
-	unsigned int words = len / rspi->bytes_per_word;
+	unsigned int words = transfer->len / rspi->bytes_per_word;
+	const void *txbuf = transfer->tx_buf;
+	void *rxbuf = transfer->rx_buf;
 	int ret, count, loop, loop_count, remained_words, words_per_loop;
 
 	if (words % RSPI_FIFO_SIZE)
@@ -556,7 +557,7 @@ static int rzv2h_rspi_pio_transfer(struct rzv2h_rspi_priv *rspi,
 				ret = rzv2h_rspi_receive(rspi, rxbuf,
 							count + loop_count * RSPI_FIFO_SIZE);
 				if (ret) {
-					error = SPI_TRANS_FAIL_IO;
+					transfer->error = SPI_TRANS_FAIL_IO;
 					return ret;
 				}
 
@@ -578,9 +579,7 @@ static int rzv2h_rspi_transfer_message(struct rzv2h_rspi_priv *rspi,
 	if (ret != -EAGAIN)
 		return ret;
 
-	ret = rzv2h_rspi_pio_transfer(rspi, transfer->tx_buf,
-				      transfer->rx_buf, transfer->len,
-				      transfer->error);
+	ret = rzv2h_rspi_pio_transfer(rspi, transfer);
 	if (ret < 0)
 		return ret;
 
