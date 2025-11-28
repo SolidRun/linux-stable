@@ -104,8 +104,6 @@ dtb-$(CONFIG_ARCH_R9A07G044) += rzg2lc-hummingboard-ripple.dtb
 DTC_FLAGS_rzg2lc-hummingboard-ripple := -@
 dtb-$(CONFIG_ARCH_R9A07G044) += rzg2lc-hummingboard.dtb
 DTC_FLAGS_rzg2lc-hummingboard := -@
-dtb-$(CONFIG_ARCH_R9A07G044) += rzg2lc-solidrun-mmc-overlay.dtbo
-dtb-$(CONFIG_ARCH_R9A07G044) += rzg2lc-solidrun-sd-overlay.dtbo
 
 dtb-$(CONFIG_ARCH_R9A07G054) += r9a07g054l2-smarc.dtb
 

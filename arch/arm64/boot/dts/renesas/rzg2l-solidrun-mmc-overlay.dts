@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
 /*
-* Device Tree Overlay for the RZ/G2L Solidrun SOM eMMC
+* Device Tree Overlay for the RZ/G2L(C) Solidrun SOM eMMC
 *
 * Copyright (C) 2024 SolidRun Ltd.
 */
