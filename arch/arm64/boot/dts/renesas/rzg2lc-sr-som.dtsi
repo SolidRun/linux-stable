@@ -68,6 +68,7 @@
 	sdhi0_mux: mux-controller-0 {
 		compatible = "gpio-mux";
 		#mux-control-cells = <0>;
+		#mux-state-cells = <1>;
 		/*
 		 * Mux switches SD0_DATA[0-3], SD0_CMD & SD0_CLK between
 		 * on-SoM eMMC and board-to-board connector using one gpio:
