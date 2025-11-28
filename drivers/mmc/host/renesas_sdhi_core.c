@@ -27,6 +27,7 @@
 #include <linux/mmc/mmc.h>
 #include <linux/mmc/slot-gpio.h>
 #include <linux/module.h>
+#include <linux/mux/consumer.h>
 #include <linux/pinctrl/consumer.h>
 #include <linux/pinctrl/pinctrl-state.h>
 #include <linux/platform_device.h>
@@ -1029,6 +1030,7 @@ int renesas_sdhi_probe(struct platform_device *pdev,
 	struct regulator_dev *rdev;
 	struct renesas_sdhi_dma *dma_priv;
 	struct device *dev = &pdev->dev;
+	struct device_node *node = pdev->dev.of_node;
 	struct tmio_mmc_host *host;
 	struct renesas_sdhi *priv;
 	int num_irqs, irq, ret, i;
@@ -1083,9 +1085,25 @@ int renesas_sdhi_probe(struct platform_device *pdev,
 						"state_uhs");
 	}
 
+	if (of_property_present(node, "mux-states")) {
+		priv->mux_state = devm_mux_state_get(&pdev->dev, NULL);
+		if (IS_ERR(priv->mux_state)) {
+			ret = PTR_ERR(priv->mux_state);
+			dev_dbg(&pdev->dev, "failed to get SDIO mux: %d\n", ret);
+			return ret;
+		}
+		ret = mux_state_select(priv->mux_state);
+		if (ret) {
+			dev_err(&pdev->dev, "failed to select SDIO mux: %d\n", ret);
+			goto emux;
+		}
+	}
+
 	host = tmio_mmc_host_alloc(pdev, mmc_data);
-	if (IS_ERR(host))
-		return PTR_ERR(host);
+	if (IS_ERR(host)) {
+		ret = PTR_ERR(host);
+		goto emux;
+	}
 
 	priv->host = host;
 
@@ -1279,6 +1297,9 @@ edisclk:
 	renesas_sdhi_clk_disable(host);
 efree:
 	tmio_mmc_host_free(host);
+emux:
+	if (priv->mux_state)
+		mux_state_deselect(priv->mux_state);
 
 	return ret;
 }
