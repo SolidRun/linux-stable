@@ -96,6 +96,11 @@ properties:
   iommus:
     maxItems: 1
 
+  mux-states:
+    description:
+      mux controller node to route the SDIO signals from SoC to cards.
+    maxItems: 1
+
   power-domains:
     maxItems: 1
 
