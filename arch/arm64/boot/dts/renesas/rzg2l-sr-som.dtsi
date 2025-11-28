@@ -69,12 +69,13 @@
 	sdhi0_mux: mux-controller-0 {
 		compatible = "gpio-mux";
 		#mux-control-cells = <0>;
+		#mux-state-cells = <1>;
 		/*
 		 * Mux switches SD0_DATA[0-3], SD0_CMD & SD0_CLK between
 		 * on-SoM eMMC and board-to-board connector using one gpio:
-		 * 0 = connector, 1 = eMMC.
+		 * 1 = connector, 0 = eMMC.
 		 */
-		mux-gpios = <&pinctrl RZG2L_GPIO(22, 1) GPIO_ACTIVE_HIGH>;
+		mux-gpios = <&pinctrl RZG2L_GPIO(22, 1) GPIO_ACTIVE_LOW>;
 	};
 
 	clk_pmic_32k: pmic-32k-clock {
