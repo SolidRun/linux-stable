@@ -21,19 +21,6 @@
 	sd-uhs-sdr50;
 	sd-uhs-sdr104;
 	full-pwr-cycle;
+	mux-states = <&sdhi0_mux 1>;
 	status = "okay";
-};
-
-&sdhi0_mux {
-	idle-state = <1>;
-};
-
-/* &sdhi0_mux { idle-state = <1>; }; not functional - hog instead */
-&pinctrl {
-	sdhi0-mux-hog {
-		gpio-hog;
-		gpios = <RZG2L_GPIO(22, 1) GPIO_ACTIVE_HIGH>;
-		output-high;
-		line-name = "sdhi0-mux";
-	};
 };

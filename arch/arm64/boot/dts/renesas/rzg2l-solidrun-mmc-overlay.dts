@@ -39,19 +39,6 @@
 	no-sdio;
 	mmc-hs200-1_8v;
 	cap-mmc-hw-reset;
+	mux-states = <&sdhi0_mux 0>;
 	status = "okay";
-};
-
-&sdhi0_mux {
-	idle-state = <0>;
-};
-
-/* &sdhi0_mux { idle-state = <0>; }; not functional - hog instead */
-&pinctrl {
-	sdhi0-mux-hog {
-		gpio-hog;
-		gpios = <RZG2L_GPIO(22, 1) GPIO_ACTIVE_HIGH>;
-		output-high;
-		line-name = "sdhi0-mux";
-	};
 };
