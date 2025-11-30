@@ -19,6 +19,7 @@
 #include <linux/of_platform.h>
 #include <linux/pci.h>
 #include <linux/phy/phy.h>
+#include <linux/gpio/consumer.h>
 #include <linux/platform_device.h>
 #include <linux/pm_runtime.h>
 #include <linux/slab.h>
@@ -100,6 +101,7 @@ struct rzv2h_pcie_host {
 	struct clk		*bus_clk;
 	struct			rzv2h_msi msi;
 	int			(*phy_init_fn)(struct rzv2h_pcie_host *host);
+	struct gpio_desc	*reset_gpiod;
 	struct irq_domain	*intx_domain;
 	struct reset_control    *rst;
 	int			channel;
@@ -126,6 +128,14 @@ static int rzv2h_pcie_request_issue(struct rzv2h_pcie *pcie, struct pci_bus *bus
 		udelay(5);
 	}
 
+	/* If still busy, bail out */
+	if (sts & REQ_ISSUE) {
+		dev_warn(pcie->dev,
+			 "config request timeout, sts=0x%08x\n", sts);
+		return PCIBIOS_DEVICE_NOT_FOUND;
+	}
+
+	/* If hardware error, also bail out */
 	if (sts & MOR_STATUS) {
 		dev_info(&bus->dev, "rzv2h_pcie_conf_access: Request failed(%d)\n", ((sts & MOR_STATUS)>>16));
 
@@ -311,6 +321,12 @@ static int rzv2h_pcie_read_conf(struct pci_bus *bus, unsigned int devfn,
 
 	dev_dbg(&bus->dev, "pcie-config-read: bus=%3d devfn=0x%04x where=0x%04x size=%d val=0x%08x\n",
 		bus->number, devfn, where, size, *val);
+
+
+	if (bus->number == 1 && PCI_SLOT(devfn) == 0)
+		dev_dbg(&bus->dev, "cfg read 01:%02x.%d where 0x%x size %d\n",
+				PCI_SLOT(devfn), PCI_FUNC(devfn), where, size);
+
 
 	return ret;
 }
@@ -588,8 +604,21 @@ static int PCIE_INT_Initialize(struct rzv2h_pcie *pcie)
 
 static int rzv2h_pcie_hw_init(struct rzv2h_pcie *pcie, int channel)
 {
+	struct rzv2h_pcie_host *host =
+		container_of(pcie, struct rzv2h_pcie_host, pcie);
 	unsigned int timeout = 50;
 	struct arm_smccc_res local_res;
+
+	/*
+	 * Assert external PERST# (logical active state) to the endpoint
+	 * if a reset-gpios was provided via DT.
+	 * Polarity (ACTIVE_HIGH / ACTIVE_LOW) is handled by the GPIO framework.
+	 */
+	if (host->reset_gpiod){
+		gpiod_set_value_cansleep(host->reset_gpiod, 1);
+		msleep(100);
+	}
+
 
 	/* Set to the PCIe reset state   : step6 */
 	rzv2h_pci_write_reg(pcie, RESET_ALL_ASSERT, PCI_RESET_REG);			/* Set PCI_RC 310h */
@@ -618,10 +647,20 @@ static int rzv2h_pcie_hw_init(struct rzv2h_pcie *pcie, int channel)
 
 	rzv2h_pci_write_reg(pcie, 0x3ff2, MODE_SET_1_REG);						/* Set PCI_RC 318h */
 
+	/*
+	 * Deassert external PERST# (logical inactive state) after the
+	 * controller is out of reset and configured, then give the endpoint
+	 * some time to boot and start link training.
+	 */
+	if (host->reset_gpiod) {
+		gpiod_set_value_cansleep(host->reset_gpiod, 0);
+		msleep(100); /* Allow endpoint time to boot & begin LTSSM */
+	}
+
 	/* This will timeout if we don't have a link. */
 	while (timeout--) {
 		if (!(rzv2h_pci_read_reg(pcie, PCIE_CORE_STATUS_1_REG) & DL_DOWN_STATUS))
-			return 0;
+			return 0;  /* Link up */
 
 		msleep(5);
 	}
@@ -1204,6 +1243,21 @@ static int rzv2h_pcie_probe(struct platform_device *pdev)
 	host = pci_host_bridge_priv(bridge);
 	pcie = &host->pcie;
 	pcie->dev = dev;
+
+	/*
+	 * Optional external PERST# line for the downstream device.
+	 * DT example:
+	 *   reset-gpios = <&tca6416_u20 7 GPIO_ACTIVE_LOW>;
+	 *
+	 * Using "reset" as the GPIO line name to match "reset-gpios".
+	 * Initial state: deasserted (logical 0 on ACTIVE_LOW).
+	 */
+	host->reset_gpiod = devm_gpiod_get_optional(dev, "reset", GPIOD_OUT_HIGH);
+	if (IS_ERR(host->reset_gpiod)) {
+		return dev_err_probe(dev, PTR_ERR(host->reset_gpiod), "failed to get reset-gpios\n");
+	}
+
+
 	platform_set_drvdata(pdev, host);
 
 	err = of_property_read_u32(dev->of_node, "pcie,channel", &channel);
