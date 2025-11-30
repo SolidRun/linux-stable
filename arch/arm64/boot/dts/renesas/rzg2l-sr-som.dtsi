@@ -22,6 +22,7 @@
 		ethernet0 = &eth0;
 		ethernet1 = &eth1;
 		rtc0 = &pmic;
+		gpio0 = &pinctrl;
 	};
 
 	chosen {
@@ -358,6 +359,16 @@
 		pins = "SD1_DATA0", "SD1_DATA1", "SD1_DATA2", "SD1_DATA3",
 		       "SD1_CLK", "SD1_CMD";
 		power-source = <3300>;
+	};
+
+	spi1_pins: spi1 {
+		pinmux = <RZG2L_PORT_PINMUX(44, 2, 1)>, /* RSPI1_MISO */
+			 <RZG2L_PORT_PINMUX(44, 1, 1)>, /* RSPI1_MOSI# */
+			 <RZG2L_PORT_PINMUX(44, 0, 1)>; /* RSPI1_CK# */
+	};
+
+	spi1_cs_pins: spi1-cs {
+		pinmux = <RZG2L_PORT_PINMUX(44, 3, 1)>; /* RSPI1_SSL */
 	};
 
 	usb0_vbus_pins: usb0-vbus {

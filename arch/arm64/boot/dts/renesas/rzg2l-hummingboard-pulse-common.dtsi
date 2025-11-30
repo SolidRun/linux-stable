@@ -167,13 +167,6 @@
 		pinmux = <RZG2L_PORT_PINMUX(45, 3, 0)>; /* P45_3 */
 	};
 
-	mikro_spi_pins: pinctrl-mikro-spi-grp {
-		pinmux = <RZG2L_PORT_PINMUX(44, 3, 1)>, /* RSPI1_SSL */
-			 <RZG2L_PORT_PINMUX(44, 2, 1)>, /* RSPI1_MISO */
-			 <RZG2L_PORT_PINMUX(44, 1, 1)>, /* RSPI1_MOSI# */
-			 <RZG2L_PORT_PINMUX(44, 0, 1)>; /* RSPI1_CK# */
-	};
-
 	mikro_uart_pins: pinctrl-mikro-uart-grp {
 		pinmux = <RZG2L_PORT_PINMUX(40, 1, 1)>, /* SCIF1_RXD */
 			 <RZG2L_PORT_PINMUX(40, 0, 1)>; /* SCIF1_TXD */
@@ -212,7 +205,7 @@
 &spi1 {
 	num-cs = <1>;
 	pinctrl-names = "default";
-	pinctrl-0 = <&mikro_spi_pins>;
+	pinctrl-0 = <&spi1_pins>, <&spi1_cs_pins>;
 	status = "okay";
 };
 
