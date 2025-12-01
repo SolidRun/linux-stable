@@ -1,0 +1,63 @@
+// SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+/*
+ * Device Tree Source for the RZ/V2N SolidRun HummingBoard IIoT
+ *
+ * Copyright (C) 2025 SolidRun Ltd.
+ *
+ * Overlay for enabling HummingBoard IIoT MIPI-DSI connector
+ * with Winstar WJ70N3TYJHMNG0 panel.
+ */
+
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/interrupt-controller/irq.h>
+
+&{/} {
+	dsi_backlight: dsi-backlight {
+		compatible = "gpio-backlight";
+		gpios = <&gpio_dsi_expander 3 GPIO_ACTIVE_LOW>;
+	};
+};
+
+&i2c_dsi {
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	touchscreen@41 {
+		reg = <0x41>;
+		compatible = "ilitek,ili2130";
+		reset-gpios = <&gpio_dsi_expander 6 GPIO_ACTIVE_LOW>;
+		interrupts-extended = <&tca6416_u21 13 IRQ_TYPE_LEVEL_LOW>;
+		vcc-lcd-supply = <&reg_dsi_panel>;
+	};
+};
+
+&dsi0 {
+	#address-cells = <1>;
+    #size-cells = <0>;
+	status = "okay";
+	panel@0 {
+		compatible = "ronbo,rb070d30";
+		reg = <0>;
+		vcc-lcd-supply = <&reg_dsi_panel>;
+		power-gpios = <&gpio_dsi_expander 2 GPIO_ACTIVE_HIGH>;
+		/* reset is active-low but driver inverts it internally */
+		reset-gpios = <&gpio_dsi_expander 1 GPIO_ACTIVE_HIGH>;
+		updn-gpios = <&gpio_dsi_expander 5 GPIO_ACTIVE_HIGH>;
+		shlr-gpios = <&gpio_dsi_expander 4 GPIO_ACTIVE_LOW>;
+		backlight = <&mipi_backlight>;
+
+		port {
+			dsi_in_panel: endpoint {
+				remote-endpoint = <&dsi0_out>;
+			};
+		};
+	};
+};
+
+&dsi0_out {
+	remote-endpoint = <&dsi_in_panel>;
+	data-lanes = <1 2 3 4>;
+};
