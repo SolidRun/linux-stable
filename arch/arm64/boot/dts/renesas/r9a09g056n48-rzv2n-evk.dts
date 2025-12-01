@@ -769,26 +769,29 @@
 		line-name = "sd1_pwr_en";
 	};
 
-#if (CAN_SPDIF_SCI_SEL == CAN_SEL)
-	can0_pins: can0 {
-		pinmux = <RZV2N_PORT_PINMUX(8, 0, 5)>, /* TX */
-			 <RZV2N_PORT_PINMUX(8, 1, 5)>; /* RX */
-	};
+	canfd_pins: can_pins {
+#if (CAN_SPDIF_SCI_SEL == SCI_SEL || CAN_SPDIF_SCI_SEL == CAN_SEL)
+		can0_pins: can0 {
+			pinmux = <RZV2N_PORT_PINMUX(8, 0, 5)>, /* TX */
+				 <RZV2N_PORT_PINMUX(8, 1, 5)>; /* RX */
+		};
 
-	can1_pins: can1 {
-		pinmux = <RZV2N_PORT_PINMUX(8, 2, 5)>, /* TX */
-			 <RZV2N_PORT_PINMUX(8, 3, 5)>; /* RX */
-	};
+		can1_pins: can1 {
+			pinmux = <RZV2N_PORT_PINMUX(8, 2, 5)>, /* TX */
+				 <RZV2N_PORT_PINMUX(8, 3, 5)>; /* RX */
+		};
 #endif
+#if (CAN_SPDIF_SCI_SEL == SPDIF_SEL || CAN_SPDIF_SCI_SEL == CAN_SEL)
+		can2_pins: can2 {
+			pinmux = <RZV2N_PORT_PINMUX(8, 4, 5)>, /* TX */
+				 <RZV2N_PORT_PINMUX(8, 5, 5)>; /* RX */
+		};
 
-	can2_pins: can2 {
-		pinmux = <RZV2N_PORT_PINMUX(8, 4, 5)>, /* TX */
-			 <RZV2N_PORT_PINMUX(8, 5, 5)>; /* RX */
-	};
-
-	can3_pins: can3 {
-		pinmux = <RZV2N_PORT_PINMUX(8, 6, 5)>, /* TX */
-			 <RZV2N_PORT_PINMUX(8, 7, 5)>; /* RX */
+		can3_pins: can3 {
+			pinmux = <RZV2N_PORT_PINMUX(8, 6, 5)>, /* TX */
+				 <RZV2N_PORT_PINMUX(8, 7, 5)>; /* RX */
+		};
+#endif
 	};
 
 	sdhi1_pins: sd1 {
@@ -1084,16 +1087,12 @@
 };
 
 &canfd {
-#if (CAN_SPDIF_SCI_SEL == CAN_SEL)
-	pinctrl-0 = <&can0_pins &can1_pins &can2_pins &can3_pins>;
-#else
-	pinctrl-0 = <&can2_pins &can3_pins>;
-#endif
+	pinctrl-0 = <&canfd_pins>;
 	pinctrl-names = "default";
+
 	status = "okay";
 
-
-#if (CAN_SPDIF_SCI_SEL == CAN_SEL)
+#if (CAN_SPDIF_SCI_SEL == SCI_SEL || CAN_SPDIF_SCI_SEL == CAN_SEL)
 	channel0 {
 		status = "okay";
 	};
@@ -1102,7 +1101,7 @@
 		status = "okay";
 	};
 #endif
-
+#if (CAN_SPDIF_SCI_SEL == SPDIF_SEL || CAN_SPDIF_SCI_SEL == CAN_SEL)
 	channel2 {
 		status = "okay";
 	};
@@ -1110,6 +1109,7 @@
 	channel3 {
 		status = "okay";
 	};
+#endif
 };
 
 &wdt1 {
