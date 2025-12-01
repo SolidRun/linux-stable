@@ -16,12 +16,6 @@
 		i2c5 = &i2c_dsi;
 	};
 
-	mipi_backlight: backlight {
-		compatible = "gpio-backlight";
-		gpios = <&gpio_dsi_expander 3 GPIO_ACTIVE_LOW>;
-		default-on;
-	};
-
 	v_1_2: regulator-1-2 {
 		compatible = "regulator-fixed";
 		regulator-name = "1v2";
@@ -193,7 +187,7 @@
 			linux,code = <KEY_WAKEUP>;
 			wakeup-source;
 		};
-	};	
+	};
 };
 
 &pinctrl {
@@ -473,14 +467,6 @@
 				"DSI_CTP_/RST",
 				"CAM_TRIG";
 			};
-
-			touchscreen@41 {
-				/* ili2130 part of the Winstart Display WJ70N3TYJHMNG0 */
-				compatible = "ilitek,ili2130";
-				reg = <0x41>;
-				reset-gpios = <&gpio_dsi_expander 6 GPIO_ACTIVE_LOW>;
-				interrupts-extended = <&tca6416_u21 13 IRQ_TYPE_LEVEL_LOW>;
-			};
 		};
 	};
 };
@@ -515,33 +501,6 @@
 			reg = <1>;
 		};
 	};
-};
-
-&dsi0 {
-	#address-cells = <1>;
-    #size-cells = <0>;
-	status = "okay";
-	panel@0 {
-		compatible = "ronbo,rb070d30";
-		reg = <0>;
-
-		power-gpios = <&gpio_dsi_expander 2 GPIO_ACTIVE_HIGH>;
-		reset-gpios = <&gpio_dsi_expander 1 GPIO_ACTIVE_HIGH>;
-		updn-gpios = <&gpio_dsi_expander 5 GPIO_ACTIVE_HIGH>;
-		shlr-gpios = <&gpio_dsi_expander 4 GPIO_ACTIVE_LOW>;
-		backlight = <&mipi_backlight>;
-
-		port {
-			dsi_in_panel: endpoint {
-				remote-endpoint = <&dsi0_out>;
-			};
-		};
-	};
-};
-
-&dsi0_out {
-	remote-endpoint = <&dsi_in_panel>;
-	data-lanes = <1 2 3 4>;
 };
 
 &du {
