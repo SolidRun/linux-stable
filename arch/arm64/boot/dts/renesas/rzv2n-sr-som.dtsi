@@ -1,0 +1,707 @@
+// SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+/*
+* Device Tree Source for the RZ/V2N Solidrun SOM
+*
+* Copyright (C) 2025 SolidRun Ltd.
+*/
+
+/dts-v1/;
+#include "r9a09g056.dtsi"
+#include <dt-bindings/net/mxl-8611x.h>
+#include <dt-bindings/pinctrl/rzg2l-pinctrl.h>
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+#include <dt-bindings/thermal/thermal.h>
+
+/ {
+	aliases {
+		i2c0 = &i2c0;
+		i2c1 = &i2c1;
+		i2c2 = &i2c2;
+		i2c8 = &i2c8;
+		serial0 = &scif;
+		serial1 = &sci0;
+		serial2 = &sci2;
+		serial3 = &sci3;
+		mmc0 = &sdhi0;
+		mmc1 = &sdhi1;
+		mmc2 = &sdhi2;
+		ethernet0 = &eth0;
+		ethernet1 = &eth1;
+	};
+
+	chosen {
+		bootargs = "ignore_loglevel";
+		stdout-path = "serial0:115200n8";
+	};
+
+	memory@48000000 {
+		device_type = "memory";
+		/* first 128MB is reserved for secure area. */
+		reg = <0x0 0x48000000 0x1 0xF8000000>;
+	};
+
+	reserved-memory {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		global_cma: linux,cma@58000000 {
+			compatible = "shared-dma-pool";
+			linux,cma-default;
+			reusable;
+			reg = <0x0 0x58000000 0x0 0x28000000>;
+		};
+
+		mmp_reserved: linux,multimedia {
+			compatible = "shared-dma-pool";
+			reusable;
+			reg = <0x00000000 0x80000000 0x0 0x10000000>;
+		};
+
+		isp_reserved: frame_buffer@90000000 {
+			compatible = "shared-dma-pool";
+			reusable;
+			reg = <0x0 0x90000000 0x0 0x18000000>;
+		};
+
+		opencva_reserved: OpenCVA@A8000000 {
+			reusable;
+			reg = <0x0 0xA8000000 0x0 0x7CFF000>;
+		};
+
+		shared_drp_reserved: SharedDRP@AFCFF000 {
+			reusable;
+			reg = <0x0 0xAFCFF000 0x0 0x00001000>;
+		};
+
+		drp_codec: DRP-Codec@AFD00000 {
+			reusable;
+			reg = <0x0 0xAFD00000 0x0 0x300000>;
+		};
+
+		image_buf0: image_buf@B0000000 {
+			compatible = "shared-dma-pool";
+			reusable;
+			reg = <0x0 0xB0000000 0x0 0x4000000>;
+			label = "image_buf0";
+		};
+
+		cru_func: cru_buffer@B4000000 {
+			compatible = "shared-dma-pool";
+			reusable;
+			reg = <0x0 0xB4000000 0x0 0x16400000>;
+		};
+
+		drp_reserved: DRP-AI@D0000000 {
+			reusable;
+			reg = <0x0 0xD0000000 0x0 0x20000000>;
+		};
+	};
+
+	mmngr {
+		compatible = "renesas,mmngr";
+		memory-region = <&mmp_reserved>;
+	};
+
+	mmngrbuf {
+		compatible = "renesas,mmngrbuf";
+	};
+
+	vspm_if {
+		compatible = "renesas,vspm_if";
+	};
+
+	x1_clk: x1-clock {
+			compatible = "fixed-clock";
+			#clock-cells = <0>;
+			clock-frequency = <24000000>;
+	};
+
+	reg_1p8v: regulator0 {
+		compatible = "regulator-fixed";
+
+		regulator-name = "fixed-1.8V";
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		regulator-boot-on;
+		regulator-always-on;
+	};
+
+	reg_3p3v: regulator1 {
+		compatible = "regulator-fixed";
+
+		regulator-name = "fixed-3.3V";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-boot-on;
+		regulator-always-on;
+	};
+
+	vccq_sdhi1: regulator-vccq-sdhi1 {
+		compatible = "regulator-gpio";
+		regulator-name = "SDHI1 VccQ";
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <3300000>;
+		gpios = <&pinctrl RZG2L_GPIO(10, 2) GPIO_ACTIVE_HIGH>;
+		gpios-states = <1>;
+		states = <3300000 0 1800000 1>;
+	};
+
+	clk_ext_camera: clk_ext_camera {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <24000000>;
+	};
+
+	ov5645_vdddo_1v8: 1p8v {
+		compatible = "regulator-fixed";
+		regulator-name = "camera_vdddo";
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		regulator-always-on;
+	};
+
+	ov5645_vdda_2v8: 2p8v {
+		compatible = "regulator-fixed";
+		regulator-name = "camera_vdda";
+		regulator-min-microvolt = <2800000>;
+		regulator-max-microvolt = <2800000>;
+		regulator-always-on;
+	};
+
+	ov5645_vddd_1v5: 1p5v {
+		compatible = "regulator-fixed";
+		regulator-name = "camera_vddd";
+		regulator-min-microvolt = <1500000>;
+		regulator-max-microvolt = <1500000>;
+		regulator-always-on;
+	};
+
+	osc1_32k: cec-clock {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <32768>; /* 32.768 kHz */
+	};
+
+	sdio_pwrseq: sdio-pwrseq {
+		compatible = "mmc-pwrseq-simple";
+		// reset-gpios = <&pinctrl RZG2L_GPIO(10, 0) GPIO_ACTIVE_HIGH>;
+        /* TODO: Replace current GPIO hog with proper reset-gpios assignment
+         * for the SDIO power sequence. Using the GPIO hog is temporary and
+         * should be updated for proper reset control integration.
+         */
+	};
+
+	/* 32.768kHz crystal */
+	xin32k: xin32k-clock {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <32768>;
+	};
+};
+
+&du {
+	status = "okay";
+};
+
+&dsi0 {
+	status = "okay";
+};
+
+&eth0 {
+	phy-handle = <&phy0>;
+	phy-mode = "rgmii-id";
+	status = "okay";
+
+	mdio {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		phy0: ethernet-phy@0 {
+			reg = <0>;
+			mxl-8611x,led0_cfg = <(
+			MXL8611X_LEDX_CFG_LINK_UP_TX_ACT_ON |
+			MXL8611X_LEDX_CFG_LINK_UP_RX_ACT_ON |
+			MXL8611X_LEDX_CFG_LINK_UP_1GB_ON |
+			MXL8611X_LEDX_CFG_LINK_UP_100MB_ON |
+			MXL8611X_LEDX_CFG_LINK_UP_10MB_ON
+			)>;
+			mxl-8611x,rx-internal-delay-ps = <0>;
+			mxl-8611x,tx-internal-delay-ps-100m = <2250>;
+			mxl-8611x,tx-internal-delay-ps-1g = <300>;
+		};
+	};
+};
+
+&eth1 {
+	phy-handle = <&phy1>;
+	phy-mode = "rgmii-id";
+	status = "okay";
+
+	mdio {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		phy1: ethernet-phy@0 {
+			reg = <0>;
+			mxl-8611x,led0_cfg = <(
+			MXL8611X_LEDX_CFG_LINK_UP_TX_ACT_ON |
+			MXL8611X_LEDX_CFG_LINK_UP_RX_ACT_ON |
+			MXL8611X_LEDX_CFG_LINK_UP_1GB_ON |
+			MXL8611X_LEDX_CFG_LINK_UP_100MB_ON |
+			MXL8611X_LEDX_CFG_LINK_UP_10MB_ON
+			)>;
+			mxl-8611x,rx-internal-delay-ps = <0>;
+			mxl-8611x,tx-internal-delay-ps-100m = <2250>;
+			mxl-8611x,tx-internal-delay-ps-1g = <300>;
+		};
+	};
+};
+
+&audio_clka {
+	clock-frequency = <22579200>;
+};
+
+&audio_clkb {
+	clock-frequency = <24576000>;
+};
+
+&audio_clkc {
+	clock-frequency = <22579200>;
+};
+
+&pinctrl {
+	scif0_pins: scif0 {
+		pins =  "SCIF_TXD", "SCIF_RXD";
+		renesas,output-impedance = <1>;
+	};
+
+#if 0
+	bt_reg_en {
+		gpio-hog;
+		gpios = <RZG2L_GPIO(10, 1) GPIO_ACTIVE_HIGH>;
+		output-high;
+		line-name = "bt_reg_on";
+	};
+#endif
+
+#if 1
+	wifi_pwr_en {
+		gpio-hog;
+		gpios = <RZG2L_GPIO(10, 0) GPIO_ACTIVE_HIGH>;
+		output-high;
+		line-name = "wifi_pwr_en";
+	};
+#endif
+
+	sd1_pwr_en {
+		gpio-hog;
+		gpios = <RZG2L_GPIO(10, 3) GPIO_ACTIVE_HIGH>;
+		output-high;
+		line-name = "sd1_pwr_en";
+	};
+
+	/* Support pinctrl for SD function of SDHI1 */
+	sdhi1_pins: sd1 {
+		sd1_mux {
+			pinmux = <RZG2L_PORT_PINMUX(9, 4, 14)>; /* SD1_CD */
+		};
+	};
+
+	gpt0_2_pins: gpt0_2 {
+		pinmux = <RZG2L_PORT_PINMUX(7, 2, 9)>, /* Channel A */
+			 <RZG2L_PORT_PINMUX(7, 3, 9)>; /* Channel B */
+	};
+
+	i2c0_pins: i2c0 {
+		pinmux = <RZG2L_PORT_PINMUX(3, 0, 1)>, /* I2C0_SDA */
+			 <RZG2L_PORT_PINMUX(3, 1, 1)>; /* I2C0_SCL */
+	};
+
+	i2c1_pins: i2c1 {
+		pinmux = <RZG2L_PORT_PINMUX(3, 2, 1)>, /* I2C1_SDA */
+			 <RZG2L_PORT_PINMUX(3, 3, 1)>; /* I2C1_SCL */
+	};
+
+	i2c2_pins: i2c2 {
+		pinmux = <RZG2L_PORT_PINMUX(2, 0, 4)>, /* I2C2_SDA */
+			 <RZG2L_PORT_PINMUX(2, 1, 4)>; /* I2C2_SCL */
+	};
+
+	i2c8_pins: i2c8 {
+			pinmux = <RZG2L_PORT_PINMUX(0, 6, 1)>, /* I2C8_SDA */
+					<RZG2L_PORT_PINMUX(0, 7, 1)>; /* I2C8_SCL */
+	};
+
+#if 0
+	/* cam0_pwr_en is used by Google Coral Camera from CSI20 and CSI21 */
+	cam0_pwr_en {
+		gpio-hog;
+		//gpios = <RZG2L_GPIO(11, 2) GPIO_ACTIVE_HIGH>;
+		output-high;
+		line-name = "cam0_pwr_en";
+	};
+#endif
+
+#if 0
+	sci0_pins: sci0 {
+		pinmux = <RZG2L_PORT_PINMUX(5, 0, 1)>, /* UART0_TXD: SCI0_TXD_MOSI_SDA */
+			<RZG2L_PORT_PINMUX(5, 1, 1)>, /* UART0_RXD: SCI0_RXD_MISO_SCL */
+			<RZG2L_PORT_PINMUX(5, 2, 4)>,  /* UART0_CTS: CTS0N  */
+			<RZG2L_PORT_PINMUX(5, 3, 2)>; /* UART0_RTS:  SS0_CTS0N_RTS0N */
+		bias-pull-up;
+	};
+#endif
+
+
+	sci0_pins: sci0 {
+			pinmux = <RZG2L_PORT_PINMUX(5, 0, 1)>, /* UART0_TXD: SCI0_TXD_MOSI_SDA */
+				<RZG2L_PORT_PINMUX(5, 1, 1)>; /* UART0_RXD: SCI0_RXD_MISO_SCL */			
+			bias-pull-up;
+		};
+
+	sci0_pins_cts_rts: sci0_cts_rtc {
+		pinmux =  <RZG2L_PORT_PINMUX(5, 2, 4)>,  /* UART0_CTS: CTS0N  */
+				<RZG2L_PORT_PINMUX(5, 3, 2)>; /* UART0_RTS:  SS0_CTS0N_RTS0N */
+		//bias-pull-up;
+	};
+
+	sci2_pins: sci2 {
+		pinmux = <RZG2L_PORT_PINMUX(5, 4, 2)>, /* TXD2_MOSI2_SDA2 */
+			<RZG2L_PORT_PINMUX(5, 5, 2)>; /* RXD2_MISO2_SCL2 */
+		bias-pull-up;
+	};
+
+	sci2_pins_cts_rts: sci2_cts_rtc {
+		pinmux =  <RZG2L_PORT_PINMUX(5, 6, 4)>,  /* UART2_CTS: CTS2N  */
+				<RZG2L_PORT_PINMUX(5, 7, 2)>; /* UART2_RTS:  SS2_CTS2N_RTS2N */
+		//bias-pull-up;
+	};
+
+	sci3_pins: sci3 {
+		pinmux = <RZG2L_PORT_PINMUX(3, 4, 2)>, /* TXD3_MOSI3_SDA3 */
+			<RZG2L_PORT_PINMUX(3, 5, 2)>; /* RXD3_MISO3_SCL3 */
+		bias-pull-up;
+	};
+
+	sci3_pins_cts_rts: sci3_cts_rtc {
+		pinmux =  <RZG2L_PORT_PINMUX(3, 6, 4)>,  /* UART3_CTS: CTS3N  */
+				<RZG2L_PORT_PINMUX(3, 7, 2)>; /* UART3_RTS:  SS3_CTS3N_RTS3N */
+		//bias-pull-up;
+	};
+
+	sdhi2_pins: sd2 {
+		sd2_data {
+			pinmux = <RZG2L_PORT_PINMUX(11, 1, 1)>, /* SD2_DATA0 */
+				 <RZG2L_PORT_PINMUX(11, 2, 1)>, /* SD2_DATA1 */
+				 <RZG2L_PORT_PINMUX(11, 3, 1)>, /* SD2_DATA2 */
+				 <RZG2L_PORT_PINMUX(11, 4, 1)>; /* SD2_DATA3 */
+		};
+
+		sd2_ctrl {
+			pinmux = <RZG2L_PORT_PINMUX(11, 0, 1)>, /* SD2_CLK */
+				 <RZG2L_PORT_PINMUX(11, 5, 1)>; /* SD2_CMD */
+		};
+	};
+};
+
+&qextal_clk {
+	clock-frequency = <24000000>;
+};
+
+&scif {
+	pinctrl-0 = <&scif0_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&ostm0 {
+	status = "okay";
+};
+
+&ostm1 {
+	status = "okay";
+};
+
+&wdt1 {
+	status = "okay";
+};
+
+&sdhi0 {
+	vmmc-supply = <&reg_3p3v>;
+	vqmmc-supply = <&reg_1p8v>;
+	bus-width = <8>;
+	mmc-hs200-1_8v;
+	non-removable;
+	fixed-emmc-driver-type = <1>;
+	status = "okay";
+};
+
+&sdhi1 {
+	pinctrl-0 = <&sdhi1_pins>;
+	pinctrl-names = "default";
+	vmmc-supply = <&reg_3p3v>;
+	vqmmc-supply = <&vccq_sdhi1>;
+	bus-width = <4>;
+	sd-uhs-sdr50;
+	sd-uhs-sdr104;
+	status = "okay";
+};
+
+/* WiFi - CYW43439 */
+&sdhi2 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+	pinctrl-0 = <&sdhi2_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+
+	non-removable;
+	vmmc-supply = <&reg_3p3v>;
+	bus-width = <4>;
+	mmc-pwrseq = <&sdio_pwrseq>;
+	fsl,delay-line = <12>;
+	keep-power-in-suspend;
+
+	brcmf: wifi@1 {
+		reg = <1>;
+		compatible = "brcm,bcm4329-fmac";
+	};
+};
+
+&rtc {
+    status = "disabled";
+};
+
+&ohci0 {
+	memory-region = <&global_cma>;
+	dr_mode = "host";
+	status = "okay";
+};
+
+&ehci0 {
+	memory-region = <&global_cma>;
+	dr_mode = "otg";
+	status = "okay";
+};
+
+&hsusb {
+	dr_mode = "host";
+	status = "okay";
+};
+
+&usb20phyrst {
+	status = "okay";
+};
+
+&usb2_phy0 {
+	//pinctrl-0 = <&usb20_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&gpt0_2 {
+	pinctrl-0 = <&gpt0_2_pins>;
+	pinctrl-names = "default";
+	channel = "both_AB";
+	status = "okay";
+};
+
+&usb3_phy0 {
+	status = "okay";
+};
+
+&xhci0 {
+	//pinctrl-0 = <&usb30_pins>; /*conflict with WiFi SD2CLK*/
+	pinctrl-names = "default";
+	memory-region = <&global_cma>;
+	status = "okay";
+};
+
+&xspi {
+	status = "okay";
+
+	flash@0 {
+		compatible = "issi,is25wp032", "jedec,spi-nor";
+		reg = <0>;
+		m25p,fast-read;
+		spi-max-frequency = <50000000>;
+		spi-tx-bus-width = <4>;
+		spi-rx-bus-width = <4>;
+
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			partition@0 {
+				label = "bl2";
+				reg = <0x00000000 0x0001D200>;
+				read-only;
+			};
+
+			partition@1D200 {
+				label = "fip";
+				reg = <0x0001D200 0x001C2E00>;
+				read-only;
+			};
+
+			partition@1E0000 {
+				label = "env";
+				reg = <0x001E0000 0x00020000>;
+				read-only;
+			};
+
+			partition@200000 {
+				label = "test-area";
+				reg = <0x00200000 0x00E00000>;
+			};
+		};
+	};
+};
+
+&i2c0 {
+	pinctrl-0 = <&i2c0_pins>;
+	pinctrl-names = "default";
+	status = "disabled";
+};
+
+&cru0 {
+	status = "disabled";
+};
+
+&csi20 {
+	status = "disabled";
+};
+
+&i2c1 {
+	pinctrl-0 = <&i2c1_pins>;
+	pinctrl-names = "default";
+	status = "disabled";
+};
+
+&cru1 {
+	status = "okay";
+};
+
+&csi21 {
+	status = "disabled";
+};
+
+&i2c2 {
+	pinctrl-0 = <&i2c2_pins>;
+	pinctrl-names = "default";
+
+	status = "disabled";
+};
+
+&i2c8 {
+	pinctrl-0 = <&i2c8_pins>;
+	pinctrl-names = "default";
+
+	status = "okay";
+
+	/* PMIC */
+	raa215300: pmic@12 {
+		compatible = "renesas,raa215300";
+		reg = <0x12>, <0x6f>;
+		reg-names = "main", "rtc";
+
+		clocks = <&xin32k>;
+		clock-names = "xin";
+	};
+
+	som_eeprom: eeprom@50 {
+		compatible = "atmel,24c01";
+		reg = <0x50>;
+		pagesize = <8>;           /* CAT24AA01 uses 8-byte page */
+		size = <128>;             /* 1 Kbit = 128 bytes */
+		address-width = <8>;      /* 8-bit internal addressing */
+	};
+
+	/* Clock Generator (P.N 5L35023B-616NLGI8)*/
+	versa3: versa3@69 {
+			compatible = "renesas,5p35023";
+			reg = <0x69>;
+			#clock-cells = <1>;
+			clocks = <&x1_clk>;
+			clock-names = "x1";
+			assigned-clocks = <&versa3 5>,
+								<&versa3 4>,
+								<&versa3 3>,
+								<&versa3 2>,
+								<&versa3 1>,
+								<&versa3 0>;
+			assigned-clock-rates =  <100000000>, <100000000>,
+									<22579200>, <32768>,
+									<24576000>, <24000000>;
+			clock-divider-read-only = <1>, <1>, <1>, <1>, <1>;
+			clock-flags = <2176>, <2176>, <2176>, <2052>, <2176>, <2048>;
+	};
+};
+
+&adc0 {
+	status = "okay";
+};
+
+&adc1 {
+	status = "okay";
+};
+
+&adc2 {
+	status = "okay";
+};
+
+&cmtw0 {
+	status = "okay";
+};
+
+&cmtw1 {
+	status = "okay";
+};
+
+&ssi4 {
+	shared-pin;
+};
+
+&pcie0 {
+	/* Map all possible DDR as inbound ranges */
+	dma-ranges = <0x42000000 0 0x40000000 0 0x40000000 0x2 0x00000000>;
+	//clocks = <&versa3 4>;      /* use DIFF1 as input */
+    clock-names = "pcie_ref";
+	msi-parent = <&gic>;
+	status = "okay";
+};
+
+/* Bluetooth node */
+&sci0 {
+        pinctrl-0 = <&sci0_pins &sci0_pins_cts_rts>;
+        pinctrl-names = "default";
+		uart-has-rtscts;
+        status = "disabled";
+
+		bluetooth: bt@0 {
+			compatible = "brcm,bcm4345c5";
+			max-speed = <3000000>;
+			brcm,firmware-name = "BCM4345C0.renesas,rzv2n-sr-som.hcd";
+			shutdown-gpios = <&pinctrl RZG2L_GPIO(10, 1) GPIO_ACTIVE_HIGH>;
+		};
+};
+
+/* UART2 */
+&sci2 {
+        //pinctrl-0 = <&sci2_pins &sci2_pins_cts_rts>;
+		pinctrl-0 = <&sci2_pins>;
+        pinctrl-names = "default";
+		//uart-has-rtscts;
+        status = "disabled";
+};
+
+/* UART3 */
+&sci3 {
+		//pinctrl-0 = <&sci3_pins &sci3_pins_cts_rts>;
+        pinctrl-0 = <&sci3_pins>;
+        pinctrl-names = "default";
+		//uart-has-rtscts;
+        status = "disabled";
+};
