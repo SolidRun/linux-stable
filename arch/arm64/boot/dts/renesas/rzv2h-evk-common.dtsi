@@ -1208,10 +1208,15 @@
 	status = "okay";
 };
 
+&usb2_phy0_vbus_otg {
+	status = "okay";
+};
+
 &usb2_phy0 {
 	pinctrl-0 = <&usb20_pins>;
 	pinctrl-names = "default";
 
+	vbus-supply = <&usb2_phy0_vbus_otg>;
 	status = "okay";
 };
 
