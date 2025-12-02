@@ -206,10 +206,6 @@
 	status = "okay";
 };
 
-&dsi0 {
-	status = "okay";
-};
-
 &eth0 {
 	phy-handle = <&phy0>;
 	phy-mode = "rgmii-id";
@@ -333,27 +329,6 @@
 					<RZG2L_PORT_PINMUX(0, 7, 1)>; /* I2C8_SCL */
 	};
 
-#if 0
-	/* cam0_pwr_en is used by Google Coral Camera from CSI20 and CSI21 */
-	cam0_pwr_en {
-		gpio-hog;
-		//gpios = <RZG2L_GPIO(11, 2) GPIO_ACTIVE_HIGH>;
-		output-high;
-		line-name = "cam0_pwr_en";
-	};
-#endif
-
-#if 0
-	sci0_pins: sci0 {
-		pinmux = <RZG2L_PORT_PINMUX(5, 0, 1)>, /* UART0_TXD: SCI0_TXD_MOSI_SDA */
-			<RZG2L_PORT_PINMUX(5, 1, 1)>, /* UART0_RXD: SCI0_RXD_MISO_SCL */
-			<RZG2L_PORT_PINMUX(5, 2, 4)>,  /* UART0_CTS: CTS0N  */
-			<RZG2L_PORT_PINMUX(5, 3, 2)>; /* UART0_RTS:  SS0_CTS0N_RTS0N */
-		bias-pull-up;
-	};
-#endif
-
-
 	sci0_pins: sci0 {
 			pinmux = <RZG2L_PORT_PINMUX(5, 0, 1)>, /* UART0_TXD: SCI0_TXD_MOSI_SDA */
 				<RZG2L_PORT_PINMUX(5, 1, 1)>; /* UART0_RXD: SCI0_RXD_MISO_SCL */			
@@ -363,19 +338,19 @@
 	sci0_pins_cts_rts: sci0_cts_rtc {
 		pinmux =  <RZG2L_PORT_PINMUX(5, 2, 4)>,  /* UART0_CTS: CTS0N  */
 				<RZG2L_PORT_PINMUX(5, 3, 2)>; /* UART0_RTS:  SS0_CTS0N_RTS0N */
-		//bias-pull-up;
+		bias-pull-up;
 	};
 
 	sci2_pins: sci2 {
-		pinmux = <RZG2L_PORT_PINMUX(5, 4, 2)>, /* TXD2_MOSI2_SDA2 */
-			<RZG2L_PORT_PINMUX(5, 5, 2)>; /* RXD2_MISO2_SCL2 */
+		pinmux = <RZG2L_PORT_PINMUX(5, 4, 1)>, /* TXD2_MOSI2_SDA2 */
+			<RZG2L_PORT_PINMUX(5, 5, 1)>; /* RXD2_MISO2_SCL2 */
 		bias-pull-up;
 	};
 
 	sci2_pins_cts_rts: sci2_cts_rtc {
 		pinmux =  <RZG2L_PORT_PINMUX(5, 6, 4)>,  /* UART2_CTS: CTS2N  */
 				<RZG2L_PORT_PINMUX(5, 7, 2)>; /* UART2_RTS:  SS2_CTS2N_RTS2N */
-		//bias-pull-up;
+		bias-pull-up;
 	};
 
 	sci3_pins: sci3 {
@@ -387,7 +362,7 @@
 	sci3_pins_cts_rts: sci3_cts_rtc {
 		pinmux =  <RZG2L_PORT_PINMUX(3, 6, 4)>,  /* UART3_CTS: CTS3N  */
 				<RZG2L_PORT_PINMUX(3, 7, 2)>; /* UART3_RTS:  SS3_CTS3N_RTS3N */
-		//bias-pull-up;
+		bias-pull-up;
 	};
 
 	sdhi2_pins: sd2 {
@@ -675,33 +650,31 @@
 
 /* Bluetooth node */
 &sci0 {
-        pinctrl-0 = <&sci0_pins &sci0_pins_cts_rts>;
-        pinctrl-names = "default";
-		uart-has-rtscts;
-        status = "disabled";
+	pinctrl-0 = <&sci0_pins &sci0_pins_cts_rts>;
+	pinctrl-names = "default";
+	uart-has-rtscts;
+	status = "disabled";
 
-		bluetooth: bt@0 {
-			compatible = "brcm,bcm4345c5";
-			max-speed = <3000000>;
-			brcm,firmware-name = "BCM4345C0.renesas,rzv2n-sr-som.hcd";
-			shutdown-gpios = <&pinctrl RZG2L_GPIO(10, 1) GPIO_ACTIVE_HIGH>;
-		};
+	bluetooth: bt@0 {
+		compatible = "brcm,bcm4345c5";
+		max-speed = <3000000>;
+		brcm,firmware-name = "BCM4345C0.renesas,rzv2n-sr-som.hcd";
+		shutdown-gpios = <&pinctrl RZG2L_GPIO(10, 1) GPIO_ACTIVE_HIGH>;
+	};
 };
 
 /* UART2 */
 &sci2 {
-        //pinctrl-0 = <&sci2_pins &sci2_pins_cts_rts>;
-		pinctrl-0 = <&sci2_pins>;
-        pinctrl-names = "default";
-		//uart-has-rtscts;
-        status = "disabled";
+	pinctrl-0 = <&sci2_pins &sci2_pins_cts_rts>;
+	pinctrl-names = "default";
+	uart-has-rtscts;
+	status = "disabled";
 };
 
 /* UART3 */
 &sci3 {
-		//pinctrl-0 = <&sci3_pins &sci3_pins_cts_rts>;
-        pinctrl-0 = <&sci3_pins>;
-        pinctrl-names = "default";
-		//uart-has-rtscts;
-        status = "disabled";
+	pinctrl-0 = <&sci3_pins &sci3_pins_cts_rts>;
+	pinctrl-names = "default";
+	uart-has-rtscts;
+	status = "disabled";
 };
