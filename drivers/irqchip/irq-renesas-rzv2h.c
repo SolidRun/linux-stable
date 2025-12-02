@@ -665,6 +665,8 @@ static int rzv2h_icu_init_common(struct device_node *node, struct device_node *p
 	struct rzv2h_icu_priv *rzv2h_icu_data;
 	struct platform_device *pdev;
 	struct reset_control *resetn;
+	unsigned int irq_flags = IRQF_SHARED |
+		(IS_ENABLED(CONFIG_PREEMPT_RT) ? IRQF_NO_THREAD : 0);
 	int gpt_irq, ret;
 
 	pdev = of_find_device_by_node(node);
@@ -742,7 +744,7 @@ static int rzv2h_icu_init_common(struct device_node *node, struct device_node *p
 	}
 
 	ret = devm_request_irq(&pdev->dev, gpt_irq, gpt_irq_handler,
-					IRQF_SHARED, dev_name(&pdev->dev), rzv2h_icu_data);
+					irq_flags, dev_name(&pdev->dev), rzv2h_icu_data);
 	if (ret < 0) {
 		dev_err(&pdev->dev, "failed to request IRQ\n");
 		return -ENOENT;

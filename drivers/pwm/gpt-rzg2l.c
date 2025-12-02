@@ -2429,6 +2429,7 @@ static int rzg2l_gpt_probe(struct platform_device *pdev)
 	struct platform_device *poeg_dev_np;
 	struct iio_dev *indio_dev;
 	struct device_node *np = pdev->dev.of_node;
+	unsigned int irq_flags = 0;
 	int ret, index, irq = 0, i, j;
 	const char *read_string;
 
@@ -2562,9 +2563,11 @@ static int rzg2l_gpt_probe(struct platform_device *pdev)
 			dev_err(&pdev->dev, "Failed to obtain IRQ\n");
 			return irq;
 		}
+
+		irq_flags = IS_ENABLED(CONFIG_PREEMPT_RT) ? IRQF_NO_THREAD : 0;
 	}
 
-	ret = devm_request_irq(&pdev->dev, irq, gpt_gtciv_interrupt, 0,
+	ret = devm_request_irq(&pdev->dev, irq, gpt_gtciv_interrupt, irq_flags,
 				dev_name(&pdev->dev), rzg2l_gpt);
 	if (ret < 0) {
 		dev_err(&pdev->dev, "Failed to request IRQ\n");
