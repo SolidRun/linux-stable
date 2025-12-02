@@ -2414,6 +2414,7 @@
 			snps,fixed-burst;
 			snps,no-pbl-x8;
 			snps,force_thresh_dma_mode;
+			snps,en-tx-lpi-clockgating;
 			snps,axi-config = <&stmmac_axi_setup>;
 			snps,mtl-rx-config = <&mtl_rx_setup0>;
 			snps,mtl-tx-config = <&mtl_tx_setup0>;
@@ -2521,6 +2522,7 @@
 			snps,fixed-burst;
 			snps,no-pbl-x8;
 			snps,force_thresh_dma_mode;
+			snps,en-tx-lpi-clockgating;
 			snps,axi-config = <&stmmac_axi_setup>;
 			snps,mtl-rx-config = <&mtl_rx_setup1>;
 			snps,mtl-tx-config = <&mtl_tx_setup1>;
