@@ -193,6 +193,7 @@ static int renesas_gbeth_probe(struct platform_device *pdev)
 	plat_dat->set_clk_tx_rate = stmmac_set_clk_tx_rate;
 	plat_dat->init = renesas_gbeth_init;
 	plat_dat->exit = renesas_gbeth_exit;
+	plat_dat->rx_clk_runs_in_lpi = 1;
 
 	err = renesas_gbeth_init(pdev, plat_dat->bsp_priv);
 	if (err)
