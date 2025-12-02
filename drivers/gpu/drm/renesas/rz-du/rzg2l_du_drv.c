@@ -136,10 +136,11 @@ static int rzg2l_du_pm_resume(struct device *dev)
 {
 	struct rzg2l_du_device *rcdu = dev_get_drvdata(dev);
 
-	drm_mode_config_helper_resume(&rcdu->ddev);
 #if IS_ENABLED(CONFIG_DRM_I2C_ADV7511)
 	drm_helper_hpd_irq_event(&rcdu->ddev);
 #endif
+	drm_mode_config_helper_resume(&rcdu->ddev);
+
 	return 0;
 };
 #endif
