@@ -542,8 +542,8 @@
 	/* UARTB */
 	uart4_pins: uart4-pins {
 		fsl,pins = <
-			MX8MP_IOMUXC_NAND_DATA00__UART4_DCE_RX		0x140
-			MX8MP_IOMUXC_NAND_DATA01__UART4_DCE_TX		0x140
+			MX8MP_IOMUXC_UART4_RXD__UART4_DCE_RX		0x140
+			MX8MP_IOMUXC_UART4_TXD__UART4_DCE_TX		0x140
 			MX8MP_IOMUXC_ECSPI1_MISO__GPIO5_IO08		0x140
 		>;
 	};
@@ -656,8 +656,6 @@
 	assigned-clocks = <&clk IMX8MP_CLK_UART4>;
 	assigned-clock-parents = <&clk IMX8MP_SYS_PLL1_80M>;
 	status = "okay";
-
-	linux,rs485-enabled-at-boot-time;
 };
 
 &usb3_phy0 {
