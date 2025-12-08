@@ -496,7 +496,13 @@
 		reg = <0x69>;
 		abracon,tc-diode = "schottky";
 		abracon,tc-resistor = <3>;
-		interrupts-extended = <&tca6416_u21 10 IRQ_TYPE_EDGE_FALLING>;
+		/*
+		 * AM1805 RTC used on this board has only nTIRQ pins wired,
+		 * which is for countdown timer irqs only.
+		 * Driver does not support this, disable for now.
+		 *
+		 * interrupts-extended = <&tca6416_u21 10 IRQ_TYPE_EDGE_FALLING>;
+		 */
 	};
 };
 
