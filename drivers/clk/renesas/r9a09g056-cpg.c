@@ -323,7 +323,7 @@ static const struct rzv2h_mod_clk r9a09g056_mod_clks[] __initconst = {
 	DEF_MOD("cmtw_3_clkm",			CLK_PLLCM33_DIV32, 3, 14, 1, 30,
 						BUS_MSTOP(4, BIT(2))),
 	DEF_MOD("cmtw_4_clkm",			CLK_PLLCLN_DIV32, 3, 15, 1, 31,
-						BUS_MSTOP(3, BIT(15))),
+						BUS_MSTOP(5, BIT(15))),
 	DEF_MOD("cmtw_5_clkm",			CLK_PLLCLN_DIV32, 4, 0, 2, 0,
 						BUS_MSTOP(6, BIT(0))),
 	DEF_MOD("cmtw_6_clkm",			CLK_PLLCLN_DIV32, 4, 1, 2, 1,
