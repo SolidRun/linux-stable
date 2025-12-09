@@ -34,6 +34,10 @@
 	};
 };
 
+&du {
+	status = "okay";
+};
+
 &dsi0 {
 	#address-cells = <1>;
     #size-cells = <0>;
@@ -47,17 +51,28 @@
 		reset-gpios = <&gpio_dsi_expander 1 GPIO_ACTIVE_HIGH>;
 		updn-gpios = <&gpio_dsi_expander 5 GPIO_ACTIVE_HIGH>;
 		shlr-gpios = <&gpio_dsi_expander 4 GPIO_ACTIVE_LOW>;
-		backlight = <&mipi_backlight>;
+		backlight = <&dsi_backlight>;
 
 		port {
+
+			/* Endpoint ON THE PANEL side */
 			dsi_in_panel: endpoint {
 				remote-endpoint = <&dsi0_out>;
 			};
 		};
 	};
-};
 
-&dsi0_out {
-	remote-endpoint = <&dsi_in_panel>;
-	data-lanes = <1 2 3 4>;
+	/* Patch the existing port@1 / endpoint on the DSI side */
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		port@1 {
+			reg = <1>;
+
+			dsi0_out: endpoint {
+				remote-endpoint = <&dsi_in_panel>;
+				data-lanes = <1 2 3 4>;  /* or whatever your HW uses */
+			};
+		};
+	};
 };

@@ -556,7 +556,7 @@
 };
 
 &cru1 {
-	status = "okay";
+	status = "disabled";
 };
 
 &csi21 {
