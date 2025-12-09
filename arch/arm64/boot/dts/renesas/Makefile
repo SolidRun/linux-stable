@@ -95,9 +95,9 @@ dtb-$(CONFIG_ARCH_R9A09G057) += r9a09g057h4-evk-ver1.dtb
 dtb-$(CONFIG_ARCH_R9A09G056) += r9a09g056n44-dev.dtb
 dtb-$(CONFIG_ARCH_R9A09G056) += r9a09g056n44-evk.dtb
 dtb-$(CONFIG_ARCH_R9A09G056) += rzv2n-hummingboard-iiot.dtb
-dtb-$(CONFIG_ARCH_R9A09G056) += rzv2n-hummingboard-iiot-rs485-a.dtso
-dtb-$(CONFIG_ARCH_R9A09G056) += rzv2n-hummingboard-iiot-rs485-b.dtso
-dtb-$(CONFIG_ARCH_R9A09G056) += rzv2n-hummingboard-iiot-panel-dsi-WJ70N3TYJHMNG0.dtso
+dtb-$(CONFIG_ARCH_R9A09G056) += rzv2n-hummingboard-iiot-rs485-a.dtbo
+dtb-$(CONFIG_ARCH_R9A09G056) += rzv2n-hummingboard-iiot-rs485-b.dtbo
+dtb-$(CONFIG_ARCH_R9A09G056) += rzv2n-hummingboard-iiot-panel-dsi-WJ70N3TYJHMNG0.dtbo
 
 dtb-$(CONFIG_ARCH_RCAR_GEN3) += draak-ebisu-panel-aa104xd12.dtbo
 dtb-$(CONFIG_ARCH_RCAR_GEN3) += salvator-panel-aa104xd12.dtbo

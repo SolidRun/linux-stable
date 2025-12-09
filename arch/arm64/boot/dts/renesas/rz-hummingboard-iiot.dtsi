@@ -14,6 +14,7 @@
 		i2c3 = &i2c_exp;
 		i2c4 = &i2c_csi;
 		i2c5 = &i2c_dsi;
+		i2c6 = &i2c_lvds;
 	};
 
 	v_1_2: regulator-1-2 {
@@ -296,6 +297,7 @@
 		#gpio-cells = <2>;
 		interrupt-controller;
 		#interrupt-cells = <2>;
+		pinctrl-names = "default";
 		interrupt-parent = <&pinctrl>;
 		interrupts = <RZG2L_GPIO(9, 6) IRQ_TYPE_LEVEL_LOW>;
 		gpio-line-names =
@@ -321,17 +323,6 @@
 			gpios = <3 GPIO_ACTIVE_LOW>;
 			output-low;
 			line-name = "rs232-shutdown";
-		};
-
-		lcd-i2c-reset-hog {
-			/* reset shared between U37 and U48, to be
-			 * supported through reset framework with
-			 * Linux v6.9 or later.
-			*/
-			gpio-hog;
-			gpios = <4 (GPIO_ACTIVE_LOW|GPIO_PULL_UP|GPIO_OPEN_DRAIN)>;
-			output-low;
-			line-name = "lcd-i2c-reset";
 		};
 
 		m2-m-clkreq-hog {
@@ -467,6 +458,12 @@
 				"DSI_CTP_/RST",
 				"CAM_TRIG";
 			};
+		};
+
+		i2c_lvds: i2c@3 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <3>;
 		};
 	};
 };
