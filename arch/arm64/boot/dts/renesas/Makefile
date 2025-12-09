@@ -94,6 +94,7 @@ dtb-$(CONFIG_ARCH_R9A09G056) += rzv2n-hummingboard-iiot.dtb
 dtb-$(CONFIG_ARCH_R9A09G056) += rzv2n-hummingboard-iiot-rs485-a.dtbo
 dtb-$(CONFIG_ARCH_R9A09G056) += rzv2n-hummingboard-iiot-rs485-b.dtbo
 dtb-$(CONFIG_ARCH_R9A09G056) += rzv2n-hummingboard-iiot-panel-dsi-WJ70N3TYJHMNG0.dtbo
+dtb-$(CONFIG_ARCH_R9A09G056) += rzv2n-hummingboard-iiot-csi-camera-imx678.dtbo
 
 dtb-$(CONFIG_ARCH_R9A09G047) += r9a09g047e57-smarc.dtb
 
