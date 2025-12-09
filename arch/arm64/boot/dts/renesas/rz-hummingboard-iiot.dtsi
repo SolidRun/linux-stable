@@ -297,9 +297,7 @@
 		#gpio-cells = <2>;
 		interrupt-controller;
 		#interrupt-cells = <2>;
-		pinctrl-names = "default";
-		interrupt-parent = <&pinctrl>;
-		interrupts = <RZG2L_GPIO(9, 6) IRQ_TYPE_LEVEL_LOW>;
+		interrupts-extended = <&pinctrl RZG2L_GPIO(9, 5) IRQ_TYPE_LEVEL_LOW>; // IRQ_TYPE_EDGE_FALLING
 		gpio-line-names =
 		"TCA_SPI_TPM/EXT",
 		"TCA_TPM_RST#",
