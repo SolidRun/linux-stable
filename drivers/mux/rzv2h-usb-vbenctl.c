@@ -19,6 +19,7 @@
 
 struct mux_rzv2h_usb_vbenctl_priv {
 	struct regmap_field *field;
+	int cached_reg;
 };
 
 static int mux_rzv2h_usb_vbenctl_set(struct mux_control *mux, int state)
@@ -76,8 +77,31 @@ static int mux_rzv2h_usb_vbenctl_probe(struct auxiliary_device *adev,
 	if (ret < 0)
 		return dev_err_probe(dev, ret, "Failed to register mux chip\n");
 
+	dev_set_drvdata(dev, priv);
+
 	return 0;
 }
+
+static int mux_rzv2h_usb_vbenctl_suspend(struct device *dev)
+{
+	struct mux_rzv2h_usb_vbenctl_priv *priv = dev_get_drvdata(dev);
+
+	regmap_field_read(priv->field, &priv->cached_reg);
+
+	return 0;
+}
+
+static int mux_rzv2h_usb_vbenctl_resume(struct device *dev)
+{
+	struct mux_rzv2h_usb_vbenctl_priv *priv = dev_get_drvdata(dev);
+
+	regmap_field_write(priv->field, priv->cached_reg);
+
+	return 0;
+}
+
+static DEFINE_SIMPLE_DEV_PM_OPS(mux_rzv2h_usb_vbenctl_pm_ops,
+	mux_rzv2h_usb_vbenctl_suspend, mux_rzv2h_usb_vbenctl_resume);
 
 static const struct auxiliary_device_id mux_rzv2h_usb_vbenctl_ids[] = {
 	{ .name = "rzv2h_usb2phy_reset.vbenctl" },
@@ -89,6 +113,7 @@ static struct auxiliary_driver mux_rzv2h_usb_vbenctl_driver = {
 	.name		= "vbenctl",
 	.probe		= mux_rzv2h_usb_vbenctl_probe,
 	.id_table	= mux_rzv2h_usb_vbenctl_ids,
+	.driver.pm	= &mux_rzv2h_usb_vbenctl_pm_ops,
 };
 module_auxiliary_driver(mux_rzv2h_usb_vbenctl_driver);
 
