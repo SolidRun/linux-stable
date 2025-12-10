@@ -545,11 +545,8 @@ static struct mux_control *mux_get(struct device *dev, const char *mux_name,
 		else
 			index = of_property_match_string(np, "mux-control-names",
 							 mux_name);
-		if (index < 0) {
-			dev_err(dev, "mux controller '%s' not found\n",
-				mux_name);
-			return ERR_PTR(index);
-		}
+		if (index < 0)
+			return ERR_PTR(-ENOENT);
 	}
 
 	if (state)
@@ -561,8 +558,10 @@ static struct mux_control *mux_get(struct device *dev, const char *mux_name,
 						 "mux-controls", "#mux-control-cells",
 						 index, &args);
 	if (ret) {
-		dev_err(dev, "%pOF: failed to get mux-%s %s(%i)\n",
-			np, state ? "state" : "control", mux_name ?: "", index);
+		if (ret != -ENOENT)
+			dev_err(dev, "%pOF: failed to get mux-%s %s(%i)\n",
+				np, state ? "state" : "control",
+				mux_name ?: "", index);
 		return ERR_PTR(ret);
 	}
 
@@ -747,6 +746,60 @@ struct mux_state *devm_mux_state_get(struct device *dev,
 	return mstate;
 }
 EXPORT_SYMBOL_GPL(devm_mux_state_get);
+
+/**
+ * devm_mux_state_get_optional() - Get the optional mux-state for a device,
+ *				   with resource management.
+ * @dev: The device that needs a mux-state.
+ * @mux_name: The name identifying the mux-state.
+ *
+ * Return: Pointer to the mux-state, or an ERR_PTR with a negative errno.
+ */
+struct mux_state *devm_mux_state_get_optional(struct device *dev,
+					      const char *mux_name)
+{
+	struct mux_state *mux_state = devm_mux_state_get(dev, mux_name);
+
+	if (IS_ERR(mux_state) && PTR_ERR(mux_state) == -ENOENT)
+		return NULL;
+
+	return mux_state;
+}
+EXPORT_SYMBOL_GPL(devm_mux_state_get_optional);
+
+/**
+ * devm_mux_state_get_optional_selected() - Get the optional mux-state for
+ *					    a device, with resource management.
+ * @dev: The device that needs a mux-state.
+ * @mux_name: The name identifying the mux-state.
+ *
+ * Return: Pointer to the mux-state, or an ERR_PTR with a negative errno.
+ *
+ * The returned mux-state (if valid) is already selected.
+ */
+struct mux_state *devm_mux_state_get_optional_selected(struct device *dev,
+						       const char *mux_name)
+{
+	struct mux_state *mux_state;
+	int ret;
+
+	mux_state = devm_mux_state_get_optional(dev, mux_name);
+	if (IS_ERR_OR_NULL(mux_state))
+		return mux_state;
+
+	ret = mux_state_select(mux_state);
+	if (ret) {
+		if (ret != -EPROBE_DEFER)
+			dev_err(dev, "failed to select mux-state %s: %d\n",
+				mux_name ?: "", ret);
+
+		mux_state_put(mux_state);
+		return ERR_PTR(ret);
+	}
+
+	return mux_state;
+}
+EXPORT_SYMBOL_GPL(devm_mux_state_get_optional_selected);
 
 /*
  * Using subsys_initcall instead of module_init here to try to ensure - for

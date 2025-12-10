@@ -60,5 +60,9 @@ struct mux_control *devm_mux_control_get(struct device *dev,
 					 const char *mux_name);
 struct mux_state *devm_mux_state_get(struct device *dev,
 				     const char *mux_name);
+struct mux_state *devm_mux_state_get_optional(struct device *dev,
+					      const char *mux_name);
+struct mux_state *devm_mux_state_get_optional_selected(struct device *dev,
+						       const char *mux_name);
 
 #endif /* _LINUX_MUX_CONSUMER_H */
