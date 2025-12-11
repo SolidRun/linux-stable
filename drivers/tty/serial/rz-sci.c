@@ -415,7 +415,8 @@ static void sci_transmit_chars(struct uart_port *port)
 			break;
 		}
 
-		sci_clear_CFC(port, CFCLR_TDREC);
+		if (port->type == PORT_SCIF)
+			sci_clear_CFC(port, CFCLR_TDREC);
 		serial_port_out(port, TDR, c);
 
 		port->icount.tx++;
