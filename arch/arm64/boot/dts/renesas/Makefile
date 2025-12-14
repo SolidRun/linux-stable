@@ -103,6 +103,12 @@ dtb-$(CONFIG_ARCH_R9A07G044) += rzg2l-hummingboard-iiot-rs485-a.dtbo
 dtb-$(CONFIG_ARCH_R9A07G044) += rzg2l-hummingboard-iiot-rs485-b.dtbo
 
 dtb-$(CONFIG_ARCH_R9A07G054) += r9a07g054l2-smarc.dtb
+dtb-$(CONFIG_ARCH_R9A07G054) += r9a07g054l2-hummingboard-iiot.dtb
+DTC_FLAGS_r9a07g054l2-hummingboard-iiot := -@
+dtb-$(CONFIG_ARCH_R9A07G054) += r9a07g054l2-hummingboard-pro.dtb
+DTC_FLAGS_r9a07g054l2-hummingboard-pro := -@
+dtb-$(CONFIG_ARCH_R9A07G054) += r9a07g054l2-hummingboard-ripple.dtb
+DTC_FLAGS_r9a07g054l2-hummingboard-ripple := -@
 
 dtb-$(CONFIG_ARCH_R9A08G045) += r9a08g045s33-smarc.dtb
 

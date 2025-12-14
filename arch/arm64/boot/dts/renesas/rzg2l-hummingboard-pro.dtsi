@@ -1,0 +1,36 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright 2025 Josua Mayer <josua@solid-run.com>
+ */
+
+#include "rzg2l-hummingboard-pulse-codec.dtsi"
+#include "rzg2l-hummingboard-pulse-common.dtsi"
+#include "rzg2l-hummingboard-pulse-m2con.dtsi"
+#include "rzg2l-hummingboard-pulse-micro-hdmi.dtsi"
+
+&phy0 {
+	leds {
+		led@0 {
+			/* colour is changed from HB Pulse to Pro. */
+			color = <LED_COLOR_ID_GREEN>;
+		};
+
+		/* HB Pro has single led only. */
+		/delete-node/ led@1;
+	};
+};
+
+&phy1 {
+	leds {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		/* MxL86110 LED0 pin */
+		led@0 {
+			reg = <0>;
+			color = <LED_COLOR_ID_GREEN>;
+			function = LED_FUNCTION_LAN;
+			default-state = "keep";
+		};
+	};
+};
