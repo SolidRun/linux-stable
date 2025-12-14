@@ -5,12 +5,9 @@
 
 /dts-v1/;
 
-#include <dt-bindings/input/input.h>
-#include <dt-bindings/leds/common.h>
-
 #include "r9a07g044c2.dtsi"
 #include "rzg2lc-sr-som.dtsi"
-#include "rzg2l-hummingboard-iiot.dtsi"
+#include "rzg2l-hummingboard-iiot-common.dtsi"
 
 / {
 	model = "SolidRun RZ/G2LC HummingBoard IIoT";
