@@ -1151,7 +1151,7 @@ static int genl_ctrl_event(int event, const struct genl_family *family,
 		genlmsg_multicast_netns(&genl_ctrl, &init_net, msg, 0,
 					0, GFP_KERNEL);
 	else
-		genlmsg_multicast_allns(&genl_ctrl, msg, 0, 0);
+		genlmsg_multicast_allns(&genl_ctrl, msg, 0, 0, GFP_ATOMIC);
 
 	return 0;
 }
@@ -1539,7 +1539,7 @@ static int genlmsg_mcast(struct sk_buff *skb, u32 portid, unsigned long group)
 
 int genlmsg_multicast_allns(const struct genl_family *family,
 			    struct sk_buff *skb, u32 portid,
-			    unsigned int group)
+			    unsigned int group, gfp_t flags)
 {
 	if (WARN_ON_ONCE(group >= family->n_mcgrps))
 		return -EINVAL;
