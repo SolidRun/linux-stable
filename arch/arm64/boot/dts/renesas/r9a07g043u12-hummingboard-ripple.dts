@@ -1,0 +1,18 @@
+// SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+/*
+ * Description for SolidRun RZ/G2UL Type-2 HummingBoard Ripple.
+ *
+ * Copyright 2025 Josua Mayer <josua@solid-run.com>
+ */
+
+/dts-v1/;
+
+#include "r9a07g043u.dtsi"
+#include "rzg2ul-sr-som.dtsi"
+#include "rzg2ul-hummingboard-pulse-common.dtsi"
+#include "rzg2ul-hummingboard-pulse-micro-hdmi.dtsi"
+
+/ {
+	model = "SolidRun RZ/G2UL HummingBoard Ripple";
+	compatible = "solidrun,rzg2ul-hummingboard-ripple", "solidrun,rzg2ul-sr-som", "renesas,r9a07g043u12", "renesas,r9a07g043";
+};

@@ -1,0 +1,17 @@
+// SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+/*
+ * Copyright 2025 Josua Mayer <josua@solid-run.com>
+ */
+
+&pinctrl {
+	hdmi_pd_hog: hdmi-pd-hog {
+		/*
+		 * RZ/G2UL does not have DSI output to feed DSI-to-HDMI
+		 * bridge. Keep it's shutdown signal asserted.
+		 */
+		gpio-hog;
+		gpios = <RZG2L_GPIO(14, 2) GPIO_ACTIVE_LOW>;
+		output-high;
+		line-name = "hdmi-pd";
+	};
+};
