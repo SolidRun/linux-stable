@@ -1,0 +1,127 @@
+// SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+/*
+ * Copyright 2025 Josua Mayer <josua@solid-run.com>
+ */
+
+/ {
+	aliases {
+		rtc0 = &carrier_rtc;
+		rtc1 = &pmic;
+	};
+
+	vmmc: regulator-mmc {
+		compatible = "regulator-fixed";
+		regulator-name = "vmmc";
+		vin-supply = <&reg_pmic_buck4>;
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		startup-delay-us = <250>;
+	};
+
+	v_1_2: regulator-1-2 {
+		compatible = "regulator-fixed";
+		regulator-name = "1v2";
+		regulator-min-microvolt = <1200000>;
+		regulator-max-microvolt = <1200000>;
+		vin-supply = <&reg_pmic_buck4>;
+		regulator-always-on;
+	};
+
+	vmpcie: regulator-mpcie-3-3 {
+		/* supplies mpcie and m2 connectors */
+		compatible = "regulator-fixed";
+		regulator-name = "vmpcie";
+		enable-active-high;
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-boot-on;
+	};
+
+	pwr-mpcie {
+		compatible = "regulator-output";
+		vout-supply = <&vmpcie>;
+	};
+};
+
+&ehci1 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	hub_2_0: hub@1 {
+		compatible = "usb4b4,6502", "usb4b4,6506";
+		reg = <1>;
+		peer-hub = <&hub_3_0>;
+		vdd-supply = <&v_1_2>;
+		vdd2-supply = <&reg_pmic_buck4>;
+	};
+
+	/* this device is not visible because host supports 2.0 only */
+	hub_3_0: hub@2 {
+		compatible = "usb4b4,6500", "usb4b4,6504";
+		reg = <2>;
+		peer-hub = <&hub_2_0>;
+		vdd-supply = <&v_1_2>;
+		vdd2-supply = <&reg_pmic_buck4>;
+	};
+};
+
+&i2c0 {
+	carrier_eeprom: eeprom@57{
+		compatible = "st,24c02", "atmel,24c02";
+		reg = <0x57>;
+		pagesize = <16>;
+	};
+
+	carrier_rtc: rtc@69 {
+		compatible = "abracon,ab1805";
+		reg = <0x69>;
+		abracon,tc-diode = "schottky";
+		abracon,tc-resistor = <3>;
+	};
+};
+
+&phy0 {
+	leds {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		led@0 {
+			reg = <0>;
+			color = <LED_COLOR_ID_ORANGE>;
+			function = LED_FUNCTION_LAN;
+			default-state = "keep";
+		};
+
+		led@1 {
+			reg = <1>;
+			color = <LED_COLOR_ID_GREEN>;
+			function = LED_FUNCTION_LAN;
+			default-state = "keep";
+		};
+	};
+};
+
+/* mikrobus uart */
+&scif1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&mikro_uart_pins>;
+	status = "okay";
+};
+
+/* mikrobus spi */
+&spi1 {
+	num-cs = <1>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&spi1_pins>, <&spi1_cs_pins>;
+	status = "okay";
+};
+
+&usb2_phy0 {
+	pinctrl-0 = <&usb0_vbus_pins>;
+	pinctrl-names = "default";
+	dr_mode = "host";
+};
+
+&usb2_phy1 {
+	dr_mode = "host";
+};

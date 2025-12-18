@@ -7,66 +7,10 @@
 
 #include "r9a07g044c2.dtsi"
 #include "rzg2lc-sr-som.dtsi"
-#include "rzg2l-hummingboard-pulse-common.dtsi"
-#include "rzg2l-hummingboard-pulse-micro-hdmi.dtsi"
+#include "rzg2lc-hummingboard-pulse-common.dtsi"
+#include "rzg2lc-hummingboard-pulse-micro-hdmi.dtsi"
 
 / {
 	model = "SolidRun RZ/G2LC HummingBoard Ripple";
 	compatible = "solidrun,rzg2lc-hummingboard-ripple", "solidrun,rzg2lc-sr-som", "renesas,r9a07g044c2", "renesas,r9a07g044";
-
-	/delete-node/ rfkill-mpcie-wifi;
-
-	leds {
-		/* led gpios conflict with RZ/G2LC SoM bluetooth */
-		/delete-node/ led-1;
-		/delete-node/ led-2;
-		/delete-node/ led-3;
-		/delete-node/ led-4;
-	};
-
-	vbus1: regulator-vbus-1 {
-		compatible = "regulator-fixed";
-		regulator-name = "vbus1";
-		gpio = <&pinctrl RZG2L_GPIO(5, 0) GPIO_ACTIVE_HIGH>;
-		enable-active-high;
-		regulator-min-microvolt = <5000000>;
-		regulator-max-microvolt = <5000000>;
-	};
-};
-
-&i2c0 {
-	hdmi@3d {
-		pd-gpios = <&pinctrl RZG2L_GPIO(40, 2) GPIO_ACTIVE_LOW>;
-		interrupts-extended = <&pinctrl RZG2L_GPIO(42, 2) IRQ_TYPE_EDGE_FALLING>;
-	};
-};
-
-&mikro_rst_pins {
-	pinmux = <RZG2L_PORT_PINMUX(45, 2, 0)>; /* P45_2 */
-};
-
-&mpcie_rst_hog {
-	gpios = <RZG2L_GPIO(19, 1) GPIO_ACTIVE_LOW>;
-};
-
-&usb2_phy1 {
-	/* RZ/G2LC SoM vbus gpio does not have native vbus function */
-	/delete-property/ pinctrl-0;
-	/delete-property/ pinctrl-names;
-	vbus-supply = <&vbus1>;
-	dr_mode = "host";
-};
-
-&vmmc {
-	gpio = <&pinctrl RZG2L_GPIO(18, 1) GPIO_ACTIVE_LOW>;
-};
-
-&vmpcie {
-	/*
-	 * G2LC SoM v1.2 moved this IO from J7-28 (CON4-12)
-	 * to J7-18 (this regulator).
-	 * There are no known users of CON4-12 and thus no need
-	 * to differentiate here between SoM v1.1 and v1.2.
-	 */
-	gpio = <&pinctrl RZG2L_GPIO(39, 2) GPIO_ACTIVE_HIGH>;
 };

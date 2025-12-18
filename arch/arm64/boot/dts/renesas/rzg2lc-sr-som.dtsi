@@ -154,7 +154,7 @@
 	phy-handle = <&phy0>;
 	/*
 	 * ravb driver does not configure mac internal delays for RZ/G2L(C),
-	 * instead delays are added by the MxL86110 phy driver.
+	 * instead delays are added by the ADIN1200 phy driver.
 	 */
 	phy-mode = "rgmii-id";
 	status = "okay";
@@ -364,7 +364,7 @@
 
 	bluetooth {
 		/*
-		 * The BT is based on BCM4343A2. Murata 1MW variant seems to
+		 * The BT is based on BCM4343A2. Murata 1YN variant seems to
 		 * require driving RTS on open.
 		 * Use compatible bcm43438 to accomplish this.
 		 */

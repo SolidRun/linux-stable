@@ -1,0 +1,86 @@
+// SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+/*
+ * Copyright 2025 Josua Mayer <josua@solid-run.com>
+ */
+
+#include <dt-bindings/leds/common.h>
+
+#include "rzg2-hummingboard-pulse-common.dtsi"
+
+/ {
+	leds {
+		compatible = "gpio-leds";
+
+		led-0 {
+			label = "D30";
+			color = <LED_COLOR_ID_GREEN>;
+			gpios = <&pinctrl RZG2L_GPIO(0, 1) GPIO_ACTIVE_LOW>;
+			default-state = "on";
+		};
+	};
+
+	vbus1: regulator-vbus-1 {
+		compatible = "regulator-fixed";
+		regulator-name = "vbus1";
+		gpio = <&pinctrl RZG2L_GPIO(5, 0) GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+	};
+};
+
+&hub_2_0 {
+	reset-gpios = <&pinctrl RZG2L_GPIO(39, 1) GPIO_ACTIVE_LOW>;
+};
+
+&hub_3_0 {
+	reset-gpios = <&pinctrl RZG2L_GPIO(39, 1) GPIO_ACTIVE_LOW>;
+};
+
+&pinctrl {
+	pinctrl-names = "default";
+	pinctrl-0 = <&mikro_int_pins>, <&mikro_rst_pins>;
+
+	mpcie_rst_hog: mpcie-reset-hog {
+		gpio-hog;
+		gpios = <RZG2L_GPIO(19, 1) GPIO_ACTIVE_LOW>;
+		output-low;
+		line-name = "mpcie-reset";
+	};
+
+	mikro_int_pins: pinctrl-mikro-int-grp {
+		pinmux = <RZG2L_PORT_PINMUX(41, 1, 0)>; /* P41_1 */
+	};
+
+	mikro_pwm_pins: pinctrl-mikro-pwm-grp {
+		pinmux = <RZG2L_PORT_PINMUX(41, 0, 4)>; /* GTIOC3A */
+	};
+
+	mikro_rst_pins: pinctrl-mikro-rst-grp {
+		pinmux = <RZG2L_PORT_PINMUX(45, 2, 0)>; /* P45_2 */
+	};
+
+	mikro_uart_pins: pinctrl-mikro-uart-grp {
+		pinmux = <RZG2L_PORT_PINMUX(40, 1, 1)>, /* SCIF1_RXD */
+			 <RZG2L_PORT_PINMUX(40, 0, 1)>; /* SCIF1_TXD */
+	};
+};
+
+&usb2_phy1 {
+	vbus-supply = <&vbus1>;
+	dr_mode = "host";
+};
+
+&vmmc {
+	gpio = <&pinctrl RZG2L_GPIO(18, 1) GPIO_ACTIVE_LOW>;
+};
+
+&vmpcie {
+	/*
+	 * G2LC SoM v1.2 moved this IO from J7-28 (CON4-12)
+	 * to J7-18 (this regulator).
+	 * There are no known users of CON4-12 and thus no need
+	 * to differentiate here between SoM v1.1 and v1.2.
+	 */
+	gpio = <&pinctrl RZG2L_GPIO(39, 2) GPIO_ACTIVE_HIGH>;
+};
