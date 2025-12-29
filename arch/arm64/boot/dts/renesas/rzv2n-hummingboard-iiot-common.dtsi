@@ -2,7 +2,7 @@
 /*
 * Device Tree Source for the RZ Solidrun HummingBoard IIoT
 *
-* Copyright (C) 2024 SolidRun Ltd.
+* Copyright (C) 2025 SolidRun Ltd.
 */
 
 #include <dt-bindings/gpio/gpio.h>
@@ -15,6 +15,12 @@
 		i2c4 = &i2c_csi;
 		i2c5 = &i2c_dsi;
 		i2c6 = &i2c_lvds;
+		rtc0 = &carrier_rtc;
+  		rtc1 = &raa215300; /* pmic_rtc */
+		gpio1 = &gpio_dsi_expander;
+		gpio2 = &gpio_lvds_expander;
+		gpio3 = &tca6416_u20;
+		gpio4 = &tca6416_u21;
 	};
 
 	v_1_2: regulator-1-2 {
@@ -323,11 +329,32 @@
 			line-name = "rs232-shutdown";
 		};
 
+		sensor-irq-hog {
+			gpio-hog;
+			gpios = <7 (GPIO_ACTIVE_LOW | GPIO_PULL_UP | GPIO_OPEN_DRAIN)>;
+			input;
+			line-name = "sensor-irq";
+		};
+
+		tpm-irq-hog {
+			gpio-hog;
+			gpios = <9 (GPIO_ACTIVE_LOW | GPIO_PULL_UP | GPIO_OPEN_DRAIN)>;
+			input;
+			line-name = "tpm-irq";
+		};
+
 		m2-m-clkreq-hog {
 			gpio-hog;
 			gpios = <12 GPIO_ACTIVE_LOW>;
 			input;
 			line-name = "m2-m-clkreq";
+		};
+
+		lvds-irq-hog {
+			gpio-hog;
+			gpios = <13 (GPIO_ACTIVE_LOW | GPIO_PULL_UP | GPIO_OPEN_DRAIN)>;
+			input;
+			line-name = "lvds-irq";
 		};
 	};
 
@@ -377,7 +404,7 @@
 		};
 	};
 
-	rtc1: am1805@69 {
+	carrier_rtc: am1805@69 {
 		compatible = "abracon,ab1805";
 		reg = <0x69>;
 		abracon,tc-diode = "schottky";
@@ -440,7 +467,8 @@
 			#size-cells = <0>;
 			reg = <2>;
 
-			gpio_dsi_expander: tca6408@21 {
+			/* tca6408_u48 */
+			gpio_dsi_expander: gpio@21 {
 				compatible = "ti,tca6408";
 				reg = <0x21>;
 				gpio-controller;
@@ -457,28 +485,41 @@
 				"CAM_TRIG";
 			};
 		};
-
+		
 		i2c_lvds: i2c@3 {
 			#address-cells = <1>;
 			#size-cells = <0>;
 			reg = <3>;
+
+			/* tca6408_u37 */
+			gpio_lvds_expander: gpio@20 {
+				compatible = "ti,tca6408";
+				reg = <0x20>;
+				gpio-controller;
+				#gpio-cells = <2>;
+				gpio-line-names = "SELB", "LVDS_RESET",
+						  "LVDS_STBYB", "LVDS_PWM_BL",
+						  "LVDS_L/R", "LVDS_U/D",
+						  "LVDS_CTP_/RST", "";
+			};
 		};
 	};
 };
 
 &spi0 {
+	num-cs = <1>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&spi0_pins_no_ss>;
-	status = "disabled"; /* TODO */
 	cs-gpios = <&pinctrl RZG2L_GPIO(9, 3) GPIO_ACTIVE_LOW>;
+	status = "disabled";
 
 	spi_muxed: spi@0 {
 		compatible = "spi-mux";
 		reg = <0>;
 		#address-cells = <1>;
 		#size-cells = <0>;
-		/* mux bandwidth is 2GHz, soc max. spi clock is 166MHz */
-		spi-max-frequency = <166000000>;
+		/* mux bandwidth is 2GHz, soc max. spi clock is P0/2 = 50MHz */
+		spi-max-frequency = <50000000>;
 		mux-controls = <&spi_mux>;
 
 		/* ---- TPM on SPI channel 0 ---- */
@@ -486,20 +527,18 @@
 			compatible = "infineon,slb9670", "tcg,tpm_tis-spi";
 			reg = <0>;
 			spi-max-frequency = <43000000>;
-			reset-gpios = <&tca6416_u21 1 GPIO_ACTIVE_LOW>;
-			interrupts-extended = <&tca6416_u21 9 IRQ_TYPE_EDGE_FALLING>;
+			reset-gpios = <&tca6416_u21 1 (GPIO_ACTIVE_LOW  | GPIO_OPEN_DRAIN)>;
+			interrupts-extended = <&tca6416_u21 9 IRQ_TYPE_LEVEL_LOW>;
 		};
 
 		/* ---- Optional spidev on channel 1 ---- */
+		/*
 		spi_carrier_conn: spi@1 {
 			compatible = "spidev";
 			reg = <1>;
 		};
+		*/
 	};
-};
-
-&du {
-	status = "okay";
 };
 
 &pcie0 {

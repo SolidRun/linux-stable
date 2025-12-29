@@ -119,20 +119,30 @@
 			clock-frequency = <24000000>;
 	};
 
-	reg_1p8v: regulator0 {
+	/* reg_1p1v */
+	reg_pmic_buck1: regulator-pmic-buck1 {
 		compatible = "regulator-fixed";
+		regulator-name = "pmic-buck1";
+		regulator-min-microvolt = <1100000>;
+		regulator-max-microvolt = <1100000>;
+		regulator-boot-on;
+		regulator-always-on;
+	};
 
-		regulator-name = "fixed-1.8V";
+	/* reg_1p8v */
+	reg_pmic_buck2: regulator-pmic-buck2 {
+		compatible = "regulator-fixed";
+		regulator-name = "pmic-buck2";
 		regulator-min-microvolt = <1800000>;
 		regulator-max-microvolt = <1800000>;
 		regulator-boot-on;
 		regulator-always-on;
 	};
 
-	reg_3p3v: regulator1 {
+	/* reg_3p3v */
+	reg_pmic_buck3: regulator-pmic-buck3 {
 		compatible = "regulator-fixed";
-
-		regulator-name = "fixed-3.3V";
+		regulator-name = "pmic-buck3";
 		regulator-min-microvolt = <3300000>;
 		regulator-max-microvolt = <3300000>;
 		regulator-boot-on;
@@ -149,45 +159,9 @@
 		states = <3300000 0 1800000 1>;
 	};
 
-	clk_ext_camera: clk_ext_camera {
-		compatible = "fixed-clock";
-		#clock-cells = <0>;
-		clock-frequency = <24000000>;
-	};
-
-	ov5645_vdddo_1v8: 1p8v {
-		compatible = "regulator-fixed";
-		regulator-name = "camera_vdddo";
-		regulator-min-microvolt = <1800000>;
-		regulator-max-microvolt = <1800000>;
-		regulator-always-on;
-	};
-
-	ov5645_vdda_2v8: 2p8v {
-		compatible = "regulator-fixed";
-		regulator-name = "camera_vdda";
-		regulator-min-microvolt = <2800000>;
-		regulator-max-microvolt = <2800000>;
-		regulator-always-on;
-	};
-
-	ov5645_vddd_1v5: 1p5v {
-		compatible = "regulator-fixed";
-		regulator-name = "camera_vddd";
-		regulator-min-microvolt = <1500000>;
-		regulator-max-microvolt = <1500000>;
-		regulator-always-on;
-	};
-
-	osc1_32k: cec-clock {
-		compatible = "fixed-clock";
-		#clock-cells = <0>;
-		clock-frequency = <32768>; /* 32.768 kHz */
-	};
-
 	sdio_pwrseq: sdio-pwrseq {
 		compatible = "mmc-pwrseq-simple";
-		// reset-gpios = <&pinctrl RZG2L_GPIO(10, 0) GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&pinctrl RZG2L_GPIO(10, 0) GPIO_ACTIVE_LOW>;
         /* TODO: Replace current GPIO hog with proper reset-gpios assignment
          * for the SDIO power sequence. Using the GPIO hog is temporary and
          * should be updated for proper reset control integration.
@@ -200,10 +174,6 @@
 		#clock-cells = <0>;
 		clock-frequency = <32768>;
 	};
-};
-
-&du {
-	status = "okay";
 };
 
 &eth0 {
@@ -272,24 +242,6 @@
 		renesas,output-impedance = <1>;
 	};
 
-#if 0
-	bt_reg_en {
-		gpio-hog;
-		gpios = <RZG2L_GPIO(10, 1) GPIO_ACTIVE_HIGH>;
-		output-high;
-		line-name = "bt_reg_on";
-	};
-#endif
-
-#if 1
-	wifi_pwr_en {
-		gpio-hog;
-		gpios = <RZG2L_GPIO(10, 0) GPIO_ACTIVE_HIGH>;
-		output-high;
-		line-name = "wifi_pwr_en";
-	};
-#endif
-
 	sd1_pwr_en {
 		gpio-hog;
 		gpios = <RZG2L_GPIO(10, 3) GPIO_ACTIVE_HIGH>;
@@ -333,7 +285,7 @@
 			pinmux = <RZG2L_PORT_PINMUX(5, 0, 1)>, /* UART0_TXD: SCI0_TXD_MOSI_SDA */
 				<RZG2L_PORT_PINMUX(5, 1, 1)>; /* UART0_RXD: SCI0_RXD_MISO_SCL */
 			bias-pull-up;
-		};
+	};
 
 	sci0_pins_cts_rts: sci0_cts_rtc {
 		pinmux =  <RZG2L_PORT_PINMUX(5, 2, 4)>,  /* UART0_CTS: CTS0N  */
@@ -402,9 +354,10 @@
 	status = "okay";
 };
 
+/* eMMC */
 &sdhi0 {
-	vmmc-supply = <&reg_3p3v>;
-	vqmmc-supply = <&reg_1p8v>;
+	vmmc-supply = <&reg_pmic_buck3>;
+	vqmmc-supply = <&reg_pmic_buck2>;
 	bus-width = <8>;
 	mmc-hs200-1_8v;
 	non-removable;
@@ -412,10 +365,11 @@
 	status = "okay";
 };
 
+/* uSD */
 &sdhi1 {
 	pinctrl-0 = <&sdhi1_pins>;
 	pinctrl-names = "default";
-	vmmc-supply = <&reg_3p3v>;
+	vmmc-supply = <&reg_pmic_buck3>;
 	vqmmc-supply = <&vccq_sdhi1>;
 	bus-width = <4>;
 	sd-uhs-sdr50;
@@ -423,25 +377,23 @@
 	status = "okay";
 };
 
-/* WiFi - CYW43439 */
+/* WiFi - 1MW */
 &sdhi2 {
 	#address-cells = <1>;
 	#size-cells = <0>;
 	pinctrl-0 = <&sdhi2_pins>;
 	pinctrl-names = "default";
-	status = "okay";
-
-	non-removable;
-	vmmc-supply = <&reg_3p3v>;
-	bus-width = <4>;
+	vmmc-supply = <&reg_pmic_buck3>;
+	vqmmc-supply = <&reg_pmic_buck2>;
 	mmc-pwrseq = <&sdio_pwrseq>;
-	fsl,delay-line = <12>;
+	no-sd;
+ 	no-1-8-v;
+	bus-width = <4>;
+	non-removable;
+	/* Murata 1MW max rate is 50MHz */
+	max-frequency = <50000000>;
 	keep-power-in-suspend;
-
-	brcmf: wifi@1 {
-		reg = <1>;
-		compatible = "brcm,bcm4329-fmac";
-	};
+	status = "okay";
 };
 
 &rtc {
@@ -470,7 +422,6 @@
 };
 
 &usb2_phy0 {
-	//pinctrl-0 = <&usb20_pins>;
 	pinctrl-names = "default";
 	status = "okay";
 };
@@ -487,7 +438,6 @@
 };
 
 &xhci0 {
-	//pinctrl-0 = <&usb30_pins>; /*conflict with WiFi SD2CLK*/
 	pinctrl-names = "default";
 	memory-region = <&global_cma>;
 	status = "okay";
@@ -653,13 +603,13 @@
 	pinctrl-0 = <&sci0_pins &sci0_pins_cts_rts>;
 	pinctrl-names = "default";
 	uart-has-rtscts;
-	status = "disabled";
+	status = "disable";
 
-	bluetooth: bt@0 {
-		compatible = "brcm,bcm4345c5";
-		max-speed = <3000000>;
+	bluetooth {
+		compatible = "brcm,bcm43438-bt";
 		brcm,firmware-name = "BCM4345C0.renesas,rzv2n-sr-som.hcd";
 		shutdown-gpios = <&pinctrl RZG2L_GPIO(10, 1) GPIO_ACTIVE_HIGH>;
+		max-speed = <921600>;
 	};
 };
 
