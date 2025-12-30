@@ -242,13 +242,6 @@
 		renesas,output-impedance = <1>;
 	};
 
-	sd1_pwr_en {
-		gpio-hog;
-		gpios = <RZG2L_GPIO(10, 3) GPIO_ACTIVE_HIGH>;
-		output-high;
-		line-name = "sd1_pwr_en";
-	};
-
 	/* Support pinctrl for SD function of SDHI1 */
 	sdhi1_pins: sd1 {
 		sd1_mux {

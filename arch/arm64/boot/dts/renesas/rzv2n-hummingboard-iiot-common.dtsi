@@ -30,6 +30,13 @@
 		regulator-max-microvolt = <1800000>;
 	};
 
+	v_3_3: regulator-3-3 {
+		compatible = "regulator-fixed";
+		regulator-name = "3v3";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+	};
+
 	reg_dsi_panel: regulator-dsi-panel {
 		compatible = "regulator-fixed";
 		regulator-name = "dsi-panel";
@@ -37,6 +44,17 @@
 		regulator-max-microvolt = <11200000>;
 		gpios = <&tca6416_u20 15 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
+	};
+
+	vmmc: regulator-mmc {
+		compatible = "regulator-fixed";
+		regulator-name = "vmmc";
+		vin-supply = <&v_3_3>;
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		gpios = <&pinctrl RZG2L_GPIO(10, 3) GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+		regulator-always-on;
 	};
 
 	/* power for M.2 B-Key connector (J6) */
