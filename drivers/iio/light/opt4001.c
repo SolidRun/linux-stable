@@ -373,10 +373,16 @@ static const struct regmap_config opt4001_regmap_config = {
 	.val_format_endian = REGMAP_ENDIAN_BIG,
 };
 
+static void opt4001_regulator_disable(void *data)
+{
+	regulator_disable(data);
+}
+
 static int opt4001_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
 	struct opt4001_chip *chip;
 	struct iio_dev *indio_dev;
+	struct regulator *vdd;
 	int ret;
 	uint dev_id;
 
@@ -386,9 +392,17 @@ static int opt4001_probe(struct i2c_client *client, const struct i2c_device_id *
 
 	chip = iio_priv(indio_dev);
 
-	ret = devm_regulator_get_enable(&client->dev, "vdd");
+	vdd = devm_regulator_get(&client->dev, "vdd");
+	if (IS_ERR(vdd))
+		return dev_err_probe(&client->dev, PTR_ERR(vdd), "Failed to get vdd supply\n");
+
+	ret = regulator_enable(vdd);
 	if (ret)
 		return dev_err_probe(&client->dev, ret, "Failed to enable vdd supply\n");
+
+	ret = devm_add_action_or_reset(&client->dev, opt4001_regulator_disable, vdd);
+	if (ret)
+		return ret;
 
 	chip->regmap = devm_regmap_init_i2c(client, &opt4001_regmap_config);
 	if (IS_ERR(chip->regmap))
@@ -412,7 +426,10 @@ static int opt4001_probe(struct i2c_client *client, const struct i2c_device_id *
 	if (dev_id != OPT4001_DEVICE_ID_VAL)
 		dev_warn(&client->dev, "Device ID: %#04x unknown\n", dev_id);
 
-	chip->chip_info = i2c_get_match_data(client);
+	/* Get match data from device tree or i2c_device_id */
+	chip->chip_info = device_get_match_data(&client->dev);
+	if (!chip->chip_info && id)
+		chip->chip_info = (const void *)id->driver_data;
 
 	indio_dev->channels = opt4001_channels;
 	indio_dev->num_channels = ARRAY_SIZE(opt4001_channels);
