@@ -1,0 +1,287 @@
+// SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+/*
+ * Device Tree Source for the RZ/V2N SolidRun Solidsense AIOT
+ *
+ * Copyright (C) 2025 SolidRun Ltd.
+ */
+
+/dts-v1/;
+
+#include "rzv2n-sr-som.dtsi"
+#include <dt-bindings/leds/common.h>
+
+/ {
+	model = "Solidrun RZ/V2N Solidsense AIOT";
+	compatible = "renesas,rzv2n-sr-som", "renesas,r9a09g056n44", "renesas,r9a09g056";
+
+	aliases {
+		i2c3 = &i2c_csi0;
+		i2c4 = &i2c_csi1;
+	};
+
+	leds {
+		compatible = "gpio-leds";
+
+		CPU_LED_D10 {
+			label = "CPU_LED_D10";
+			gpios = <&pinctrl RZG2L_GPIO(8, 5) GPIO_ACTIVE_LOW>;
+			default-state = "on";
+		};
+	};
+	
+	v_1_2: regulator-1-2 {
+		compatible = "regulator-fixed";
+		regulator-name = "1v2";
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+	};
+
+	v_3_3: regulator-3-3 {
+		compatible = "regulator-fixed";
+		regulator-name = "3v3";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+	};
+
+	v_5_0: regulator-5-0 {
+		compatible = "regulator-fixed";
+		regulator-name = "5v0";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+	};
+
+	vmmc: regulator-mmc {
+		compatible = "regulator-fixed";
+		regulator-name = "vmmc";
+		vin-supply = <&v_3_3>;
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		gpios = <&pinctrl RZG2L_GPIO(10, 3) GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+		regulator-always-on;
+	};
+
+	/* LTE_PWR - CELL_VBAT 3.45V (J7[14]) */
+	reg_cell_vbat: regulator-cell-vbat {
+		compatible = "regulator-fixed";
+		pinctrl-names = "default";
+		regulator-name = "CELL_VBAT";
+		vin-supply = <&v_5_0>;
+		regulator-min-microvolt = <3450000>;
+		regulator-max-microvolt = <3450000>;
+		gpios = <&pinctrl RZG2L_GPIO(6, 2) GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+		regulator-always-on;
+	};
+
+	/* <TBD> */
+	rfkill_lte_gnss {
+		compatible = "rfkill-gpio";
+		pinctrl-names = "default";
+		//pinctrl-0 = <&pinctrl_lte_rfkill>;
+		label = "lte_reset";
+		radio-type = "wwan";
+		/* LTE_RST: J7[43] */
+		//reset-gpio = <&pinctrl RZG2L_GPIO(4, 2) GPIO_ACTIVE_LOW>;
+		/* Control via power regulator, not rfkill GPIO */
+		//shutdown-gpio = <&pinctrl RZG2L_GPIO(6, 2) GPIO_ACTIVE_HIGH>;
+		status = "okay";
+	};
+};
+
+&ehci0 {
+	spurious-oc;
+	status = "okay";
+};
+
+&ehci0 {
+	spurious-oc;
+	status = "okay";
+};
+
+&eth0 {
+	status = "disabled";
+};
+
+&eth1 {
+	status = "disabled";
+};
+
+&hsusb {
+	status = "okay";
+};
+
+&ohci0 {
+	spurious-oc;
+	dr_mode = "otg";
+	status = "okay";
+};
+
+&usb2_phy0 {
+	status = "okay";
+};
+
+/* UARTA (UART2) */
+&sci2 {
+	status = "disabled";
+};
+
+/* UARTB (UART3) */
+&sci3 {
+	status = "disabled";
+};
+
+/* Carrier I2C2 */
+&i2c1 {
+	status = "okay";
+
+	/*
+	 * I2C devices on carrier board:
+	 * - STM32U031C8U6 MCU at 0x18
+	 * - TAC5111IRGER Audio Codec at 0x50
+	 * - TCA9546APWR I2C Switch at 0x70
+	 * Flash Card (J6):
+	 * - LM3645YCGR Camera Flash at 0x65
+	 * - OPT4001DTSR Ambient Light Sensor at 0x44
+	 * - HDC3022DEJR Humidity/Temperature sensor at 0x46
+	 */
+	i2c-switch@70 {
+		compatible = "nxp,pca9546";
+		reg = <0x70>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reset-gpios = <&pinctrl RZG2L_GPIO(7, 5) GPIO_ACTIVE_LOW>;
+
+		i2c_csi0: i2c@0 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0>;
+		};
+
+		i2c_csi1: i2c@1 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <1>;
+		};
+	};
+
+	/* Audio codec - currently disabled pending driver verification */
+	codec: audio-codec@50 {
+		compatible = "ti,tac5111";
+		reg = <0x50>;
+		status = "disabled";
+		
+		#sound-dai-cells = <0>;
+		
+		pinctrl-names = "default";
+		//pinctrl-0 = <&pinctrl_codec>;
+		
+		interrupts-extended = <&pinctrl RZG2L_GPIO(7, 1) IRQ_TYPE_EDGE_FALLING>;
+		
+		avdd-supply = <&v_3_3>;
+		iovdd-supply = <&v_3_3>;
+
+		/*
+		 * GPIO configuration:
+		 * - GPIO1: PDM data input
+		 * - GPIO2: PDM clock output
+		 * - GPO1:  Chip IRQ output
+		 */
+		ti,gpios-func = <1>, <4>, <3>;
+
+		/*
+		 * PDM input pin selection:
+		 * - Channels 0/1: GPIO1
+		 * - Channels 2/3: Not used
+		 */
+		ti,pdm-input-pins = <1>, <0>;
+
+		/* GPI1 configured as CCLK input */
+		ti,gpi1-func = <2>;
+
+		/*
+		 * VREF and MICBIAS configuration (required by driver)
+		 * Note: These are not used by this board but must be
+		 * configured to avoid probe errors
+		 */
+		ti,vref = <0>;
+		ti,micbias-vg = <3>;
+
+		/*
+		 * GPIO drive configuration:
+		 * - GPIO1: Floating (output buffer disabled)
+		 * - GPIO2: Push-pull for PDM clock
+		 * - GPO1:  Open-drain for IRQ
+		 */
+		ti,gpios-drive = <0>, <1>, <3>;
+
+		/* GPA configuration */
+		ti,gpa-gpio = <0>;
+		ti,gpa-threshold = <75>, <186>;
+	};
+
+	/* OPT4001 Ambient Light Sensor */
+	opt4001: light-sensor@44 {
+		status = "okay";
+		compatible = "ti,opt4001";
+		reg = <0x44>;
+		vdd-supply = <&v_3_3>;
+	};
+
+	/* HDC3022 Humidity and Temperature Sensor */
+	hdc3022: humidity-sensor@46 {
+		status = "okay";
+		compatible = "ti,hdc3022";
+		reg = <0x46>;
+		vdd-supply = <&v_3_3>;
+	};
+
+	/* LM3645 Camera Flash LED Driver */
+	camera_flash: flash-led@65 {
+		status = "disabled";
+		compatible = "ti,lm3645";
+		reg = <0x65>;  /* Default I2C address */
+		
+		#address-cells = <1>;
+		#size-cells = <0>;
+		
+		/* Enable pin (HWEN) */
+		enable-gpios = <&pinctrl RZG2L_GPIO(7, 2) GPIO_ACTIVE_HIGH>;
+		
+		/* Flash strobe pin */
+		flash-gpios = <&pinctrl RZG2L_GPIO(7, 3) GPIO_ACTIVE_HIGH>;
+		
+		/* Torch pin (optional) */
+		torch-gpios = <&pinctrl RZG2L_GPIO(2, 1) GPIO_ACTIVE_HIGH>;
+		
+		/* LED1 - Flash LED */
+		led@0 {
+			reg = <0>;
+			function = LED_FUNCTION_FLASH;
+			color = <LED_COLOR_ID_WHITE>;
+			led-max-microamp = <1500000>;  /* 1.5A max flash current */
+			flash-max-microamp = <1500000>;
+			flash-max-timeout-us = <1024000>;  /* Max 1024ms */
+		};
+		
+		/* LED2 - Torch LED (optional) */
+		led@1 {
+			reg = <1>;
+			function = LED_FUNCTION_TORCH;
+			color = <LED_COLOR_ID_WHITE>;
+			led-max-microamp = <376000>;  /* 376mA max torch current */
+		};
+	};
+};
+
+&pinctrl {
+	pinctrl-names = "default";
+
+	lte_rst_hog: lte-reset-hog {
+		gpio-hog;
+		/* LTE_RST: J7[43] */
+		gpios = <&pinctrl RZG2L_GPIO(4, 2) GPIO_ACTIVE_LOW>;
+		output-low;
+		line-name = "lte-reset";
+	};
+};
