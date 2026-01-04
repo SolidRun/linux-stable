@@ -61,12 +61,12 @@ required:
 
 if:
   properties:
-     compatible:
-       contains:
-         enum:
-           - fsl,imx8ulp-pcc3
-           - fsl,imx8ulp-pcc4
-           - fsl,imx8ulp-pcc5
+    compatible:
+      contains:
+        enum:
+          - fsl,imx8ulp-pcc3
+          - fsl,imx8ulp-pcc4
+          - fsl,imx8ulp-pcc5
 then:
   required:
     - '#reset-cells'

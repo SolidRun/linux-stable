@@ -41,7 +41,7 @@ patternProperties:
   "^flexio-i2c+$":
     # Child node
     type: object
-    $ref: "../i2c/i2c-imx-flexio.yaml"
+    $ref: ../i2c/i2c-imx-flexio.yaml
     description:
       FlexIO I2C mode. This child node should follow the bindings specified in
       Documentation/devicetree/bindings/i2c/i2c-imx-flexio.yaml.

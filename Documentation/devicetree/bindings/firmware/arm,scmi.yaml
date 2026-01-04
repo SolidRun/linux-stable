@@ -241,7 +241,7 @@ properties:
     type: object
     allOf:
       - $ref: "#/$defs/protocol-node"
-      - $ref: "../pinctrl/pinctrl.yaml"
+      - $ref: ../pinctrl/pinctrl.yaml"
     unevaluatedProperties: false
 
     properties:
@@ -255,8 +255,8 @@ properties:
       '-pins$':
         type: object
         allOf:
-          - $ref: "../pinctrl/pincfg-node.yaml#"
-          - $ref: "../pinctrl/pinmux-node.yaml#"
+          - $ref: ../pinctrl/pincfg-node.yaml#
+          - $ref: ../pinctrl/pinmux-node.yaml#
         unevaluatedProperties: false
 
         description:

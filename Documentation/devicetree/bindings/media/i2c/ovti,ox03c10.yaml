@@ -64,16 +64,16 @@ examples:
 
           camera@36 {
               compatible = "ovti,ox03c10";
-	      reg = <0x36>;
-	      clocks = <&serializer1>;
-	      fsin-gpios = <&serializer1 0 GPIO_ACTIVE_HIGH>;
+              reg = <0x36>;
+              clocks = <&serializer1>;
+              fsin-gpios = <&serializer1 0 GPIO_ACTIVE_HIGH>;
 
-	      port {
+              port {
                   ox03c10_to_mipi_csi2: endpoint {
                       remote-endpoint = <&mipi_csi2_from_ox03c10>;
-		  };
-	      };
-	  };
+                  };
+              };
+          };
       };
 
 ...

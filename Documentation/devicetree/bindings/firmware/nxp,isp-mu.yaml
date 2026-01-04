@@ -10,13 +10,13 @@ maintainers:
   - Robert Chiras <robert.chiras@nxp.com>
 
 description:
-The ISP firmware is a free-RTOS code running on M0 core inside the Camera
-domain on i.MX95. Inside the Camera domain, there are multiple Messaging Units
-used by the firmware in order to communicate with other cores willing to submit
-jobs to ISP core.
-This driver is using the mailbox system in order to send/receive messages to
-and from ISP firmware.
-It also provides the ISP firmware protocol used for communication with it.
+  The ISP firmware is a free-RTOS code running on M0 core inside the Camera
+  domain on i.MX95. Inside the Camera domain, there are multiple Messaging Units
+  used by the firmware in order to communicate with other cores willing to submit
+  jobs to ISP core.
+  This driver is using the mailbox system in order to send/receive messages to
+  and from ISP firmware.
+  It also provides the ISP firmware protocol used for communication with it.
 
 properties:
   compatible:

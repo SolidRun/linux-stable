@@ -877,8 +877,6 @@ patternProperties:
     description: Mixel, Inc.
   "^miyoo,.*":
     description: Miyoo
-  "^mixel,.*":
-    description: Mixel, Inc
   "^mntre,.*":
     description: MNT Research GmbH
   "^modtronix,.*":

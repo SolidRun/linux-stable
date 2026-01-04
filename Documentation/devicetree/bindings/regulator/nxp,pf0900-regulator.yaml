@@ -18,10 +18,10 @@ description: |
   binding for regulators at
   Documentation/devicetree/bindings/regulator/regulator.yaml.
 
-#The valid names for PF0900 regulator nodes are:
-#SW1, SW2, SW3, SW4, SW5
-#LDO1, LDO2, LDO3
-#VAON.
+  #The valid names for PF0900 regulator nodes are:
+  #SW1, SW2, SW3, SW4, SW5
+  #LDO1, LDO2, LDO3
+  #VAON.
 
 properties:
   compatible:
@@ -64,7 +64,7 @@ properties:
 
         properties:
           nxp,dvs-run-voltage:
-            $ref: "/schemas/types.yaml#/definitions/uint32"
+            $ref: /schemas/types.yaml#/definitions/uint32
             minimum: 300000
             maximum: 1350000
             description:
@@ -72,7 +72,7 @@ properties:
               dvs(dynamic voltage scaling) property.
 
           nxp,dvs-standby-voltage:
-            $ref: "/schemas/types.yaml#/definitions/uint32"
+            $ref: /schemas/types.yaml#/definitions/uint32
             minimum: 300000
             maximum: 1350000
             description:
@@ -80,7 +80,7 @@ properties:
               dvs(dynamic voltage scaling) property.
 
           nxp,phase-shift:
-            $ref: "/schemas/types.yaml#/definitions/uint32"
+            $ref: /schemas/types.yaml#/definitions/uint32
             default: 0
             enum: [ 0, 45, 90, 135, 180, 225, 270, 315 ]
             description:
@@ -124,7 +124,7 @@ examples:
         pmic@8 {
             compatible = "nxp,pf0900";
             reg = <0x08>;
-	    i2c-crc-enable;
+            i2c-crc-enable;
             interrupt-parent = <&pcal6524>;
             interrupts = <89 IRQ_TYPE_LEVEL_LOW>;
 

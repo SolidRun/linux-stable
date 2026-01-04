@@ -60,7 +60,7 @@ properties:
             Optional property describing the size of the OCRAM that can be
             used to load the firmware.
 
-            maxItems: 1
+          maxItems: 1
 
 required:
   - compatible

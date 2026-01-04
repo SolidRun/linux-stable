@@ -82,7 +82,7 @@ examples:
                  <&clks IMX7ULP_CLK_NIC1_BUS_DIV>;
 
         eeprom@64 {
-		      compatible = "linux,slave-24c02";
-		      reg = <(0x64 | I2C_OWN_SLAVE_ADDRESS)>;
-          };
+            compatible = "linux,slave-24c02";
+            reg = <(0x64 | I2C_OWN_SLAVE_ADDRESS)>;
+        };
     };
