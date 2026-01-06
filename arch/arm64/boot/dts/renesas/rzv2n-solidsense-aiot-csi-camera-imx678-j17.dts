@@ -1,0 +1,63 @@
+// SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+/*
+ * Device Tree Source for the RZ/V2N SolidRun Solidsense AIOT
+ *
+ * Copyright (C) 2025 SolidRun Ltd.
+ *
+ * Overlay for enabling Solidsense AIOT MIPI-CSI connector J17
+ * with mipi-csi camera sony imx678.
+ */
+
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/pinctrl/rzg2l-pinctrl.h>
+
+&cru1 {
+	status = "okay";
+};
+
+&csi21 {
+	status = "okay";
+	ports {
+		port {
+			csi21_in: endpoint {
+				remote-endpoint = <&cam1_endpoint>;
+				clock-lanes = <0>;
+				data-lanes = <1 2 3 4>;
+			};
+		};
+	};
+};
+
+/* [J17] CAM1 Connector */
+&i2c_csi1 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	cam1_node: imx678@1a {
+		compatible = "sony,imx678";
+		reg = <0x1a>;
+		status = "okay";
+
+		rotation = <0>;
+		orientation = <0>;
+
+		clocks = <&sensor_clk>;
+		clock-names = "inclk";
+		clock-frequency = <24000000>;
+
+		xmaster-gpios = <&pinctrl RZG2L_GPIO(7, 6) GPIO_ACTIVE_HIGH>; /* P76 CAM1_TRIG */
+		reset-gpios =  <&pinctrl RZG2L_GPIO(10, 5) GPIO_ACTIVE_HIGH>; /* PA5 CAM1_RST */
+
+		port {
+			cam1_endpoint: endpoint {
+				remote-endpoint = <&csi21_in>;
+				clock-lanes = <0>;
+				data-lanes = <1 2 3 4>;
+				link-frequencies = /bits/ 64 <891000000 1440000000 1782000000>;
+			};
+		};
+	};
+};

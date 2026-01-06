@@ -24,7 +24,7 @@
 
 		CPU_LED_D10 {
 			label = "CPU_LED_D10";
-			gpios = <&pinctrl RZG2L_GPIO(8, 5) GPIO_ACTIVE_LOW>;
+			gpios = <&pinctrl RZG2L_GPIO(8, 5) GPIO_ACTIVE_HIGH>;
 			default-state = "on";
 		};
 	};
@@ -87,6 +87,12 @@
 		//shutdown-gpio = <&pinctrl RZG2L_GPIO(6, 2) GPIO_ACTIVE_HIGH>;
 		status = "okay";
 	};
+
+	sensor_clk: sensor_clk {
+        compatible = "fixed-clock";
+        #clock-cells = <0>;
+        clock-frequency = <24000000>;
+    };
 };
 
 &ehci0 {
@@ -150,7 +156,7 @@
 		reg = <0x70>;
 		#address-cells = <1>;
 		#size-cells = <0>;
-		reset-gpios = <&pinctrl RZG2L_GPIO(7, 5) GPIO_ACTIVE_LOW>;
+		reset-gpios = <&pinctrl RZG2L_GPIO(7, 4) GPIO_ACTIVE_LOW>;
 
 		i2c_csi0: i2c@0 {
 			#address-cells = <1>;
