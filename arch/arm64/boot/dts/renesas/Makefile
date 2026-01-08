@@ -98,6 +98,10 @@ dtb-$(CONFIG_ARCH_R9A09G056) += r9a09g056n44-solidsense-aiot.dtb
 DTC_FLAGS_r9a09g056n44-solidsense-aiot:= -@
 dtb-$(CONFIG_ARCH_R9A09G056) += r9a09g056n44-hummingboard-iiot.dtb
 DTC_FLAGS_r9a09g056n44-hummingboard-iiot:= -@
+dtb-$(CONFIG_ARCH_R9A07G054) += r9a09g056n44-hummingboard-pro.dtb
+DTC_FLAGS_r9a07g054l2-hummingboard-pro := -@
+dtb-$(CONFIG_ARCH_R9A07G054) += r9a09g056n44-hummingboard-puls.dtb
+DTC_FLAGS_r9a07g054l2-hummingboard-puls := -@
 
 dtb-$(CONFIG_ARCH_R9A09G056) += rzv2n-hummingboard-iiot-rs485-a.dtbo
 dtb-$(CONFIG_ARCH_R9A09G056) += rzv2n-hummingboard-iiot-rs485-b.dtbo
@@ -105,6 +109,7 @@ dtb-$(CONFIG_ARCH_R9A09G056) += rzv2n-hummingboard-iiot-panel-dsi-WJ70N3TYJHMNG0
 dtb-$(CONFIG_ARCH_R9A09G056) += rzv2n-hummingboard-iiot-csi-camera-imx678.dtbo
 dtb-$(CONFIG_ARCH_R9A09G056) += rzv2n-solidsense-aiot-csi-camera-imx678-j8.dtbo
 dtb-$(CONFIG_ARCH_R9A09G056) += rzv2n-solidsense-aiot-csi-camera-imx678-j17.dtbo
+dtb-$(CONFIG_ARCH_R9A09G056) += rzv2n-hummingboard-pro-csi-camera-ar0521.dtbo
 
 dtb-$(CONFIG_ARCH_RCAR_GEN3) += draak-ebisu-panel-aa104xd12.dtbo
 dtb-$(CONFIG_ARCH_RCAR_GEN3) += salvator-panel-aa104xd12.dtbo
