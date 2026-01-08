@@ -162,10 +162,6 @@
 	sdio_pwrseq: sdio-pwrseq {
 		compatible = "mmc-pwrseq-simple";
 		reset-gpios = <&pinctrl RZG2L_GPIO(10, 0) GPIO_ACTIVE_LOW>;
-        /* TODO: Replace current GPIO hog with proper reset-gpios assignment
-         * for the SDIO power sequence. Using the GPIO hog is temporary and
-         * should be updated for proper reset control integration.
-         */
 	};
 
 	/* 32.768kHz crystal */

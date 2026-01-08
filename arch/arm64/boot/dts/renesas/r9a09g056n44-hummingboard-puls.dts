@@ -1,0 +1,35 @@
+// SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+/*
+ * Device Tree Source for the RZ/V2N SolidRun HummingBoard Puls
+ *
+ * Copyright (C) 2025 SolidRun Ltd.
+ */
+
+/dts-v1/;
+
+#include "rzv2n-sr-som.dtsi"
+#include "rzv2n-hummingboard-puls.dtsi"
+
+/ {
+	model = "Solidrun RZ/V2N HummingBoard Puls";
+	compatible = "renesas,rzv2n-sr-som", "renesas,r9a09g056n44", "renesas,r9a09g056";
+};
+
+&pcie0 {
+	reset-gpios = <&pinctrl RZG2L_GPIO(10, 4) GPIO_ACTIVE_LOW>; /* PA4 */
+	status = "okay";
+
+	root@0,0 {
+		compatible = "pci16c3,abcd";
+		reg = <0x00000000 0 0 0 0>;
+
+		#address-cells = <3>;
+		#size-cells = <2>;
+
+		/* Intel i210 */
+		pcie_eth: ethernet@1,0 {
+			compatible = "pci8086,157b";
+			reg = <0x00010000 0 0 0 0>;
+		};
+	};
+};
