@@ -342,17 +342,24 @@
 		line-name = "m2-reset";
 	};
 
+	/*
+	 * USB hub is disabled due to I/O voltage level incompatibility.
+	 * The SoM provides 1.8V I/O levels on these GPIO pins, but the
+	 * USB hub requires 3.3V I/O signaling. This voltage mismatch
+	 * prevents proper communication with the hub IC.
+	 * Keep hub in reset and power disabled to avoid potential issues.
+	 */
 	usb-hub-reset-hog {
 		gpio-hog;
 		gpios = <RZG2L_GPIO(8, 4) GPIO_ACTIVE_HIGH>;
-		output-high;  /* De-assert reset (active-high) */
+		output-low;  /* Assert reset (active-high) to disable hub */
 		line-name = "usb-hub-reset";
 	};
 
 	usb-hub-enable-hog {
 		gpio-hog;
 		gpios = <RZG2L_GPIO(4, 6) GPIO_ACTIVE_HIGH>;
-		output-high;  /* Enable hub power */
+		output-low;  /* Keep power disabled (active-high) */
 		line-name = "usb-hub-enable";
 	};
 
