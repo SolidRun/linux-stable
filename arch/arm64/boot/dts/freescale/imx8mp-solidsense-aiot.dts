@@ -5,7 +5,8 @@
 
 / {
 	model = "i.MX8MP Solidsense AIOT";
-	compatible = "fsl,imx8mp-sr-som", "fsl,imx8mp";
+	compatible = "solidrun,imx8mp-solidsense-aiot",
+		     "solidrun,imx8mp-sr-som", "fsl,imx8mp";
 
 	leds {
 		compatible = "gpio-leds";
