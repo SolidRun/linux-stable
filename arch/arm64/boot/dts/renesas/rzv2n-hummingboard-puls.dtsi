@@ -222,7 +222,7 @@
 };
 
 /* mikrobus spi */
-&spi0 {
+&rspi0 {
 	num-cs = <1>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&spi0_pins_no_ss>;

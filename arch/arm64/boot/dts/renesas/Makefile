@@ -90,13 +90,13 @@ dtb-$(CONFIG_ARCH_R9A08G045) += r9a08g045s33-smarc.dtb
 dtb-$(CONFIG_ARCH_R9A09G011) += r9a09g011-v2mevk2.dtb
 
 dtb-$(CONFIG_ARCH_R9A09G056) += r9a09g056n48-rzv2n-evk.dtb
-dtb-$(CONFIG_ARCH_R9A09G056) += r9a09g056n44-solidsense-aiot.dtb
+dtb-$(CONFIG_ARCH_R9A09G056) += r9a09g056n48-solidsense-aiot.dtb
 DTC_FLAGS_r9a09g056n44-solidsense-aiot := -@
-dtb-$(CONFIG_ARCH_R9A09G056) += r9a09g056n44-hummingboard-iiot.dtb
+dtb-$(CONFIG_ARCH_R9A09G056) += r9a09g056n48-hummingboard-iiot.dtb
 DTC_FLAGS_r9a09g056n44-hummingboard-iiot := -@
-dtb-$(CONFIG_ARCH_R9A09G056) += r9a09g056n44-hummingboard-pro.dtb
+dtb-$(CONFIG_ARCH_R9A09G056) += r9a09g056n48-hummingboard-pro.dtb
 DTC_FLAGS_r9a09g056n44-hummingboard-pro := -@
-dtb-$(CONFIG_ARCH_R9A09G056) += r9a09g056n44-hummingboard-puls.dtb
+dtb-$(CONFIG_ARCH_R9A09G056) += r9a09g056n48-hummingboard-puls.dtb
 DTC_FLAGS_r9a09g056n44-hummingboard-puls := -@
 dtb-$(CONFIG_ARCH_R9A09G056) += rzv2n-hummingboard-iiot-rs485-a.dtbo
 dtb-$(CONFIG_ARCH_R9A09G056) += rzv2n-hummingboard-iiot-rs485-b.dtbo
