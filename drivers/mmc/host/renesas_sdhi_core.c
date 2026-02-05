@@ -1030,6 +1030,7 @@ int renesas_sdhi_probe(struct platform_device *pdev,
 	struct regulator_dev *rdev;
 	struct renesas_sdhi_dma *dma_priv;
 	struct device *dev = &pdev->dev;
+	struct mux_state *mux_state;
 	struct tmio_mmc_host *host;
 	struct renesas_sdhi *priv;
 	int num_irqs, irq, ret, i;
@@ -1084,15 +1085,13 @@ int renesas_sdhi_probe(struct platform_device *pdev,
 						"state_uhs");
 	}
 
-	priv->mux_state = devm_mux_state_get_optional_selected(&pdev->dev, NULL);
-	if (IS_ERR(priv->mux_state))
-		return PTR_ERR(priv->mux_state);
+	mux_state = devm_mux_state_get_optional_selected(&pdev->dev, NULL);
+	if (IS_ERR(mux_state))
+		return PTR_ERR(mux_state);
 
 	host = tmio_mmc_host_alloc(pdev, mmc_data);
-	if (IS_ERR(host)) {
-		ret = PTR_ERR(host);
-		goto emux;
-	}
+	if (IS_ERR(host))
+		return PTR_ERR(host);
 
 	priv->host = host;
 
@@ -1286,9 +1285,6 @@ edisclk:
 	renesas_sdhi_clk_disable(host);
 efree:
 	tmio_mmc_host_free(host);
-emux:
-	if (priv->mux_state)
-		mux_state_deselect(priv->mux_state);
 
 	return ret;
 }

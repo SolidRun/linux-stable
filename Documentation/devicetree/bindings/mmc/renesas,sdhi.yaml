@@ -251,6 +251,7 @@ examples:
             max-frequency = <195000000>;
             power-domains = <&sysc R8A7790_PD_ALWAYS_ON>;
             resets = <&cpg 314>;
+            mux-states = <&mux 0>;
     };
 
     sdhi1: mmc@ee120000 {

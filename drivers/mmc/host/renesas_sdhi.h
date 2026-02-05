@@ -95,7 +95,6 @@ struct renesas_sdhi {
 	struct reset_control *rstc;
 	struct tmio_mmc_host *host;
 	struct regulator_dev *rdev;
-	struct mux_state *mux_state;
 };
 
 #define host_to_priv(host) \

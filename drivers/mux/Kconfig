@@ -4,7 +4,13 @@
 #
 
 config MULTIPLEXER
-	tristate
+	tristate "Generic Multiplexer Support" if COMPILE_TEST
+	help
+	  This framework is designed to abstract multiplexer handling for
+	  devices via various GPIO-, MMIO/Regmap or specific multiplexer
+	  controller chips.
+
+	  If unsure, say no.
 
 menu "Multiplexer drivers"
 	depends on MULTIPLEXER
