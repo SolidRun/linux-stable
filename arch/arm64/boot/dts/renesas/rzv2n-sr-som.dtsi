@@ -595,8 +595,8 @@
 &pcie0 {
 	/* Map all possible DDR as inbound ranges */
 	dma-ranges = <0x42000000 0 0x40000000 0 0x40000000 0x2 0x00000000>;
-	//clocks = <&versa3 4>;      /* use DIFF1 as input */
-    clock-names = "pcie_ref";
+	clocks = <&cpg CPG_MOD 0xc4>, <&cpg CPG_MOD 0xc5>, <&versa3 4>;
+	clock-names = "aclk", "pmu", "pcie_ref";
 	msi-parent = <&gic>;
 	status = "okay";
 };
