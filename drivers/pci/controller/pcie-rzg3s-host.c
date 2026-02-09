@@ -16,6 +16,7 @@
 #include <linux/bitops.h>
 #include <linux/cleanup.h>
 #include <linux/delay.h>
+#include <linux/gpio/consumer.h>
 #include <linux/iopoll.h>
 #include <linux/interrupt.h>
 #include <linux/irq.h>
@@ -132,6 +133,7 @@ struct rzg3s_pcie_host {
 	const struct rzg3s_pcie_soc_data *data;
 	struct rzg3s_pcie_msi msi;
 	raw_spinlock_t hw_lock;
+	struct gpio_desc *reset_gpiod;
 	int intx_irqs[PCI_NUM_INTX];
 	u32 vendor_id;
 	u32 device_id;
@@ -1227,6 +1229,10 @@ static int rzg3s_pcie_host_init(struct rzg3s_pcie_host *host, bool probe)
 	u32 val;
 	int ret, err;
 
+	/* Assert external PERST# while configuring the controller */
+	if (host->reset_gpiod)
+		gpiod_set_value_cansleep(host->reset_gpiod, 1);
+
 	/* Set the prepare init, if any */
 	if (host->data->pre_init)
 		host->data->pre_init(host);
@@ -1249,6 +1255,12 @@ static int rzg3s_pcie_host_init(struct rzg3s_pcie_host *host, bool probe)
 		if (err)
 			return dev_err_probe(host->dev, err,
 					     "Failed to set the reset deassert!\n");
+	}
+
+	/* Deassert external PERST# and wait for endpoint to be ready */
+	if (host->reset_gpiod) {
+		gpiod_set_value_cansleep(host->reset_gpiod, 0);
+		msleep(100);
 	}
 
 	/* Wait for link up */
@@ -1782,6 +1794,12 @@ static int rzg3s_pcie_probe(struct platform_device *pdev)
 	ret = devm_add_action_or_reset(dev, rzg3s_pcie_pm_runtime_put, dev);
 	if (ret)
 		return ret;
+
+	host->reset_gpiod = devm_gpiod_get_optional(dev, "reset",
+						     GPIOD_OUT_HIGH);
+	if (IS_ERR(host->reset_gpiod))
+		return dev_err_probe(dev, PTR_ERR(host->reset_gpiod),
+				     "failed to get reset GPIO\n");
 
 	host->aclk = devm_clk_get(dev, "aclk");
 	if (IS_ERR(host->aclk)) {
