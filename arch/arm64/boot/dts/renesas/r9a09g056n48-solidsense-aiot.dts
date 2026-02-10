@@ -12,7 +12,7 @@
 
 / {
 	model = "Solidrun RZ/V2N Solidsense AIOT";
-	compatible = "renesas,rzv2n-sr-som", "renesas,r9a09g056n44", "renesas,r9a09g056";
+	compatible = "solidrun,rzv2n-solidsense-aiot", "solidrun,rzv2n-sr-som", "renesas,r9a09g056n44", "renesas,r9a09g056";
 
 	aliases {
 		i2c3 = &i2c_csi0;
