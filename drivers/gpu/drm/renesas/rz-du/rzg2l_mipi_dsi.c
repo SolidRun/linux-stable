@@ -525,7 +525,7 @@ static unsigned int rzv2h_dphy_mode_clk_check(struct rzg2l_mipi_dsi *dsi,
 	if (!parameters_found)
 		return MODE_CLOCK_RANGE;
 
-	if (abs(dsi_parameters.error_millihz) >= 500)
+	if (abs(dsi_parameters.error_millihz) >= 500000)
 		return MODE_CLOCK_RANGE;
 
 	memcpy(&dsi->mode_calc.dsi_parameters, &dsi_parameters, sizeof(dsi_parameters));
