@@ -821,6 +821,8 @@ static unsigned int sci_tx_empty(struct uart_port *port)
 
 static void sci_set_mctrl(struct uart_port *port, unsigned int mctrl)
 {
+	struct sci_port *s = to_sci_port(port);
+
 	if (mctrl & TIOCM_LOOP) {
 
 		/*
@@ -831,6 +833,8 @@ static void sci_set_mctrl(struct uart_port *port, unsigned int mctrl)
 					serial_port_in(port, CCR1) |
 					CCR1_SPLP);
 	}
+
+	mctrl_gpio_set(s->gpios, mctrl);
 }
 
 static unsigned int sci_get_mctrl(struct uart_port *port)
