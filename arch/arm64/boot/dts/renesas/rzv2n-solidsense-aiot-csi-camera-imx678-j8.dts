@@ -21,7 +21,10 @@
 &csi20 {
 	status = "okay";
 	ports {
-		port {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		port@0 {
+			reg = <0>;
 			csi20_in: endpoint {
 				remote-endpoint = <&cam0_endpoint>;
 				clock-lanes = <0>;
