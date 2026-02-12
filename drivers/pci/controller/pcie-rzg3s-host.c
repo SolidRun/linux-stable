@@ -1989,6 +1989,15 @@ static const struct of_device_id rzg3s_pcie_of_match[] = {
 	{},
 };
 
+static void rzg3s_pcie_shutdown(struct platform_device *pdev)
+{
+	struct rzg3s_pcie_host *host = platform_get_drvdata(pdev);
+
+	/* Assert PERST# so the endpoint is held in reset across reboot */
+	if (host->reset_gpiod)
+		gpiod_set_value_cansleep(host->reset_gpiod, 1);
+}
+
 static struct platform_driver rzg3s_pcie_driver = {
 	.driver = {
 		.name = "rzg3s-pcie-host",
@@ -1997,6 +2006,7 @@ static struct platform_driver rzg3s_pcie_driver = {
 		.suppress_bind_attrs = true,
 	},
 	.probe = rzg3s_pcie_probe,
+	.shutdown = rzg3s_pcie_shutdown,
 };
 module_platform_driver(rzg3s_pcie_driver);
 
