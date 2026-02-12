@@ -16,7 +16,7 @@
 		i2c5 = &i2c_dsi;
 		i2c6 = &i2c_lvds;
 		rtc0 = &carrier_rtc;
-  		rtc1 = &raa215300; /* pmic_rtc */
+		rtc1 = &pmic_rtc;
 		gpio1 = &gpio_dsi_expander;
 		gpio2 = &gpio_lvds_expander;
 		gpio3 = &tca6416_u20;

@@ -529,14 +529,22 @@
 
 	status = "okay";
 
-	/* PMIC */
+	/* PMIC - main register only; RTC at 0x6f is split into a
+	 * separate isl1208 node to avoid -EEXIST probe conflict
+	 * when both raa215300 and isl1208 drivers claim the same
+	 * i2c address.
+	 */
 	raa215300: pmic@12 {
 		compatible = "renesas,raa215300";
-		reg = <0x12>, <0x6f>;
-		reg-names = "main", "rtc";
+		reg = <0x12>;
 
-		clocks = <&xin32k>;
-		clock-names = "xin";
+		rtc-enable;
+	};
+
+	/* RAA215300 built-in ISL1208 RTC */
+	pmic_rtc: isl1208@6f {
+		compatible = "isil,isl1208";
+		reg = <0x6f>;
 	};
 
 	som_eeprom: eeprom@50 {

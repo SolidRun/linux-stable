@@ -12,7 +12,7 @@
 / {
 	aliases {
 		rtc0 = &carrier_rtc;
-		rtc1 = &raa215300; /* pmic_rtc */
+		rtc1 = &pmic_rtc;
 	};
 
 	v_1_2: regulator-1-2 {
