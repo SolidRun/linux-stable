@@ -29,7 +29,7 @@
 		reg = <0x41>;
 		compatible = "ilitek,ili2130";
 		reset-gpios = <&gpio_dsi_expander 6 GPIO_ACTIVE_LOW>;
-		interrupts-extended = <&tca6416_u21 13 IRQ_TYPE_EDGE_FALLING>;
+		interrupts-extended = <&tca6416_u21 13 IRQ_TYPE_LEVEL_LOW>;
 		vcc-lcd-supply = <&reg_dsi_panel>;
 	};
 };

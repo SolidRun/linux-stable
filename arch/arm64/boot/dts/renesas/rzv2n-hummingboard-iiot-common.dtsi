@@ -315,13 +315,17 @@
 	};
 
 	tca6416_u21: gpio@21 {
+		/*
+		 * This is a TI TCAL6416 using same programming model as
+		 * NXP PCAL6416, not to be confused with TI TCA6416.
+		 */
 		compatible = "nxp,pcal6416";
 		reg = <0x21>;
 		gpio-controller;
 		#gpio-cells = <2>;
 		interrupt-controller;
 		#interrupt-cells = <2>;
-		interrupts-extended = <&pinctrl RZG2L_GPIO(9, 5) IRQ_TYPE_LEVEL_LOW>; // IRQ_TYPE_EDGE_FALLING
+		interrupts-extended = <&pinctrl RZG2L_GPIO(9, 5) IRQ_TYPE_EDGE_FALLING>;
 		gpio-line-names =
 		"TCA_SPI_TPM/EXT",
 		"TCA_TPM_RST#",
@@ -368,12 +372,10 @@
 			line-name = "m2-m-clkreq";
 		};
 
-		lvds-irq-hog {
-			gpio-hog;
-			gpios = <13 (GPIO_ACTIVE_LOW | GPIO_PULL_UP | GPIO_OPEN_DRAIN)>;
-			input;
-			line-name = "lvds-irq";
-		};
+		/*
+		 * Line 13 is used as touchscreen IRQ by the DSI panel
+		 * overlay. Do not hog it to avoid conflict.
+		 */
 	};
 
 	carrier_eeprom: at24c02@57 {
