@@ -206,6 +206,8 @@ struct pca953x_chip {
 	DECLARE_BITMAP(irq_stat, MAX_LINE);
 	DECLARE_BITMAP(irq_trig_raise, MAX_LINE);
 	DECLARE_BITMAP(irq_trig_fall, MAX_LINE);
+	DECLARE_BITMAP(irq_trig_level_high, MAX_LINE);
+	DECLARE_BITMAP(irq_trig_level_low, MAX_LINE);
 #endif
 	atomic_t wakeup_path;
 
@@ -772,6 +774,8 @@ static void pca953x_irq_bus_sync_unlock(struct irq_data *d)
 	pca953x_read_regs(chip, chip->regs->direction, reg_direction);
 
 	bitmap_or(irq_mask, chip->irq_trig_fall, chip->irq_trig_raise, gc->ngpio);
+	bitmap_or(irq_mask, irq_mask, chip->irq_trig_level_high, gc->ngpio);
+	bitmap_or(irq_mask, irq_mask, chip->irq_trig_level_low, gc->ngpio);
 	bitmap_complement(reg_direction, reg_direction, gc->ngpio);
 	bitmap_and(irq_mask, irq_mask, reg_direction, gc->ngpio);
 
@@ -788,7 +792,7 @@ static int pca953x_irq_set_type(struct irq_data *d, unsigned int type)
 	struct pca953x_chip *chip = gpiochip_get_data(gc);
 	irq_hw_number_t hwirq = irqd_to_hwirq(d);
 
-	if (!(type & IRQ_TYPE_EDGE_BOTH)) {
+	if (!(type & IRQ_TYPE_SENSE_MASK)) {
 		dev_err(&chip->client->dev, "irq %d: unsupported type %d\n",
 			d->irq, type);
 		return -EINVAL;
@@ -796,6 +800,8 @@ static int pca953x_irq_set_type(struct irq_data *d, unsigned int type)
 
 	assign_bit(hwirq, chip->irq_trig_fall, type & IRQ_TYPE_EDGE_FALLING);
 	assign_bit(hwirq, chip->irq_trig_raise, type & IRQ_TYPE_EDGE_RISING);
+	assign_bit(hwirq, chip->irq_trig_level_high, type & IRQ_TYPE_LEVEL_HIGH);
+	assign_bit(hwirq, chip->irq_trig_level_low, type & IRQ_TYPE_LEVEL_LOW);
 
 	return 0;
 }
@@ -808,6 +814,8 @@ static void pca953x_irq_shutdown(struct irq_data *d)
 
 	clear_bit(hwirq, chip->irq_trig_raise);
 	clear_bit(hwirq, chip->irq_trig_fall);
+	clear_bit(hwirq, chip->irq_trig_level_high);
+	clear_bit(hwirq, chip->irq_trig_level_low);
 }
 
 static void pca953x_irq_print_chip(struct irq_data *data, struct seq_file *p)
@@ -838,6 +846,7 @@ static bool pca953x_irq_pending(struct pca953x_chip *chip, unsigned long *pendin
 	DECLARE_BITMAP(cur_stat, MAX_LINE);
 	DECLARE_BITMAP(new_stat, MAX_LINE);
 	DECLARE_BITMAP(trigger, MAX_LINE);
+	DECLARE_BITMAP(edges, MAX_LINE);
 	int ret;
 
 	ret = pca953x_read_regs(chip, chip->regs->input, cur_stat);
@@ -855,13 +864,34 @@ static bool pca953x_irq_pending(struct pca953x_chip *chip, unsigned long *pendin
 
 	bitmap_copy(chip->irq_stat, new_stat, gc->ngpio);
 
-	if (bitmap_empty(trigger, gc->ngpio))
-		return false;
+	/*
+	 * For edge-only configurations, return early if no edges detected.
+	 * When level-triggered IRQs are configured, skip this optimisation
+	 * because the current pin state itself determines pending status.
+	 */
+	if (bitmap_empty(chip->irq_trig_level_high, gc->ngpio) &&
+	    bitmap_empty(chip->irq_trig_level_low, gc->ngpio)) {
+		if (bitmap_empty(trigger, gc->ngpio))
+			return false;
+	}
 
+	/* Edge-triggered pending */
 	bitmap_and(cur_stat, chip->irq_trig_fall, old_stat, gc->ngpio);
 	bitmap_and(old_stat, chip->irq_trig_raise, new_stat, gc->ngpio);
-	bitmap_or(new_stat, old_stat, cur_stat, gc->ngpio);
-	bitmap_and(pending, new_stat, trigger, gc->ngpio);
+	bitmap_or(edges, old_stat, cur_stat, gc->ngpio);
+	bitmap_and(pending, edges, trigger, gc->ngpio);
+
+	/* Level-high: pin is high AND configured for level-high */
+	bitmap_and(cur_stat, new_stat, chip->irq_trig_level_high, gc->ngpio);
+	bitmap_and(cur_stat, cur_stat, chip->irq_mask, gc->ngpio);
+	bitmap_or(pending, pending, cur_stat, gc->ngpio);
+
+	/* Level-low: pin is low AND configured for level-low */
+	bitmap_complement(cur_stat, new_stat, gc->ngpio);
+	bitmap_and(cur_stat, cur_stat, reg_direction, gc->ngpio);
+	bitmap_and(old_stat, cur_stat, chip->irq_trig_level_low, gc->ngpio);
+	bitmap_and(old_stat, old_stat, chip->irq_mask, gc->ngpio);
+	bitmap_or(pending, pending, old_stat, gc->ngpio);
 
 	return !bitmap_empty(pending, gc->ngpio);
 }
@@ -871,15 +901,24 @@ static irqreturn_t pca953x_irq_handler(int irq, void *devid)
 	struct pca953x_chip *chip = devid;
 	struct gpio_chip *gc = &chip->gpio_chip;
 	DECLARE_BITMAP(pending, MAX_LINE);
+	unsigned long nhandled = 0;
 	int level;
 	bool ret;
 
-	bitmap_zero(pending, MAX_LINE);
+	/*
+	 * Loop while interrupts are pending.  For level-triggered child
+	 * IRQs the handler must keep dispatching until the pin leaves the
+	 * active level, otherwise the condition would be missed because
+	 * the GPIO expander's /INT is de-asserted after reading its
+	 * input register.
+	 */
+	do {
+		bitmap_zero(pending, MAX_LINE);
 
-	scoped_guard(mutex, &chip->i2c_lock)
-		ret = pca953x_irq_pending(chip, pending);
-	if (ret) {
-		ret = 0;
+		scoped_guard(mutex, &chip->i2c_lock)
+			ret = pca953x_irq_pending(chip, pending);
+		if (!ret)
+			break;
 
 		for_each_set_bit(level, pending, gc->ngpio) {
 			int nested_irq = irq_find_mapping(gc->irq.domain, level);
@@ -890,11 +929,11 @@ static irqreturn_t pca953x_irq_handler(int irq, void *devid)
 			}
 
 			handle_nested_irq(nested_irq);
-			ret = 1;
+			nhandled++;
 		}
-	}
+	} while (true);
 
-	return IRQ_RETVAL(ret);
+	return IRQ_RETVAL(nhandled);
 }
 
 static int pca953x_irq_setup(struct pca953x_chip *chip, int irq_base)
