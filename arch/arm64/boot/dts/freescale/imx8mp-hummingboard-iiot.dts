@@ -137,29 +137,20 @@
 		shutdown-gpios = <&tca6416_u20 9 GPIO_ACTIVE_HIGH>;
 	};
 
-	can-mux-controller {
+	can_mux: can-mux-controller {
 		compatible = "gpio-mux";
 		#mux-control-cells = <0>;
 		/*
-		 * Mux switches both flexcan1 and flexcan2 tx/rx between
-		 * expansion connector (J22) and on-board transceivers
-		 * using one GPIO: 0 = on-board, 1 connector.
+		 * Mux routes CAN bus signals between SoM connector pins,
+		 * expansion connector (J22) and on-board transceivers using
+		 * two GPIO:
+		 * - IO3: 0 = on-board transceivers, 1 expansion connector
+		 * - IO4: 0 = J9-55/57/59/61, 1 = J7-12/16 & J9-54/56
 		 */
-		mux-gpios = <&tca6416_u20 3 GPIO_ACTIVE_HIGH>;
-		/* default on-board */
-		idle-state = <0>;
-	};
-
-	can-som-mux-controller {
-		compatible = "gpio-mux";
-		#mux-control-cells = <0>;
-		/*
-		 * Mux switches can bus between different SoM board-to-board
-		 * connector pins which is used to support different SoMs.
-		 * i.MX8M Plus uses J7-12/16 and J9-54/56 for 2x flexcan.
-		 */
-		mux-gpios = <&tca6416_u20 4 GPIO_ACTIVE_HIGH>;
-		idle-state = <1>;
+		mux-gpios = <&tca6416_u20 3 GPIO_ACTIVE_HIGH>,
+			    <&tca6416_u20 4 GPIO_ACTIVE_HIGH>;
+		/* default J7-12/16 & J9-54/56 to on-board transceivers */
+		idle-state = <2>;
 	};
 
 	spi_mux: spi-mux-controller {
