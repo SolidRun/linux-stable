@@ -125,78 +125,69 @@
 		shutdown-gpios = <&tca6416_u20 9 GPIO_ACTIVE_HIGH>;
 	};
 
-	can1_can2_b2b_mux: mux-controller-0 {
+	can_mux: mux-controller-1 {
 		compatible = "gpio-mux";
-		#mux-control-cells = <0>;
 		/*
-		 * Mux switches both can1 and can2 tx/rx between
-		 * expansion connector (J22) and on-board transceivers
-		 * using one GPIO: 0 = on-board, 1 connector.
+		 * Mux routes CAN bus signals between SoM connector pins,
+		 * expansion connector (J22) and on-board transceivers using
+		 * two GPIO:
+		 * - IO3: 0 = on-board transceivers, 1 = expansion connector
+		 * - IO4: 0 = J9-55/57/59/61, 1 = J7-12/16 & J9-54/56
 		 */
-		mux-gpios = <&tca6416_u20 3 GPIO_ACTIVE_HIGH>;
-		/* default on-board */
+		mux-gpios = <&tca6416_u20 3 GPIO_ACTIVE_HIGH>,
+			    <&tca6416_u20 4 GPIO_ACTIVE_HIGH>;
+		/* default J9-55/57/59/61 to on-board transceivers */
 		idle-state = <0>;
-	};
-
-	mux-controller-1 {
-		compatible = "gpio-mux";
 		#mux-control-cells = <0>;
-		/*
-		 * Mux switches can bus between different SoM board-to-board
-		 * connector pins which is used to support different SoMs.
-		 * i.MX8M Plus uses J7-12/16 and J9-54/56 for 2x flexcan.
-		 */
-		mux-gpios = <&tca6416_u20 4 GPIO_ACTIVE_HIGH>;
-		idle-state = <1>;
 	};
 
 	spi_mux: mux-controller-2 {
 		compatible = "gpio-mux";
-		#mux-control-cells = <0>;
+		/* default on-board */
+		idle-state = <0>;
 		/*
 		 * Mux switches spi bus between on-board tpm
 		 * and expansion connector (J22).
 		 */
 		mux-gpios = <&tca6416_u21 0 GPIO_ACTIVE_HIGH>;
-		/* default on-board */
-		idle-state = <0>;
+		#mux-control-cells = <0>;
 	};
 
 	scif1_scif3_b2b_mux: mux-controller-3 {
 		compatible = "gpio-mux";
-		#mux-control-cells = <0>;
+		/* default on-board */
+		idle-state = <0>;
 		/*
 		 * Mux switches both scif1 and scif3 tx/rx between expansion
 		 * connector (J22) and on-board rs232/rs485 transceivers
-		 * using one GPIO: 0 = on-board, 1 connector.
+		 * using one GPIO: 0 = on-board, 1 = connector.
 		 */
 		mux-gpios = <&tca6416_u20 0 GPIO_ACTIVE_HIGH>;
-		/* default on-board */
-		idle-state = <0>;
+		#mux-control-cells = <0>;
 	};
 
 	scif1_rs_232_485_mux: mux-controller-4 {
 		compatible = "gpio-mux";
-		#mux-control-cells = <0>;
-		/*
-		 * Mux switches scif1 tx/rx between rs232 and rs485
-		 * transceivers. using one GPIO: 0 = rs232; 1 = rs485.
-		 */
-		mux-gpios = <&tca6416_u20 1 GPIO_ACTIVE_HIGH>;
 		/* default rs232 */
 		idle-state = <0>;
+		/*
+		 * Mux switches scif1 tx/rx between rs232 and rs485
+		 * transceivers. using one GPIO: 0 = rs232, 1 = rs485.
+		 */
+		mux-gpios = <&tca6416_u20 1 GPIO_ACTIVE_HIGH>;
+		#mux-control-cells = <0>;
 	};
 
 	scif3_rs_232_485_mux: mux-controller-5 {
 		compatible = "gpio-mux";
-		#mux-control-cells = <0>;
-		/*
-		 * Mux switches scif3 tx/rx between rs232 and rs485
-		 * transceivers. using one GPIO: 0 = rs232; 1 = rs485.
-		 */
-		mux-gpios = <&tca6416_u20 2 GPIO_ACTIVE_HIGH>;
 		/* default rs232 */
 		idle-state = <0>;
+		/*
+		 * Mux switches scif3 tx/rx between rs232 and rs485
+		 * transceivers. using one GPIO: 0 = rs232, 1 = rs485.
+		 */
+		mux-gpios = <&tca6416_u20 2 GPIO_ACTIVE_HIGH>;
+		#mux-control-cells = <0>;
 	};
 
 	gpio-keys {
