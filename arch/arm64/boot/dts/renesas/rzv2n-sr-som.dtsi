@@ -556,12 +556,58 @@
 	};
 
 	/* Clock Generator (P.N 5L35023B-616NLGI8)*/
+	/*
+		Output mapping
+		Index	Output	frequency	Usage
+		0		REF		24 MHz		Reference
+		1		SE1		24.576 MHz	Audio
+		2		SE2		32.768 kHz	RTC
+		3		SE3		22.5792 MHz	Audio
+		4		DIFF1	100 MHz		PCIe
+		5		DIFF2	100 MHz		PCIe
+	*/
+
+	/*
+	 * 5L35023B-000 (blank OTP) defaults to I2C addr 0x68.
+	 * 5L35023B-616 (OTP programmed) is at 0x69.
+	 *
+	 * The 0x68 node shifts a -000 chip to 0x69 by writing byte 0
+	 * with I2C_addr=01. The write to reg 0 succeeds (moves chip
+	 * to 0x69), remaining reg writes fail harmlessly.
+	 * On -616 boards, nothing at 0x68 so this node fails silently.
+	 *
+	 * The 0x69 node then programs the full -616 configuration.
+	 * On -616 boards: OTP already set, renesas,settings reinforces it.
+	 * On -000 boards: chip was just moved here, gets full config.
+	 */
+	versa3_fixup: versa3@68 {
+			compatible = "renesas,5l35023";
+			reg = <0x68>;
+			#clock-cells = <1>;
+			clocks = <&x1_clk>;
+			clock-names = "x1";
+			/* Byte 0 = a0: sets I2C_addr=01 → chip moves to 0x69.
+			 * Remaining bytes will NACK (chip already gone).
+			 */
+			renesas,settings = [
+				a0 00 bb 04 32 08 cc 21 19 4c f2 16 5f 22 f0 3e
+				00 80 00 00 00 00 00 00 0e 0c 19 12 3f f0 90 46
+				a0 80 b0 b0 9c
+			];
+	};
+
 	versa3: versa3@69 {
-			compatible = "renesas,5p35023";
+			compatible = "renesas,5l35023";
 			reg = <0x69>;
 			#clock-cells = <1>;
 			clocks = <&x1_clk>;
 			clock-names = "x1";
+			/* Full -616 register configuration */
+			renesas,settings = [
+				a0 00 bb 04 32 08 cc 21 19 4c f2 16 5f 22 f0 3e
+				00 80 00 00 00 00 00 00 0e 0c 19 12 3f f0 90 46
+				a0 80 b0 b0 9c
+			];
 			assigned-clocks = <&versa3 5>,
 								<&versa3 4>,
 								<&versa3 3>,
@@ -571,8 +617,6 @@
 			assigned-clock-rates =  <100000000>, <100000000>,
 									<22579200>, <32768>,
 									<24576000>, <24000000>;
-			clock-divider-read-only = <1>, <1>, <1>, <1>, <1>;
-			clock-flags = <2176>, <2176>, <2176>, <2052>, <2176>, <2048>;
 	};
 };
 
