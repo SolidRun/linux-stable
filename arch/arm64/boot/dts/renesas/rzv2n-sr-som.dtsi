@@ -409,21 +409,19 @@
     status = "disabled";
 };
 
+/* USB2 base: no dr_mode keeps the PHY non-OTG (host); carrier opts into OTG. */
 &ohci0 {
 	memory-region = <&global_cma>;
-	dr_mode = "host";
 	status = "okay";
 };
 
 &ehci0 {
 	memory-region = <&global_cma>;
-	dr_mode = "otg";
 	status = "okay";
 };
 
 &hsusb {
-	dr_mode = "host";
-	status = "okay";
+	status = "disabled";
 };
 
 &usb20phyrst {

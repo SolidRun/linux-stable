@@ -26,8 +26,8 @@
 	v_1_2: regulator-1-2 {
 		compatible = "regulator-fixed";
 		regulator-name = "1v2";
-		regulator-min-microvolt = <1800000>;
-		regulator-max-microvolt = <1800000>;
+		regulator-min-microvolt = <1200000>;
+		regulator-max-microvolt = <1200000>;
 	};
 
 	v_3_3: regulator-3-3 {
@@ -233,31 +233,27 @@
 	};
 };
 
+/* USB2: on-board USB-A, host-only; VBUS from reg_vbus1. */
 &ehci0 {
 	spurious-oc;
-	status = "okay";
-};
-
-&ehci0 {
-	spurious-oc;
-	status = "okay";
-};
-
-&eth0 {
-	status = "okay";
-};
-
-&hsusb {
 	status = "okay";
 };
 
 &ohci0 {
 	spurious-oc;
-	dr_mode = "otg";
 	status = "okay";
 };
 
 &usb2_phy0 {
+	status = "okay";
+};
+
+/* USB3 routed via on-board CYUSB3304-68LTX 1:4 USB 3.0 hub. */
+&xhci0 {
+	status = "okay";
+};
+
+&usb3_phy0 {
 	status = "okay";
 };
 
@@ -376,6 +372,7 @@
 		 * Line 13 is used as touchscreen IRQ by the DSI panel
 		 * overlay. Do not hog it to avoid conflict.
 		 */
+
 	};
 
 	carrier_eeprom: at24c02@57 {

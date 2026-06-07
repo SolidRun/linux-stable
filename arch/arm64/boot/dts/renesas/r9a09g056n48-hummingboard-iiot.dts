@@ -12,5 +12,5 @@
 
 / {
 	model = "Solidrun RZ/V2N HummingBoard IIoT";
-	compatible = "solidrun,rzv2n-hummingboard-iiot", "solidrun,rzv2n-sr-som", "renesas,r9a09g056n44", "renesas,r9a09g056";
+	compatible = "solidrun,rzv2n-hummingboard-iiot", "solidrun,rzv2n-sr-som", "renesas,r9a09g056n48", "renesas,r9a09g056";
 };
