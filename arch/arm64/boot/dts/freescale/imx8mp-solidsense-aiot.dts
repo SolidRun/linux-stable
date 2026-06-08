@@ -112,7 +112,7 @@
 
 	lte-reset-hog {
 		gpio-hog;
-		gpios = <28 GPIO_ACTIVE_HIGH>;
+		gpios = <28 GPIO_ACTIVE_LOW>;
 		output-low;
 		line-name = "lte-reset";
 	};
