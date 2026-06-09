@@ -1,6 +1,7 @@
 /dts-v1/;
 
 #include <dt-bindings/usb/pd.h>
+#include <dt-bindings/leds/common.h>
 #include "imx8mp-sr-som.dtsi"
 
 / {
@@ -15,7 +16,7 @@
 
 		CPU_LED_D10 {
 			label = "CPU_LED_D10";
-			gpios = <&gpio3 6 0>;
+			gpios = <&gpio3 6 GPIO_ACTIVE_HIGH>;
 			default-state = "on";
 		};
 	};
@@ -34,7 +35,7 @@
 	reg_vdd_1v8: regulator-vdd-1v8 {
 		compatible = "regulator-fixed";
 		regulator-name = "VDD_1V8";
-		vdd-3v3-supply = <&buck4>;
+		vin-supply = <&buck4>;
 		regulator-min-microvolt = <1800000>;
 		regulator-max-microvolt = <1800000>;
 		regulator-always-on;
@@ -51,17 +52,23 @@
 		enable-active-high;
 	};
 
-	/* <TBD> */
-	/* LTE_PWR - CELL_VBAT 3.45V (J7[14]) MX8MP_IOMUXC_GPIO1_IO09__GPIO1_IO09 */
-	reg_cell_vbat: regulator-cell-vbat {
-		compatible = "regulator-fixed";
+	rfkill_lte: rfkill-lte {
+		compatible = "rfkill-gpio";
 		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_reg_cell_vbat>;
-		regulator-name = "CELL_VBAT";
-		regulator-min-microvolt = <3450000>;
-		regulator-max-microvolt = <3450000>;
-		gpio = <&gpio1 9 GPIO_ACTIVE_HIGH>;
-		enable-active-high;
+		pinctrl-0 = <&pinctrl_lte_rfkill>; /* muxes both gpio1_9 and gpio3_28 */
+		label = "lte";
+		radio-type = "wwan";
+
+		/* CELL_VBAT enable (gpio1_9): unblocked -> logic1 -> HIGH -> powered */
+		shutdown-gpios = <&gpio1 9 GPIO_ACTIVE_HIGH>;
+
+		/* LTE_RST / RESETN (gpio3_28). Physical line is active-low, BUT the driver
+		* drives this GPIO to logic-1 when unblocked, so declare ACTIVE_HIGH:
+		* unblocked -> logic1 -> physical HIGH -> module OUT of reset.
+		*/
+		reset-gpios = <&gpio3 28 GPIO_ACTIVE_HIGH>;
+
+		status = "okay";
 	};
 
 	sound-tac5111 {
@@ -105,19 +112,6 @@
 	};
 };
 
-/* <TBD> */
-&gpio3 {
-	pinctrl-0 = <&lte_reset_pins>;
-	pinctrl-names = "default";
-
-	lte-reset-hog {
-		gpio-hog;
-		gpios = <28 GPIO_ACTIVE_LOW>;
-		output-low;
-		line-name = "lte-reset";
-	};
-};
-
 &aud2htx {
 	status = "okay";
 };
@@ -127,34 +121,13 @@
 	status = "okay";
 };
 
-&ecspi2 {
-	#address-cells = <1>;
-	#size-cells = <0>;
-	fsl,spi-num-chipselects = <1>;
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_ecspi2 &pinctrl_ecspi2_cs>;
-	cs-gpios = <&gpio5 13 GPIO_ACTIVE_LOW>;
-	status = "okay";
-
-	spidev1: spi@0 {
-		reg = <0>;
-		compatible = "rohm,dh2228fv"; /* spidev */
-		spi-max-frequency = <10000000>;
-		status = "okay";
-	};
-};
-
 /*eth0*/
 &eqos {
-	status = "okay";
-};
-
-&flexspi {
-	pinctrl-names = "default";
 	status = "disabled";
 };
 
 &i2c2 {
+	/* Audio codec */
 	codec: audio-codec@50 {
 		compatible = "ti,tac5111";
 		reg = <0x50>;
@@ -199,50 +172,48 @@
 		ti,gpa-gpio = <0>;
 		ti,gpa-threshold = <75>, <186>;
 	};
-};
 
-&i2c3 {
-	rtc: rtc@69 {
-		compatible = "abracon,ab1805";
-		reg = <0x69>;
-		abracon,tc-diode = "schottky";
-		abracon,tc-resistor = <3>;
+	/*
+	 * I2C devices on carrier board:
+	 * - STM32U031C8U6 MCU at 0x18
+	 * - TAC5111IRGER Audio Codec at 0x50
+	 * - AT24C02D-SSHM EEPROM ar 0x57
+	 * - TCA9546APWR I2C Switch at 0x70
+	 * Flash Card (J6):
+	 * - LM3645YCGR Camera Flash at 0x65
+	 * - OPT4001DTSR Ambient Light Sensor at 0x44
+	 * - HDC3022DEJR Humidity/Temperature sensor at 0x46
+	 */
+	i2c-switch@70 {
+		compatible = "nxp,pca9546";
+		reg = <0x70>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reset-gpios = <&gpio1 13 GPIO_ACTIVE_LOW>;
+
+		i2c_csi0: i2c@0 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0>;
+		};
+
+		i2c_csi1: i2c@1 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <1>;
+		};
+	};
+	carrier_eeprom: at24c02@57 {
+		compatible = "atmel,24c02";
+		reg = <0x57>;
 	};
 };
 
-&irqsteer_hdmi {
-	status = "disabled";
-};
-
-&hdmi {
-	status = "disabled";
-};
-
-&hdmi_blk_ctrl {
-	status = "disabled";
-};
-
-&hdmi_pavi {
-	status = "disabled";
-};
-
-&hdmiphy {
-	status = "disabled";
-};
-
 &isp_0 {
-	status = "okay";
+	status = "disabled";
 };
 
 &isp_1 {
-	status = "okay";
-};
-
-&lcdif1 {
-	status = "disabled";
-};
-
-&lcdif3 {
 	status = "disabled";
 };
 
@@ -262,36 +233,9 @@
 	assigned-clock-parents = <&clk IMX8MP_SYS_PLL1_266M>;
 	assigned-clock-rates = <266000000>;
 	status = "disabled";
-
 };
 
 &mipi_csi_1 {
-	status = "disabled";
-};
-
-&mipi_dsi {
-	status = "disabled";
-};
-
-&pcie{
-	pinctrl-names = "default";
-	// PCIe reset signals are board-related
-	ext_osc = <0>;
-	clocks = <&clk IMX8MP_CLK_HSIO_ROOT>,
-		 <&clk IMX8MP_CLK_PCIE_AUX>,
-		 <&clk IMX8MP_CLK_HSIO_AXI>,
-		 <&clk IMX8MP_CLK_PCIE_ROOT>;
-	clock-names = "pcie", "pcie_aux", "pcie_phy", "pcie_bus";
-	assigned-clocks = <&clk IMX8MP_CLK_HSIO_AXI>,
-			  <&clk IMX8MP_CLK_PCIE_AUX>;
-	assigned-clock-rates = <500000000>, <10000000>;
-	assigned-clock-parents = <&clk IMX8MP_SYS_PLL2_500M>,
-				 <&clk IMX8MP_SYS_PLL2_50M>;
-	status = "disabled";
-};
-
-&pcie_phy{
-	ext_osc = <0>;
 	status = "disabled";
 };
 
@@ -313,14 +257,7 @@
 };
 
 &sdma2 {
-        status = "okay";
-};
-
-&uart3 {
-	pinctrl-names = "default";
-	assigned-clocks = <&clk IMX8MP_CLK_UART3>;
-	assigned-clock-parents = <&clk IMX8MP_SYS_PLL1_80M>;
-	status = "disabled";
+	status = "okay";
 };
 
 &usb3_phy0 {
@@ -389,20 +326,6 @@
 		>;
 	};
 
-	pinctrl_ecspi2: ecspi2grp {
-		fsl,pins = <
-			MX8MP_IOMUXC_ECSPI2_SCLK__ECSPI2_SCLK		0x82
-			MX8MP_IOMUXC_ECSPI2_MOSI__ECSPI2_MOSI		0x82
-			MX8MP_IOMUXC_ECSPI2_MISO__ECSPI2_MISO		0x82
-		>;
-	};
-
-	pinctrl_ecspi2_cs: ecspi2cs {
-		fsl,pins = <
-			MX8MP_IOMUXC_ECSPI2_SS0__GPIO5_IO13		0x40000
-		>;
-	};
-
 	pinctrl_gpio_led: gpioledgrp {
 		fsl,pins = <
 			MX8MP_IOMUXC_NAND_DATA00__GPIO3_IO06	0x19
@@ -434,12 +357,6 @@
 	pinctrl_reg_cam_aud_pwr: regcamaudpwrgrp {
 		fsl,pins = <
 			MX8MP_IOMUXC_GPIO1_IO08__GPIO1_IO08		0x40
-		>;
-	};
-
-	pinctrl_reg_cell_vbat: regcellvbatgrp {
-		fsl,pins = <
-			MX8MP_IOMUXC_GPIO1_IO09__GPIO1_IO09		0x40
 		>;
 	};
 
@@ -497,10 +414,10 @@
 		>;
 	};
 
-	/* <TBD> */
-	lte_reset_pins: lte-reset-pins {
+	pinctrl_lte_rfkill: lte_rfkill_grp {
 		fsl,pins = <
-				MX8MP_IOMUXC_HDMI_CEC__GPIO3_IO28	0x20
+			MX8MP_IOMUXC_HDMI_CEC__GPIO3_IO28		0x40
+			MX8MP_IOMUXC_GPIO1_IO09__GPIO1_IO09		0x40
 		>;
 	};
 };

@@ -162,8 +162,12 @@ dtb-$(CONFIG_ARCH_MXC) += imx8mp-hummingboard-pulse-basler.dtbo
 dtb-$(CONFIG_ARCH_MXC) += imx8mp-sr-som-basler.dtbo
 DTC_FLAGS_imx8mp-holosis := -@
 dtb-$(CONFIG_ARCH_MXC) += imx8mp-holosis.dtb
+# Base built with -@ (symbols) so the Flash Card (J6) .dtbo can be
+# applied at runtime ("fdt apply"). Build the overlay standalone; a
+# *-dtbs merge would clash with the same-named overlay .dts.
 DTC_FLAGS_imx8mp-solidsense-aiot := -@
 dtb-$(CONFIG_ARCH_MXC) += imx8mp-solidsense-aiot.dtb
+dtb-$(CONFIG_ARCH_MXC) += imx8mp-solidsense-aiot-addon-flash-card.dtbo
 
 imx8mp-evk-revb4-dtbs := imx8mp-evk.dtb imx8mp-evk-revb4.dtbo
 imx8mp-evk-revb4-rm67191-dtbs := imx8mp-evk-rm67191.dtb imx8mp-evk-revb4.dtbo
