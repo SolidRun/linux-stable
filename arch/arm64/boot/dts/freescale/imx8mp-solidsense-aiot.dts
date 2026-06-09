@@ -1,0 +1,524 @@
+/dts-v1/;
+
+#include <dt-bindings/usb/pd.h>
+#include "imx8mp-sr-som.dtsi"
+#include <dt-bindings/leds/common.h>
+
+/ {
+	model = "i.MX8MP Solidsense AIOT";
+	compatible = "fsl,imx8mp-sr-som", "fsl,imx8mp";
+
+	/*
+	 * The SoM dtsi declares rtc0 = &rtc, but the AIOT carrier has no
+	 * RTC populated yet. Drop the dangling alias so the DTB builds.
+	 * (Re-add an rtc node labelled "rtc" when an RTC is fitted.)
+	 */
+	aliases {
+		/delete-property/ rtc0;
+	};
+
+	leds {
+		compatible = "gpio-leds";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_gpio_led>;
+
+		CPU_LED_D10 {
+			label = "CPU_LED_D10";
+			gpios = <&gpio3 6 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+		};
+	};
+
+	reg_usdhc2_vmmc: regulator-usdhc2 {
+		compatible = "regulator-fixed";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_reg_usdhc2_vmmc>;
+		regulator-name = "VSD_3V3";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		gpio = <&gpio2 19 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+	};
+
+	reg_vdd_1v8: regulator-vdd-1v8 {
+		compatible = "regulator-fixed";
+		regulator-name = "VDD_1V8";
+		vin-supply = <&buck4>;
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		regulator-always-on;
+	};
+
+	v_3_3: regulator-3-3 {
+		compatible = "regulator-fixed";
+		regulator-name = "3v3";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+	};
+
+	reg_vdd_5v: regulator-vdd-5v {
+		compatible = "regulator-fixed";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_reg_cam_aud_pwr>;
+		regulator-name = "CAM_AUD_PWR_EN_VDD_5V";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		gpio = <&gpio1 8 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+		regulator-always-on;
+	};
+
+	rfkill_lte: rfkill-lte {
+		compatible = "rfkill-gpio";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_lte_rfkill>; /* muxes both gpio1_9 and gpio3_28 */
+		label = "lte";
+		radio-type = "wwan";
+
+		/* CELL_VBAT enable (gpio1_9): unblocked -> logic1 -> HIGH -> powered */
+		shutdown-gpios = <&gpio1 9 GPIO_ACTIVE_HIGH>;
+
+		/* LTE_RST / RESETN (gpio3_28). Physical line is active-low, BUT the driver
+		* drives this GPIO to logic-1 when unblocked, so declare ACTIVE_HIGH:
+		* unblocked -> logic1 -> physical HIGH -> module OUT of reset.
+		*/
+		reset-gpios = <&gpio3 28 GPIO_ACTIVE_HIGH>;
+
+		status = "okay";
+	};
+
+	sound-tac5111 {
+		/*
+		 * TAC5111 Codec on i.MX8 SAI3 with 4-wire i2s interface.
+		 *
+		 * - SoC generates MCLK for Codec at 24.576
+		 *   (avoids clock drift between SoC and Codec)
+		 * - SoC is bitclock and frame master
+		 * - I2S interface width max. S32_LE
+		 * - Codec GPIO1 & GPIO2 with dual PDM microphone
+		 * - Codec OUT1P/OUT1M differential mono output
+		 *   routed to speaker through amplifier
+		 *
+		 */
+		compatible = "simple-audio-card";
+		simple-audio-card,format = "i2s";
+		simple-audio-card,name = "Analog";
+		simple-audio-card,bitclock-master = <&cpu_dai>;
+		simple-audio-card,frame-master = <&cpu_dai>;
+
+		simple-audio-card,widgets =
+			"Line", "Line In",
+			"Line", "Line Out";
+
+		simple-audio-card,routing =
+			"DIN1", "Line In",
+			"DIN2", "Line In",
+			"Line Out", "OUT1";
+
+		cpu_dai: simple-audio-card,cpu {
+			sound-dai = <&sai3>;
+		};
+
+		codec_dai: simple-audio-card,codec {
+			sound-dai = <&codec>;
+			/* this ensures codec set_sysclk call-back executes */
+			system-clock-frequency = <24576000>;
+			mclk-fs = <512>;
+		};
+	};
+};
+
+&aud2htx {
+	status = "okay";
+};
+
+&basler_1 {
+        status = "disabled";
+};
+
+&easrc {
+	fsl,asrc-rate  = <48000>;
+	status = "okay";
+};
+
+/* eth0 */
+&eqos {
+	status = "disabled";
+};
+
+&flexspi {
+	pinctrl-names = "default";
+	status = "disabled";
+};
+
+&i2c2 {
+	clock-frequency = <100000>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_i2c2>;
+	status = "okay";
+
+	/* Audio codec - currently disabled pending driver verification */
+	codec: audio-codec@50 {
+		compatible = "ti,tac5111";
+		reg = <0x50>;
+		#sound-dai-cells = <0>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_codec>;
+		interrupts-extended = <&gpio4 21 IRQ_TYPE_EDGE_FALLING>;
+		avdd-supply = <&v_3_3>;
+		iovdd-supply = <&v_3_3>;
+		/*
+		 * configure gpio functionality on gpio pins:
+		 * - GPIO1: pdm data input
+		 * - GPIO2: pdm clock output
+		 * - GPO1:  chip irq output
+		 */
+		ti,gpios-func = <1>, <4>, <3>;
+		/*
+		 * select pdm input pins for channels 1/2 & 3/4:
+		 * - ch0/1: gpio1
+		 * - ch2/3: not used
+		 */
+		ti,pdm-input-pins = <1>, <0>;
+		/* configure gpi1 as cclk input */
+		ti,gpi1-func = <2>;
+		/*
+		 * configure MICBIAS and VREF to fix driver probe error:
+		 * [    8.570840] tac5x1x-codec 1-0050: Fail to get verf E:-22
+		 *
+		 * Yet bindings clearly state to that these are powered down if "node" (read property) omitted:
+		 * - "If node is omitted then MicBias is powered down."
+		 * - "If node is omitted then VREF is powered down."
+		 * This board does not use them ...
+		 */
+		ti,vref = <0>;
+		ti,micbias-vg = <3>;
+		/* configure gpi(o) drive:
+		 * - GPIO1: floating, i.e. output buffer disabled
+		 * - GPIO2: push-pull, i.e. active low & active high (PDM clock)
+		 * - GPO1:  open-drain, i.e. active low & high impedance
+		 */
+		ti,gpios-drive = <0>, <1>, <3>;
+		ti,gpa-gpio = <0>;
+		ti,gpa-threshold = <75>, <186>;
+	};
+
+	/*
+	 * I2C devices on carrier board:
+	 * - STM32U031C8U6 MCU at 0x18
+	 * - TAC5111IRGER Audio Codec at 0x50
+	 * - AT24C02D-SSHM EEPROM ar 0x57
+	 * - TCA9546APWR I2C Switch at 0x70
+	 * Flash Card (J6):
+	 * - LM3645YCGR Camera Flash at 0x65
+	 * - OPT4001DTSR Ambient Light Sensor at 0x44
+	 * - HDC3022DEJR Humidity/Temperature sensor at 0x46
+	 */
+	i2c-switch@70 {
+		compatible = "nxp,pca9546";
+		reg = <0x70>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reset-gpios = <&gpio1 13 GPIO_ACTIVE_LOW>;
+
+		i2c_csi0: i2c@0 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0>;
+		};
+
+		i2c_csi1: i2c@1 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <1>;
+		};
+	};
+
+	carrier_eeprom: at24c02@57 {
+		compatible = "atmel,24c02";
+		reg = <0x57>;
+	};
+};
+
+&irqsteer_hdmi {
+	status = "disabled";
+};
+
+&hdmi {
+	status = "disabled";
+};
+
+&hdmi_blk_ctrl {
+	status = "disabled";
+};
+
+&hdmi_pavi {
+	status = "disabled";
+};
+
+&hdmiphy {
+	status = "disabled";
+};
+
+&isp_0 {
+	status = "okay";
+};
+
+&isp_1 {
+	status = "okay";
+};
+
+&lcdif1 {
+	status = "disabled";
+};
+
+&lcdif3 {
+	status = "disabled";
+};
+
+&micfil {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_pdm>;
+	assigned-clocks = <&clk IMX8MP_CLK_PDM>;
+	assigned-clock-parents = <&clk IMX8MP_AUDIO_PLL1_OUT>;
+	assigned-clock-rates = <196608000>;
+	status = "disabled";
+};
+
+&mipi_csi_0 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+	clock-frequency = <266000000>;
+	assigned-clock-parents = <&clk IMX8MP_SYS_PLL1_266M>;
+	assigned-clock-rates = <266000000>;
+	status = "disabled";
+
+};
+
+&mipi_csi_1 {
+	status = "disabled";
+};
+
+&mipi_dsi {
+	status = "disabled";
+};
+
+&pcie{
+	pinctrl-names = "default";
+	// PCIe reset signals are board-related
+	ext_osc = <0>;
+	clocks = <&clk IMX8MP_CLK_HSIO_ROOT>,
+		 <&clk IMX8MP_CLK_PCIE_AUX>,
+		 <&clk IMX8MP_CLK_HSIO_AXI>,
+		 <&clk IMX8MP_CLK_PCIE_ROOT>;
+	clock-names = "pcie", "pcie_aux", "pcie_phy", "pcie_bus";
+	assigned-clocks = <&clk IMX8MP_CLK_HSIO_AXI>,
+			  <&clk IMX8MP_CLK_PCIE_AUX>;
+	assigned-clock-rates = <500000000>, <10000000>;
+	assigned-clock-parents = <&clk IMX8MP_SYS_PLL2_500M>,
+				 <&clk IMX8MP_SYS_PLL2_50M>;
+	status = "disabled";
+};
+
+&pcie_phy{
+	ext_osc = <0>;
+	status = "disabled";
+};
+
+&pwm4 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_pwm4>;
+	status = "okay";
+};
+
+&sai3 {
+	#sound-dai-cells = <0>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_sai3>;
+	assigned-clocks = <&clk IMX8MP_CLK_SAI3>;
+	assigned-clock-parents = <&clk IMX8MP_AUDIO_PLL1_OUT>;
+	assigned-clock-rates = <12288000>;
+	clocks = <&audio_blk_ctrl IMX8MP_CLK_AUDIO_BLK_CTRL_SAI3_IPG>, <&clk IMX8MP_CLK_DUMMY>,
+		 <&audio_blk_ctrl IMX8MP_CLK_AUDIO_BLK_CTRL_SAI3_MCLK1>, <&clk IMX8MP_CLK_DUMMY>,
+		 <&clk IMX8MP_CLK_DUMMY>;
+	clock-names = "bus", "mclk0", "mclk1", "mclk2", "mclk3";
+	fsl,sai-mclk-direction-output;
+	status = "okay";
+};
+
+&sdma2 {
+        status = "okay";
+};
+
+&usb3_phy0 {
+	fsl,phy-tx-vref-tune = <0xe>;
+	fsl,phy-tx-preemp-amp-tune = <3>;
+	fsl,phy-tx-vboost-level = <5>;
+	fsl,phy-comp-dis-tune = <7>;
+	fsl,pcs-tx-deemph-3p5db = <0x21>;
+	fsl,phy-pcs-tx-swing-full = <0x7f>;
+	status = "okay";
+};
+
+&usb3_0 {
+	status = "okay";
+};
+
+&usb_dwc3_0 {
+	dr_mode = "host";
+	snps,dis-u1-entry-quirk;
+	snps,dis-u2-entry-quirk;
+	status = "okay";
+};
+
+&usb3_phy1 {
+	fsl,phy-tx-vref-tune = <0xe>;
+	fsl,phy-tx-preemp-amp-tune = <3>;
+	fsl,phy-tx-vboost-level = <5>;
+	fsl,phy-comp-dis-tune = <7>;
+	fsl,pcs-tx-deemph-3p5db = <0x21>;
+	fsl,phy-pcs-tx-swing-full = <0x7f>;
+	status = "okay";
+};
+
+&usb3_1 {
+	status = "okay";
+};
+
+&usb_dwc3_1 {
+	dr_mode = "host";
+	snps,dis-u1-entry-quirk;
+	snps,dis-u2-entry-quirk;
+	status = "okay";
+};
+
+&usdhc2 {
+	assigned-clocks = <&clk IMX8MP_CLK_USDHC2>;
+	assigned-clock-rates = <400000000>;
+	pinctrl-names = "default", "state_100mhz", "state_200mhz";
+	pinctrl-0 = <&pinctrl_usdhc2>, <&pinctrl_usdhc2_gpio>;
+	pinctrl-1 = <&pinctrl_usdhc2_100mhz>, <&pinctrl_usdhc2_gpio>;
+	pinctrl-2 = <&pinctrl_usdhc2_200mhz>, <&pinctrl_usdhc2_gpio>;
+	cd-gpios = <&gpio2 12 GPIO_ACTIVE_LOW>;
+	vmmc-supply = <&reg_usdhc2_vmmc>;
+	voltage-ranges = <1800 1800 3300 3300>;
+	bus-width = <4>;
+	status = "okay";
+};
+
+&iomuxc {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_hog>;
+
+	pinctrl_codec: codecgrp {
+		fsl,pins = <
+			/* pull-up */
+			MX8MP_IOMUXC_SAI2_RXFS__GPIO4_IO21		0x140
+		>;
+	};
+
+	pinctrl_gpio_led: gpioledgrp {
+		fsl,pins = <
+			MX8MP_IOMUXC_NAND_DATA00__GPIO3_IO06	0x19
+		>;
+	};
+
+	pinctrl_hog: hoggrp {
+			fsl,pins = <
+			>;
+	};
+
+	pinctrl_i2c2: i2c2grp {
+		fsl,pins = <
+			MX8MP_IOMUXC_I2C2_SCL__I2C2_SCL			0x400001c3
+			MX8MP_IOMUXC_I2C2_SDA__I2C2_SDA			0x400001c3
+		>;
+	};
+
+	pinctrl_pdm: pdmgrp {
+		fsl,pins = <
+			MX8MP_IOMUXC_SAI5_RXC__AUDIOMIX_PDM_CLK			0xd6
+			MX8MP_IOMUXC_SAI5_RXD0__AUDIOMIX_PDM_BIT_STREAM00	0xd6
+			MX8MP_IOMUXC_SAI5_RXD1__AUDIOMIX_PDM_BIT_STREAM01	0xd6
+			MX8MP_IOMUXC_SAI5_RXD2__AUDIOMIX_PDM_BIT_STREAM02	0xd6
+			MX8MP_IOMUXC_SAI5_RXD3__AUDIOMIX_PDM_BIT_STREAM03	0xd6
+		>;
+	};
+
+	pinctrl_pwm4: pwm4grp {
+		fsl,pins = <
+			MX8MP_IOMUXC_SAI5_RXFS__PWM4_OUT		0x116
+		>;
+	};
+
+	pinctrl_reg_usdhc2_vmmc: regusdhc2vmmcgrp {
+		fsl,pins = <
+			MX8MP_IOMUXC_SD2_RESET_B__GPIO2_IO19		0x40
+		>;
+	};
+
+	pinctrl_reg_cam_aud_pwr: regcamaudpwrgrp {
+		fsl,pins = <
+			MX8MP_IOMUXC_GPIO1_IO08__GPIO1_IO08		0x40
+		>;
+	};
+
+	pinctrl_sai3: sai3grp {
+		fsl,pins = <
+			MX8MP_IOMUXC_SAI3_MCLK__AUDIOMIX_SAI3_MCLK	0xd6
+			MX8MP_IOMUXC_SAI3_TXFS__AUDIOMIX_SAI3_TX_SYNC	0xd6
+			MX8MP_IOMUXC_SAI3_TXC__AUDIOMIX_SAI3_TX_BCLK	0xd6
+			MX8MP_IOMUXC_SAI3_TXD__AUDIOMIX_SAI3_TX_DATA00	0xd6
+			MX8MP_IOMUXC_SAI3_RXD__AUDIOMIX_SAI3_RX_DATA00	0xd6
+		>;
+	};
+
+	pinctrl_usdhc2: usdhc2grp {
+		fsl,pins = <
+			MX8MP_IOMUXC_SD2_CLK__USDHC2_CLK		0x190
+			MX8MP_IOMUXC_SD2_CMD__USDHC2_CMD		0x1d0
+			MX8MP_IOMUXC_SD2_DATA0__USDHC2_DATA0		0x1d0
+			MX8MP_IOMUXC_SD2_DATA1__USDHC2_DATA1		0x1d0
+			MX8MP_IOMUXC_SD2_DATA2__USDHC2_DATA2		0x1d0
+			MX8MP_IOMUXC_SD2_DATA3__USDHC2_DATA3		0x1d0
+			MX8MP_IOMUXC_GPIO1_IO04__USDHC2_VSELECT		0xc1
+		>;
+	};
+
+	pinctrl_usdhc2_100mhz: usdhc2grp-100mhz {
+		fsl,pins = <
+			MX8MP_IOMUXC_SD2_CLK__USDHC2_CLK		0x194
+			MX8MP_IOMUXC_SD2_CMD__USDHC2_CMD		0x1d4
+			MX8MP_IOMUXC_SD2_DATA0__USDHC2_DATA0		0x1d4
+			MX8MP_IOMUXC_SD2_DATA1__USDHC2_DATA1		0x1d4
+			MX8MP_IOMUXC_SD2_DATA2__USDHC2_DATA2		0x1d4
+			MX8MP_IOMUXC_SD2_DATA3__USDHC2_DATA3		0x1d4
+			MX8MP_IOMUXC_GPIO1_IO04__USDHC2_VSELECT 	0xc1
+		>;
+	};
+
+	pinctrl_usdhc2_200mhz: usdhc2grp-200mhz {
+		fsl,pins = <
+			MX8MP_IOMUXC_SD2_CLK__USDHC2_CLK		0x196
+			MX8MP_IOMUXC_SD2_CMD__USDHC2_CMD		0x1d6
+			MX8MP_IOMUXC_SD2_DATA0__USDHC2_DATA0		0x1d6
+			MX8MP_IOMUXC_SD2_DATA1__USDHC2_DATA1		0x1d6
+			MX8MP_IOMUXC_SD2_DATA2__USDHC2_DATA2		0x1d6
+			MX8MP_IOMUXC_SD2_DATA3__USDHC2_DATA3		0x1d6
+			MX8MP_IOMUXC_GPIO1_IO04__USDHC2_VSELECT 	0xc1
+		>;
+	};
+
+	pinctrl_usdhc2_gpio: usdhc2grp-gpio {
+		fsl,pins = <
+			MX8MP_IOMUXC_SD2_CD_B__GPIO2_IO12 		0x1c4
+		>;
+	};
+
+	pinctrl_lte_rfkill: lte_rfkill_grp {
+		fsl,pins = <
+			MX8MP_IOMUXC_HDMI_CEC__GPIO3_IO28		0x40
+			MX8MP_IOMUXC_GPIO1_IO09__GPIO1_IO09		0x40
+		>;
+	};
+};
