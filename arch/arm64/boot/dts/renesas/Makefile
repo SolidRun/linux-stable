@@ -104,6 +104,7 @@ dtb-$(CONFIG_ARCH_R9A09G056) += rzv2n-hummingboard-iiot-panel-dsi-WJ70N3TYJHMNG0
 dtb-$(CONFIG_ARCH_R9A09G056) += rzv2n-hummingboard-iiot-csi-camera-imx678.dtbo
 dtb-$(CONFIG_ARCH_R9A09G056) += rzv2n-solidsense-aiot-csi-camera-imx678-j8.dtbo
 dtb-$(CONFIG_ARCH_R9A09G056) += rzv2n-solidsense-aiot-csi-camera-imx678-j17.dtbo
+dtb-$(CONFIG_ARCH_R9A09G056) += rzv2n-solidsense-aiot-addon-flash-card.dtbo
 dtb-$(CONFIG_ARCH_R9A09G056) += rzv2n-hummingboard-pro-csi-camera-ar0521.dtbo
 
 dtb-$(CONFIG_ARCH_R9A09G047) += r9a09g047e57-smarc.dtb

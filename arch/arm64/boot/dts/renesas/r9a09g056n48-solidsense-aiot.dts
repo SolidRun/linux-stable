@@ -12,7 +12,7 @@
 
 / {
 	model = "Solidrun RZ/V2N Solidsense AIOT";
-	compatible = "solidrun,rzv2n-solidsense-aiot", "solidrun,rzv2n-sr-som", "renesas,r9a09g056n44", "renesas,r9a09g056";
+	compatible = "solidrun,rzv2n-sr-som", "renesas,r9a09g056n48", "renesas,r9a09g056";
 
 	aliases {
 		i2c3 = &i2c_csi0;
@@ -32,8 +32,8 @@
 	v_1_2: regulator-1-2 {
 		compatible = "regulator-fixed";
 		regulator-name = "1v2";
-		regulator-min-microvolt = <1800000>;
-		regulator-max-microvolt = <1800000>;
+		regulator-min-microvolt = <1200000>;
+		regulator-max-microvolt = <1200000>;
 	};
 
 	v_3_3: regulator-3-3 {
@@ -61,30 +61,20 @@
 		regulator-always-on;
 	};
 
-	/* LTE_PWR - CELL_VBAT 3.45V (J7[14]) */
-	reg_cell_vbat: regulator-cell-vbat {
-		compatible = "regulator-fixed";
-		pinctrl-names = "default";
-		regulator-name = "CELL_VBAT";
-		vin-supply = <&v_5_0>;
-		regulator-min-microvolt = <3450000>;
-		regulator-max-microvolt = <3450000>;
-		gpios = <&pinctrl RZG2L_GPIO(6, 2) GPIO_ACTIVE_HIGH>;
-		enable-active-high;
-		regulator-always-on;
-	};
-
-	/* <TBD> */
-	rfkill_lte_gnss {
+	/*
+	 * LTE modem (Sequans GC02S1) power/reset via rfkill-gpio. Needs the
+	 * of_match_table backport in net/rfkill/rfkill-gpio.c (mainline 6.1 is
+	 * ACPI-only). Mutually exclusive with the gpio-hog fallback below.
+	 *   shutdown-gpios = P62 (CELL_VBAT enable): unblocked -> HIGH -> powered.
+	 *   reset-gpios    = P42 (RESETN, active-low): driver drives logic-1 when
+	 *                    unblocked, so declared ACTIVE_HIGH -> out of reset.
+	 */
+	rfkill_lte: rfkill-lte {
 		compatible = "rfkill-gpio";
-		pinctrl-names = "default";
-		//pinctrl-0 = <&pinctrl_lte_rfkill>;
-		label = "lte_reset";
+		label = "lte";
 		radio-type = "wwan";
-		/* LTE_RST: J7[43] */
-		//reset-gpio = <&pinctrl RZG2L_GPIO(4, 2) GPIO_ACTIVE_LOW>;
-		/* Control via power regulator, not rfkill GPIO */
-		//shutdown-gpio = <&pinctrl RZG2L_GPIO(6, 2) GPIO_ACTIVE_HIGH>;
+		shutdown-gpios = <&pinctrl RZG2L_GPIO(6, 2) GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&pinctrl RZG2L_GPIO(4, 2) GPIO_ACTIVE_HIGH>;
 		status = "okay";
 	};
 
@@ -95,13 +85,50 @@
     };
 };
 
+/*
+ * Fallback: LTE power/reset via gpio-hogs for the stock (ACPI-only)
+ * rfkill-gpio driver. Disabled - the rfkill_lte node owns P42/P62. To use,
+ * enable here (#if 1) and disable the rfkill_lte node; don't claim twice.
+ */
+&pinctrl {
+	pinctrl-names = "default";
+
+#if 0
+	lte_rst_hog: lte-reset-hog {
+		gpio-hog;
+		/* LTE_RST: J7[43] — pin P42; active-low + output-low => physical HIGH => out of reset */
+		gpios = <RZG2L_GPIO(4, 2) GPIO_ACTIVE_LOW>;
+		output-low;
+		line-name = "lte-reset";
+	};
+
+	lte_pwr_hog: lte-power-hog {
+		gpio-hog;
+		/* LTE_PWR / CELL_VBAT enable: J7[14] — pin P62 => HIGH => modem powered */
+		gpios = <RZG2L_GPIO(6, 2) GPIO_ACTIVE_HIGH>;
+		output-high;
+		line-name = "lte-power";
+	};
+#endif
+};
+
+/*
+ * USB2 on a 3-wire header (D+/D-/GND), host-only (disk adapter).
+ * For OTG: set dr_mode="otg" on ehci0/ohci0 + enable hsusb (see EVK).
+ */
 &ehci0 {
 	spurious-oc;
 	status = "okay";
 };
 
-&ehci0 {
+&ohci0 {
 	spurious-oc;
+	status = "okay";
+};
+
+&usb2_phy0 {
+	/* Needed only in OTG mode (PHY requests "vbus" exclusively); harmless for host. */
+	//vbus-supply = <&v_5_0>;
 	status = "okay";
 };
 
@@ -111,20 +138,6 @@
 
 &eth1 {
 	status = "disabled";
-};
-
-&hsusb {
-	status = "okay";
-};
-
-&ohci0 {
-	spurious-oc;
-	dr_mode = "otg";
-	status = "okay";
-};
-
-&usb2_phy0 {
-	status = "okay";
 };
 
 /* UARTA (UART2) */
@@ -226,68 +239,8 @@
 		ti,gpa-threshold = <75>, <186>;
 	};
 
-	/* OPT4001 Ambient Light Sensor */
-	opt4001: light-sensor@44 {
-		status = "okay";
-		compatible = "ti,opt4001";
-		reg = <0x44>;
-		vdd-supply = <&v_3_3>;
-	};
-
-	/* HDC3022 Humidity and Temperature Sensor */
-	hdc3022: humidity-sensor@46 {
-		status = "okay";
-		compatible = "ti,hdc3022";
-		reg = <0x46>;
-		vdd-supply = <&v_3_3>;
-	};
-
-	/* LM3645 Camera Flash LED Driver */
-	camera_flash: flash-led@65 {
-		status = "disabled";
-		compatible = "ti,lm3645";
-		reg = <0x65>;  /* Default I2C address */
-		
-		#address-cells = <1>;
-		#size-cells = <0>;
-		
-		/* Enable pin (HWEN) */
-		enable-gpios = <&pinctrl RZG2L_GPIO(7, 2) GPIO_ACTIVE_HIGH>;
-		
-		/* Flash strobe pin */
-		flash-gpios = <&pinctrl RZG2L_GPIO(7, 3) GPIO_ACTIVE_HIGH>;
-		
-		/* Torch pin (optional) */
-		torch-gpios = <&pinctrl RZG2L_GPIO(2, 1) GPIO_ACTIVE_HIGH>;
-		
-		/* LED1 - Flash LED */
-		led@0 {
-			reg = <0>;
-			function = LED_FUNCTION_FLASH;
-			color = <LED_COLOR_ID_WHITE>;
-			led-max-microamp = <1500000>;  /* 1.5A max flash current */
-			flash-max-microamp = <1500000>;
-			flash-max-timeout-us = <1024000>;  /* Max 1024ms */
-		};
-		
-		/* LED2 - Torch LED (optional) */
-		led@1 {
-			reg = <1>;
-			function = LED_FUNCTION_TORCH;
-			color = <LED_COLOR_ID_WHITE>;
-			led-max-microamp = <376000>;  /* 376mA max torch current */
-		};
-	};
-};
-
-&pinctrl {
-	pinctrl-names = "default";
-
-	lte_rst_hog: lte-reset-hog {
-		gpio-hog;
-		/* LTE_RST: J7[43] */
-		gpios = <&pinctrl RZG2L_GPIO(4, 2) GPIO_ACTIVE_LOW>;
-		output-low;
-		line-name = "lte-reset";
+	carrier_eeprom: at24c02@57 {
+		compatible = "atmel,24c02";
+		reg = <0x57>;
 	};
 };

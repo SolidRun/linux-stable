@@ -1,0 +1,86 @@
+// SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+/*
+ * Device Tree overlay for the SolidRun SolidSense AIOT Flash Card (J6)
+ * on RZ/V2N.
+ *
+ * Add-on card devices on carrier I2C1:
+ *   - LM3645YCGR  Camera Flash LED driver  @ 0x65
+ *   - OPT4001DTSR Ambient Light Sensor     @ 0x44
+ *   - HDC3022DEJR Humidity/Temperature     @ 0x46
+ *
+ * Apply on top of r9a09g056n48-solidsense-aiot.dtb.
+ *
+ * Copyright (C) 2026 SolidRun Ltd.
+ */
+
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/leds/common.h>
+#include <dt-bindings/pinctrl/rzg2l-pinctrl.h>
+
+&i2c1 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	/* OPT4001 Ambient Light Sensor */
+	opt4001: light-sensor@44 {
+		status = "okay";
+		compatible = "ti,opt4001-sot-5x3";
+		reg = <0x44>;
+		vdd-supply = <&v_3_3>;
+	};
+
+	/* HDC3022 Humidity and Temperature Sensor */
+	hdc3022: humidity-sensor@46 {
+		status = "okay";
+		compatible = "ti,hdc3022";
+		reg = <0x46>;
+		vdd-supply = <&v_3_3>;
+	};
+
+	/* LM3645 Camera Flash LED Driver */
+	camera_flash: flash-led@65 {
+		status = "okay";
+		compatible = "ti,lm3645";
+		reg = <0x65>;  /* Default I2C address */
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		/* Enable pin (HWEN) */
+		enable-gpios = <&pinctrl RZG2L_GPIO(7, 2) GPIO_ACTIVE_HIGH>;
+		/* Flash strobe pin */
+		flash-gpios = <&pinctrl RZG2L_GPIO(7, 3) GPIO_ACTIVE_HIGH>;
+		/* Torch pin (optional) */
+		torch-gpios = <&pinctrl RZG2L_GPIO(2, 1) GPIO_ACTIVE_HIGH>;
+
+		/* LED1 - Flash LED */
+		led@0 {
+			reg = <0>;
+			function = LED_FUNCTION_FLASH;
+			color = <LED_COLOR_ID_WHITE>;
+			led-max-microamp = <1500000>;     /* 1.5A max flash current */
+			flash-max-microamp = <1500000>;
+			flash-max-timeout-us = <1024000>; /* Max 1024ms */
+		};
+
+		/* LED2 - Torch LED (optional) */
+		led@1 {
+			reg = <1>;
+			function = LED_FUNCTION_TORCH;
+			color = <LED_COLOR_ID_WHITE>;
+			led-max-microamp = <376000>;      /* 376mA max torch current */
+		};
+	};
+};
+
+&pinctrl {
+	lm3645_hwen_hog: lm3645-hwen-hog {
+		gpio-hog;
+		gpios = <RZG2L_GPIO(7, 2) GPIO_ACTIVE_HIGH>;  /* HWEN */
+		output-high;
+		line-name = "lm3645-hwen";
+	};
+};
