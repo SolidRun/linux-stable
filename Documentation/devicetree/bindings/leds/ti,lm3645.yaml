@@ -1,0 +1,79 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/leds/ti,lm3645.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: TI LM3645 Synchronous Boost Quad LED Flash Driver
+
+maintainers:
+  - Yazan Shhady <yazan.shhady@solid-run.com>
+
+description: |
+  The LM3645 is an I2C-controlled synchronous-boost LED flash driver with
+  four constant-current outputs (D1..D4), each selectable as flash, torch or
+  IR. This binding describes the device as a single LED flash-class controller
+  that programs and drives all four outputs together (for example an IR
+  illuminator built from four IR emitters).
+
+  Datasheet: https://www.ti.com/lit/gpn/lm3645
+
+properties:
+  compatible:
+    const: ti,lm3645
+
+  reg:
+    const: 0x65
+
+  enable-gpios:
+    maxItems: 1
+    description:
+      GPIO connected to the HWEN (hardware enable) pin. Driven high to bring
+      the device out of hardware shutdown.
+
+  led:
+    type: object
+    $ref: common.yaml#
+    unevaluatedProperties: false
+
+    properties:
+      function: true
+      color: true
+      led-max-microamp:
+        description: Maximum torch current, per output.
+      flash-max-microamp:
+        description: Maximum flash/IR current, per output.
+      flash-max-timeout-us:
+        description: Maximum flash time-out (10000 to 400000 us).
+
+required:
+  - compatible
+  - reg
+  - led
+
+additionalProperties: false
+
+examples:
+  - |
+    #include <dt-bindings/gpio/gpio.h>
+    #include <dt-bindings/leds/common.h>
+
+    i2c {
+        #address-cells = <1>;
+        #size-cells = <0>;
+
+        led-controller@65 {
+            compatible = "ti,lm3645";
+            reg = <0x65>;
+            enable-gpios = <&gpio 2 GPIO_ACTIVE_HIGH>;
+
+            led {
+                function = LED_FUNCTION_FLASH;
+                color = <LED_COLOR_ID_IR>;
+                led-max-microamp = <360000>;
+                flash-max-microamp = <1500000>;
+                flash-max-timeout-us = <400000>;
+            };
+        };
+    };
+...
