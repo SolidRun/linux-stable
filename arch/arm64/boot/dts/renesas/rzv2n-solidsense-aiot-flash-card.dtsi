@@ -1,0 +1,57 @@
+// SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+/*
+ * SolidSense AIOT Flash Card (J6) devices on carrier I2C1.
+ *
+ * Shared fragment, included by the flash-card overlays. The including
+ * overlay must provide /dts-v1/; /plugin/; and the dt-bindings headers
+ * (gpio, leds/common, rzg2l-pinctrl).
+ *
+ *   - LM3645YCGR  Quad LED flash driver (IR illuminator) @ 0x65
+ *   - OPT4001DTSR Ambient Light Sensor                   @ 0x44
+ *   - HDC3022DEJR Humidity/Temperature                   @ 0x46
+ *
+ * Copyright (C) 2026 SolidRun Ltd.
+ */
+
+&i2c1 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	/* OPT4001 Ambient Light Sensor */
+	opt4001: light-sensor@44 {
+		status = "okay";
+		compatible = "ti,opt4001-sot-5x3";
+		reg = <0x44>;
+		vdd-supply = <&v_1_8>;
+	};
+
+	/* HDC3022 Humidity and Temperature Sensor */
+	hdc3022: humidity-sensor@46 {
+		status = "okay";
+		compatible = "ti,hdc3022";
+		reg = <0x46>;
+		vdd-supply = <&v_1_8>;
+	};
+
+	/*
+	 * LM3645 quad LED flash driver, used here as an IR illuminator
+	 * (4x SFH4722 on D1..D4). Driven by leds-lm3645 over I2C; the
+	 * flash is software/I2C strobed, HWEN via enable-gpios (P72).
+	 */
+	camera_flash: led-controller@65 {
+		status = "okay";
+		compatible = "ti,lm3645";
+		reg = <0x65>;
+
+		/* HWEN: driver brings the chip out of hardware shutdown */
+		enable-gpios = <&pinctrl RZG2L_GPIO(7, 2) GPIO_ACTIVE_HIGH>;
+
+		led {
+			function = LED_FUNCTION_FLASH;
+			color = <LED_COLOR_ID_IR>;
+			led-max-microamp = <360000>;      /* torch, chip max */
+			flash-max-microamp = <1500000>;   /* per output */
+			flash-max-timeout-us = <400000>;  /* chip max */
+		};
+	};
+};

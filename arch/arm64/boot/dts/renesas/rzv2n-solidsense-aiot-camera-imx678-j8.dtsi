@@ -1,0 +1,61 @@
+// SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+/*
+ * SolidSense AIOT MIPI-CSI connector J8 (CAM0) with Sony IMX678.
+ *
+ * Shared fragment, included by the camera overlays. The including overlay
+ * must provide /dts-v1/; /plugin/; and the dt-bindings headers
+ * (gpio, rzg2l-pinctrl).
+ *
+ * Copyright (C) 2025 SolidRun Ltd.
+ */
+
+&cru0 {
+	status = "okay";
+};
+
+&csi20 {
+	status = "okay";
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		port@0 {
+			reg = <0>;
+			csi20_in: endpoint {
+				remote-endpoint = <&cam0_endpoint>;
+				clock-lanes = <0>;
+				data-lanes = <1 2 3 4>;
+			};
+		};
+	};
+};
+
+/* [J8] CAM0 Connector */
+&i2c_csi0 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	cam0_node: imx678@1a {
+		compatible = "sony,imx678";
+		reg = <0x1a>;
+		status = "okay";
+
+		rotation = <0>;
+		orientation = <0>;
+
+		clocks = <&sensor_clk>;
+		clock-names = "inclk";
+		clock-frequency = <24000000>;
+
+		xmaster-gpios = <&pinctrl RZG2L_GPIO(6, 5) GPIO_ACTIVE_HIGH>; /* P65 CAM0_TRIG */
+		reset-gpios = <&pinctrl RZG2L_GPIO(7, 7) GPIO_ACTIVE_HIGH>; /* P77 CAM0_RST */
+
+		port {
+			cam0_endpoint: endpoint {
+				remote-endpoint = <&csi20_in>;
+				clock-lanes = <0>;
+				data-lanes = <1 2 3 4>;
+				link-frequencies = /bits/ 64 <891000000 1440000000 1782000000>;
+			};
+		};
+	};
+};

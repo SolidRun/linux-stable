@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
 /*
- * Option 1: SolidSense AIOT Flash Card (J6) only, no cameras.
+ * Option 3: SolidSense AIOT Flash Card (J6) + IMX678 camera on J17.
+ *
+ * The Flash Card IR illuminator (camera_flash) is linked to the J17 camera
+ * via flash-leds, so the V4L2/media pipeline can drive it for that sensor.
  *
  * Apply on top of r9a09g056n48-solidsense-aiot.dtb.
  *
@@ -15,3 +18,8 @@
 #include <dt-bindings/pinctrl/rzg2l-pinctrl.h>
 
 #include "rzv2n-solidsense-aiot-flash-card.dtsi"
+#include "rzv2n-solidsense-aiot-camera-imx678-j17.dtsi"
+
+&cam1_node {
+	flash-leds = <&camera_flash>;
+};
