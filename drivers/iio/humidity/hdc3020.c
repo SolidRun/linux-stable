@@ -106,32 +106,25 @@ static const struct iio_event_spec hdc3020_t_rh_event[] = {
 };
 
 static const struct iio_chan_spec hdc3020_channels[] = {
+	/*
+	 * Trimmed for this 6.1 IIO core, which lacks support for some of the
+	 * info elements the upstream (v6.9) driver uses and would otherwise
+	 * make iio_device_register() fail with -EINVAL ("Failed to register
+	 * sysfs interfaces"):
+	 *  - IIO_CHAN_INFO_TROUGH has no entry in iio_chan_info_postfix[] here,
+	 *  - plus the threshold events and the heater IIO_CURRENT channel.
+	 * Keep RAW/SCALE/PEAK/OFFSET so temperature and humidity read correctly.
+	 */
 	{
 		.type = IIO_TEMP,
 		.info_mask_separate = BIT(IIO_CHAN_INFO_RAW) |
 		BIT(IIO_CHAN_INFO_SCALE) | BIT(IIO_CHAN_INFO_PEAK) |
-		BIT(IIO_CHAN_INFO_TROUGH) | BIT(IIO_CHAN_INFO_OFFSET),
-		.event_spec = hdc3020_t_rh_event,
-		.num_event_specs = ARRAY_SIZE(hdc3020_t_rh_event),
+		BIT(IIO_CHAN_INFO_OFFSET),
 	},
 	{
 		.type = IIO_HUMIDITYRELATIVE,
 		.info_mask_separate = BIT(IIO_CHAN_INFO_RAW) |
-		BIT(IIO_CHAN_INFO_SCALE) | BIT(IIO_CHAN_INFO_PEAK) |
-		BIT(IIO_CHAN_INFO_TROUGH),
-		.event_spec = hdc3020_t_rh_event,
-		.num_event_specs = ARRAY_SIZE(hdc3020_t_rh_event),
-	},
-	{
-		/*
-		 * For setting the internal heater, which can be switched on to
-		 * prevent or remove any condensation that may develop when the
-		 * ambient environment approaches its dew point temperature.
-		 */
-		.type = IIO_CURRENT,
-		.info_mask_separate = BIT(IIO_CHAN_INFO_RAW),
-		.info_mask_separate_available = BIT(IIO_CHAN_INFO_RAW),
-		.output = 1,
+		BIT(IIO_CHAN_INFO_SCALE) | BIT(IIO_CHAN_INFO_PEAK),
 	},
 };
 
