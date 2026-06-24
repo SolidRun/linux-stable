@@ -34,10 +34,17 @@
 	};
 
 	/*
-	 * LM3645 quad LED flash driver, used here as an IR illuminator
-	 * (4x SFH4722 on D1..D4). Driven by leds-lm3645 over I2C; the
-	 * flash is software/I2C strobed, HWEN via enable-gpios (P72).
-	 */
+	* LM3645 quad LED flash driver, used as an IR illuminator (4x
+	* SFH4722 on D1..D4). Driven by leds-lm3645 over I2C, with hardware
+	* flash/torch gating via STR1 and TOR/TX. STR2 (FLASH_TRIG2, P20) is
+	* a spare strobe input, left unclaimed.
+	*
+	* Control signals (LM3645 pin -> carrier net -> RZ/V2N):
+	*   HWEN          -> (enable)          -> P72  RZG2L_GPIO(7, 2)
+	*   STR1   (B3)   -> FLASH_TRIG1       -> P73  RZG2L_GPIO(7, 3)
+	*   STR2   (B4)   -> FLASH_TRIG2       -> P20  RZG2L_GPIO(2, 0)
+	*   TOR/TX (C5)   -> FLASH_TOR/TX      -> P21  RZG2L_GPIO(2, 1)
+	*/
 	camera_flash: led-controller@65 {
 		status = "okay";
 		compatible = "ti,lm3645";
@@ -45,6 +52,10 @@
 
 		/* HWEN: driver brings the chip out of hardware shutdown */
 		enable-gpios = <&pinctrl RZG2L_GPIO(7, 2) GPIO_ACTIVE_HIGH>;
+		/* STR1: hardware flash strobe (FLASH_TRIG1) */
+		strobe-gpios = <&pinctrl RZG2L_GPIO(7, 3) GPIO_ACTIVE_HIGH>;
+		/* TOR/TX: hardware torch enable (FLASH_TOR/TX) */
+		torch-gpios = <&pinctrl RZG2L_GPIO(2, 1) GPIO_ACTIVE_HIGH>;
 
 		led {
 			function = LED_FUNCTION_FLASH;
