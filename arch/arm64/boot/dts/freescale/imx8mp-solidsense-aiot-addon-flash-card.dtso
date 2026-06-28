@@ -40,36 +40,27 @@
 
 	/* LM3645 Camera Flash LED Driver */
 	camera_flash: flash-led@65 {
-		status = "disabled";
+		status = "okay";
 		compatible = "ti,lm3645";
 		reg = <0x65>;  /* Default I2C address */
 
-		#address-cells = <1>;
-		#size-cells = <0>;
-
 		/* Enable pin (HWEN) */
 		enable-gpios = <&gpio4 23 GPIO_ACTIVE_HIGH>;
-		/* Flash strobe pin */
-		flash-gpios = <&gpio4 24 GPIO_ACTIVE_HIGH>;
-		/* Torch pin (optional) */
+		/* STR1 hardware strobe pin */
+		strobe-gpios = <&gpio4 24 GPIO_ACTIVE_HIGH>;
+		/* TOR/TX hardware torch pin (I2C3_SCL pad freed by &i2c3 disable) */
 		torch-gpios = <&gpio5 18 GPIO_ACTIVE_HIGH>;
 
-		/* LED1 - Flash LED */
-		led@0 {
-			reg = <0>;
+		/*
+		 * Single LED node: the driver programs/drives all outputs
+		 * together and reads only the first child (per ti,lm3645.yaml).
+		 */
+		led {
 			function = LED_FUNCTION_FLASH;
 			color = <LED_COLOR_ID_WHITE>;
-			led-max-microamp = <1500000>;     /* 1.5A max flash current */
-			flash-max-microamp = <1500000>;
-			flash-max-timeout-us = <1024000>; /* Max 1024ms */
-		};
-
-		/* LED2 - Torch LED (optional) */
-		led@1 {
-			reg = <1>;
-			function = LED_FUNCTION_TORCH;
-			color = <LED_COLOR_ID_WHITE>;
-			led-max-microamp = <376000>;      /* 376mA max torch current */
+			led-max-microamp = <376000>;      /* torch max (376 mA) */
+			flash-max-microamp = <1500000>;   /* flash max (1.5 A) */
+			flash-max-timeout-us = <400000>;  /* driver caps at 400 ms */
 		};
 	};
 };

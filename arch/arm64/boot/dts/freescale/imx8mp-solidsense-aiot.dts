@@ -238,6 +238,10 @@
 	};
 };
 
+&i2c3 {
+	status = "disabled";
+};
+
 &isp_0 {
 	status = "disabled";
 };
