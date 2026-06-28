@@ -90,14 +90,28 @@
 		simple-audio-card,bitclock-master = <&cpu_dai>;
 		simple-audio-card,frame-master = <&cpu_dai>;
 
+		/* speaker power-amplifier, enabled by DAPM with playback */
+		simple-audio-card,aux-devs = <&spk_amp>;
+
 		simple-audio-card,widgets =
 			"Line", "Line In",
 			"Line", "Line Out";
 
+		/*
+		 * Codec OUT1 -> amplifier inputs -> speaker (Line Out).
+		 * Both amp inputs AND outputs must be routed: a dangling
+		 * INPUT/OUTPUT pin stays a permanent DAPM endpoint and would
+		 * pin the amp's DRV widget (and its enable GPIO) on forever.
+		 * Wiring every pin lets the amp follow the DAC/OUT1 path, so
+		 * the enable GPIO drops when playback stops (no idle hiss).
+		 */
 		simple-audio-card,routing =
 			"DIN1", "Line In",
 			"DIN2", "Line In",
-			"Line Out", "OUT1";
+			"Amp INL", "OUT1",
+			"Amp INR", "OUT1",
+			"Line Out", "Amp OUTL",
+			"Line Out", "Amp OUTR";
 
 		cpu_dai: simple-audio-card,cpu {
 			sound-dai = <&sai3>;
@@ -109,6 +123,21 @@
 			system-clock-frequency = <24576000>;
 			mclk-fs = <512>;
 		};
+	};
+
+	/*
+	 * Speaker power-amplifier enable (gpiochip0 line 12 = GPIO1_IO12,
+	 * active-high). Wired into sound-tac5111 as an aux-dev and routed
+	 * from the codec OUT1, so DAPM drives this enable GPIO automatically
+	 * with playback - no manual `gpioset gpiochip0 12=1` needed.
+	 */
+	spk_amp: audio-amplifier {
+		compatible = "simple-audio-amplifier";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_spk_amp>;
+		enable-gpios = <&gpio1 12 GPIO_ACTIVE_HIGH>;
+		sound-name-prefix = "Amp";
+		status = "okay";
 	};
 };
 
@@ -418,6 +447,13 @@
 		fsl,pins = <
 			MX8MP_IOMUXC_HDMI_CEC__GPIO3_IO28		0x40
 			MX8MP_IOMUXC_GPIO1_IO09__GPIO1_IO09		0x40
+		>;
+	};
+
+	pinctrl_spk_amp: spkampgrp {
+		fsl,pins = <
+			/* speaker amp enable, GPIO1_IO12 (gpiochip0 line 12) */
+			MX8MP_IOMUXC_GPIO1_IO12__GPIO1_IO12		0x40
 		>;
 	};
 };
