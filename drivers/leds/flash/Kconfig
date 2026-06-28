@@ -38,6 +38,17 @@ config LEDS_LM3601X
 	  This option enables support for the TI LM3601x family
 	  of flash, torch and indicator classes.
 
+config LEDS_LM3645
+	tristate "LED support for LM3645 Chip"
+	depends on LEDS_CLASS && I2C
+	depends on GPIOLIB || COMPILE_TEST
+	depends on V4L2_FLASH_LED_CLASS || !V4L2_FLASH_LED_CLASS
+	select REGMAP_I2C
+	help
+	  This option enables support for the TI LM3645 synchronous-boost
+	  quad LED flash driver, registered as a LED flash class device.
+	  Used as an IR illuminator on the SolidSense AIOT Flash Card.
+
 config LEDS_MAX77693
 	tristate "LED support for MAX77693 Flash"
 	depends on V4L2_FLASH_LED_CLASS || !V4L2_FLASH_LED_CLASS
