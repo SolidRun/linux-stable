@@ -534,10 +534,10 @@
 	};
 
 	som_eeprom: eeprom@50 {
-		compatible = "atmel,24c01";
+		compatible = "atmel,24c02";
 		reg = <0x50>;
-		pagesize = <8>;           /* CAT24AA01 uses 8-byte page */
-		size = <128>;             /* 1 Kbit = 128 bytes */
+		pagesize = <16>;          /* CAT24AA02 has a 16-byte page write buffer */
+		size = <256>;             /* 2 Kbit = 256 bytes (256x8) */
 		address-width = <8>;      /* 8-bit internal addressing */
 	};
 
