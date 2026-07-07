@@ -1,0 +1,188 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/sound/ti,tac5x1x.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: Texas Instruments TAC5x1x Audio Codecs
+
+maintainers:
+  - Kevin Lu <kevin-lu@ti.com>
+  - Kokila Karuppusamy <kokila.karuppusamy@ti.com>
+  - Niranjan H Y <niranjan.hy@ti.com>
+
+description: |
+  The TAC5x1x is a family of audio codecs with mono/stereo audio ADCs and
+  DACs, PDM inputs, programmable GPIOs and a MICBIAS output on an I2C control
+  bus. The exact set of features (record/playback, single/dual channel)
+  depends on the specific part selected through the compatible string:
+
+    * taa5212, taa5412 - ADC only (record)
+    * tad5112, tad5212 - DAC only (playback)
+    * tac5111/5112/5211/5212/5311/5312/5411/5412 - ADC + DAC
+
+  Datasheet: https://www.ti.com/lit/gpn/tac5111
+
+properties:
+  compatible:
+    enum:
+      - ti,taa5212
+      - ti,taa5412
+      - ti,tac5111
+      - ti,tac5112
+      - ti,tac5211
+      - ti,tac5212
+      - ti,tac5311
+      - ti,tac5312
+      - ti,tac5411
+      - ti,tac5412
+      - ti,tad5112
+      - ti,tad5212
+
+  reg:
+    maxItems: 1
+
+  '#sound-dai-cells':
+    const: 0
+
+  iovdd-supply:
+    description: Digital I/O power supply regulator.
+
+  avdd-supply:
+    description: Analog power supply regulator.
+
+  interrupts:
+    maxItems: 1
+
+  ti,vref:
+    $ref: /schemas/types.yaml#/definitions/uint32
+    description: |
+      Reference voltage of the codec.
+        0 - 2.75V
+        1 - 2.5V
+        2 - 1.375V
+    enum: [0, 1, 2]
+
+  ti,micbias-vg:
+    $ref: /schemas/types.yaml#/definitions/uint32
+    description: |
+      MICBIAS output voltage.
+        0 - VREF
+        1 - 0.5 * VREF
+        3 - AVDD
+    enum: [0, 1, 3]
+
+  ti,gpi1-func:
+    $ref: /schemas/types.yaml#/definitions/uint32
+    description: |
+      Function of the GPI1 pin.
+        0 - Disabled
+        1 - General purpose input
+        2 - Cascaded clock input (CCLK_IN)
+    enum: [0, 1, 2]
+
+  ti,gpa-gpio:
+    $ref: /schemas/types.yaml#/definitions/uint32
+    description: Enable the GPA pin to be used as a general purpose analog pin.
+
+  ti,gpios-func:
+    $ref: /schemas/types.yaml#/definitions/uint32-array
+    description: |
+      Function of each of the three GPIO pins (GPIO1..GPIO3). One entry per
+      pin, valid values 0..14 (Disabled, GPI, GPO, IRQ, PDMCLK, primary/
+      secondary DOUT, BCLK, FSYNC, CLKOUT, DOUT mux, daisy out, CCLK in).
+    minItems: 3
+    maxItems: 3
+    items:
+      minimum: 0
+      maximum: 14
+
+  ti,gpios-drive:
+    $ref: /schemas/types.yaml#/definitions/uint32-array
+    description: |
+      Output drive configuration for each of the three GPIO pins,
+      valid values 0..5.
+    minItems: 3
+    maxItems: 3
+    items:
+      minimum: 0
+      maximum: 5
+
+  ti,pdm-input-pins:
+    $ref: /schemas/types.yaml#/definitions/uint32-array
+    description: PDM data input pin assignment for the two PDM channels.
+    minItems: 2
+    maxItems: 2
+
+  ti,gpa-threshold:
+    $ref: /schemas/types.yaml#/definitions/uint32-array
+    description: Low and high threshold register values for the GPA input.
+    minItems: 2
+    maxItems: 2
+
+  ti,micbias-threshold:
+    $ref: /schemas/types.yaml#/definitions/uint32-array
+    description: Low and high MICBIAS current fault threshold register values.
+    minItems: 2
+    maxItems: 2
+
+  ti,out2x-vcom-cfg:
+    $ref: /schemas/types.yaml#/definitions/uint32
+    description: OUT2x common-mode (VCOM) output configuration.
+
+  ti,adc1-impedance:
+    $ref: /schemas/types.yaml#/definitions/uint32
+    description: Input impedance configuration for ADC channel 1.
+
+  ti,adc2-impedance:
+    $ref: /schemas/types.yaml#/definitions/uint32
+    description: Input impedance configuration for ADC channel 2.
+
+  ti,in-ch-en:
+    $ref: /schemas/types.yaml#/definitions/uint32
+    description: Input channel enable mask (input diagnostics parts only).
+
+  ti,out-ch-en:
+    $ref: /schemas/types.yaml#/definitions/uint32
+    description: Output channel enable mask (input diagnostics parts only).
+
+  ti,incl-se-inm:
+    $ref: /schemas/types.yaml#/definitions/uint32
+    description: Include single-ended INM pins in the input diagnostics.
+
+  ti,incl-ac-coup:
+    $ref: /schemas/types.yaml#/definitions/uint32
+    description: Include AC-coupled inputs in the input diagnostics.
+
+required:
+  - compatible
+  - reg
+  - '#sound-dai-cells'
+  - iovdd-supply
+  - avdd-supply
+  - ti,vref
+  - ti,micbias-vg
+
+additionalProperties: false
+
+examples:
+  - |
+    #include <dt-bindings/interrupt-controller/irq.h>
+    i2c {
+        #address-cells = <1>;
+        #size-cells = <0>;
+
+        codec@50 {
+            compatible = "ti,tac5111";
+            reg = <0x50>;
+            #sound-dai-cells = <0>;
+            iovdd-supply = <&vcc_1v8>;
+            avdd-supply = <&vcc_3v3>;
+            interrupt-parent = <&gpio7>;
+            interrupts = <1 IRQ_TYPE_EDGE_FALLING>;
+            ti,vref = <1>;
+            ti,micbias-vg = <0>;
+            ti,gpios-func = <2 0 0>;
+            ti,gpios-drive = <2 0 0>;
+        };
+    };
