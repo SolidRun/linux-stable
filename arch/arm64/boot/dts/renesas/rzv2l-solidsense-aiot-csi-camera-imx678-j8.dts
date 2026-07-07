@@ -1,0 +1,18 @@
+// SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+/*
+ * Option 2: SolidSense AIOT MIPI-CSI connector J8 (CAM0) with Sony IMX678,
+ * no Flash Card.
+ *
+ * Apply on top of r9a07g054l2-solidsense-aiot.dtb (RZ/V2L) or
+ * r9a07g044l2-solidsense-aiot.dtb (RZ/G2L).
+ *
+ * Copyright (C) 2026 SolidRun Ltd.
+ */
+
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/pinctrl/rzg2l-pinctrl.h>
+
+#include "rzv2l-solidsense-aiot-camera-imx678-j8.dtsi"

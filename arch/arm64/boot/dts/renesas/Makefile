@@ -99,6 +99,8 @@ dtb-$(CONFIG_ARCH_R9A07G044) += r9a07g044l2-hummingboard-pro.dtb
 DTC_FLAGS_r9a07g044l2-hummingboard-pro := -@
 dtb-$(CONFIG_ARCH_R9A07G044) += r9a07g044l2-hummingboard-ripple.dtb
 DTC_FLAGS_r9a07g044l2-hummingboard-ripple := -@
+dtb-$(CONFIG_ARCH_R9A07G044) += r9a07g044l2-solidsense-aiot.dtb
+DTC_FLAGS_r9a07g044l2-solidsense-aiot := -@
 
 dtb-$(CONFIG_ARCH_R9A07G044) += rzg2l-solidrun-mmc-overlay.dtbo
 dtb-$(CONFIG_ARCH_R9A07G044) += rzg2l-solidrun-sd-overlay.dtbo
@@ -113,6 +115,11 @@ dtb-$(CONFIG_ARCH_R9A07G054) += r9a07g054l2-hummingboard-pro.dtb
 DTC_FLAGS_r9a07g054l2-hummingboard-pro := -@
 dtb-$(CONFIG_ARCH_R9A07G054) += r9a07g054l2-hummingboard-ripple.dtb
 DTC_FLAGS_r9a07g054l2-hummingboard-ripple := -@
+dtb-$(CONFIG_ARCH_R9A07G054) += r9a07g054l2-solidsense-aiot.dtb
+DTC_FLAGS_r9a07g054l2-solidsense-aiot := -@
+dtb-$(CONFIG_ARCH_R9A07G054) += rzv2l-solidsense-aiot-addon-flash-card.dtbo
+dtb-$(CONFIG_ARCH_R9A07G054) += rzv2l-solidsense-aiot-csi-camera-imx678-j8.dtbo
+dtb-$(CONFIG_ARCH_R9A07G054) += rzv2l-solidsense-aiot-addon-flash-card-cam-j8.dtbo
 
 dtb-$(CONFIG_ARCH_R9A08G045) += r9a08g045s33-smarc.dtb
 

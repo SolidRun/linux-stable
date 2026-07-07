@@ -1,0 +1,15 @@
+// SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+/*
+ * Copyright 2025 SolidRun Ltd.
+ */
+
+/dts-v1/;
+
+#include "r9a07g044l2.dtsi"
+#include "rzg2l-sr-som.dtsi"
+#include "rzg2l-solidsense-aiot.dtsi"
+
+/ {
+	model = "SolidRun RZ/G2L Solidsense AIoT";
+	compatible = "solidrun,rzg2l-solidsense-aiot", "solidrun,rzg2l-sr-som", "renesas,r9a07g044l2", "renesas,r9a07g044";
+};

@@ -1,0 +1,223 @@
+// SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+/*
+ * Device Tree Source for the SolidRun SolidSense AIOT carrier, as
+ * populated with an RZ/G2L-family SoM (rzg2l-sr-som.dtsi). Shared by the
+ * RZ/G2L (r9a07g044l2) and RZ/V2L (r9a07g054l2) board files.
+ *
+ * Copyright 2025 SolidRun Ltd.
+ */
+
+#include <dt-bindings/leds/common.h>
+
+/ {
+	leds {
+		compatible = "gpio-leds";
+
+		/* CPU_LED -> RZ/G2L P39_2 */
+		cpu_led {
+			label = "CPU_LED";
+			gpios = <&pinctrl RZG2L_GPIO(39, 2) GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+		};
+	};
+
+	/* Carrier rails. &v_1_8 is referenced by the Flash Card overlay. */
+	v_1_8: regulator-1-8 {
+		compatible = "regulator-fixed";
+		regulator-name = "1v8";
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		regulator-always-on;
+	};
+
+	v_3_3: regulator-3-3 {
+		compatible = "regulator-fixed";
+		regulator-name = "3v3";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-always-on;
+	};
+
+	v_5_0: regulator-5-0 {
+		compatible = "regulator-fixed";
+		regulator-name = "5v0";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		regulator-always-on;
+	};
+
+	/*
+	 * microSD (SD2 net) power rail. Required so the SolidRun U-Boot
+	 * "sd_overlay" (rzg2l-solidrun-sd-overlay) can resolve &vmmc and
+	 * switch the SoM sdhi0 mux to the connector-side microSD; without it
+	 * the overlay apply fails (FDT_ERR_NOTFOUND) and sdhi0 stays in
+	 * on-SoM eMMC mode. Kept always-on (the carrier rail is enabled in
+	 * U-Boot already); add an enable gpio here if the assembly gates it.
+	 */
+	vmmc: regulator-mmc {
+		compatible = "regulator-fixed";
+		regulator-name = "vmmc";
+		vin-supply = <&v_3_3>;
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-always-on;
+		regulator-boot-on;
+	};
+
+	/* Fixed 24 MHz reference for the MIPI-CSI camera (carrier OSC1). */
+	sensor_clk: sensor-clk {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <24000000>;
+	};
+
+	/*
+	 * LTE modem (Sequans GC02S1) power/reset via rfkill-gpio (the VLP
+	 * rfkill-gpio driver already carries the of_match_table).
+	 * shutdown-gpios = LTE_PWR  -> P15_0 : unblocked -> powered.
+	 * reset-gpios    = LTE_RSTN -> P11_1 : unblocked -> out of reset.
+	 */
+	rfkill_lte: rfkill-lte {
+		compatible = "rfkill-gpio";
+		label = "lte";
+		radio-type = "wwan";
+		shutdown-gpios = <&pinctrl RZG2L_GPIO(15, 0) GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&pinctrl RZG2L_GPIO(11, 1) GPIO_ACTIVE_HIGH>;
+		status = "okay";
+	};
+
+	/*
+	 * TAC5111 (playback) -> PAM8302 -> speaker, over SSI0.
+	 */
+	sound_card: sound {
+		compatible = "simple-audio-card";
+		simple-audio-card,name = "solidsense-aiot";
+		simple-audio-card,format = "i2s";
+		simple-audio-card,bitclock-master = <&cpu_dai>;
+		simple-audio-card,frame-master = <&cpu_dai>;
+		simple-audio-card,mclk-fs = <256>;
+
+		cpu_dai: simple-audio-card,cpu {
+			sound-dai = <&ssi0>;
+		};
+
+		codec_dai: simple-audio-card,codec {
+			sound-dai = <&codec>;
+		};
+	};
+};
+
+/* Carrier AUD_CLK oscillators feeding the SoC AUDIO_CLK1/2 inputs. */
+&audio_clk1 {
+	clock-frequency = <24576000>;	/* VERIFY: 48 kHz family AUD_CLK */
+};
+
+&audio_clk2 {
+	clock-frequency = <22579200>;	/* VERIFY: 44.1 kHz family AUD_CLK */
+};
+
+/*
+ * Peripherals the SoM brings up but the AIOT carrier does not route:
+ *   - both RGMII Ethernet ports (neither is wired off the SoM)
+ *   - the DU/DSI display pipeline (no HDMI/display output)
+ * Disable the MACs (not just the PHYs) so the ravb driver does not probe
+ * and fail to reach a disabled PHY. Some of these already default to
+ * disabled in the SoC dtsi; disable them explicitly to document intent and
+ * stay robust against base-DTS changes.
+ */
+&eth0 {
+	status = "disabled";
+};
+
+&eth1 {
+	status = "disabled";
+};
+
+&du {
+	status = "disabled";
+};
+
+&dsi {
+	status = "disabled";
+};
+
+&pinctrl {
+	/* External audio master clock inputs (carrier AUD_CLK). */
+	sound_clk_pins: sound-clk {
+		pins = "AUDIO_CLK1", "AUDIO_CLK2";
+		input-enable;
+	};
+
+	/* SSI0 full-duplex: BCK/RCK/TXD/RXD (carrier SA2_* audio nets). */
+	ssi0_pins: ssi0 {
+		pinmux = <RZG2L_PORT_PINMUX(45, 0, 1)>, /* BCK  */
+			 <RZG2L_PORT_PINMUX(45, 1, 1)>, /* RCK  */
+			 <RZG2L_PORT_PINMUX(45, 2, 1)>, /* TXD  */
+			 <RZG2L_PORT_PINMUX(45, 3, 1)>; /* RXD  */
+	};
+};
+
+/* Carrier I2C ("I2C2" net) == RZ/G2L RIIC1 (&i2c1); shared with SoM EEPROM@0x50. */
+&i2c1 {
+	status = "okay";
+
+	/*
+	 * TAC5111 codec, playback-only (OUT1 -> PAM8302). CCLK on GPI1 from
+	 * carrier AUD_CLK; codec IRQ (AUDIO_INT) -> P48_2. Strapped to 0x51
+	 * (R109 = 4.7k on ADDR pin) to avoid the SoM EEPROM at 0x50.
+	 */
+	codec: audio-codec@51 {
+		compatible = "ti,tac5111";
+		reg = <0x51>;
+		status = "okay";
+
+		#sound-dai-cells = <0>;
+
+		interrupts-extended = <&pinctrl RZG2L_GPIO(48, 2) IRQ_TYPE_EDGE_FALLING>;
+
+		avdd-supply = <&v_3_3>;
+		iovdd-supply = <&v_3_3>;
+
+		/* GPIO1: PDM data in, GPIO2: PDM clk out, GPO1: IRQ out */
+		ti,gpios-func = <1>, <4>, <3>;
+		ti,pdm-input-pins = <1>, <0>;
+		/* GPI1 configured as CCLK input (carrier AUD_CLK) */
+		ti,gpi1-func = <2>;
+		ti,vref = <0>;
+		ti,micbias-vg = <3>;
+		ti,gpios-drive = <0>, <1>, <3>;
+		ti,gpa-gpio = <0>;
+		ti,gpa-threshold = <75>, <186>;
+	};
+
+	carrier_eeprom: eeprom@57 {
+		compatible = "atmel,24c02";
+		reg = <0x57>;
+	};
+
+	/*
+	 * TCA9546 camera I2C switch. reset = I2C_RST -> P14_0.
+	 * Channel 0 -> J8 (CAM0). Channel 1 (J17/CAM1) is unusable on the
+	 * RZ/G2L family (single CSI2), so only channel 0 is exposed.
+	 */
+	i2c-switch@70 {
+		compatible = "nxp,pca9546";
+		reg = <0x70>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reset-gpios = <&pinctrl RZG2L_GPIO(14, 0) GPIO_ACTIVE_LOW>;
+
+		i2c_csi0: i2c@0 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0>;
+		};
+	};
+};
+
+/* SSI0 is bit-clock/frame master, clocked from the external AUDIO_CLK1. */
+&ssi0 {
+	pinctrl-0 = <&ssi0_pins>, <&sound_clk_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+};
