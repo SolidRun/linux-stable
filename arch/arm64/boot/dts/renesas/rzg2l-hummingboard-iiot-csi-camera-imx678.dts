@@ -1,0 +1,80 @@
+// SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+/*
+ * Device Tree overlay for the SolidRun HummingBoard IIoT carrier with an
+ * RZ/V2L (RZ/G2L) SoM: enable the MIPI-CSI connector with a Sony IMX678.
+ *
+ * NOTE: the RZ/G2L / RZ/V2L CRU is limited to 2800px width, so the IMX678
+ * must be driven in its 1920x1080 SDR binning mode (SRGGB12_1X12). The
+ * native 3840x2160 (4K) and all HDR/DOL modes cannot traverse this CRU.
+ *
+ * Copyright (C) 2026 SolidRun Ltd.
+ */
+
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/interrupt-controller/irq.h>
+
+&{/} {
+	sensor_clk: sensor_clk {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <24000000>;
+	};
+};
+
+&cru {
+	status = "okay";
+};
+
+&csi2 {
+	status = "okay";
+
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@0 {
+			reg = <0>;
+			csi2_in: endpoint {
+				remote-endpoint = <&cam_endpoint>;
+				clock-lanes = <0>;
+				data-lanes = <1 2 3 4>;
+			};
+		};
+	};
+};
+
+/* Camera sensor sits on pca9546 channel 1 (i2c_csi). */
+&i2c_csi {
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	cam_node: imx678@1a {
+		compatible = "sony,imx678";
+		reg = <0x1a>;
+		status = "okay";
+
+		rotation = <0>;
+		orientation = <0>;
+
+		clocks = <&sensor_clk>;
+		clock-names = "inclk";
+		clock-frequency = <24000000>;
+
+		/* CAM_TRIG -> U48 (tca6408) IO7 */
+		xmaster-gpios = <&tca6408_u48 7 GPIO_ACTIVE_HIGH>;
+		/* CAM_RST# -> U48 (tca6408) IO0 */
+		reset-gpios = <&tca6408_u48 0 GPIO_ACTIVE_HIGH>;
+
+		port {
+			cam_endpoint: endpoint {
+				remote-endpoint = <&csi2_in>;
+				clock-lanes = <0>;
+				data-lanes = <1 2 3 4>;
+				link-frequencies = /bits/ 64 <891000000 1440000000 1782000000>;
+			};
+		};
+	};
+};
