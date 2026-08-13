@@ -38,7 +38,15 @@
 #define LM3645_STR_TIME_FTO_MASK	0x0f
 #define LM3645_REG_D1_FLASH	0x05	/* 0x05..0x08: D1..D4 flash/IR current */
 #define LM3645_REG_D1_TORCH	0x09	/* 0x09..0x0c: D1..D4 torch current */
+#define LM3645_REG_FAULT_CTRL	0x13
+#define LM3645_FAULT_LED_SHORT_EN 0x01	/* bit0: LED short detection enable */
 #define LM3645_REG_FLAG		0x14
+#define LM3645_FLAG_ICL		0x10	/* inductor current limit hit */
+#define LM3645_REG_VOLT_FAULT	0x15	/* read clears the latched LED-short bits */
+#define LM3645_VF_LED_SHORT_MASK 0x0f	/* LED1..LED4 short */
+#define LM3645_VF_OUT_SHORT	0x20	/* boost output short */
+#define LM3645_VF_OVP		0x40	/* over-voltage (open LED) */
+#define LM3645_VF_UVLO		0x80	/* input under-voltage */
 #define LM3645_REG_DEVINFO	0x1b
 #define LM3645_REG_MAX		0x1b
 
@@ -93,6 +101,36 @@ static int lm3645_set_all(struct lm3645 *chip, u8 base_reg, u8 code)
 	return 0;
 }
 
+/*
+ * After enabling the outputs the device may trip a protection fault (open or
+ * shorted LED, OVP, UVLO) and silently clear the Dx_EN bits, so the LEDs never
+ * actually light. Give the faults their deglitch time, then report anything
+ * latched to the kernel log so a dark illuminator isn't a silent failure.
+ * Reading VOLT_FAULT also clears the latched LED-short bits.
+ */
+static void lm3645_report_faults(struct lm3645 *chip)
+{
+	struct device *dev = &chip->client->dev;
+	unsigned int fault = 0, flag = 0;
+
+	usleep_range(5000, 6000);	/* > OVP (3 edges) and LED-short (256 us) deglitch */
+
+	regmap_read(chip->regmap, LM3645_REG_VOLT_FAULT, &fault);
+	regmap_read(chip->regmap, LM3645_REG_FLAG, &flag);
+
+	if (fault & LM3645_VF_OVP)
+		dev_warn(dev, "OVP: LED open (or output over-voltage) - outputs disabled\n");
+	if (fault & LM3645_VF_LED_SHORT_MASK)
+		dev_warn(dev, "LED short on output mask 0x%x - those outputs disabled\n",
+			 fault & LM3645_VF_LED_SHORT_MASK);
+	if (fault & LM3645_VF_OUT_SHORT)
+		dev_warn(dev, "boost output short - outputs disabled\n");
+	if (fault & LM3645_VF_UVLO)
+		dev_warn(dev, "input UVLO - supply sagged under load, outputs disabled\n");
+	if (flag & LM3645_FLAG_ICL)
+		dev_warn(dev, "inductor current limit reached - LED current folded back\n");
+}
+
 /* LED-class brightness == torch level (0 turns the outputs off). */
 static int lm3645_torch_brightness_set(struct led_classdev *cdev,
 				       enum led_brightness brightness)
@@ -116,9 +154,14 @@ static int lm3645_torch_brightness_set(struct led_classdev *cdev,
 	if (ret)
 		return ret;
 
-	return regmap_update_bits(chip->regmap, LM3645_REG_CTRL2,
-				  LM3645_CTRL2_DX_EN_MASK,
-				  LM3645_CTRL2_DX_EN_MASK);
+	ret = regmap_update_bits(chip->regmap, LM3645_REG_CTRL2,
+				 LM3645_CTRL2_DX_EN_MASK,
+				 LM3645_CTRL2_DX_EN_MASK);
+	if (ret)
+		return ret;
+
+	lm3645_report_faults(chip);
+	return 0;
 }
 
 static int lm3645_flash_brightness_set(struct led_classdev_flash *fled,
@@ -165,9 +208,14 @@ static int lm3645_strobe_set(struct led_classdev_flash *fled, bool state)
 	if (ret)
 		return ret;
 
-	return regmap_update_bits(chip->regmap, LM3645_REG_CTRL2,
-				  LM3645_CTRL2_DX_EN_MASK,
-				  LM3645_CTRL2_DX_EN_MASK);
+	ret = regmap_update_bits(chip->regmap, LM3645_REG_CTRL2,
+				 LM3645_CTRL2_DX_EN_MASK,
+				 LM3645_CTRL2_DX_EN_MASK);
+	if (ret)
+		return ret;
+
+	lm3645_report_faults(chip);
+	return 0;
 }
 
 static const struct led_flash_ops lm3645_flash_ops = {
@@ -196,6 +244,19 @@ static int lm3645_init_hw(struct lm3645 *chip)
 	ret = regmap_write(chip->regmap, LM3645_REG_STR_CTRL, 0x00);
 	if (ret)
 		return ret;
+
+	/*
+	 * Disable LED-short detection. This part flags a "short" when a LEDx
+	 * pin sits below 500 mV, but the low-Vf IR emitters used here leave the
+	 * current-source headroom around that threshold, so the detector
+	 * false-trips on healthy LEDs and clears the Dx_EN bits (outputs never
+	 * light). OVP / output-short / UVLO protection remain enabled.
+	 */
+	ret = regmap_update_bits(chip->regmap, LM3645_REG_FAULT_CTRL,
+				 LM3645_FAULT_LED_SHORT_EN, 0);
+	if (ret)
+		return ret;
+
 	ret = lm3645_set_all(chip, LM3645_REG_D1_FLASH, 0x00);
 	if (ret)
 		return ret;
