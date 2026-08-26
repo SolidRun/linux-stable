@@ -17,6 +17,8 @@
 	aliases {
 		i2c3 = &i2c_csi0;
 		i2c4 = &i2c_csi1;
+		rtc0 = &mcu_sc;
+		rtc1 = &pmic_rtc;
 	};
 
 	leds {
@@ -146,6 +148,11 @@
 		line-name = "lte-power";
 	};
 #endif
+
+	mcu_irq_pin: mcu-irq {
+		pins = "P56";
+		bias-pull-up;
+	};
 };
 
 /*
@@ -204,6 +211,14 @@
 	 * - OPT4001DTSR Ambient Light Sensor at 0x44
 	 * - HDC3022DEJR Humidity/Temperature sensor at 0x46
 	 */
+	mcu_sc: system-controller@18 {
+		compatible = "solidrun,solidsense-aiot-system-controller";
+		reg = <0x18>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&mcu_irq_pin>;
+		interrupts-extended = <&pinctrl RZG2L_GPIO(5, 6) IRQ_TYPE_LEVEL_LOW>;
+	};
+
 	i2c-switch@70 {
 		compatible = "nxp,pca9546";
 		reg = <0x70>;
