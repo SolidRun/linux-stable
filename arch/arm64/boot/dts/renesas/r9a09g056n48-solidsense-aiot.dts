@@ -218,6 +218,7 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&mcu_irq_pin>;
 		interrupts-extended = <&pinctrl RZG2L_GPIO(5, 6) IRQ_TYPE_LEVEL_LOW>;
+		system-power-controller;
 	};
 
 	i2c-switch@70 {
