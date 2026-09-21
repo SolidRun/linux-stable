@@ -29,6 +29,8 @@
 			label = "CPU_LED_D10";
 			gpios = <&pinctrl RZG2L_GPIO(8, 5) GPIO_ACTIVE_HIGH>;
 			default-state = "on";
+			function = LED_FUNCTION_STATUS;
+			linux,default-trigger = "heartbeat";
 		};
 	};
 	
