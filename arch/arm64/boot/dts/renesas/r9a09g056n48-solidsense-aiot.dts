@@ -18,7 +18,7 @@
 	aliases {
 		i2c3 = &i2c_csi0;
 		i2c4 = &i2c_csi1;
-		rtc0 = &mcu_sc;
+		rtc0 = &sc_rtc;
 		rtc1 = &pmic_rtc;
 	};
 
@@ -202,6 +202,7 @@
 
 /* Carrier I2C2 */
 &i2c1 {
+	clock-frequency = <100000>;
 	status = "okay";
 
 	/*
@@ -214,13 +215,45 @@
 	 * - OPT4001DTSR Ambient Light Sensor at 0x44
 	 * - HDC3022DEJR Humidity/Temperature sensor at 0x46
 	 */
-	mcu_sc: system-controller@18 {
+	sc: system-controller@18 {
 		compatible = "solidrun,solidsense-aiot-system-controller";
 		reg = <0x18>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&mcu_irq_pin>;
 		interrupts-extended = <&pinctrl RZG2L_GPIO(5, 6) IRQ_TYPE_LEVEL_LOW>;
+		interrupt-controller;
+		#interrupt-cells = <1>;
 		system-power-controller;
+
+		led-controller {
+			compatible = "solidrun,solidsense-aiot-system-controller-led";
+		};
+
+		proximity-sensor {
+			compatible = "solidrun,solidsense-aiot-system-controller-ir";
+			interrupts-extended = <&sc 1>, <&sc 2>;
+			interrupt-names = "activity", "presence";
+		};
+
+		accelerometer {
+			compatible = "solidrun,solidsense-aiot-system-controller-accelerometer";
+			interrupts-extended = <&sc 3>, <&sc 4>, <&sc 5>;
+			interrupt-names = "motion", "tilt", "freefall";
+		};
+
+		gnss {
+			compatible = "solidrun,solidsense-aiot-system-controller-gnss";
+		};
+
+		charger {
+			compatible = "solidrun,solidsense-aiot-system-controller-charger";
+		};
+
+		sc_rtc: rtc {
+			compatible = "solidrun,solidsense-aiot-system-controller-rtc";
+			interrupts-extended = <&sc 6>;
+			interrupt-names = "alarm";
+		};
 	};
 
 	i2c-switch@70 {
