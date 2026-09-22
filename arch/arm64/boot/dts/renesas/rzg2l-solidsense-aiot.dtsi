@@ -142,6 +142,11 @@
 };
 
 &pinctrl {
+	mcu_irq_pin: mcu-irq {
+		pins = "P41_0";
+		bias-pull-up;
+	};
+
 	/* External audio master clock inputs (carrier AUD_CLK). */
 	sound_clk_pins: sound-clk {
 		pins = "AUDIO_CLK1", "AUDIO_CLK2";
@@ -160,6 +165,47 @@
 /* Carrier I2C ("I2C2" net) == RZ/G2L RIIC1 (&i2c1); shared with SoM EEPROM@0x50. */
 &i2c1 {
 	status = "okay";
+
+	sc: system-controller@18 {
+		compatible = "solidrun,solidsense-aiot-system-controller";
+		reg = <0x18>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&mcu_irq_pin>;
+		interrupts-extended = <&pinctrl RZG2L_GPIO(41, 0) IRQ_TYPE_LEVEL_LOW>;
+		interrupt-controller;
+		#interrupt-cells = <1>;
+		system-power-controller;
+
+		led-controller {
+			compatible = "solidrun,solidsense-aiot-system-controller-led";
+		};
+
+		proximity-sensor {
+			compatible = "solidrun,solidsense-aiot-system-controller-ir";
+			interrupts-extended = <&sc 1>, <&sc 2>;
+			interrupt-names = "activity", "presence";
+		};
+
+		accelerometer {
+			compatible = "solidrun,solidsense-aiot-system-controller-accelerometer";
+			interrupts-extended = <&sc 3>, <&sc 4>, <&sc 5>;
+			interrupt-names = "motion", "tilt", "freefall";
+		};
+
+		gnss {
+			compatible = "solidrun,solidsense-aiot-system-controller-gnss";
+		};
+
+		charger {
+			compatible = "solidrun,solidsense-aiot-system-controller-charger";
+		};
+
+		sc_rtc: rtc {
+			compatible = "solidrun,solidsense-aiot-system-controller-rtc";
+			interrupts-extended = <&sc 6>;
+			interrupt-names = "alarm";
+		};
+	};
 
 	/*
 	 * TAC5111 codec, playback-only (OUT1 -> PAM8302). CCLK on GPI1 from
